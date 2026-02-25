@@ -1,0 +1,46 @@
+package io.attestry.userauth.infrastructure.persistence.jpa;
+
+import io.attestry.userauth.application.port.MembershipRepositoryPort;
+import io.attestry.userauth.domain.membership.model.Membership;
+import io.attestry.userauth.infrastructure.persistence.jpa.entity.MembershipJpaEntity;
+import io.attestry.userauth.infrastructure.persistence.jpa.repository.MembershipJpaRepository;
+import java.util.List;
+import java.util.Optional;
+import org.springframework.stereotype.Repository;
+import org.springframework.transaction.annotation.Transactional;
+
+@Repository
+public class JpaMembershipRepositoryAdapter implements MembershipRepositoryPort {
+
+    private final MembershipJpaRepository repository;
+
+    public JpaMembershipRepositoryAdapter(MembershipJpaRepository repository) {
+        this.repository = repository;
+    }
+
+    @Override
+    @Transactional(readOnly = true)
+    public List<Membership> findByUserId(String userId) {
+        return repository.findByUserId(userId).stream().map(this::toDomain).toList();
+    }
+
+    @Override
+    @Transactional(readOnly = true)
+    public Optional<Membership> findByUserIdAndContext(String userId, String tenantId, String groupId) {
+        return repository.findByUserIdAndTenantIdAndGroupId(userId, tenantId, groupId).map(this::toDomain);
+    }
+
+    private Membership toDomain(MembershipJpaEntity entity) {
+        return new Membership(
+            entity.getMembershipId(),
+            entity.getUserId(),
+            entity.getGroupId(),
+            entity.getTenantId(),
+            entity.getGroupType(),
+            entity.getRole(),
+            entity.getStatus(),
+            entity.getGroupStatus(),
+            entity.getTenantStatus()
+        );
+    }
+}

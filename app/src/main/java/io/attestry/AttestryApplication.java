@@ -1,0 +1,12 @@
+package io.attestry;
+
+import org.springframework.boot.SpringApplication;
+import org.springframework.boot.autoconfigure.SpringBootApplication;
+
+@SpringBootApplication(scanBasePackages = "io.attestry")
+public class AttestryApplication {
+
+    public static void main(String[] args) {
+        SpringApplication.run(AttestryApplication.class, args);
+    }
+}
