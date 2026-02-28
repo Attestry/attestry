@@ -1,14 +1,25 @@
 package io.attestry.userauth.application.membership;
 
+import io.attestry.userauth.application.dto.result.MembershipInvitationResult;
+import io.attestry.userauth.application.dto.result.MembershipResult;
+import io.attestry.userauth.application.dto.result.GroupAdminResult;
+import io.attestry.userauth.application.dto.view.MembershipAdminView;
+import io.attestry.userauth.application.dto.command.AuthzEvaluateCommand;
+import io.attestry.userauth.application.dto.command.PolicyDecisionMode;
+import io.attestry.userauth.application.dto.result.AuthzEvaluateResult;
 import io.attestry.userauth.application.port.MembershipAdminRepositoryPort;
+import io.attestry.userauth.application.port.RoleAssignmentAuditPort;
 import io.attestry.userauth.application.port.UserAccountRepositoryPort;
+import io.attestry.userauth.application.usecase.membership.MembershipAdminUseCase;
+import io.attestry.userauth.application.usecase.policy.EvaluateAuthorizationUseCase;
 import io.attestry.userauth.common.error.DomainException;
 import io.attestry.userauth.common.error.ErrorCode;
 import io.attestry.userauth.domain.auth.model.AuthPrincipal;
+import io.attestry.userauth.domain.auth.model.PermissionCodes;
 import io.attestry.userauth.domain.membership.model.Invitation;
-import io.attestry.userauth.domain.membership.model.MembershipRole;
-import io.attestry.userauth.domain.membership.model.MembershipStatus;
 import io.attestry.userauth.domain.membership.model.Membership;
+import io.attestry.userauth.domain.organization.model.Group;
+import io.attestry.userauth.domain.organization.model.GroupStatus;
 import io.attestry.userauth.domain.user.model.UserAccount;
 import io.attestry.userauth.domain.policy.TenantIsolationPolicy;
 import java.time.Clock;
@@ -18,27 +29,36 @@ import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
 @Service
-public class MembershipAdminService {
+public class MembershipAdminService implements MembershipAdminUseCase {
 
     private final MembershipAdminRepositoryPort membershipAdminRepository;
     private final UserAccountRepositoryPort userAccountRepository;
+    private final EvaluateAuthorizationUseCase evaluateAuthorizationUseCase;
+    private final RoleAssignmentAuditPort roleAssignmentAuditPort;
     private final Clock clock;
 
     public MembershipAdminService(
         MembershipAdminRepositoryPort membershipAdminRepository,
         UserAccountRepositoryPort userAccountRepository,
+        EvaluateAuthorizationUseCase evaluateAuthorizationUseCase,
+        RoleAssignmentAuditPort roleAssignmentAuditPort,
         Clock clock
     ) {
         this.membershipAdminRepository = membershipAdminRepository;
         this.userAccountRepository = userAccountRepository;
+        this.evaluateAuthorizationUseCase = evaluateAuthorizationUseCase;
+        this.roleAssignmentAuditPort = roleAssignmentAuditPort;
         this.clock = clock;
     }
 
+    // TODO("이메일 발송로직")
+    @Override
     @Transactional
-    public Invitation invite(AuthPrincipal principal, String tenantId, InviteCommand command) {
+    public MembershipInvitationResult invite(AuthPrincipal principal, String tenantId, InviteCommand command) {
         assertTenantIsolation(principal, tenantId);
         MembershipAdminRepositoryPort.GroupView group = membershipAdminRepository.findGroupById(command.groupId())
             .orElseThrow(() -> new DomainException(ErrorCode.MEMBERSHIP_NOT_FOUND, "Group not found"));
+
         if (!tenantId.equals(group.tenantId())) {
             throw new DomainException(ErrorCode.TENANT_ISOLATION_VIOLATION, "Cross-tenant group access denied");
         }
@@ -51,11 +71,12 @@ public class MembershipAdminService {
             principal.userId(),
             Instant.now(clock)
         );
-        return membershipAdminRepository.saveInvitation(invitation);
+        return toInvitationResult(membershipAdminRepository.saveInvitation(invitation));
     }
 
+    @Override
     @Transactional
-    public Membership acceptInvitation(AuthPrincipal principal, String invitationId) {
+    public MembershipResult acceptInvitation(AuthPrincipal principal, String invitationId) {
         Invitation invitation = membershipAdminRepository.findInvitationById(invitationId)
             .orElseThrow(() -> new DomainException(ErrorCode.INVITATION_NOT_FOUND, "Invitation not found"));
 
@@ -70,21 +91,85 @@ public class MembershipAdminService {
         );
         membershipAdminRepository.saveInvitation(invitation.accept(principal.userId(), userAccount.user().email(), Instant.now(clock)));
 
-        return membership;
+        return toMembershipResult(membership);
     }
 
+    @Override
     @Transactional(readOnly = true)
-    public List<Membership> listMemberships(AuthPrincipal principal, String tenantId) {
+    public List<MembershipAdminView> listMemberships(AuthPrincipal principal, String tenantId) {
         assertTenantIsolation(principal, tenantId);
-        return membershipAdminRepository.findMembershipsByTenantId(tenantId);
+        return membershipAdminRepository.findMembershipsByTenantId(tenantId).stream()
+            .map(this::toMembershipView)
+            .toList();
     }
 
+    @Override
     @Transactional
-    public Membership updateMembership(
+    public MembershipResult updateMembershipRole(
         AuthPrincipal principal,
         String tenantId,
         String membershipId,
-        UpdateMembershipCommand command
+        UpdateMembershipRoleCommand command
+    ) {
+        assertTenantIsolation(principal, tenantId);
+        Membership current = membershipAdminRepository.findMembershipById(membershipId)
+            .orElseThrow(() -> new DomainException(ErrorCode.MEMBERSHIP_NOT_FOUND, "Membership not found"));
+
+        if (!tenantId.equals(current.tenantId())) {
+            throw new DomainException(ErrorCode.TENANT_ISOLATION_VIOLATION, "Cross-tenant membership access denied");
+        }
+        if (current.userId().equals(principal.userId())) {
+            throw new DomainException(ErrorCode.FORBIDDEN_SCOPE, "Self role assignment is not allowed");
+        }
+        if (command.role() == null || command.role() == current.role()) {
+            return toMembershipResult(current);
+        }
+
+        Instant requestedAt = Instant.now(clock);
+        AuthzEvaluateResult decision = evaluateAuthorizationUseCase.evaluate(
+            principal,
+            new AuthzEvaluateCommand(
+                tenantId,
+                PermissionCodes.TENANT_ROLE_ASSIGN,
+                "membership:" + membershipId,
+                PolicyDecisionMode.LIVE_RECHECK
+            )
+        );
+        Instant decidedAt = Instant.now(clock);
+        roleAssignmentAuditPort.log(
+            principal.userId(),
+            principal.tenantId(),
+            membershipId,
+            current.role().name(),
+            command.role().name(),
+            PolicyDecisionMode.LIVE_RECHECK.name(),
+            decision.allowed(),
+            decision.reason(),
+            requestedAt,
+            decidedAt
+        );
+        if (!decision.allowed()) {
+            throw new DomainException(
+                decision.reason() != null ? ErrorCode.valueOf(decision.reason()) : ErrorCode.FORBIDDEN_SCOPE,
+                "Role assignment denied by live policy check"
+            );
+        }
+
+        Membership updated = membershipAdminRepository.updateMembership(
+            current.membershipId(),
+            command.role(),
+            current.status()
+        );
+        return toMembershipResult(updated);
+    }
+
+    @Override
+    @Transactional
+    public MembershipResult updateMembershipStatus(
+        AuthPrincipal principal,
+        String tenantId,
+        String membershipId,
+        UpdateMembershipStatusCommand command
     ) {
         assertTenantIsolation(principal, tenantId);
         Membership current = membershipAdminRepository.findMembershipById(membershipId)
@@ -94,11 +179,68 @@ public class MembershipAdminService {
             throw new DomainException(ErrorCode.TENANT_ISOLATION_VIOLATION, "Cross-tenant membership access denied");
         }
 
-        return membershipAdminRepository.updateMembership(
-            current.membershipId(),
-            command.role() == null ? current.role() : command.role(),
-            command.status() == null ? current.status() : command.status()
+        if (command.status() == null || command.status() == current.status()) {
+            return toMembershipResult(current);
+        }
+
+        AuthzEvaluateResult decision = evaluateAuthorizationUseCase.evaluate(
+            principal,
+            new AuthzEvaluateCommand(
+                tenantId,
+                PermissionCodes.TENANT_MEMBERSHIP_ENFORCE,
+                "membership:" + membershipId,
+                PolicyDecisionMode.LIVE_RECHECK
+            )
         );
+        if (!decision.allowed()) {
+            throw new DomainException(
+                decision.reason() != null ? ErrorCode.valueOf(decision.reason()) : ErrorCode.FORBIDDEN_SCOPE,
+                "Membership enforce denied by live policy check"
+            );
+        }
+
+        Membership updated = membershipAdminRepository.updateMembership(
+            current.membershipId(),
+            current.role(),
+            command.status()
+        );
+        return toMembershipResult(updated);
+    }
+
+    @Override
+    @Transactional
+    public GroupAdminResult suspendGroup(AuthPrincipal principal, String tenantId, String groupId) {
+        assertTenantIsolation(principal, tenantId);
+        MembershipAdminRepositoryPort.GroupView groupView = membershipAdminRepository.findGroupById(groupId)
+            .orElseThrow(() -> new DomainException(ErrorCode.GROUP_NOT_FOUND, "Group not found"));
+
+        if (!tenantId.equals(groupView.tenantId())) {
+            throw new DomainException(ErrorCode.TENANT_ISOLATION_VIOLATION, "Cross-tenant group access denied");
+        }
+
+        Group group = new Group(groupView.groupId(), groupView.tenantId(), groupView.type(), groupView.status()).suspend();
+        MembershipAdminRepositoryPort.GroupView saved = membershipAdminRepository.saveGroup(
+            new MembershipAdminRepositoryPort.GroupView(group.groupId(), group.tenantId(), group.type(), group.status())
+        );
+        membershipAdminRepository.updateGroupStatusOnMemberships(saved.groupId(), GroupStatus.SUSPENDED);
+        return toGroupResult(saved);
+    }
+
+    @Override
+    @Transactional
+    public GroupAdminResult unsuspendGroup(AuthPrincipal principal, String tenantId, String groupId) {
+        assertTenantIsolation(principal, tenantId);
+        MembershipAdminRepositoryPort.GroupView groupView = membershipAdminRepository.findGroupById(groupId)
+            .orElseThrow(() -> new DomainException(ErrorCode.GROUP_NOT_FOUND, "Group not found"));
+        if (!tenantId.equals(groupView.tenantId())) {
+            throw new DomainException(ErrorCode.TENANT_ISOLATION_VIOLATION, "Cross-tenant group access denied");
+        }
+        Group group = new Group(groupView.groupId(), groupView.tenantId(), groupView.type(), groupView.status()).unsuspend();
+        MembershipAdminRepositoryPort.GroupView saved = membershipAdminRepository.saveGroup(
+            new MembershipAdminRepositoryPort.GroupView(group.groupId(), group.tenantId(), group.type(), group.status())
+        );
+        membershipAdminRepository.updateGroupStatusOnMemberships(saved.groupId(), GroupStatus.ACTIVE);
+        return toGroupResult(saved);
     }
 
     private void assertTenantIsolation(AuthPrincipal principal, String tenantId) {
@@ -107,9 +249,44 @@ public class MembershipAdminService {
         }
     }
 
-    public record InviteCommand(String email, String groupId, MembershipRole role) {
+    private MembershipInvitationResult toInvitationResult(Invitation invitation) {
+        return new MembershipInvitationResult(
+            invitation.invitationId(),
+            invitation.tenantId(),
+            invitation.groupId(),
+            invitation.inviteeEmail().value(),
+            invitation.role().name(),
+            invitation.status().name()
+        );
     }
 
-    public record UpdateMembershipCommand(MembershipRole role, MembershipStatus status) {
+    private MembershipResult toMembershipResult(Membership membership) {
+        return new MembershipResult(
+            membership.membershipId(),
+            membership.tenantId(),
+            membership.groupId(),
+            membership.role().name(),
+            membership.status().name()
+        );
     }
+
+    private MembershipAdminView toMembershipView(Membership membership) {
+        return new MembershipAdminView(
+            membership.membershipId(),
+            membership.tenantId(),
+            membership.groupId(),
+            membership.role().name(),
+            membership.status().name()
+        );
+    }
+
+    private GroupAdminResult toGroupResult(MembershipAdminRepositoryPort.GroupView group) {
+        return new GroupAdminResult(
+            group.groupId(),
+            group.tenantId(),
+            group.type().name(),
+            group.status().name()
+        );
+    }
+
 }

@@ -14,7 +14,7 @@ public record OrganizationApplication(
     String orgName,
     String country,
     String bizRegNo,
-    String evidenceGroupId,
+    String evidenceBundleId,
     ApplicationStatus status,
     String reviewedByAdminId,
     Instant reviewedAt,
@@ -25,8 +25,9 @@ public record OrganizationApplication(
         String orgName,
         String country,
         String bizRegNo,
-        String evidenceGroupId
+        String evidenceBundleId
     ) {
+        validateEvidenceBundleId(evidenceBundleId);
         return new OrganizationApplication(
             UUID.randomUUID().toString(),
             GroupType.BRAND,
@@ -35,7 +36,7 @@ public record OrganizationApplication(
             orgName,
             country,
             bizRegNo,
-            evidenceGroupId,
+            evidenceBundleId,
             ApplicationStatus.PENDING,
             null,
             null,
@@ -49,8 +50,9 @@ public record OrganizationApplication(
         String orgName,
         String country,
         String bizRegNo,
-        String evidenceGroupId
+        String evidenceBundleId
     ) {
+        validateEvidenceBundleId(evidenceBundleId);
         return new OrganizationApplication(
             UUID.randomUUID().toString(),
             GroupType.RETAIL,
@@ -59,7 +61,7 @@ public record OrganizationApplication(
             orgName,
             country,
             bizRegNo,
-            evidenceGroupId,
+            evidenceBundleId,
             ApplicationStatus.PENDING,
             null,
             null,
@@ -77,7 +79,7 @@ public record OrganizationApplication(
             orgName,
             country,
             bizRegNo,
-            evidenceGroupId,
+            evidenceBundleId,
             ApplicationStatus.APPROVED,
             reviewerUserId,
             reviewedAt,
@@ -95,7 +97,7 @@ public record OrganizationApplication(
             orgName,
             country,
             bizRegNo,
-            evidenceGroupId,
+            evidenceBundleId,
             ApplicationStatus.REJECTED,
             reviewerUserId,
             reviewedAt,
@@ -106,6 +108,12 @@ public record OrganizationApplication(
     public void assertPending() {
         if (status != ApplicationStatus.PENDING) {
             throw new DomainException(ErrorCode.INVALID_APPLICATION_STATE, "Application is not pending");
+        }
+    }
+
+    private static void validateEvidenceBundleId(String evidenceBundleId) {
+        if (evidenceBundleId == null || evidenceBundleId.isBlank()) {
+            throw new DomainException(ErrorCode.INVALID_APPLICATION_STATE, "Evidence bundle id is required");
         }
     }
 }

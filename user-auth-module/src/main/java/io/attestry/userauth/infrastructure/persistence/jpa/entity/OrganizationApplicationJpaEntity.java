@@ -37,8 +37,8 @@ public class OrganizationApplicationJpaEntity {
     @Column(name = "biz_reg_no")
     private String bizRegNo;
 
-    @Column(name = "evidence_group_id", length = 36)
-    private String evidenceGroupId;
+    @Column(name = "evidence_bundle_id", nullable = false, length = 36)
+    private String evidenceBundleId;
 
     @Enumerated(EnumType.STRING)
     @Column(name = "status", nullable = false)
@@ -64,7 +64,7 @@ public class OrganizationApplicationJpaEntity {
         String orgName,
         String country,
         String bizRegNo,
-        String evidenceGroupId,
+        String evidenceBundleId,
         ApplicationStatus status,
         String reviewedByAdminId,
         Instant reviewedAt,
@@ -77,7 +77,7 @@ public class OrganizationApplicationJpaEntity {
         this.orgName = orgName;
         this.country = country;
         this.bizRegNo = bizRegNo;
-        this.evidenceGroupId = evidenceGroupId;
+        this.evidenceBundleId = evidenceBundleId;
         this.status = status;
         this.reviewedByAdminId = reviewedByAdminId;
         this.reviewedAt = reviewedAt;
@@ -112,8 +112,8 @@ public class OrganizationApplicationJpaEntity {
         return bizRegNo;
     }
 
-    public String getEvidenceGroupId() {
-        return evidenceGroupId;
+    public String getEvidenceBundleId() {
+        return evidenceBundleId;
     }
 
     public ApplicationStatus getStatus() {

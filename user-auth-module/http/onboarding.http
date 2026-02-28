@@ -1,0 +1,117 @@
+### =========================================================
+### User Auth API - Onboarding Scenario Collection
+### =========================================================
+@adminAccessToken = 68ef0096-c313-489e-8851-f8073fec1ad5
+
+
+@baseUrl = http://localhost:8080
+@contentType = application/json
+@accessToken = b50da728-0d3c-4b95-9227-c2cfdfffd71e
+@pdfPath = ./user-auth-module/http/files/biz-proof-1.pdf
+@pdfSizeBytes = 102400
+
+@tenantId = REPLACE_TENANT_ID
+@applicationId = 0bd700b3-925f-4773-b23e-11f136195531
+@evidenceBundleId = e3e43352-1590-4828-9c6b-757ce7de402d
+@evidenceFileId = 456b41ba-68aa-4833-b2ea-9aea5fd8b9e7
+
+
+
+
+### NOTE
+### 현재 도메인 정책은 증빙 파일을 PDF만 허용합니다.
+### (image/png, image/jpeg 업로드는 presign 단계/도메인 검증에서 거절됨)
+
+### =========================================================
+### A) 원샷 플로우: presign -> upload(PUT) -> complete
+### =========================================================
+
+
+### 2) Presign evidence upload (existing bundle)
+POST {{baseUrl}}/onboarding/evidences/presign
+Authorization: Bearer {{accessToken}}
+Content-Type: {{contentType}}
+
+{
+  "evidenceBundleId": "{{evidenceBundleId}}",
+  "fileName": "biz-proof-2.pdf",
+  "contentType": "application/pdf"
+}
+
+
+
+
+### 4) Create brand application
+POST {{baseUrl}}/brand-applications
+Authorization: Bearer {{accessToken}}
+Content-Type: {{contentType}}
+
+{
+  "brandName": "Attestry Brand",
+  "country": "KR",
+  "bizRegNo": "110-11-12345",
+  "evidenceBundleId": "cf71bc6d-855d-4695-98f9-594dcb5c5c93"
+}
+
+
+### 5) Get brand application
+GET {{baseUrl}}/brand-applications/{{applicationId}}
+Authorization: Bearer {{adminAccessToken}}
+
+
+### 6) List brand applications (platform/admin scope 필요)
+GET {{baseUrl}}/admin/brand-applications
+Authorization: Bearer {{adminAccessToken}}
+
+
+### 7) Approve brand application (platform/admin scope 필요)
+POST {{baseUrl}}/admin/brand-applications/{{applicationId}}/approve
+Authorization: Bearer {{adminAccessToken}}
+
+
+### 8) Reject brand application (platform/admin scope 필요)
+POST {{baseUrl}}/admin/brand-applications/{{applicationId}}/reject
+Authorization: Bearer {{accessToken}}
+Content-Type: {{contentType}}
+
+{
+  "reason": "Document mismatch"
+}
+
+
+### 9) Create retail application
+POST {{baseUrl}}/tenants/{{tenantId}}/retail-applications
+Authorization: Bearer {{accessToken}}
+Content-Type: {{contentType}}
+
+{
+  "retailName": "Attestry Retail Shop",
+  "country": "KR",
+  "bizRegNo": "220-22-23456",
+  "evidenceBundleId": "{{evidenceBundleId}}"
+}
+
+
+### 10) Get retail application
+GET {{baseUrl}}/tenants/{{tenantId}}/retail-applications/{{applicationId}}
+Authorization: Bearer {{accessToken}}
+
+
+### 11) List retail applications (tenant admin scope 필요)
+GET {{baseUrl}}/tenants/{{tenantId}}/admin/retail-applications
+Authorization: Bearer {{accessToken}}
+
+
+### 12) Approve retail application (tenant admin scope 필요)
+POST {{baseUrl}}/tenants/{{tenantId}}/admin/retail-applications/{{applicationId}}/approve
+Authorization: Bearer {{accessToken}}
+
+
+### 13) Reject retail application (tenant admin scope 필요)
+POST {{baseUrl}}/tenants/{{tenantId}}/admin/retail-applications/{{applicationId}}/reject
+Authorization: Bearer {{accessToken}}
+Content-Type: {{contentType}}
+
+{
+  "reason": "Insufficient documents"
+}

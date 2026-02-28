@@ -3,7 +3,6 @@ package io.attestry.userauth.security;
 import io.attestry.userauth.application.port.AccessTokenPort;
 import io.attestry.userauth.common.error.DomainException;
 import io.attestry.userauth.domain.auth.model.AuthPrincipal;
-import io.attestry.userauth.domain.auth.model.Scope;
 import io.attestry.userauth.interfaces.auth.BearerTokenExtractor;
 import jakarta.servlet.FilterChain;
 import jakarta.servlet.ServletException;
@@ -31,7 +30,11 @@ public class AccessTokenAuthenticationFilter extends OncePerRequestFilter {
     @Override
     protected boolean shouldNotFilter(HttpServletRequest request) {
         String path = request.getRequestURI();
-        return path.equals("/auth/signup") || path.equals("/auth/login") || path.equals("/error");
+        return path.equals("/auth/signup")
+            || path.equals("/auth/login")
+            || path.equals("/api-v1/auth/signup")
+            || path.equals("/api-v1/auth/login")
+            || path.equals("/error");
     }
 
     @Override
@@ -70,7 +73,6 @@ public class AccessTokenAuthenticationFilter extends OncePerRequestFilter {
 
     private List<SimpleGrantedAuthority> authorities(AuthPrincipal principal) {
         return principal.scopes().stream()
-            .map(Scope::name)
             .map(scope -> new SimpleGrantedAuthority("SCOPE_" + scope))
             .toList();
     }

@@ -5,22 +5,24 @@ import static org.junit.jupiter.api.Assertions.assertNotNull;
 import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
-import io.attestry.userauth.application.dto.AuthTokenResult;
-import io.attestry.userauth.application.dto.LoginCommand;
-import io.attestry.userauth.application.dto.SignUpCommand;
+import io.attestry.userauth.application.dto.result.AuthTokenResult;
+import io.attestry.userauth.application.dto.command.LoginCommand;
+import io.attestry.userauth.application.dto.command.SignUpCommand;
 import io.attestry.userauth.application.port.AccessTokenPort;
+import io.attestry.userauth.application.port.MembershipPermissionQueryPort;
 import io.attestry.userauth.application.port.MembershipRepositoryPort;
 import io.attestry.userauth.application.port.PasswordHasherPort;
 import io.attestry.userauth.application.port.UserAccountRepositoryPort;
 import io.attestry.userauth.common.error.DomainException;
 import io.attestry.userauth.common.error.ErrorCode;
 import io.attestry.userauth.domain.auth.model.AuthPrincipal;
+import io.attestry.userauth.domain.auth.model.PermissionCodes;
+import io.attestry.userauth.domain.auth.model.RoleCodes;
 import io.attestry.userauth.domain.organization.model.GroupStatus;
 import io.attestry.userauth.domain.organization.model.GroupType;
 import io.attestry.userauth.domain.membership.model.Membership;
 import io.attestry.userauth.domain.membership.model.MembershipRole;
 import io.attestry.userauth.domain.membership.model.MembershipStatus;
-import io.attestry.userauth.domain.auth.model.Scope;
 import io.attestry.userauth.domain.organization.model.TenantStatus;
 import io.attestry.userauth.domain.user.vo.Email;
 import io.attestry.userauth.domain.user.model.User;
@@ -46,6 +48,7 @@ class AuthApplicationServiceTest {
     private InMemoryMembershipRepo membershipRepo;
     private FakePasswordHasher passwordHasher;
     private InMemoryAccessTokenPort tokenPort;
+    private InMemoryMembershipPermissionQueryPort permissionQueryPort;
     private AuthApplicationService service;
 
     @BeforeEach
@@ -54,14 +57,21 @@ class AuthApplicationServiceTest {
         membershipRepo = new InMemoryMembershipRepo();
         passwordHasher = new FakePasswordHasher();
         tokenPort = new InMemoryAccessTokenPort();
+        permissionQueryPort = new InMemoryMembershipPermissionQueryPort();
+        permissionQueryPort.seedGlobalRole(RoleCodes.OWNER_DEFAULT, Set.of(
+            PermissionCodes.OWNER_TRANSFER_CREATE,
+            PermissionCodes.OWNER_TRANSFER_ACCEPT,
+            PermissionCodes.OWNER_RISK_FLAG,
+            PermissionCodes.OWNER_RISK_CLEAR
+        ));
         Clock clock = Clock.fixed(Instant.parse("2026-02-25T00:00:00Z"), ZoneOffset.UTC);
 
-        service = new AuthApplicationService(userRepo, membershipRepo, passwordHasher, tokenPort, clock);
+        service = new AuthApplicationService(userRepo, membershipRepo, permissionQueryPort, passwordHasher, tokenPort, clock);
     }
 
     @Test
     void signUpShouldHashPasswordAndReturnUserId() {
-        String userId = service.signUp(new SignUpCommand("a@b.com", "plain", "010-0000"));
+        String userId = service.signUp(new SignUpCommand("a@b.com", "plain", "010-0000")).userId();
 
         UserAccount saved = userRepo.findByUserId(userId).orElseThrow();
         assertEquals("hashed:plain", saved.passwordHash());
@@ -82,15 +92,19 @@ class AuthApplicationServiceTest {
             GroupStatus.ACTIVE,
             TenantStatus.ACTIVE
         ));
+        permissionQueryPort.seed("m1", Set.of(
+            PermissionCodes.TENANT_MEMBERSHIP_VIEW,
+            PermissionCodes.BRAND_MINT
+        ));
 
         AuthTokenResult result = service.login(new LoginCommand("admin@brand.com", "pw", "t1", "g1"));
         AuthPrincipal principal = tokenPort.parse(result.accessToken()).orElseThrow();
 
         assertEquals("t1", result.tenantId());
         assertEquals("g1", result.groupId());
-        assertTrue(principal.scopes().contains(Scope.OWNER_TRANSFER_CREATE));
-        assertTrue(principal.scopes().contains(Scope.TENANT_ADMIN));
-        assertTrue(principal.scopes().contains(Scope.BRAND_MINT));
+        assertTrue(principal.scopes().contains(PermissionCodes.OWNER_TRANSFER_CREATE));
+        assertTrue(principal.scopes().contains(PermissionCodes.TENANT_MEMBERSHIP_VIEW));
+        assertTrue(principal.scopes().contains(PermissionCodes.BRAND_MINT));
     }
 
     @Test
@@ -103,10 +117,10 @@ class AuthApplicationServiceTest {
         assertEquals(null, result.tenantId());
         assertEquals(null, result.groupId());
         assertEquals(Set.of(
-            Scope.OWNER_TRANSFER_CREATE,
-            Scope.OWNER_TRANSFER_ACCEPT,
-            Scope.OWNER_RISK_FLAG,
-            Scope.OWNER_RISK_CLEAR
+            PermissionCodes.OWNER_TRANSFER_CREATE,
+            PermissionCodes.OWNER_TRANSFER_ACCEPT,
+            PermissionCodes.OWNER_RISK_FLAG,
+            PermissionCodes.OWNER_RISK_CLEAR
         ), principal.scopes());
     }
 
@@ -262,12 +276,10 @@ class AuthApplicationServiceTest {
         }
 
         @Override
-        public void updateVerificationLevel(String userId, VerificationLevel verificationLevel) {
-            UserAccount current = byUserId.get(userId);
-            if (current == null) {
-                return;
-            }
-            byUserId.put(userId, current.withVerificationLevel(verificationLevel));
+        public UserAccount save(UserAccount userAccount) {
+            byUserId.put(userAccount.user().userId(), userAccount);
+            userIdByEmail.put(userAccount.user().email().value(), userAccount.user().userId());
+            return userAccount;
         }
 
         User seed(String userId, String email, String passwordHash, UserStatus status, VerificationLevel level) {
@@ -334,6 +346,29 @@ class AuthApplicationServiceTest {
         @Override
         public void revoke(String token) {
             tokens.remove(token);
+        }
+    }
+
+    private static class InMemoryMembershipPermissionQueryPort implements MembershipPermissionQueryPort {
+        private final Map<String, Set<String>> permissionByMembershipId = new HashMap<>();
+        private final Map<String, Set<String>> permissionByRoleCode = new HashMap<>();
+
+        @Override
+        public Set<String> findPermissionCodesByMembershipId(String membershipId) {
+            return permissionByMembershipId.getOrDefault(membershipId, Set.of());
+        }
+
+        @Override
+        public Set<String> findPermissionCodesByGlobalRoleCode(String roleCode) {
+            return permissionByRoleCode.getOrDefault(roleCode, Set.of());
+        }
+
+        void seed(String membershipId, Set<String> codes) {
+            permissionByMembershipId.put(membershipId, codes);
+        }
+
+        void seedGlobalRole(String roleCode, Set<String> codes) {
+            permissionByRoleCode.put(roleCode, codes);
         }
     }
 }

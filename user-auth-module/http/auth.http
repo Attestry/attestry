@@ -1,0 +1,115 @@
+### =========================================================
+### User Auth API - SignUp / Login Scenario Collection
+### =========================================================
+
+@baseUrl = http://localhost:8080
+@contentType = application/json
+
+@email = qa.user1@attestry.io
+@password = Password123!
+@phone = 010-1234-5678
+
+@adminEmail = platform.admin@attestry.local
+@adminPassword = PlatformAdm1n!2026
+
+
+@tenantId = fae5ddb4-e430-4e70-b8ae-841a0f80f9ec
+@groupId = abb30794-beba-4b26-b4f1-4cc53323402a
+@accessToken = REPLACE_ACCESS_TOKEN
+
+
+### 1) SignUp
+POST {{baseUrl}}/auth/signup
+Content-Type: {{contentType}}
+
+{
+  "email": "{{email}}",
+  "password": "{{password}}",
+  "phone": "{{phone}}"
+}
+
+
+### 2) Login - admin
+POST {{baseUrl}}/auth/login
+Content-Type: {{contentType}}
+
+{
+  "email": "{{adminEmail}}",
+  "password": "{{adminPassword}}",
+  "tenantId": null,
+  "groupId": null
+}
+
+
+
+
+### 2) Login - Case A: tenantId/groupId 모두 null (membership 자동 선택 or owner-only)
+POST {{baseUrl}}/auth/login
+Content-Type: {{contentType}}
+
+{
+  "email": "{{email}}",
+  "password": "{{password}}",
+  "tenantId": null,
+  "groupId": null
+}
+
+
+### 3) Login - Case B: tenantId/groupId 모두 지정 (특정 membership 직접 선택)
+POST {{baseUrl}}/auth/login
+Content-Type: {{contentType}}
+
+{
+  "email": "{{email}}",
+  "password": "{{password}}",
+  "tenantId": "{{tenantId}}",
+  "groupId": "{{groupId}}"
+}
+
+
+### 4) Login - Case C: tenantId만 지정, groupId는 null
+### 현재 정책상 requested membership 매칭 없이 활성 membership fallback 선택
+POST {{baseUrl}}/auth/login
+Content-Type: {{contentType}}
+
+{
+  "email": "{{email}}",
+  "password": "{{password}}",
+  "tenantId": "{{tenantId}}",
+  "groupId": null
+}
+
+
+### 5) Login - Case D: tenantId는 null, groupId만 지정
+### 현재 정책상 requested membership 매칭 없이 활성 membership fallback 선택
+POST {{baseUrl}}/auth/login
+Content-Type: {{contentType}}
+
+{
+  "email": "{{email}}",
+  "password": "{{password}}",
+  "tenantId": null,
+  "groupId": "{{groupId}}"
+}
+
+
+### 6) Login - Case E: tenantId/groupId 불일치 또는 비활성 membership (실패 기대)
+POST {{baseUrl}}/auth/login
+Content-Type: {{contentType}}
+
+{
+  "email": "{{email}}",
+  "password": "{{password}}",
+  "tenantId": "wrong-tenant-id",
+  "groupId": "wrong-group-id"
+}
+
+
+### 7) Logout
+POST {{baseUrl}}/auth/logout
+Authorization: Bearer {{accessToken}}
+
+
+### 8) Verify Phone
+POST {{baseUrl}}/auth/verify-phone
+Authorization: Bearer {{accessToken}}

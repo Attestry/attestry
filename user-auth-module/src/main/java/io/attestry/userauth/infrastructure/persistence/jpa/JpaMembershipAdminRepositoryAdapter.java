@@ -5,14 +5,18 @@ import io.attestry.userauth.domain.membership.model.Invitation;
 import io.attestry.userauth.domain.membership.model.Membership;
 import io.attestry.userauth.domain.membership.model.MembershipRole;
 import io.attestry.userauth.domain.membership.model.MembershipStatus;
+import io.attestry.userauth.domain.organization.model.GroupStatus;
 import io.attestry.userauth.domain.organization.model.TenantStatus;
 import io.attestry.userauth.domain.user.vo.Email;
 import io.attestry.userauth.infrastructure.persistence.jpa.entity.InvitationJpaEntity;
 import io.attestry.userauth.infrastructure.persistence.jpa.entity.MembershipJpaEntity;
+import io.attestry.userauth.infrastructure.persistence.jpa.entity.MembershipRoleAssignmentJpaEntity;
 import io.attestry.userauth.infrastructure.persistence.jpa.repository.GroupJpaRepository;
 import io.attestry.userauth.infrastructure.persistence.jpa.repository.InvitationJpaRepository;
 import io.attestry.userauth.infrastructure.persistence.jpa.repository.MembershipJpaRepository;
+import io.attestry.userauth.infrastructure.persistence.jpa.repository.MembershipRoleAssignmentJpaRepository;
 import io.attestry.userauth.infrastructure.persistence.jpa.repository.UserAccountJpaRepository;
+import java.time.Instant;
 import java.util.List;
 import java.util.Optional;
 import java.util.UUID;
@@ -23,17 +27,20 @@ public class JpaMembershipAdminRepositoryAdapter implements MembershipAdminRepos
 
     private final InvitationJpaRepository invitationRepository;
     private final MembershipJpaRepository membershipRepository;
+    private final MembershipRoleAssignmentJpaRepository membershipRoleAssignmentRepository;
     private final UserAccountJpaRepository userAccountRepository;
     private final GroupJpaRepository groupRepository;
 
     public JpaMembershipAdminRepositoryAdapter(
         InvitationJpaRepository invitationRepository,
         MembershipJpaRepository membershipRepository,
+        MembershipRoleAssignmentJpaRepository membershipRoleAssignmentRepository,
         UserAccountJpaRepository userAccountRepository,
         GroupJpaRepository groupRepository
     ) {
         this.invitationRepository = invitationRepository;
         this.membershipRepository = membershipRepository;
+        this.membershipRoleAssignmentRepository = membershipRoleAssignmentRepository;
         this.userAccountRepository = userAccountRepository;
         this.groupRepository = groupRepository;
     }
@@ -48,6 +55,41 @@ public class JpaMembershipAdminRepositoryAdapter implements MembershipAdminRepos
     public Optional<GroupView> findGroupById(String groupId) {
         return groupRepository.findById(groupId)
             .map(group -> new GroupView(group.getGroupId(), group.getTenantId(), group.getType(), group.getStatus()));
+    }
+
+    @Override
+    public GroupView saveGroup(GroupView group) {
+        io.attestry.userauth.infrastructure.persistence.jpa.entity.GroupJpaEntity saved = groupRepository.save(
+            new io.attestry.userauth.infrastructure.persistence.jpa.entity.GroupJpaEntity(
+                group.groupId(),
+                group.tenantId(),
+                group.type(),
+                group.status()
+            )
+        );
+        return new GroupView(saved.getGroupId(), saved.getTenantId(), saved.getType(), saved.getStatus());
+    }
+
+    @Override
+    public void updateGroupStatusOnMemberships(String groupId, GroupStatus status) {
+        List<MembershipJpaEntity> memberships = membershipRepository.findByGroupId(groupId);
+        if (memberships.isEmpty()) {
+            return;
+        }
+        List<MembershipJpaEntity> updated = memberships.stream()
+            .map(current -> new MembershipJpaEntity(
+                current.getMembershipId(),
+                current.getUserId(),
+                current.getGroupId(),
+                current.getTenantId(),
+                current.getGroupType(),
+                current.getRole(),
+                current.getStatus(),
+                status,
+                current.getTenantStatus()
+            ))
+            .toList();
+        membershipRepository.saveAll(updated);
     }
 
     @Override
@@ -86,6 +128,13 @@ public class JpaMembershipAdminRepositoryAdapter implements MembershipAdminRepos
             group.status(),
             TenantStatus.ACTIVE
         ));
+        membershipRoleAssignmentRepository.save(new MembershipRoleAssignmentJpaEntity(
+            UUID.randomUUID().toString(),
+            saved.getMembershipId(),
+            DefaultRoleIdMapper.map(saved.getRole(), saved.getGroupType()),
+            null,
+            Instant.now()
+        ));
         return toDomain(saved);
     }
 
@@ -113,6 +162,16 @@ public class JpaMembershipAdminRepositoryAdapter implements MembershipAdminRepos
             current.getGroupStatus(),
             current.getTenantStatus()
         ));
+        if (current.getRole() != role) {
+            MembershipRoleAssignmentJpaEntity assignment = membershipRoleAssignmentRepository.findByMembershipId(saved.getMembershipId()).orElse(null);
+            membershipRoleAssignmentRepository.save(new MembershipRoleAssignmentJpaEntity(
+                assignment == null ? UUID.randomUUID().toString() : assignment.getAssignmentId(),
+                saved.getMembershipId(),
+                DefaultRoleIdMapper.map(saved.getRole(), saved.getGroupType()),
+                null,
+                Instant.now()
+            ));
+        }
         return toDomain(saved);
     }
 

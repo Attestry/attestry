@@ -1,39 +1,42 @@
 package io.attestry.userauth.application.auth;
 
-import io.attestry.userauth.application.dto.AuthTokenResult;
-import io.attestry.userauth.application.dto.LoginCommand;
-import io.attestry.userauth.application.dto.SignUpCommand;
+import io.attestry.userauth.application.dto.result.AuthTokenResult;
+import io.attestry.userauth.application.dto.result.SignUpResult;
+import io.attestry.userauth.application.dto.result.VerifyPhoneResult;
+import io.attestry.userauth.application.dto.command.LoginCommand;
+import io.attestry.userauth.application.dto.command.SignUpCommand;
 import io.attestry.userauth.application.port.AccessTokenPort;
+import io.attestry.userauth.application.port.MembershipPermissionQueryPort;
 import io.attestry.userauth.application.port.MembershipRepositoryPort;
 import io.attestry.userauth.application.port.PasswordHasherPort;
 import io.attestry.userauth.application.port.UserAccountRepositoryPort;
+import io.attestry.userauth.application.usecase.auth.AuthUseCase;
 import io.attestry.userauth.common.error.DomainException;
 import io.attestry.userauth.common.error.ErrorCode;
 import io.attestry.userauth.domain.auth.model.AuthPrincipal;
+import io.attestry.userauth.domain.auth.model.LoginContext;
+import io.attestry.userauth.domain.auth.model.RoleCodes;
 import io.attestry.userauth.domain.membership.model.Membership;
-import io.attestry.userauth.domain.auth.model.Scope;
+import io.attestry.userauth.domain.membership.policy.MembershipSelectionPolicy;
 import io.attestry.userauth.domain.user.vo.Email;
 import io.attestry.userauth.domain.user.model.UserAccount;
-import io.attestry.userauth.domain.user.model.User;
-import io.attestry.userauth.domain.user.enums.UserStatus;
-import io.attestry.userauth.domain.user.enums.VerificationLevel;
-import io.attestry.userauth.domain.policy.ScopePolicy;
+import java.time.Duration;
 import java.time.Clock;
 import java.time.Instant;
-import java.time.temporal.ChronoUnit;
+import java.util.HashSet;
 import java.util.List;
+import java.util.Optional;
 import java.util.Set;
-import java.util.UUID;
 import org.springframework.stereotype.Service;
 
-// TODO("interface도 외부라고 보면 port/in으로 들어오는것이 아닌가? 바로 서비스 호출?")
 @Service
-public class AuthApplicationService {
+public class AuthApplicationService implements AuthUseCase {
 
-    private static final long ACCESS_TOKEN_MINUTES = 30;
+    private static final Duration ACCESS_TOKEN_TTL = Duration.ofHours(24);
 
     private final UserAccountRepositoryPort userAccountRepository;
     private final MembershipRepositoryPort membershipRepository;
+    private final MembershipPermissionQueryPort membershipPermissionQueryPort;
     private final PasswordHasherPort passwordHasher;
     private final AccessTokenPort accessTokenPort;
     private final Clock clock;
@@ -41,90 +44,108 @@ public class AuthApplicationService {
     public AuthApplicationService(
         UserAccountRepositoryPort userAccountRepository,
         MembershipRepositoryPort membershipRepository,
+        MembershipPermissionQueryPort membershipPermissionQueryPort,
         PasswordHasherPort passwordHasher,
         AccessTokenPort accessTokenPort,
         Clock clock
     ) {
         this.userAccountRepository = userAccountRepository;
         this.membershipRepository = membershipRepository;
+        this.membershipPermissionQueryPort = membershipPermissionQueryPort;
         this.passwordHasher = passwordHasher;
         this.accessTokenPort = accessTokenPort;
         this.clock = clock;
     }
 
-    public String signUp(SignUpCommand command) {
+    @Override
+    public SignUpResult signUp(SignUpCommand command) {
         String passwordHash = passwordHasher.hash(command.password());
         UserAccount userAccount = UserAccount.register(command.email(), command.phone(), passwordHash);
-        return userAccountRepository.saveNew(userAccount).user().userId();
+        return new SignUpResult(userAccountRepository.saveNew(userAccount).user().userId());
     }
 
+    @Override
     public AuthTokenResult login(LoginCommand command) {
         UserAccount account = userAccountRepository.findByEmail(Email.of(command.email()))
             .orElseThrow(() -> new DomainException(ErrorCode.USER_NOT_FOUND, "User not found"));
 
-        if (!passwordHasher.matches(command.password(), account.passwordHash())) {
-            throw new DomainException(ErrorCode.INVALID_CREDENTIALS, "Invalid credentials");
-        }
+        account.assertPasswordMatches(command.password(), passwordHasher::matches);
+        account.checkActiveStatus();
 
-        User user = account.user();
-        // TODO("이건 ")
-        if (user.status() != UserStatus.ACTIVE) {
-            throw new DomainException(ErrorCode.USER_SUSPENDED, "User is suspended");
-        }
+        LoginContext loginContext = resolveLoginContext(account.userId(), command.tenantId(), command.groupId());
 
-        Membership activeMembership = resolveActiveMembership(user.userId(), command.tenantId(), command.groupId());
-
-        Set<Scope> scopes = ScopePolicy.ownerDefaultScopes();
-        String tenantId = null;
-        String groupId = null;
-
-        if (activeMembership != null) {
-            scopes.addAll(ScopePolicy.forMembership(activeMembership));
-            tenantId = activeMembership.tenantId();
-            groupId = activeMembership.groupId();
-        }
-
-        Instant expiresAt = Instant.now(clock).plus(ACCESS_TOKEN_MINUTES, ChronoUnit.MINUTES);
-        AuthPrincipal principal = new AuthPrincipal(
-            UUID.randomUUID().toString(),
-            user.userId(),
-            tenantId,
-            groupId,
-            user.verificationLevel(),
-            scopes,
-            expiresAt
+        Instant now = Instant.now(clock);
+        AuthPrincipal principal = AuthPrincipal.issue(
+            account.userId(),
+            loginContext.tenantId(),
+            loginContext.groupId(),
+            account.verificationLevel(),
+            loginContext.scopes(),
+            now,
+            ACCESS_TOKEN_TTL
         );
         String token = accessTokenPort.issue(principal);
 
-        return new AuthTokenResult(token, "Bearer", expiresAt, user.userId(), tenantId, groupId);
+        return new AuthTokenResult(
+            token,
+            "Bearer",
+            principal.expiresAt(),
+            account.userId(),
+            loginContext.tenantId(),
+            loginContext.groupId()
+        );
     }
 
+    @Override
     public void logout(String accessToken) {
         accessTokenPort.revoke(accessToken);
     }
 
+    @Override
     public AuthPrincipal authenticate(String accessToken) {
         return accessTokenPort.parse(accessToken)
             .orElseThrow(() -> new DomainException(ErrorCode.ACCESS_TOKEN_INVALID, "Invalid access token"));
     }
 
     private Membership resolveActiveMembership(String userId, String tenantId, String groupId) {
-        if (tenantId != null && groupId != null) {
-            Membership membership = membershipRepository.findByUserIdAndContext(userId, tenantId, groupId)
-                .orElseThrow(() -> new DomainException(ErrorCode.MEMBERSHIP_NOT_FOUND, "Membership not found"));
-            if (!membership.isActive()) {
-                throw new DomainException(ErrorCode.MEMBERSHIP_NOT_FOUND, "Membership inactive");
-            }
-            return membership;
-        }
-
+        Optional<Membership> requestedMembership = (tenantId != null && groupId != null)
+            ? membershipRepository.findByUserIdAndContext(userId, tenantId, groupId)
+            : Optional.empty();
         List<Membership> memberships = membershipRepository.findByUserId(userId);
-        return memberships.stream().filter(Membership::isActive).findFirst().orElse(null);
+        return MembershipSelectionPolicy.resolve(tenantId, groupId, requestedMembership, memberships);
     }
 
-    public void verifyPhone(String userId) {
-        userAccountRepository.findByUserId(userId)
+    private LoginContext resolveLoginContext(String userId, String tenantId, String groupId) {
+        Membership activeMembership = resolveActiveMembership(userId, tenantId, groupId);
+        Set<String> scopes = resolveOwnerPermissions();
+
+        if (activeMembership == null) {
+            return LoginContext.owner(scopes);
+        }
+
+        scopes.addAll(resolveMembershipScopes(activeMembership));
+        return LoginContext.withMembership(activeMembership, scopes);
+    }
+
+    private Set<String> resolveMembershipScopes(Membership membership) {
+        Set<String> permissionCodes = membershipPermissionQueryPort.findPermissionCodesByMembershipId(membership.membershipId());
+        return Set.copyOf(permissionCodes);
+    }
+
+    private Set<String> resolveOwnerPermissions() {
+        Set<String> permissionCodes = membershipPermissionQueryPort.findPermissionCodesByGlobalRoleCode(RoleCodes.OWNER_DEFAULT);
+        if (permissionCodes.isEmpty()) {
+            throw new IllegalStateException("OWNER_DEFAULT role permissions are not configured");
+        }
+        return new HashSet<>(permissionCodes);
+    }
+
+    // TODO("핸드폰 문자 발송")
+    @Override
+    public VerifyPhoneResult verifyPhone(String userId) {
+        UserAccount account = userAccountRepository.findByUserId(userId)
             .orElseThrow(() -> new DomainException(ErrorCode.USER_NOT_FOUND, "User not found"));
-        userAccountRepository.updateVerificationLevel(userId, VerificationLevel.PHONE_VERIFIED);
+        UserAccount verified = userAccountRepository.save(account.verifyPhone());
+        return new VerifyPhoneResult(verified.userId(), verified.verificationLevel());
     }
 }

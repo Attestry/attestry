@@ -3,17 +3,19 @@ package io.attestry.userauth.application.membership;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
-import io.attestry.userauth.application.dto.MembershipView;
+import io.attestry.userauth.application.dto.view.MembershipView;
+import io.attestry.userauth.application.port.MembershipPermissionQueryPort;
 import io.attestry.userauth.application.port.MembershipRepositoryPort;
+import io.attestry.userauth.domain.auth.model.PermissionCodes;
 import io.attestry.userauth.domain.organization.model.GroupStatus;
 import io.attestry.userauth.domain.organization.model.GroupType;
 import io.attestry.userauth.domain.membership.model.Membership;
 import io.attestry.userauth.domain.membership.model.MembershipRole;
 import io.attestry.userauth.domain.membership.model.MembershipStatus;
-import io.attestry.userauth.domain.auth.model.Scope;
 import io.attestry.userauth.domain.organization.model.TenantStatus;
 import java.util.List;
 import java.util.Optional;
+import java.util.Set;
 import org.junit.jupiter.api.Test;
 
 class MembershipQueryServiceTest {
@@ -42,13 +44,25 @@ class MembershipQueryServiceTest {
             }
         };
 
-        MembershipQueryService service = new MembershipQueryService(repository);
+        MembershipPermissionQueryPort permissionQueryPort = new MembershipPermissionQueryPort() {
+            @Override
+            public Set<String> findPermissionCodesByMembershipId(String membershipId) {
+                return Set.of(PermissionCodes.RETAIL_RELEASE, PermissionCodes.RETAIL_TRANSFER_CREATE);
+            }
+
+            @Override
+            public Set<String> findPermissionCodesByGlobalRoleCode(String roleCode) {
+                return Set.of();
+            }
+        };
+
+        MembershipQueryService service = new MembershipQueryService(repository, permissionQueryPort);
         List<MembershipView> views = service.getMemberships("u1");
 
         assertEquals(1, views.size());
         MembershipView view = views.getFirst();
         assertEquals("m1", view.membershipId());
-        assertTrue(view.effectiveScopes().contains(Scope.RETAIL_RELEASE));
-        assertTrue(view.effectiveScopes().contains(Scope.RETAIL_TRANSFER_CREATE));
+        assertTrue(view.effectiveScopes().contains(PermissionCodes.RETAIL_RELEASE));
+        assertTrue(view.effectiveScopes().contains(PermissionCodes.RETAIL_TRANSFER_CREATE));
     }
 }

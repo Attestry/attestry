@@ -25,11 +25,16 @@ import io.attestry.userauth.infrastructure.persistence.jpa.entity.UserAccountJpa
 import io.attestry.userauth.infrastructure.persistence.jpa.repository.GroupJpaRepository;
 import io.attestry.userauth.infrastructure.persistence.jpa.repository.InvitationJpaRepository;
 import io.attestry.userauth.infrastructure.persistence.jpa.repository.MembershipJpaRepository;
+import io.attestry.userauth.infrastructure.persistence.jpa.repository.MembershipRoleAssignmentJpaRepository;
+import io.attestry.userauth.infrastructure.persistence.jpa.repository.OnboardingEvidenceBundleJpaRepository;
+import io.attestry.userauth.infrastructure.persistence.jpa.repository.OnboardingEvidenceFileJpaRepository;
 import io.attestry.userauth.infrastructure.persistence.jpa.repository.OrganizationApplicationJpaRepository;
+import io.attestry.userauth.infrastructure.persistence.jpa.repository.RoleAssignmentAuditJpaRepository;
 import io.attestry.userauth.infrastructure.persistence.jpa.repository.TenantJpaRepository;
 import io.attestry.userauth.infrastructure.persistence.jpa.repository.UserAccountJpaRepository;
 import java.util.Map;
 import java.util.UUID;
+import java.time.Instant;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -66,25 +71,52 @@ class UserAuthApiIntegrationTests {
     private MembershipJpaRepository membershipRepository;
 
     @Autowired
+    private MembershipRoleAssignmentJpaRepository membershipRoleAssignmentRepository;
+
+    @Autowired
     private OrganizationApplicationJpaRepository organizationApplicationRepository;
+
+    @Autowired
+    private OnboardingEvidenceBundleJpaRepository onboardingEvidenceBundleRepository;
+
+    @Autowired
+    private OnboardingEvidenceFileJpaRepository onboardingEvidenceFileRepository;
 
     @Autowired
     private InvitationJpaRepository invitationRepository;
 
+    @Autowired
+    private RoleAssignmentAuditJpaRepository roleAssignmentAuditRepository;
+
     @BeforeEach
     void initMockMvc() {
+        clearData();
         this.mockMvc = MockMvcBuilders.webAppContextSetup(webApplicationContext)
             .apply(springSecurity())
             .build();
     }
 
+    private void clearData() {
+        roleAssignmentAuditRepository.deleteAll();
+        membershipRoleAssignmentRepository.deleteAll();
+        membershipRepository.deleteAll();
+        invitationRepository.deleteAll();
+        organizationApplicationRepository.deleteAll();
+        onboardingEvidenceFileRepository.deleteAll();
+        onboardingEvidenceBundleRepository.deleteAll();
+        groupRepository.deleteAll();
+        tenantRepository.deleteAll();
+        userAccountRepository.deleteAll();
+    }
+
     @Test
     void brandApplicationFlowShouldWork() throws Exception {
         String email = "brand-applicant@test.com";
-        String password = "pw1234";
+        String password = "BrandPw123";
 
         signUp(email, password, "010-1111-2222");
         String token = login(email, password, null, null);
+        String evidenceBundleId = prepareEvidenceBundle(token);
 
         MvcResult created = mockMvc.perform(post("/brand-applications")
                 .header("Authorization", bearer(token))
@@ -93,7 +125,7 @@ class UserAuthApiIntegrationTests {
                     "brandName", "Brand X",
                     "country", "KR",
                     "bizRegNo", "111-22-33333",
-                    "evidenceGroupId", UUID.randomUUID().toString()
+                    "evidenceBundleId", evidenceBundleId
                 ))))
             .andExpect(status().isCreated())
             .andExpect(jsonPath("$.type").value("BRAND"))
@@ -124,7 +156,7 @@ class UserAuthApiIntegrationTests {
         userAccountRepository.save(new UserAccountJpaEntity(
             adminUserId,
             adminEmail,
-            passwordHasher.hash("adminpw"),
+            passwordHasher.hash("AdminPw123"),
             "010-9999-9999",
             UserStatus.ACTIVE,
             VerificationLevel.NONE
@@ -141,13 +173,51 @@ class UserAuthApiIntegrationTests {
             GroupStatus.ACTIVE,
             TenantStatus.ACTIVE
         ));
+        membershipRoleAssignmentRepository.save(new io.attestry.userauth.infrastructure.persistence.jpa.entity.MembershipRoleAssignmentJpaEntity(
+            UUID.randomUUID().toString(),
+            membershipRepository.findByUserId(adminUserId).getFirst().getMembershipId(),
+            "role-retail-admin-base",
+            null,
+            Instant.now()
+        ));
+
+        String membershipAdminUserId = UUID.randomUUID().toString();
+        String membershipAdminEmail = "tenant-membership-admin@test.com";
+        userAccountRepository.save(new UserAccountJpaEntity(
+            membershipAdminUserId,
+            membershipAdminEmail,
+            passwordHasher.hash("MemberAdminPw123"),
+            "010-1234-5678",
+            UserStatus.ACTIVE,
+            VerificationLevel.NONE
+        ));
+        MembershipJpaEntity membershipAdminMembership = membershipRepository.save(new MembershipJpaEntity(
+            UUID.randomUUID().toString(),
+            membershipAdminUserId,
+            adminGroupId,
+            tenantId,
+            GroupType.BRAND,
+            MembershipRole.ADMIN,
+            MembershipStatus.ACTIVE,
+            GroupStatus.ACTIVE,
+            TenantStatus.ACTIVE
+        ));
+        membershipRoleAssignmentRepository.save(new io.attestry.userauth.infrastructure.persistence.jpa.entity.MembershipRoleAssignmentJpaEntity(
+            UUID.randomUUID().toString(),
+            membershipAdminMembership.getMembershipId(),
+            "role-tenant-membership-admin",
+            null,
+            Instant.now()
+        ));
 
         String applicantEmail = "retail-applicant@test.com";
-        String applicantPassword = "applicantpw";
+        String applicantPassword = "ApplicantPw123";
         signUp(applicantEmail, applicantPassword, "010-2222-3333");
 
         String applicantToken = login(applicantEmail, applicantPassword, null, null);
-        String adminToken = login(adminEmail, "adminpw", tenantId, adminGroupId);
+        String adminToken = login(adminEmail, "AdminPw123", tenantId, adminGroupId);
+        String membershipAdminToken = login(membershipAdminEmail, "MemberAdminPw123", tenantId, adminGroupId);
+        String evidenceBundleId = prepareEvidenceBundle(applicantToken);
 
         MvcResult retailCreated = mockMvc.perform(post("/tenants/{tenantId}/retail-applications", tenantId)
                 .header("Authorization", bearer(applicantToken))
@@ -156,7 +226,7 @@ class UserAuthApiIntegrationTests {
                     "retailName", "Retail One",
                     "country", "KR",
                     "bizRegNo", "999-88-77777",
-                    "evidenceGroupId", UUID.randomUUID().toString()
+                    "evidenceBundleId", evidenceBundleId
                 ))))
             .andExpect(status().isCreated())
             .andExpect(jsonPath("$.type").value("RETAIL"))
@@ -173,11 +243,11 @@ class UserAuthApiIntegrationTests {
         String retailGroupId = readJson(approved).get("groupId").asText();
 
         String inviteeEmail = "staff@test.com";
-        String inviteePassword = "staffpw";
+        String inviteePassword = "StaffPw123";
         signUp(inviteeEmail, inviteePassword, "010-3333-4444");
 
         MvcResult invitationCreated = mockMvc.perform(post("/tenants/{tenantId}/admin/invitations", tenantId)
-                .header("Authorization", bearer(adminToken))
+                .header("Authorization", bearer(membershipAdminToken))
                 .contentType(MediaType.APPLICATION_JSON)
                 .content(json(Map.of(
                     "email", inviteeEmail,
@@ -198,7 +268,7 @@ class UserAuthApiIntegrationTests {
             .andExpect(jsonPath("$.status").value("ACTIVE"));
 
         mockMvc.perform(get("/tenants/{tenantId}/admin/memberships", tenantId)
-                .header("Authorization", bearer(adminToken)))
+                .header("Authorization", bearer(membershipAdminToken)))
             .andExpect(status().isOk());
 
         org.assertj.core.api.Assertions.assertThat(invitationRepository.findById(invitationId)).isPresent();
@@ -218,7 +288,7 @@ class UserAuthApiIntegrationTests {
         userAccountRepository.save(new UserAccountJpaEntity(
             adminUserId,
             "membership-admin@test.com",
-            passwordHasher.hash("adminpw"),
+            passwordHasher.hash("AdminPw123"),
             "010-5555-1111",
             UserStatus.ACTIVE,
             VerificationLevel.NONE
@@ -227,7 +297,7 @@ class UserAuthApiIntegrationTests {
         userAccountRepository.save(new UserAccountJpaEntity(
             targetUserId,
             "membership-target@test.com",
-            passwordHasher.hash("targetpw"),
+            passwordHasher.hash("TargetPw123"),
             "010-5555-2222",
             UserStatus.ACTIVE,
             VerificationLevel.NONE
@@ -244,6 +314,13 @@ class UserAuthApiIntegrationTests {
             GroupStatus.ACTIVE,
             TenantStatus.ACTIVE
         ));
+        membershipRoleAssignmentRepository.save(new io.attestry.userauth.infrastructure.persistence.jpa.entity.MembershipRoleAssignmentJpaEntity(
+            UUID.randomUUID().toString(),
+            membershipRepository.findByUserId(adminUserId).getFirst().getMembershipId(),
+            "role-tenant-membership-admin",
+            null,
+            Instant.now()
+        ));
 
         MembershipJpaEntity targetMembership = membershipRepository.save(new MembershipJpaEntity(
             UUID.randomUUID().toString(),
@@ -257,18 +334,115 @@ class UserAuthApiIntegrationTests {
             TenantStatus.ACTIVE
         ));
 
-        String adminToken = login("membership-admin@test.com", "adminpw", tenantId, adminGroupId);
+        String adminToken = login("membership-admin@test.com", "AdminPw123", tenantId, adminGroupId);
 
-        mockMvc.perform(patch("/tenants/{tenantId}/admin/memberships/{id}", tenantId, targetMembership.getMembershipId())
+        mockMvc.perform(patch("/tenants/{tenantId}/admin/memberships/{id}/role", tenantId, targetMembership.getMembershipId())
                 .header("Authorization", bearer(adminToken))
                 .contentType(MediaType.APPLICATION_JSON)
                 .content(json(Map.of(
-                    "role", "OPERATOR",
-                    "status", "SUSPENDED"
+                    "role", "OPERATOR"
                 ))))
             .andExpect(status().isOk())
             .andExpect(jsonPath("$.role").value("OPERATOR"))
+            .andExpect(jsonPath("$.status").value("ACTIVE"));
+
+        mockMvc.perform(patch("/tenants/{tenantId}/admin/memberships/{id}/status", tenantId, targetMembership.getMembershipId())
+                .header("Authorization", bearer(adminToken))
+                .contentType(MediaType.APPLICATION_JSON)
+                .content(json(Map.of(
+                    "status", "SUSPENDED"
+                ))))
+            .andExpect(status().isForbidden());
+    }
+
+    @Test
+    void groupSuspendAndUnsuspendShouldSyncMembershipGroupStatus() throws Exception {
+        String tenantId = UUID.randomUUID().toString();
+        String adminGroupId = UUID.randomUUID().toString();
+        String adminUserId = UUID.randomUUID().toString();
+        String memberUserId = UUID.randomUUID().toString();
+
+        tenantRepository.save(new TenantJpaEntity(tenantId, "Tenant C", "KR", TenantStatus.ACTIVE));
+        groupRepository.save(new GroupJpaEntity(adminGroupId, tenantId, GroupType.RETAIL, GroupStatus.ACTIVE));
+
+        userAccountRepository.save(new UserAccountJpaEntity(
+            adminUserId,
+            "group-admin@test.com",
+            passwordHasher.hash("AdminPw123"),
+            "010-7777-1111",
+            UserStatus.ACTIVE,
+            VerificationLevel.NONE
+        ));
+
+        userAccountRepository.save(new UserAccountJpaEntity(
+            memberUserId,
+            "group-member@test.com",
+            passwordHasher.hash("MemberPw123"),
+            "010-7777-2222",
+            UserStatus.ACTIVE,
+            VerificationLevel.NONE
+        ));
+
+        membershipRepository.save(new MembershipJpaEntity(
+            UUID.randomUUID().toString(),
+            adminUserId,
+            adminGroupId,
+            tenantId,
+            GroupType.RETAIL,
+            MembershipRole.ADMIN,
+            MembershipStatus.ACTIVE,
+            GroupStatus.ACTIVE,
+            TenantStatus.ACTIVE
+        ));
+        membershipRoleAssignmentRepository.save(new io.attestry.userauth.infrastructure.persistence.jpa.entity.MembershipRoleAssignmentJpaEntity(
+            UUID.randomUUID().toString(),
+            membershipRepository.findByUserId(adminUserId).getFirst().getMembershipId(),
+            "role-tenant-owner",
+            null,
+            Instant.now()
+        ));
+
+        MembershipJpaEntity memberMembership = membershipRepository.save(new MembershipJpaEntity(
+            UUID.randomUUID().toString(),
+            memberUserId,
+            adminGroupId,
+            tenantId,
+            GroupType.RETAIL,
+            MembershipRole.STAFF,
+            MembershipStatus.ACTIVE,
+            GroupStatus.ACTIVE,
+            TenantStatus.ACTIVE
+        ));
+
+        String adminToken = login("group-admin@test.com", "AdminPw123", tenantId, adminGroupId);
+
+        mockMvc.perform(post("/tenants/{tenantId}/admin/groups/{id}/suspend", tenantId, adminGroupId)
+                .header("Authorization", bearer(adminToken)))
+            .andExpect(status().isOk())
             .andExpect(jsonPath("$.status").value("SUSPENDED"));
+
+        org.assertj.core.api.Assertions.assertThat(groupRepository.findById(adminGroupId))
+            .get()
+            .extracting(GroupJpaEntity::getStatus)
+            .isEqualTo(GroupStatus.SUSPENDED);
+        org.assertj.core.api.Assertions.assertThat(membershipRepository.findById(memberMembership.getMembershipId()))
+            .get()
+            .extracting(MembershipJpaEntity::getGroupStatus)
+            .isEqualTo(GroupStatus.SUSPENDED);
+
+        mockMvc.perform(post("/tenants/{tenantId}/admin/groups/{id}/unsuspend", tenantId, adminGroupId)
+                .header("Authorization", bearer(adminToken)))
+            .andExpect(status().isOk())
+            .andExpect(jsonPath("$.status").value("ACTIVE"));
+
+        org.assertj.core.api.Assertions.assertThat(groupRepository.findById(adminGroupId))
+            .get()
+            .extracting(GroupJpaEntity::getStatus)
+            .isEqualTo(GroupStatus.ACTIVE);
+        org.assertj.core.api.Assertions.assertThat(membershipRepository.findById(memberMembership.getMembershipId()))
+            .get()
+            .extracting(MembershipJpaEntity::getGroupStatus)
+            .isEqualTo(GroupStatus.ACTIVE);
     }
 
     private void signUp(String email, String password, String phone) throws Exception {
@@ -304,6 +478,34 @@ class UserAuthApiIntegrationTests {
             .andReturn();
 
         return readJson(result).get("accessToken").asText();
+    }
+
+    private String prepareEvidenceBundle(String accessToken) throws Exception {
+        MvcResult presign = mockMvc.perform(post("/onboarding/evidences/presign")
+                .header("Authorization", bearer(accessToken))
+                .contentType(MediaType.APPLICATION_JSON)
+                .content(json(Map.of(
+                    "fileName", "biz-reg.pdf",
+                    "contentType", "application/pdf"
+                ))))
+            .andExpect(status().isCreated())
+            .andReturn();
+
+        String evidenceBundleId = readJson(presign).get("evidenceBundleId").asText();
+        String evidenceFileId = readJson(presign).get("evidenceFileId").asText();
+
+        mockMvc.perform(post("/onboarding/evidences/complete")
+                .header("Authorization", bearer(accessToken))
+                .contentType(MediaType.APPLICATION_JSON)
+                .content(json(Map.of(
+                    "evidenceBundleId", evidenceBundleId,
+                    "evidenceFileId", evidenceFileId,
+                    "sizeBytes", 1024
+                ))))
+            .andExpect(status().isOk())
+            .andExpect(jsonPath("$.status").value("READY"));
+
+        return evidenceBundleId;
     }
 
     private String json(Object value) throws Exception {

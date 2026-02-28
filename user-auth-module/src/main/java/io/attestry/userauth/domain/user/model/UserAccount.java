@@ -4,6 +4,7 @@ import io.attestry.userauth.common.error.DomainException;
 import io.attestry.userauth.common.error.ErrorCode;
 import io.attestry.userauth.domain.user.enums.UserStatus;
 import io.attestry.userauth.domain.user.enums.VerificationLevel;
+import io.attestry.userauth.domain.user.policy.PasswordMatcher;
 import io.attestry.userauth.domain.user.vo.Email;
 
 import java.util.UUID;
@@ -42,5 +43,29 @@ public record UserAccount(User user, String passwordHash) {
             ),
             passwordHash
         );
+    }
+
+    public void checkActiveStatus() {
+        if (!user.isActive()) {
+            throw new DomainException(ErrorCode.USER_SUSPENDED, "User is suspended");
+        }
+    }
+
+    public void assertPasswordMatches(String rawPassword, PasswordMatcher matcher) {
+        if (!matcher.matches(rawPassword, passwordHash)) {
+            throw new DomainException(ErrorCode.INVALID_CREDENTIALS, "Invalid credentials");
+        }
+    }
+
+    public UserAccount verifyPhone() {
+        return withVerificationLevel(VerificationLevel.PHONE_VERIFIED);
+    }
+
+    public String userId() {
+        return user.userId();
+    }
+
+    public VerificationLevel verificationLevel() {
+        return user.verificationLevel();
     }
 }

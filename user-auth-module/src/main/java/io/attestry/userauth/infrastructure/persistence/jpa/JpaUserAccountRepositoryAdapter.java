@@ -6,7 +6,6 @@ import io.attestry.userauth.common.error.ErrorCode;
 import io.attestry.userauth.domain.user.vo.Email;
 import io.attestry.userauth.domain.user.model.User;
 import io.attestry.userauth.domain.user.model.UserAccount;
-import io.attestry.userauth.domain.user.enums.VerificationLevel;
 import io.attestry.userauth.infrastructure.persistence.jpa.entity.UserAccountJpaEntity;
 import io.attestry.userauth.infrastructure.persistence.jpa.repository.UserAccountJpaRepository;
 import java.util.Optional;
@@ -55,11 +54,16 @@ public class JpaUserAccountRepositoryAdapter implements UserAccountRepositoryPor
 
     @Override
     @Transactional
-    public void updateVerificationLevel(String userId, VerificationLevel verificationLevel) {
-        repository.findById(userId).ifPresent(entity -> {
-            entity.setVerificationLevel(verificationLevel);
-            repository.save(entity);
-        });
+    public UserAccount save(UserAccount userAccount) {
+        UserAccountJpaEntity saved = repository.save(new UserAccountJpaEntity(
+            userAccount.user().userId(),
+            userAccount.user().email().value(),
+            userAccount.passwordHash(),
+            userAccount.user().phone(),
+            userAccount.user().status(),
+            userAccount.user().verificationLevel()
+        ));
+        return toDomain(saved);
     }
 
     private UserAccount toDomain(UserAccountJpaEntity entity) {

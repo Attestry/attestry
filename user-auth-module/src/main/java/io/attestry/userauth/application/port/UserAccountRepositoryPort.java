@@ -2,7 +2,6 @@ package io.attestry.userauth.application.port;
 
 import io.attestry.userauth.domain.user.vo.Email;
 import io.attestry.userauth.domain.user.model.UserAccount;
-import io.attestry.userauth.domain.user.enums.VerificationLevel;
 import java.util.Optional;
 
 public interface UserAccountRepositoryPort {
@@ -12,5 +11,5 @@ public interface UserAccountRepositoryPort {
 
     UserAccount saveNew(UserAccount userAccount);
 
-    void updateVerificationLevel(String userId, VerificationLevel verificationLevel);
+    UserAccount save(UserAccount userAccount);
 }

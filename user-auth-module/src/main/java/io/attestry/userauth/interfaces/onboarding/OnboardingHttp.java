@@ -1,12 +1,26 @@
 package io.attestry.userauth.interfaces.onboarding;
 
-import io.attestry.userauth.application.onboarding.OnboardingApplicationService;
-import io.attestry.userauth.domain.onboarding.model.OrganizationApplication;
-import io.attestry.userauth.security.AuthPrincipalResolver;
+import io.attestry.userauth.application.dto.command.CompleteEvidenceUploadCommand;
+import io.attestry.userauth.application.dto.command.CreateBrandApplicationCommand;
+import io.attestry.userauth.application.dto.command.CreateRetailApplicationCommand;
+import io.attestry.userauth.application.dto.command.PresignEvidenceUploadCommand;
+import io.attestry.userauth.application.dto.result.ApplicationResult;
+import io.attestry.userauth.application.dto.result.ApproveApplicationResult;
+import io.attestry.userauth.application.usecase.onboarding.OnboardingUseCase;
+import io.attestry.userauth.domain.auth.model.AuthPrincipal;
+import io.attestry.userauth.interfaces.onboarding.dto.request.CompleteEvidenceUploadRequest;
+import io.attestry.userauth.interfaces.onboarding.dto.request.CreateBrandApplicationRequest;
+import io.attestry.userauth.interfaces.onboarding.dto.request.CreateRetailApplicationRequest;
+import io.attestry.userauth.interfaces.onboarding.dto.request.PresignEvidenceUploadRequest;
+import io.attestry.userauth.interfaces.onboarding.dto.request.RejectApplicationRequest;
+import io.attestry.userauth.interfaces.onboarding.dto.response.ApplicationResponse;
+import io.attestry.userauth.interfaces.onboarding.dto.response.ApproveResponse;
+import io.attestry.userauth.interfaces.onboarding.dto.response.EvidenceBundleResponse;
+import io.attestry.userauth.interfaces.onboarding.dto.response.PresignedEvidenceUploadResponse;
 import java.util.List;
 import org.springframework.http.HttpStatus;
 import org.springframework.security.access.prepost.PreAuthorize;
-import org.springframework.security.core.Authentication;
+import org.springframework.security.core.annotation.AuthenticationPrincipal;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.PathVariable;
 import org.springframework.web.bind.annotation.PostMapping;
@@ -19,30 +33,60 @@ import org.springframework.web.bind.annotation.RestController;
 @RequestMapping
 public class OnboardingHttp {
 
-    private final OnboardingApplicationService onboardingService;
+    private final OnboardingUseCase onboardingService;
 
-    public OnboardingHttp(OnboardingApplicationService onboardingService) {
+    public OnboardingHttp(OnboardingUseCase onboardingService) {
         this.onboardingService = onboardingService;
+    }
+
+    @PostMapping("/onboarding/evidences/presign")
+    @ResponseStatus(HttpStatus.CREATED)
+    public PresignedEvidenceUploadResponse presignEvidenceUpload(
+        @AuthenticationPrincipal AuthPrincipal principal,
+        @RequestBody PresignEvidenceUploadRequest request
+    ) {
+        return PresignedEvidenceUploadResponse.from(
+            onboardingService.presignEvidenceUpload(
+                principal,
+                new PresignEvidenceUploadCommand(request.evidenceBundleId(), request.fileName(), request.contentType())
+            )
+        );
+    }
+
+    @PostMapping("/onboarding/evidences/complete")
+    public EvidenceBundleResponse completeEvidenceUpload(
+        @AuthenticationPrincipal AuthPrincipal principal,
+        @RequestBody CompleteEvidenceUploadRequest request
+    ) {
+        return EvidenceBundleResponse.from(
+            onboardingService.completeEvidenceUpload(
+                principal,
+                new CompleteEvidenceUploadCommand(request.evidenceBundleId(), request.evidenceFileId(), request.sizeBytes())
+            )
+        );
     }
 
     @PostMapping("/brand-applications")
     @ResponseStatus(HttpStatus.CREATED)
-    public ApplicationResponse createBrandApplication(Authentication authentication, @RequestBody CreateBrandApplicationRequest request) {
-        OrganizationApplication app = onboardingService.createBrandApplication(
-            AuthPrincipalResolver.resolve(authentication),
-            new OnboardingApplicationService.CreateBrandApplicationCommand(
+    public ApplicationResponse createBrandApplication(
+        @AuthenticationPrincipal AuthPrincipal principal,
+        @RequestBody CreateBrandApplicationRequest request
+    ) {
+        ApplicationResult result = onboardingService.createBrandApplication(
+            principal,
+            new CreateBrandApplicationCommand(
                 request.brandName(),
                 request.country(),
                 request.bizRegNo(),
-                request.evidenceGroupId()
+                request.evidenceBundleId()
             )
         );
-        return ApplicationResponse.from(app);
+        return ApplicationResponse.from(result);
     }
 
-    @GetMapping("/brand-applications/{id}")
-    public ApplicationResponse getBrandApplication(@PathVariable("id") String id) {
-        return ApplicationResponse.from(onboardingService.getBrandApplication(id));
+    @GetMapping("/brand-applications/{applicationId}")
+    public ApplicationResponse getBrandApplication(@PathVariable(name = "applicationId") String applicationId) {
+        return ApplicationResponse.from(onboardingService.getBrandApplication(applicationId));
     }
 
     @GetMapping("/admin/brand-applications")
@@ -51,45 +95,48 @@ public class OnboardingHttp {
         return onboardingService.listBrandApplications().stream().map(ApplicationResponse::from).toList();
     }
 
-    @PostMapping("/admin/brand-applications/{id}/approve")
+    @PostMapping("/admin/brand-applications/{applicationId}/approve")
     @PreAuthorize("hasAuthority('SCOPE_TENANT_CREATE_APPROVE')")
-    public ApproveResponse approveBrandApplication(Authentication authentication, @PathVariable("id") String id) {
-        OnboardingApplicationService.ApproveApplicationResult result = onboardingService.approveBrandApplication(
-            AuthPrincipalResolver.resolve(authentication),
-            id
+    public ApproveResponse approveBrandApplication(@AuthenticationPrincipal AuthPrincipal principal,
+                                                   @PathVariable(name = "applicationId") String applicationId) {
+        ApproveApplicationResult result = onboardingService.approveBrandApplication(
+                principal,
+                applicationId
         );
         return new ApproveResponse(result.tenantId(), result.groupId(), result.membershipId());
     }
 
-    @PostMapping("/admin/brand-applications/{id}/reject")
+    @PostMapping("/admin/brand-applications/{applicationId}/reject")
     @ResponseStatus(HttpStatus.NO_CONTENT)
     @PreAuthorize("hasAuthority('SCOPE_TENANT_CREATE_APPROVE')")
     public void rejectBrandApplication(
-        Authentication authentication,
-        @PathVariable("id") String id,
-        @RequestBody RejectApplicationRequest request
+            @AuthenticationPrincipal AuthPrincipal principal,
+            @PathVariable(name = "applicationId") String applicationId,
+            @RequestBody RejectApplicationRequest request
     ) {
-        onboardingService.rejectBrandApplication(AuthPrincipalResolver.resolve(authentication), id, request.reason());
+        onboardingService.rejectBrandApplication(principal, applicationId, request.reason());
     }
+
+    // -----------------------------retail----------------------------------
 
     @PostMapping("/tenants/{tenantId}/retail-applications")
     @ResponseStatus(HttpStatus.CREATED)
     public ApplicationResponse createRetailApplication(
-        Authentication authentication,
+        @AuthenticationPrincipal AuthPrincipal principal,
         @PathVariable("tenantId") String tenantId,
         @RequestBody CreateRetailApplicationRequest request
     ) {
-        OrganizationApplication app = onboardingService.createRetailApplication(
-            AuthPrincipalResolver.resolve(authentication),
+        ApplicationResult result = onboardingService.createRetailApplication(
+            principal,
             tenantId,
-            new OnboardingApplicationService.CreateRetailApplicationCommand(
+            new CreateRetailApplicationCommand(
                 request.retailName(),
                 request.country(),
                 request.bizRegNo(),
-                request.evidenceGroupId()
+                request.evidenceBundleId()
             )
         );
-        return ApplicationResponse.from(app);
+        return ApplicationResponse.from(result);
     }
 
     @GetMapping("/tenants/{tenantId}/retail-applications/{id}")
@@ -98,20 +145,20 @@ public class OnboardingHttp {
     }
 
     @GetMapping("/tenants/{tenantId}/admin/retail-applications")
-    @PreAuthorize("hasAuthority('SCOPE_TENANT_ADMIN')")
+    @PreAuthorize("hasAuthority('SCOPE_TENANT_MEMBERSHIP_VIEW')")
     public List<ApplicationResponse> listRetailApplications(@PathVariable("tenantId") String tenantId) {
         return onboardingService.listRetailApplications(tenantId).stream().map(ApplicationResponse::from).toList();
     }
 
     @PostMapping("/tenants/{tenantId}/admin/retail-applications/{id}/approve")
-    @PreAuthorize("hasAuthority('SCOPE_TENANT_ADMIN')")
+    @PreAuthorize("hasAuthority('SCOPE_TENANT_GROUP_CREATE')")
     public ApproveResponse approveRetailApplication(
-        Authentication authentication,
-        @PathVariable("tenantId") String tenantId,
-        @PathVariable("id") String id
+            @AuthenticationPrincipal AuthPrincipal principal,
+            @PathVariable("tenantId") String tenantId,
+            @PathVariable("id") String id
     ) {
-        OnboardingApplicationService.ApproveApplicationResult result = onboardingService.approveRetailApplication(
-            AuthPrincipalResolver.resolve(authentication),
+        ApproveApplicationResult result = onboardingService.approveRetailApplication(
+            principal,
             tenantId,
             id
         );
@@ -120,59 +167,13 @@ public class OnboardingHttp {
 
     @PostMapping("/tenants/{tenantId}/admin/retail-applications/{id}/reject")
     @ResponseStatus(HttpStatus.NO_CONTENT)
-    @PreAuthorize("hasAuthority('SCOPE_TENANT_ADMIN')")
+    @PreAuthorize("hasAuthority('SCOPE_TENANT_GROUP_CREATE')")
     public void rejectRetailApplication(
-        Authentication authentication,
-        @PathVariable("tenantId") String tenantId,
-        @PathVariable("id") String id,
-        @RequestBody RejectApplicationRequest request
+            @AuthenticationPrincipal AuthPrincipal principal,
+            @PathVariable("tenantId") String tenantId,
+            @PathVariable("id") String id,
+            @RequestBody RejectApplicationRequest request
     ) {
-        onboardingService.rejectRetailApplication(AuthPrincipalResolver.resolve(authentication), tenantId, id, request.reason());
-    }
-
-    public record CreateBrandApplicationRequest(
-        String brandName,
-        String country,
-        String bizRegNo,
-        String evidenceGroupId
-    ) {
-    }
-
-    public record CreateRetailApplicationRequest(
-        String retailName,
-        String country,
-        String bizRegNo,
-        String evidenceGroupId
-    ) {
-    }
-
-    public record RejectApplicationRequest(String reason) {
-    }
-
-    public record ApproveResponse(String tenantId, String groupId, String membershipId) {
-    }
-
-    public record ApplicationResponse(
-        String applicationId,
-        String type,
-        String applicantUserId,
-        String tenantId,
-        String orgName,
-        String country,
-        String status,
-        String rejectReason
-    ) {
-        static ApplicationResponse from(OrganizationApplication app) {
-            return new ApplicationResponse(
-                app.applicationId(),
-                app.type().name(),
-                app.applicantUserId(),
-                app.tenantId(),
-                app.orgName(),
-                app.country(),
-                app.status().name(),
-                app.rejectReason()
-            );
-        }
+        onboardingService.rejectRetailApplication(principal, tenantId, id, request.reason());
     }
 }

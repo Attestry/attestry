@@ -1,0 +1,58 @@
+### =========================================================
+### User Auth API - Membership / Group Admin (RBAC v1)
+### =========================================================
+
+@baseUrl = http://localhost:8080
+@contentType = application/json
+@accessToken = REPLACE_ACCESS_TOKEN
+
+@tenantId = REPLACE_TENANT_ID
+@groupId = REPLACE_GROUP_ID
+@membershipId = REPLACE_MEMBERSHIP_ID
+@invitationId = REPLACE_INVITATION_ID
+@inviteeEmail = staff.user@attestry.io
+
+### 1) Invitation create (SCOPE_TENANT_INVITATION_CREATE)
+POST {{baseUrl}}/tenants/{{tenantId}}/admin/invitations
+Authorization: Bearer {{accessToken}}
+Content-Type: {{contentType}}
+
+{
+  "email": "{{inviteeEmail}}",
+  "groupId": "{{groupId}}",
+  "role": "STAFF"
+}
+
+### 2) Invitation accept (로그인한 초대 대상자 토큰으로 호출)
+POST {{baseUrl}}/invitations/{{invitationId}}/accept
+Authorization: Bearer {{accessToken}}
+
+### 3) Membership list (SCOPE_TENANT_MEMBERSHIP_VIEW)
+GET {{baseUrl}}/tenants/{{tenantId}}/admin/memberships
+Authorization: Bearer {{accessToken}}
+
+### 4) Membership role update (SCOPE_TENANT_ROLE_ASSIGN + LIVE_RECHECK)
+PATCH {{baseUrl}}/tenants/{{tenantId}}/admin/memberships/{{membershipId}}/role
+Authorization: Bearer {{accessToken}}
+Content-Type: {{contentType}}
+
+{
+  "role": "OPERATOR"
+}
+
+### 5) Membership status update (SCOPE_TENANT_MEMBERSHIP_ENFORCE + LIVE_RECHECK)
+PATCH {{baseUrl}}/tenants/{{tenantId}}/admin/memberships/{{membershipId}}/status
+Authorization: Bearer {{accessToken}}
+Content-Type: {{contentType}}
+
+{
+  "status": "SUSPENDED"
+}
+
+### 6) Group suspend (SCOPE_TENANT_GROUP_SUSPEND)
+POST {{baseUrl}}/tenants/{{tenantId}}/admin/groups/{{groupId}}/suspend
+Authorization: Bearer {{accessToken}}
+
+### 7) Group unsuspend (SCOPE_TENANT_GROUP_RESUME)
+POST {{baseUrl}}/tenants/{{tenantId}}/admin/groups/{{groupId}}/unsuspend
+Authorization: Bearer {{accessToken}}

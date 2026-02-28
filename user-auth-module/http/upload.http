@@ -1,0 +1,46 @@
+### =========================================================
+### A) One-shot: presign -> upload -> complete
+### =========================================================
+
+@baseUrl = http://localhost:8080
+@contentType = application/json
+@accessToken = bb93f604-63a5-4c50-95d4-5f96fd43bbc5
+@pdfPath = ./files/biz-proof-1.pdf
+@pdfSizeBytes = 102400
+
+### A-1) Presign (new bundle)
+# @name presignEvidence
+POST {{baseUrl}}/onboarding/evidences/presign
+Authorization: Bearer {{accessToken}}
+Content-Type: {{contentType}}
+
+{
+  "evidenceBundleId": null,
+  "fileName": "biz-proof-1.pdf",
+  "contentType": "application/pdf"
+}
+
+> {%
+  // IntelliJ HTTP Client: response.body는 이미 JSON 객체로 파싱됨
+  client.global.set("evidenceBundleId", response.body.evidenceBundleId);
+  client.global.set("evidenceFileId", response.body.evidenceFileId);
+  client.global.set("uploadUrl", response.body.uploadUrl);
+%}
+
+### A-2) Upload to presigned URL (NO Authorization header)
+PUT {{uploadUrl}}
+Content-Type: application/pdf
+
+< ./files/biz-proof-1.pdf
+
+### A-3) Complete upload
+# @name completeEvidence
+POST {{baseUrl}}/onboarding/evidences/complete
+Authorization: Bearer {{accessToken}}
+Content-Type: {{contentType}}
+
+{
+  "evidenceBundleId": "{{evidenceBundleId}}",
+  "evidenceFileId": "{{evidenceFileId}}",
+  "sizeBytes": {{pdfSizeBytes}}
+}

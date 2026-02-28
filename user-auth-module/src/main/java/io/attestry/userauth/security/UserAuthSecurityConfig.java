@@ -22,7 +22,7 @@ public class UserAuthSecurityConfig {
             .csrf(csrf -> csrf.disable())
             .sessionManagement(session -> session.sessionCreationPolicy(SessionCreationPolicy.STATELESS))
             .authorizeHttpRequests(auth -> auth
-                .requestMatchers("/auth/signup", "/auth/login", "/error").permitAll()
+                .requestMatchers("/auth/signup", "/auth/login", "/api-v1/auth/signup", "/api-v1/auth/login", "/error").permitAll()
                 .anyRequest().authenticated()
             )
             .addFilterBefore(accessTokenFilter, UsernamePasswordAuthenticationFilter.class)

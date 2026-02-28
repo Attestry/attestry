@@ -14,6 +14,10 @@ public interface MembershipAdminRepositoryPort {
 
     Optional<GroupView> findGroupById(String groupId);
 
+    GroupView saveGroup(GroupView group);
+
+    void updateGroupStatusOnMemberships(String groupId, GroupStatus status);
+
     Invitation saveInvitation(Invitation invitation);
 
     Optional<Invitation> findInvitationById(String invitationId);

@@ -1,0 +1,21 @@
+spring:
+  config:
+    activate:
+      on-profile: dev
+  data:
+    redis:
+      host: ${REDIS_HOST:localhost}
+      port: ${REDIS_PORT:6379}
+
+app:
+  auth:
+    token:
+      provider: REDIS
+  storage:
+    provider: S3
+    bucket: ${S3_BUCKET:attestry-onboarding}
+    s3:
+      region: ${AWS_REGION:ap-northeast-2}
+      endpoint: ${S3_ENDPOINT:}
+      access-key: ${AWS_ACCESS_KEY_ID:}
+      secret-key: ${AWS_SECRET_ACCESS_KEY:}

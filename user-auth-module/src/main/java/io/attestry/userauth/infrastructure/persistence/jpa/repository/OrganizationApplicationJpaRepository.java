@@ -11,4 +11,12 @@ public interface OrganizationApplicationJpaRepository extends JpaRepository<Orga
     List<OrganizationApplicationJpaEntity> findByTenantId(String tenantId);
 
     List<OrganizationApplicationJpaEntity> findByTenantIdAndType(String tenantId, GroupType type);
+
+    boolean existsByTypeAndTenantIdIsNullAndOrgNameIgnoreCase(GroupType type, String orgName);
+
+    boolean existsByTypeAndTenantIdAndOrgNameIgnoreCase(GroupType type, String tenantId, String orgName);
+
+    boolean existsByTypeAndTenantIdIsNullAndBizRegNoIgnoreCase(GroupType type, String bizRegNo);
+
+    boolean existsByTypeAndTenantIdAndBizRegNoIgnoreCase(GroupType type, String tenantId, String bizRegNo);
 }

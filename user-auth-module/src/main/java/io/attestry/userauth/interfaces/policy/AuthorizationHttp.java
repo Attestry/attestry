@@ -1,11 +1,11 @@
 package io.attestry.userauth.interfaces.policy;
 
-import io.attestry.userauth.application.dto.AuthzEvaluateCommand;
-import io.attestry.userauth.application.dto.AuthzEvaluateResult;
-import io.attestry.userauth.application.policy.EvaluateAuthorizationService;
-import io.attestry.userauth.domain.auth.model.Scope;
-import io.attestry.userauth.security.AuthPrincipalResolver;
-import org.springframework.security.core.Authentication;
+import io.attestry.userauth.application.dto.command.AuthzEvaluateCommand;
+import io.attestry.userauth.application.dto.command.PolicyDecisionMode;
+import io.attestry.userauth.application.dto.result.AuthzEvaluateResult;
+import io.attestry.userauth.application.usecase.policy.EvaluateAuthorizationUseCase;
+import io.attestry.userauth.domain.auth.model.AuthPrincipal;
+import org.springframework.security.core.annotation.AuthenticationPrincipal;
 import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RequestMapping;
@@ -15,28 +15,33 @@ import org.springframework.web.bind.annotation.RestController;
 @RequestMapping("/authz")
 public class AuthorizationHttp {
 
-    private final EvaluateAuthorizationService evaluateAuthorizationService;
+    private final EvaluateAuthorizationUseCase evaluateAuthorizationService;
 
-    public AuthorizationHttp(EvaluateAuthorizationService evaluateAuthorizationService) {
+    public AuthorizationHttp(EvaluateAuthorizationUseCase evaluateAuthorizationService) {
         this.evaluateAuthorizationService = evaluateAuthorizationService;
     }
 
     @PostMapping("/evaluate")
     public AuthzEvaluateResponse evaluate(
-        Authentication authentication,
+        @AuthenticationPrincipal AuthPrincipal principal,
         @RequestBody AuthzEvaluateRequest request
     ) {
         AuthzEvaluateResult result = evaluateAuthorizationService.evaluate(
-            AuthPrincipalResolver.resolve(authentication),
-            new AuthzEvaluateCommand(request.tenantId(), request.actionScope(), request.resourceRef())
+            principal,
+            new AuthzEvaluateCommand(request.tenantId(), request.action(), request.resourceRef(), request.decisionMode())
         );
 
-        return new AuthzEvaluateResponse(result.allowed(), result.reason(), result.effectiveScopes());
+        return new AuthzEvaluateResponse(result.allowed(), result.reason(), result.effectiveScopes(), result.decisionMode());
     }
 
-    public record AuthzEvaluateRequest(String tenantId, Scope actionScope, String resourceRef) {
+    public record AuthzEvaluateRequest(String tenantId, String action, String resourceRef, PolicyDecisionMode decisionMode) {
     }
 
-    public record AuthzEvaluateResponse(boolean allowed, String reason, java.util.Set<Scope> effectiveScopes) {
+    public record AuthzEvaluateResponse(
+        boolean allowed,
+        String reason,
+        java.util.Set<String> effectiveScopes,
+        PolicyDecisionMode decisionMode
+    ) {
     }
 }

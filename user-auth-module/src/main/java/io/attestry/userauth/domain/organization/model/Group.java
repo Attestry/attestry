@@ -9,4 +9,18 @@ public record Group(
     public boolean isActive() {
         return status == GroupStatus.ACTIVE;
     }
+
+    public Group suspend() {
+        if (status == GroupStatus.SUSPENDED) {
+            return this;
+        }
+        return new Group(groupId, tenantId, type, GroupStatus.SUSPENDED);
+    }
+
+    public Group unsuspend() {
+        if (status == GroupStatus.ACTIVE) {
+            return this;
+        }
+        return new Group(groupId, tenantId, type, GroupStatus.ACTIVE);
+    }
 }

@@ -70,25 +70,9 @@ CREATE TABLE IF NOT EXISTS approval_requests (
     CONSTRAINT fk_approval_approved_by FOREIGN KEY (approved_by) REFERENCES user_accounts (user_id)
 );
 
-CREATE TABLE IF NOT EXISTS passport_permissions (
-    permission_id VARCHAR(36) PRIMARY KEY,
-    tenant_id VARCHAR(36) NOT NULL,
-    passport_id VARCHAR(36) NOT NULL,
-    retail_group_id VARCHAR(36) NOT NULL,
-    scope VARCHAR(50) NOT NULL,
-    status VARCHAR(30) NOT NULL,
-    expires_at TIMESTAMP,
-    granted_by VARCHAR(36) NOT NULL,
-    created_at TIMESTAMP NOT NULL,
-    CONSTRAINT fk_permission_tenant FOREIGN KEY (tenant_id) REFERENCES tenants (tenant_id),
-    CONSTRAINT fk_permission_group FOREIGN KEY (retail_group_id) REFERENCES tenant_groups (group_id),
-    CONSTRAINT fk_permission_granted_by FOREIGN KEY (granted_by) REFERENCES user_accounts (user_id)
-);
 
 CREATE INDEX IF NOT EXISTS idx_memberships_user_id ON memberships (user_id);
 CREATE INDEX IF NOT EXISTS idx_memberships_context ON memberships (user_id, tenant_id, group_id);
 CREATE INDEX IF NOT EXISTS idx_groups_tenant_id ON tenant_groups (tenant_id);
 CREATE INDEX IF NOT EXISTS idx_org_apps_tenant_id ON organization_applications (tenant_id);
 CREATE INDEX IF NOT EXISTS idx_approvals_tenant_id ON approval_requests (tenant_id);
-CREATE INDEX IF NOT EXISTS idx_permissions_tenant_passport ON passport_permissions (tenant_id, passport_id);
-CREATE INDEX IF NOT EXISTS idx_permissions_tenant_group ON passport_permissions (tenant_id, retail_group_id);

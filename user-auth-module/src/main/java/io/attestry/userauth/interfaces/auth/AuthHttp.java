@@ -1,14 +1,18 @@
 package io.attestry.userauth.interfaces.auth;
 
-import io.attestry.userauth.application.auth.AuthApplicationService;
-import io.attestry.userauth.application.dto.AuthTokenResult;
-import io.attestry.userauth.application.dto.LoginCommand;
-import io.attestry.userauth.application.dto.SignUpCommand;
+import io.attestry.userauth.application.dto.result.AuthTokenResult;
+import io.attestry.userauth.application.dto.result.SignUpResult;
+import io.attestry.userauth.application.dto.command.LoginCommand;
+import io.attestry.userauth.application.dto.command.SignUpCommand;
+import io.attestry.userauth.application.usecase.auth.AuthUseCase;
+import io.attestry.userauth.domain.auth.model.AuthPrincipal;
 import io.attestry.userauth.interfaces.auth.dto.request.LoginRequest;
 import io.attestry.userauth.interfaces.auth.dto.request.SignUpRequest;
+import io.attestry.userauth.interfaces.auth.dto.response.LoginResponse;
 import io.attestry.userauth.interfaces.auth.dto.response.SignUpResponse;
-import io.attestry.userauth.security.AuthPrincipalResolver;
+import jakarta.validation.Valid;
 import org.springframework.http.HttpStatus;
+import org.springframework.security.core.annotation.AuthenticationPrincipal;
 import org.springframework.security.core.Authentication;
 import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.RequestBody;
@@ -17,30 +21,30 @@ import org.springframework.web.bind.annotation.ResponseStatus;
 import org.springframework.web.bind.annotation.RestController;
 
 @RestController
-@RequestMapping("/auth")
+@RequestMapping({"/auth", "/api-v1/auth"})
 public class AuthHttp {
 
-    private final AuthApplicationService authApplicationService;
+    private final AuthUseCase authApplicationService;
 
-    public AuthHttp(AuthApplicationService authApplicationService) {
+    public AuthHttp(AuthUseCase authApplicationService) {
         this.authApplicationService = authApplicationService;
     }
 
     @PostMapping("/signup")
     @ResponseStatus(HttpStatus.CREATED)
-    public SignUpResponse signup(@RequestBody SignUpRequest request) {
-        String userId = authApplicationService.signUp(
+    public SignUpResponse signup(@Valid @RequestBody SignUpRequest request) {
+        SignUpResult result = authApplicationService.signUp(
                 new SignUpCommand(
                         request.email(),
                         request.password(),
                         request.phone()
                 )
         );
-        return new SignUpResponse(userId);
+        return new SignUpResponse(result.userId());
     }
 
     @PostMapping("/login")
-    public LoginResponse login(@RequestBody LoginRequest request) {
+    public LoginResponse login(@Valid @RequestBody LoginRequest request) {
 
         AuthTokenResult result = authApplicationService.login(
             new LoginCommand(request.email(), request.password(), request.tenantId(), request.groupId())
@@ -59,23 +63,12 @@ public class AuthHttp {
     @PostMapping("/logout")
     @ResponseStatus(HttpStatus.NO_CONTENT)
     public void logout(Authentication authentication) {
-        authApplicationService.logout(AuthPrincipalResolver.resolveAccessToken(authentication));
+        authApplicationService.logout((String) authentication.getCredentials());
     }
 
     @PostMapping("/verify-phone")
     @ResponseStatus(HttpStatus.NO_CONTENT)
-    public void verifyPhone(Authentication authentication) {
-        authApplicationService.verifyPhone(AuthPrincipalResolver.resolve(authentication).userId());
-    }
-
-
-    public record LoginResponse(
-        String accessToken,
-        String tokenType,
-        java.time.Instant expiresAt,
-        String userId,
-        String tenantId,
-        String groupId
-    ) {
+    public void verifyPhone(@AuthenticationPrincipal AuthPrincipal principal) {
+        authApplicationService.verifyPhone(principal.userId());
     }
 }
