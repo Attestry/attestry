@@ -1,8 +1,10 @@
 package io.attestry.userauth.application.membership;
 
 import io.attestry.userauth.application.dto.result.MembershipInvitationResult;
+import io.attestry.userauth.application.dto.result.MembershipAssignableRolesResult;
 import io.attestry.userauth.application.dto.result.MembershipResult;
 import io.attestry.userauth.application.dto.result.GroupAdminResult;
+import io.attestry.userauth.application.dto.result.MembershipPermissionTemplateResult;
 import io.attestry.userauth.application.dto.result.MembershipRoleAssignmentsResult;
 import io.attestry.userauth.application.dto.view.MembershipAdminView;
 import io.attestry.userauth.application.dto.command.AuthzEvaluateCommand;
@@ -26,6 +28,7 @@ import io.attestry.userauth.domain.organization.model.GroupStatus;
 import io.attestry.userauth.domain.user.model.UserAccount;
 import io.attestry.userauth.domain.policy.TenantIsolationPolicy;
 import io.attestry.userauth.domain.policy.RoleAssignmentPolicy;
+import io.attestry.userauth.domain.policy.PermissionTemplatePolicy;
 import java.time.Clock;
 import java.time.Instant;
 import java.util.Locale;
@@ -127,6 +130,28 @@ public class MembershipAdminService implements MembershipAdminUseCase {
     }
 
     @Override
+    @Transactional(readOnly = true)
+    public MembershipAssignableRolesResult listAssignableRoleCodes(AuthPrincipal principal, String tenantId, String membershipId) {
+        assertTenantIsolation(principal, tenantId);
+        Membership target = membershipAdminRepository.findMembershipById(membershipId)
+            .orElseThrow(() -> new DomainException(ErrorCode.MEMBERSHIP_NOT_FOUND, "Membership not found"));
+        if (!tenantId.equals(target.tenantId())) {
+            throw new DomainException(ErrorCode.TENANT_ISOLATION_VIOLATION, "Cross-tenant membership access denied");
+        }
+
+        Membership actorMembership = resolveActiveActorMembership(principal.userId(), tenantId);
+        Set<String> actorRoles = membershipAdminRepository.findRoleCodesByMembershipId(actorMembership.membershipId());
+        List<String> assignableRoleCodes = membershipAdminRepository.findGlobalEnabledRoleCodes().stream()
+            .filter(roleCode -> RoleAssignmentPolicy.canAssign(actorRoles, roleCode))
+            .filter(roleCode -> !RoleAssignmentPolicy.isSelfEscalationDenied(actorMembership.membershipId(), membershipId, roleCode))
+            .filter(roleCode -> isRoleAssignableByAuthorization(principal, tenantId, membershipId, roleCode))
+            .sorted()
+            .toList();
+
+        return new MembershipAssignableRolesResult(membershipId, assignableRoleCodes);
+    }
+
+    @Override
     @Transactional
     public MembershipRoleAssignmentsResult assignMembershipRole(
         AuthPrincipal principal,
@@ -146,6 +171,28 @@ public class MembershipAdminService implements MembershipAdminUseCase {
         RevokeMembershipRoleCommand command
     ) {
         return mutateMembershipRoleAssignment(principal, tenantId, membershipId, command.roleCode(), false);
+    }
+
+    @Override
+    @Transactional
+    public MembershipPermissionTemplateResult applyPermissionTemplate(
+        AuthPrincipal principal,
+        String tenantId,
+        String membershipId,
+        ApplyPermissionTemplateCommand command
+    ) {
+        return mutatePermissionTemplate(principal, tenantId, membershipId, command.templateCode(), command.reason(), true);
+    }
+
+    @Override
+    @Transactional
+    public MembershipPermissionTemplateResult revokePermissionTemplate(
+        AuthPrincipal principal,
+        String tenantId,
+        String membershipId,
+        RevokePermissionTemplateCommand command
+    ) {
+        return mutatePermissionTemplate(principal, tenantId, membershipId, command.templateCode(), command.reason(), false);
     }
 
     @Override
@@ -272,11 +319,7 @@ public class MembershipAdminService implements MembershipAdminUseCase {
             throw new DomainException(ErrorCode.TENANT_ISOLATION_VIOLATION, "Cross-tenant membership access denied");
         }
 
-        Membership actorMembership = membershipRepository.findByUserId(principal.userId()).stream()
-            .filter(Membership::isActive)
-            .filter(membership -> tenantId.equals(membership.tenantId()))
-            .findFirst()
-            .orElseThrow(() -> new DomainException(ErrorCode.FORBIDDEN_SCOPE, "Actor has no active membership in tenant"));
+        Membership actorMembership = resolveActiveActorMembership(principal.userId(), tenantId);
         Set<String> actorRoles = membershipAdminRepository.findRoleCodesByMembershipId(actorMembership.membershipId());
 
         Instant requestedAt = Instant.now(clock);
@@ -361,6 +404,86 @@ public class MembershipAdminService implements MembershipAdminUseCase {
             membershipId,
             new LinkedHashSet<>(updatedRoleCodes).stream().sorted().toList()
         );
+    }
+
+    private MembershipPermissionTemplateResult mutatePermissionTemplate(
+        AuthPrincipal principal,
+        String tenantId,
+        String membershipId,
+        String templateCode,
+        String reason,
+        boolean apply
+    ) {
+        assertTenantIsolation(principal, tenantId);
+        Membership target = membershipAdminRepository.findMembershipById(membershipId)
+            .orElseThrow(() -> new DomainException(ErrorCode.MEMBERSHIP_NOT_FOUND, "Membership not found"));
+        if (!tenantId.equals(target.tenantId())) {
+            throw new DomainException(ErrorCode.TENANT_ISOLATION_VIOLATION, "Cross-tenant membership access denied");
+        }
+
+        Membership actorMembership = resolveActiveActorMembership(principal.userId(), tenantId);
+        Set<String> actorRoles = membershipAdminRepository.findRoleCodesByMembershipId(actorMembership.membershipId());
+        if (!actorRoles.contains(io.attestry.userauth.domain.auth.model.RoleCodes.TENANT_OWNER)
+            && !actorRoles.contains(io.attestry.userauth.domain.auth.model.RoleCodes.PLATFORM_SUPER_ADMIN)) {
+            throw new DomainException(ErrorCode.FORBIDDEN_SCOPE, "Permission template operation requires TENANT_OWNER");
+        }
+
+        String normalizedTemplateCode = PermissionTemplatePolicy.normalize(templateCode);
+        assertLivePermission(
+            principal,
+            tenantId,
+            PermissionCodes.TENANT_ROLE_ASSIGN,
+            "membership:" + membershipId + ":template:" + normalizedTemplateCode
+        );
+        Set<String> permissionCodes = new LinkedHashSet<>(PermissionTemplatePolicy.resolvePermissionCodes(normalizedTemplateCode));
+        Instant now = Instant.now(clock);
+        if (apply) {
+            membershipAdminRepository.upsertPermissionOverrides(
+                membershipId,
+                permissionCodes,
+                "TEMPLATE",
+                reason == null ? normalizedTemplateCode : reason,
+                principal.userId(),
+                now
+            );
+        } else {
+            membershipAdminRepository.deletePermissionOverrides(membershipId, permissionCodes);
+        }
+        return new MembershipPermissionTemplateResult(
+            membershipId,
+            normalizedTemplateCode,
+            apply ? "APPLY" : "REVOKE",
+            permissionCodes.stream().sorted().toList()
+        );
+    }
+
+    private Membership resolveActiveActorMembership(String actorUserId, String tenantId) {
+        return membershipRepository.findByUserId(actorUserId).stream()
+            .filter(Membership::isActive)
+            .filter(membership -> tenantId.equals(membership.tenantId()))
+            .findFirst()
+            .orElseThrow(() -> new DomainException(ErrorCode.FORBIDDEN_SCOPE, "Actor has no active membership in tenant"));
+    }
+
+    private boolean isRoleAssignableByAuthorization(
+        AuthPrincipal principal,
+        String tenantId,
+        String membershipId,
+        String roleCode
+    ) {
+        PolicyDecisionMode mode = RoleAssignmentPolicy.requiresLiveRecheck(roleCode)
+            ? PolicyDecisionMode.LIVE_RECHECK
+            : PolicyDecisionMode.TOKEN_SNAPSHOT;
+        AuthzEvaluateResult decision = evaluateAuthorizationUseCase.evaluate(
+            principal,
+            new AuthzEvaluateCommand(
+                tenantId,
+                PermissionCodes.TENANT_ROLE_ASSIGN,
+                "membership:" + membershipId + ":role:" + roleCode,
+                mode
+            )
+        );
+        return decision.allowed();
     }
 
     private MembershipInvitationResult toInvitationResult(Invitation invitation) {

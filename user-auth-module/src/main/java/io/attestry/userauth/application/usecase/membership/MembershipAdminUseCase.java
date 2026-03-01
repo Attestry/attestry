@@ -2,6 +2,8 @@ package io.attestry.userauth.application.usecase.membership;
 
 import io.attestry.userauth.application.dto.result.MembershipInvitationResult;
 import io.attestry.userauth.application.dto.result.GroupAdminResult;
+import io.attestry.userauth.application.dto.result.MembershipPermissionTemplateResult;
+import io.attestry.userauth.application.dto.result.MembershipAssignableRolesResult;
 import io.attestry.userauth.application.dto.result.MembershipResult;
 import io.attestry.userauth.application.dto.result.MembershipRoleAssignmentsResult;
 import io.attestry.userauth.application.dto.view.MembershipAdminView;
@@ -26,6 +28,8 @@ public interface MembershipAdminUseCase {
 
     MembershipRoleAssignmentsResult listMembershipRoleAssignments(AuthPrincipal principal, String tenantId, String membershipId);
 
+    MembershipAssignableRolesResult listAssignableRoleCodes(AuthPrincipal principal, String tenantId, String membershipId);
+
     MembershipRoleAssignmentsResult assignMembershipRole(
         AuthPrincipal principal,
         String tenantId,
@@ -38,6 +42,20 @@ public interface MembershipAdminUseCase {
         String tenantId,
         String membershipId,
         RevokeMembershipRoleCommand command
+    );
+
+    MembershipPermissionTemplateResult applyPermissionTemplate(
+        AuthPrincipal principal,
+        String tenantId,
+        String membershipId,
+        ApplyPermissionTemplateCommand command
+    );
+
+    MembershipPermissionTemplateResult revokePermissionTemplate(
+        AuthPrincipal principal,
+        String tenantId,
+        String membershipId,
+        RevokePermissionTemplateCommand command
     );
 
     GroupAdminResult suspendGroup(AuthPrincipal principal, String tenantId, String groupId);
@@ -54,5 +72,11 @@ public interface MembershipAdminUseCase {
     }
 
     record RevokeMembershipRoleCommand(String roleCode) {
+    }
+
+    record ApplyPermissionTemplateCommand(String templateCode, String reason) {
+    }
+
+    record RevokePermissionTemplateCommand(String templateCode, String reason) {
     }
 }

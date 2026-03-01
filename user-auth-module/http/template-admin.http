@@ -1,0 +1,82 @@
+### =========================================================
+### User Auth API - Template Admin (TemplateAdminHttp)
+### Requires: SCOPE_PLATFORM_ADMIN + PLATFORM_SUPER_ADMIN role
+### =========================================================
+
+@baseUrl = http://localhost:8080
+@contentType = application/json
+@platformAccessToken = d0f7749c-7dd3-425c-898a-e583ffc89bc5
+
+@tenantId = 1a12757d-74fb-4e45-8dd6-77829d23fdbf
+@templateCode = TEMPLATE_BRAND_WORK
+@permissionCode = BRAND_VOID
+
+### 1) Template create
+POST {{baseUrl}}/admin/permission-templates
+Authorization: Bearer {{platformAccessToken}}
+Content-Type: {{contentType}}
+
+{
+  "code": "TEMPLATE_BRAND_WORK",
+  "name": "Brand Work Template",
+  "description": "Brand operator work permissions"
+}
+
+### 2) Template list
+GET {{baseUrl}}/admin/permission-templates
+Authorization: Bearer {{platformAccessToken}}
+
+### 3) Template detail
+GET {{baseUrl}}/admin/permission-templates/{{templateCode}}
+Authorization: Bearer {{platformAccessToken}}
+
+### 4) Template patch
+PATCH {{baseUrl}}/admin/permission-templates/{{templateCode}}
+Authorization: Bearer {{platformAccessToken}}
+Content-Type: {{contentType}}
+
+{
+  "name": "Brand Work Template v2",
+  "description": "Updated description",
+  "enabled": true
+}
+
+### 5) Template permissions replace (bulk)
+PUT {{baseUrl}}/admin/permission-templates/{{templateCode}}/permissions
+Authorization: Bearer {{platformAccessToken}}
+Content-Type: {{contentType}}
+
+{
+  "permissionCodes": ["BRAND_MINT", "BRAND_VOID"]
+}
+
+### 6) Template permissions add
+POST {{baseUrl}}/admin/permission-templates/{{templateCode}}/permissions
+Authorization: Bearer {{platformAccessToken}}
+Content-Type: {{contentType}}
+
+{
+  "permissionCodes": ["BRAND_MINT"]
+}
+
+### 7) Template permission remove
+DELETE {{baseUrl}}/admin/permission-templates/{{templateCode}}/permissions/{{permissionCode}}
+Authorization: Bearer {{platformAccessToken}}
+
+### 8) Tenant role-template binding create
+POST {{baseUrl}}/admin/tenants/{{tenantId}}/role-templates
+Authorization: Bearer {{platformAccessToken}}
+Content-Type: {{contentType}}
+
+{
+  "roleCode": "TENANT_OPERATOR",
+  "templateCode": "{{templateCode}}"
+}
+
+### 9) Tenant role-template binding list
+GET {{baseUrl}}/admin/tenants/{{tenantId}}/role-templates
+Authorization: Bearer {{platformAccessToken}}
+
+### 10) Tenant role-template binding disable
+DELETE {{baseUrl}}/admin/tenants/{{tenantId}}/role-templates/TENANT_OPERATOR/{{templateCode}}
+Authorization: Bearer {{platformAccessToken}}

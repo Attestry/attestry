@@ -41,6 +41,7 @@ import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.context.SpringBootTest;
 import org.springframework.http.MediaType;
+import org.springframework.jdbc.core.JdbcTemplate;
 import org.springframework.test.web.servlet.setup.MockMvcBuilders;
 import org.springframework.test.web.servlet.MockMvc;
 import org.springframework.test.web.servlet.MvcResult;
@@ -89,6 +90,9 @@ class UserAuthApiIntegrationTests {
     @Autowired
     private RoleAssignmentAuditJpaRepository roleAssignmentAuditRepository;
 
+    @Autowired
+    private JdbcTemplate jdbcTemplate;
+
     @BeforeEach
     void initMockMvc() {
         clearData();
@@ -98,6 +102,7 @@ class UserAuthApiIntegrationTests {
     }
 
     private void clearData() {
+        jdbcTemplate.update("DELETE FROM tenant_role_template_bindings");
         roleAssignmentAuditRepository.deleteAll();
         membershipRoleAssignmentRepository.deleteAll();
         membershipRepository.deleteAll();
@@ -206,10 +211,11 @@ class UserAuthApiIntegrationTests {
         membershipRoleAssignmentRepository.save(new io.attestry.userauth.infrastructure.persistence.jpa.entity.MembershipRoleAssignmentJpaEntity(
             UUID.randomUUID().toString(),
             membershipAdminMembership.getMembershipId(),
-            "role-tenant-membership-admin",
+            "role-tenant-owner",
             null,
             Instant.now()
         ));
+        bindTenantOwnerTemplate(tenantId, membershipAdminUserId);
 
         String applicantEmail = "retail-applicant@test.com";
         String applicantPassword = "ApplicantPw123";
@@ -328,10 +334,11 @@ class UserAuthApiIntegrationTests {
         membershipRoleAssignmentRepository.save(new io.attestry.userauth.infrastructure.persistence.jpa.entity.MembershipRoleAssignmentJpaEntity(
             UUID.randomUUID().toString(),
             membershipRepository.findByUserId(adminUserId).getFirst().getMembershipId(),
-            "role-tenant-membership-admin",
+            "role-tenant-owner",
             null,
             Instant.now()
         ));
+        bindTenantOwnerTemplate(tenantId, adminUserId);
 
         MembershipJpaEntity targetMembership = membershipRepository.save(new MembershipJpaEntity(
             UUID.randomUUID().toString(),
@@ -347,11 +354,11 @@ class UserAuthApiIntegrationTests {
 
         String adminToken = login("membership-admin@test.com", "AdminPw123", tenantId, adminGroupId);
 
-        mockMvc.perform(post("/tenants/{tenantId}/admin/memberships/{id}/roles/{roleCode}", tenantId, targetMembership.getMembershipId(), "BRAND_OPERATOR")
+        mockMvc.perform(post("/tenants/{tenantId}/admin/memberships/{id}/roles/{roleCode}", tenantId, targetMembership.getMembershipId(), "TENANT_OPERATOR")
                 .header("Authorization", bearer(adminToken)))
             .andExpect(status().isOk())
             .andExpect(jsonPath("$.membershipId").value(targetMembership.getMembershipId()))
-            .andExpect(jsonPath("$.roleCodes[?(@ == 'BRAND_OPERATOR')]").exists());
+            .andExpect(jsonPath("$.roleCodes[?(@ == 'TENANT_OPERATOR')]").exists());
 
         mockMvc.perform(patch("/tenants/{tenantId}/admin/memberships/{id}/role", tenantId, targetMembership.getMembershipId())
                 .header("Authorization", bearer(adminToken))
@@ -365,7 +372,8 @@ class UserAuthApiIntegrationTests {
                 .content(json(Map.of(
                     "status", "SUSPENDED"
                 ))))
-            .andExpect(status().isForbidden());
+            .andExpect(status().isOk())
+            .andExpect(jsonPath("$.status").value("SUSPENDED"));
     }
 
     @Test
@@ -414,6 +422,7 @@ class UserAuthApiIntegrationTests {
             null,
             Instant.now()
         ));
+        bindTenantOwnerTemplate(tenantId, adminUserId);
 
         MembershipJpaEntity memberMembership = membershipRepository.save(new MembershipJpaEntity(
             UUID.randomUUID().toString(),
@@ -499,10 +508,11 @@ class UserAuthApiIntegrationTests {
         membershipRoleAssignmentRepository.save(new io.attestry.userauth.infrastructure.persistence.jpa.entity.MembershipRoleAssignmentJpaEntity(
             UUID.randomUUID().toString(),
             adminMembership.getMembershipId(),
-            "role-tenant-membership-admin",
+            "role-tenant-owner",
             null,
             Instant.now()
         ));
+        bindTenantOwnerTemplate(tenantId, adminUserId);
 
         MembershipJpaEntity targetMembership = membershipRepository.save(new MembershipJpaEntity(
             UUID.randomUUID().toString(),
@@ -518,29 +528,29 @@ class UserAuthApiIntegrationTests {
         membershipRoleAssignmentRepository.save(new io.attestry.userauth.infrastructure.persistence.jpa.entity.MembershipRoleAssignmentJpaEntity(
             UUID.randomUUID().toString(),
             targetMembership.getMembershipId(),
-            "role-group-staff",
+            "role-tenant-staff",
             null,
             Instant.now()
         ));
 
         String adminToken = login("assign-admin@test.com", "AdminPw123", tenantId, groupId);
 
-        mockMvc.perform(post("/tenants/{tenantId}/admin/memberships/{id}/roles/{roleCode}", tenantId, targetMembership.getMembershipId(), "BRAND_OPERATOR")
+        mockMvc.perform(post("/tenants/{tenantId}/admin/memberships/{id}/roles/{roleCode}", tenantId, targetMembership.getMembershipId(), "TENANT_OPERATOR")
                 .header("Authorization", bearer(adminToken)))
             .andExpect(status().isOk())
             .andExpect(jsonPath("$.membershipId").value(targetMembership.getMembershipId()))
             .andExpect(jsonPath("$.roleCodes").isArray())
-            .andExpect(jsonPath("$.roleCodes[?(@ == 'BRAND_OPERATOR')]").exists());
+            .andExpect(jsonPath("$.roleCodes[?(@ == 'TENANT_OPERATOR')]").exists());
 
         mockMvc.perform(get("/tenants/{tenantId}/admin/memberships/{id}/roles", tenantId, targetMembership.getMembershipId())
                 .header("Authorization", bearer(adminToken)))
             .andExpect(status().isOk())
-            .andExpect(jsonPath("$.roleCodes[?(@ == 'BRAND_OPERATOR')]").exists());
+            .andExpect(jsonPath("$.roleCodes[?(@ == 'TENANT_OPERATOR')]").exists());
 
-        mockMvc.perform(delete("/tenants/{tenantId}/admin/memberships/{id}/roles/{roleCode}", tenantId, targetMembership.getMembershipId(), "BRAND_OPERATOR")
+        mockMvc.perform(delete("/tenants/{tenantId}/admin/memberships/{id}/roles/{roleCode}", tenantId, targetMembership.getMembershipId(), "TENANT_OPERATOR")
                 .header("Authorization", bearer(adminToken)))
             .andExpect(status().isOk())
-            .andExpect(jsonPath("$.roleCodes[?(@ == 'BRAND_OPERATOR')]").doesNotExist());
+            .andExpect(jsonPath("$.roleCodes[?(@ == 'TENANT_OPERATOR')]").doesNotExist());
     }
 
     @Test
@@ -584,10 +594,11 @@ class UserAuthApiIntegrationTests {
         membershipRoleAssignmentRepository.save(new io.attestry.userauth.infrastructure.persistence.jpa.entity.MembershipRoleAssignmentJpaEntity(
             UUID.randomUUID().toString(),
             adminMembership.getMembershipId(),
-            "role-tenant-membership-admin",
+            "role-tenant-owner",
             null,
             Instant.now()
         ));
+        bindTenantOwnerTemplate(tenantId, adminUserId);
 
         MembershipJpaEntity targetMembership = membershipRepository.save(new MembershipJpaEntity(
             UUID.randomUUID().toString(),
@@ -681,5 +692,35 @@ class UserAuthApiIntegrationTests {
 
     private String bearer(String token) {
         return "Bearer " + token;
+    }
+
+    private void bindTenantOwnerTemplate(String tenantId, String actorUserId) {
+        jdbcTemplate.update(
+            """
+                INSERT INTO tenant_role_template_bindings (
+                    binding_id,
+                    tenant_id,
+                    role_code,
+                    template_id,
+                    enabled,
+                    created_by_user_id,
+                    created_at
+                )
+                SELECT ?, ?, 'TENANT_OWNER', pt.template_id, TRUE, ?, CURRENT_TIMESTAMP
+                FROM permission_templates pt
+                WHERE pt.code = 'TEMPLATE_TENANT_OWNER_CORE'
+                  AND NOT EXISTS (
+                      SELECT 1
+                      FROM tenant_role_template_bindings trtb
+                      WHERE trtb.tenant_id = ?
+                        AND trtb.role_code = 'TENANT_OWNER'
+                        AND trtb.template_id = pt.template_id
+                  )
+                """,
+            UUID.randomUUID().toString(),
+            tenantId,
+            actorUserId,
+            tenantId
+        );
     }
 }

@@ -34,6 +34,12 @@ public interface MembershipAdminRepositoryPort {
 
     Set<String> findRoleCodesByMembershipId(String membershipId);
 
+    Set<String> findGlobalEnabledRoleCodes();
+
+    void upsertPermissionOverrides(String membershipId, Set<String> permissionCodes, String source, String reason, String actorUserId, Instant now);
+
+    void deletePermissionOverrides(String membershipId, Set<String> permissionCodes);
+
     Set<String> assignRoleToMembership(String membershipId, String roleCode, String actorUserId, Instant assignedAt);
 
     Set<String> revokeRoleFromMembership(String membershipId, String roleCode);

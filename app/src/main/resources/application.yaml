@@ -18,13 +18,31 @@ spring:
   flyway:
     enabled: true
     locations: classpath:db/migration
+  kafka:
+    bootstrap-servers: ${KAFKA_BOOTSTRAP_SERVERS:localhost:9092}
+    client-id: ${KAFKA_CLIENT_ID:attestry}
+    admin:
+      auto-create: true
+      fail-fast: false
+    producer:
+      key-serializer: org.apache.kafka.common.serialization.StringSerializer
+      value-serializer: org.apache.kafka.common.serialization.StringSerializer
+      retries: ${KAFKA_PRODUCER_RETRIES:3}
+      acks: ${KAFKA_PRODUCER_ACKS:all}
+    consumer:
+      group-id: ${KAFKA_CONSUMER_GROUP:attestry-ledger-consumer}
+      auto-offset-reset: ${KAFKA_CONSUMER_OFFSET_RESET:earliest}
+      key-deserializer: org.apache.kafka.common.serialization.StringDeserializer
+      value-deserializer: org.apache.kafka.common.serialization.StringDeserializer
+    listener:
+      missing-topics-fatal: false
 
 app:
   auth:
     token:
       provider: ${AUTH_TOKEN_PROVIDER:MEMORY}
       redis-key-prefix: ${AUTH_TOKEN_REDIS_PREFIX:auth:access-token:}
-      access-ttl: ${AUTH_TOKEN_ACCESS_TTL:PT15M}
+      access-ttl: ${AUTH_TOKEN_ACCESS_TTL:PT24H}
   bootstrap:
     platform-admin:
       enabled: ${BOOTSTRAP_PLATFORM_ADMIN_ENABLED:false}
@@ -34,3 +52,16 @@ app:
   storage:
     provider: ${STORAGE_PROVIDER:MEMORY}
     bucket: ${STORAGE_BUCKET:attestry-onboarding}
+  kafka:
+    enabled: ${APP_KAFKA_ENABLED:true}
+    client-id: ${KAFKA_CLIENT_ID:attestry}
+    consumer-group-id: ${KAFKA_CONSUMER_GROUP:attestry-ledger-consumer}
+    topics:
+      ledger-outbox: ${KAFKA_TOPIC_LEDGER_OUTBOX:ledger.outbox.v1}
+      ledger-dlq: ${KAFKA_TOPIC_LEDGER_DLQ:ledger.outbox.v1.dlq}
+      partitions: ${KAFKA_TOPIC_PARTITIONS:3}
+      replicas: ${KAFKA_TOPIC_REPLICAS:1}
+    outbox:
+      batch-size: ${KAFKA_OUTBOX_BATCH_SIZE:100}
+      max-retries: ${KAFKA_OUTBOX_MAX_RETRIES:5}
+      publish-interval-ms: ${KAFKA_OUTBOX_PUBLISH_INTERVAL_MS:2000}

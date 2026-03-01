@@ -6,28 +6,26 @@ import java.util.Set;
 public final class RoleAssignmentPolicy {
 
     private static final Set<String> PLATFORM_ONLY_ASSIGNABLE = Set.of(
-        RoleCodes.TENANT_OWNER,
-        RoleCodes.TENANT_PASSPORT_ADMIN,
-        RoleCodes.PLATFORM_SUPER_ADMIN
+        RoleCodes.TENANT_OWNER
     );
 
     private static final Set<String> TENANT_OWNER_ASSIGNABLE = Set.of(
-        RoleCodes.BRAND_ADMIN_BASE,
-        RoleCodes.RETAIL_ADMIN_BASE,
-        RoleCodes.TENANT_MEMBERSHIP_ADMIN
+        RoleCodes.TENANT_OPERATOR,
+        RoleCodes.TENANT_STAFF
     );
 
-    private static final Set<String> MEMBER_ADMIN_ASSIGNABLE = Set.of(
-        RoleCodes.BRAND_OPERATOR,
-        RoleCodes.RETAIL_OPERATOR,
-        RoleCodes.GROUP_STAFF
+    private static final Set<String> DEPRECATED_ASSIGNABLE = Set.of(
+        "TENANT_MEMBERSHIP_ADMIN",
+        "TENANT_PASSPORT_ADMIN",
+        "BRAND_ADMIN_BASE",
+        "RETAIL_ADMIN_BASE",
+        "BRAND_OPERATOR",
+        "RETAIL_OPERATOR",
+        "GROUP_STAFF"
     );
 
     private static final Set<String> SENSITIVE_ROLE_CODES = Set.of(
-        RoleCodes.TENANT_OWNER,
-        RoleCodes.TENANT_MEMBERSHIP_ADMIN,
-        RoleCodes.TENANT_PASSPORT_ADMIN,
-        RoleCodes.PLATFORM_SUPER_ADMIN
+        RoleCodes.TENANT_OWNER
     );
 
     private RoleAssignmentPolicy() {
@@ -37,18 +35,17 @@ public final class RoleAssignmentPolicy {
         if (actorRoleCodes == null || targetRoleCode == null) {
             return false;
         }
+        if (DEPRECATED_ASSIGNABLE.contains(targetRoleCode)) {
+            return false;
+        }
         if (actorRoleCodes.contains(RoleCodes.PLATFORM_SUPER_ADMIN)) {
-            return true;
+            return PLATFORM_ONLY_ASSIGNABLE.contains(targetRoleCode) || TENANT_OWNER_ASSIGNABLE.contains(targetRoleCode);
         }
         if (PLATFORM_ONLY_ASSIGNABLE.contains(targetRoleCode)) {
             return false;
         }
-        if (actorRoleCodes.contains(RoleCodes.TENANT_OWNER)
-            && (TENANT_OWNER_ASSIGNABLE.contains(targetRoleCode) || MEMBER_ADMIN_ASSIGNABLE.contains(targetRoleCode))) {
-            return true;
-        }
-        return actorRoleCodes.contains(RoleCodes.TENANT_MEMBERSHIP_ADMIN)
-            && MEMBER_ADMIN_ASSIGNABLE.contains(targetRoleCode);
+        return actorRoleCodes.contains(RoleCodes.TENANT_OWNER)
+            && TENANT_OWNER_ASSIGNABLE.contains(targetRoleCode);
     }
 
     public static boolean isSensitiveRole(String roleCode) {

@@ -18,3 +18,5 @@ app:
   storage:
     provider: MEMORY
     bucket: test-onboarding
+  kafka:
+    enabled: false

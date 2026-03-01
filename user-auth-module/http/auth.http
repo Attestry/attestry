@@ -5,7 +5,7 @@
 @baseUrl = http://localhost:8080
 @contentType = application/json
 
-@email = qa.user3@attestry.io
+@email = qa.user1@attestry.io
 @password = Password123!
 @phone = 010-1234-5671
 

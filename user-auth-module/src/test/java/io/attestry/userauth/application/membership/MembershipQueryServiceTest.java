@@ -57,7 +57,7 @@ class MembershipQueryServiceTest {
 
             @Override
             public Set<String> findRoleCodesByMembershipId(String membershipId) {
-                return Set.of("RETAIL_OPERATOR");
+                return Set.of("TENANT_OPERATOR");
             }
         };
 
@@ -67,7 +67,7 @@ class MembershipQueryServiceTest {
         assertEquals(1, views.size());
         MembershipView view = views.getFirst();
         assertEquals("m1", view.membershipId());
-        assertEquals(List.of("RETAIL_OPERATOR"), view.roleCodes());
+        assertEquals(List.of("TENANT_OPERATOR"), view.roleCodes());
         assertTrue(view.effectiveScopes().contains(PermissionCodes.RETAIL_RELEASE));
         assertTrue(view.effectiveScopes().contains(PermissionCodes.RETAIL_TRANSFER_CREATE));
     }

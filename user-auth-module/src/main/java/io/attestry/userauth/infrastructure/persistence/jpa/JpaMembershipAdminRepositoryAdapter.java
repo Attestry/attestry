@@ -21,9 +21,11 @@ import io.attestry.userauth.infrastructure.persistence.jpa.repository.RoleJpaRep
 import io.attestry.userauth.infrastructure.persistence.jpa.repository.UserAccountJpaRepository;
 import java.time.Instant;
 import java.util.List;
+import java.util.Locale;
 import java.util.Optional;
 import java.util.Set;
 import java.util.UUID;
+import org.springframework.jdbc.core.JdbcTemplate;
 import org.springframework.stereotype.Repository;
 
 @Repository
@@ -35,6 +37,7 @@ public class JpaMembershipAdminRepositoryAdapter implements MembershipAdminRepos
     private final RoleJpaRepository roleRepository;
     private final UserAccountJpaRepository userAccountRepository;
     private final GroupJpaRepository groupRepository;
+    private final JdbcTemplate jdbcTemplate;
 
     public JpaMembershipAdminRepositoryAdapter(
         InvitationJpaRepository invitationRepository,
@@ -42,7 +45,8 @@ public class JpaMembershipAdminRepositoryAdapter implements MembershipAdminRepos
         MembershipRoleAssignmentJpaRepository membershipRoleAssignmentRepository,
         RoleJpaRepository roleRepository,
         UserAccountJpaRepository userAccountRepository,
-        GroupJpaRepository groupRepository
+        GroupJpaRepository groupRepository,
+        JdbcTemplate jdbcTemplate
     ) {
         this.invitationRepository = invitationRepository;
         this.membershipRepository = membershipRepository;
@@ -50,6 +54,7 @@ public class JpaMembershipAdminRepositoryAdapter implements MembershipAdminRepos
         this.roleRepository = roleRepository;
         this.userAccountRepository = userAccountRepository;
         this.groupRepository = groupRepository;
+        this.jdbcTemplate = jdbcTemplate;
     }
 
     @Override
@@ -191,6 +196,80 @@ public class JpaMembershipAdminRepositoryAdapter implements MembershipAdminRepos
     @Override
     public Set<String> findRoleCodesByMembershipId(String membershipId) {
         return Set.copyOf(membershipRoleAssignmentRepository.findRoleCodesByMembershipId(membershipId));
+    }
+
+    @Override
+    public Set<String> findGlobalEnabledRoleCodes() {
+        return roleRepository.findByTenantIdIsNullAndEnabledTrue().stream()
+            .map(role -> role.getCode().trim().toUpperCase(Locale.ROOT))
+            .collect(java.util.stream.Collectors.toCollection(java.util.LinkedHashSet::new));
+    }
+
+    @Override
+    public void upsertPermissionOverrides(
+        String membershipId,
+        Set<String> permissionCodes,
+        String source,
+        String reason,
+        String actorUserId,
+        Instant now
+    ) {
+        for (String permissionCode : permissionCodes) {
+            int updated = jdbcTemplate.update(
+                """
+                    INSERT INTO membership_permission_overrides (
+                        override_id,
+                        membership_id,
+                        permission_id,
+                        effect,
+                        source,
+                        reason,
+                        created_by_user_id,
+                        created_at
+                    )
+                    SELECT ?, ?, p.permission_id, 'ALLOW', ?, ?, ?, ?
+                    FROM permissions p
+                    WHERE p.code = ?
+                      AND p.enabled = TRUE
+                    ON CONFLICT (membership_id, permission_id)
+                    DO UPDATE SET
+                        effect = EXCLUDED.effect,
+                        source = EXCLUDED.source,
+                        reason = EXCLUDED.reason,
+                        created_by_user_id = EXCLUDED.created_by_user_id,
+                        created_at = EXCLUDED.created_at
+                    """,
+                UUID.randomUUID().toString(),
+                membershipId,
+                source,
+                reason,
+                actorUserId,
+                now,
+                permissionCode
+            );
+            if (updated == 0) {
+                throw new DomainException(ErrorCode.ROLE_NOT_FOUND, "Permission not found: " + permissionCode);
+            }
+        }
+    }
+
+    @Override
+    public void deletePermissionOverrides(String membershipId, Set<String> permissionCodes) {
+        for (String permissionCode : permissionCodes) {
+            jdbcTemplate.update(
+                """
+                    DELETE FROM membership_permission_overrides
+                    WHERE membership_id = ?
+                      AND permission_id IN (
+                          SELECT permission_id
+                          FROM permissions
+                          WHERE code = ?
+                      )
+                    """,
+                membershipId,
+                permissionCode
+            );
+        }
     }
 
     @Override

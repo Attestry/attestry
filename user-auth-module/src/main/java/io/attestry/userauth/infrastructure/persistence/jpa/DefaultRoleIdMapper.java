@@ -9,14 +9,9 @@ final class DefaultRoleIdMapper {
     }
 
     static String map(MembershipRole role, GroupType groupType) {
-        // v1: membership.role(직책)와 RBAC role(권한 번들) 분리.
-        // 자동 매핑은 최소 base role만 부여하고, admin/sensitive role은 Assignment API로만 부여한다.
-        if (groupType == GroupType.BRAND) {
-            return "role-brand-operator";
-        }
-        if (groupType == GroupType.RETAIL) {
-            return "role-retail-operator";
-        }
-        return "role-group-staff";
+        // v1 simplification phase-1:
+        // membership 생성 기본 role은 tenant 공통 baseline(TENANT_STAFF)으로 고정.
+        // 운영/작업 권한은 이후 assignment/template로 부여한다.
+        return "role-tenant-staff";
     }
 }

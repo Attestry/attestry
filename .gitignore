@@ -38,3 +38,4 @@ out/
 
 
 *.md
+!ledger-module/architecture-docs/*.md

@@ -13,7 +13,9 @@ dependencies {
     implementation("org.springframework.boot:spring-boot-starter")
     implementation("org.springframework.boot:spring-boot-starter-web")
     implementation("org.springframework.boot:spring-boot-starter-jdbc")
+    implementation("org.springframework.boot:spring-boot-starter-data-jpa")
     implementation("org.springframework.boot:spring-boot-starter-data-redis")
+    implementation("org.springframework.kafka:spring-kafka")
     implementation("com.fasterxml.jackson.datatype:jackson-datatype-jsr310")
     implementation("io.minio:minio:8.5.12")
     implementation("software.amazon.awssdk:s3:2.33.11")
@@ -22,7 +24,6 @@ dependencies {
     runtimeOnly("org.postgresql:postgresql")
     testRuntimeOnly("com.h2database:h2")
 
-    testImplementation("org.springframework.boot:spring-boot-starter-data-jpa")
     testImplementation("org.springframework.security:spring-security-test")
     testImplementation("org.springframework.boot:spring-boot-starter-test")
 }

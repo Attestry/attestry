@@ -18,25 +18,25 @@ class RoleAssignmentPolicyTest {
     }
 
     @Test
-    void tenantOwnerCanAssignTenantMembershipAdmin() {
+    void tenantOwnerCanAssignTenantOperator() {
         assertTrue(RoleAssignmentPolicy.canAssign(
             Set.of(RoleCodes.TENANT_OWNER),
-            RoleCodes.TENANT_MEMBERSHIP_ADMIN
+            RoleCodes.TENANT_OPERATOR
         ));
     }
 
     @Test
-    void tenantMembershipAdminCannotAssignTenantOwner() {
+    void deprecatedRoleCannotBeAssignedEvenByPlatformAdmin() {
         assertFalse(RoleAssignmentPolicy.canAssign(
-            Set.of(RoleCodes.TENANT_MEMBERSHIP_ADMIN),
-            RoleCodes.TENANT_OWNER
+            Set.of(RoleCodes.PLATFORM_SUPER_ADMIN),
+            "BRAND_OPERATOR"
         ));
     }
 
     @Test
     void sensitiveRoleRequiresLiveRecheck() {
         assertTrue(RoleAssignmentPolicy.requiresLiveRecheck(RoleCodes.TENANT_OWNER));
-        assertFalse(RoleAssignmentPolicy.requiresLiveRecheck(RoleCodes.BRAND_OPERATOR));
+        assertFalse(RoleAssignmentPolicy.requiresLiveRecheck(RoleCodes.TENANT_OPERATOR));
     }
 
     @Test
@@ -49,7 +49,7 @@ class RoleAssignmentPolicyTest {
         assertFalse(RoleAssignmentPolicy.isSelfEscalationDenied(
             "membership-1",
             "membership-1",
-            RoleCodes.BRAND_OPERATOR
+            RoleCodes.TENANT_OPERATOR
         ));
     }
 }

@@ -4,7 +4,7 @@
 
 @baseUrl = http://localhost:8080
 @contentType = application/json
-@accessToken = fede2825-da4f-42b5-a5e9-925dcfe18f0d
+@accessToken = 307594e5-ac1b-4fd1-a039-dce1b9eddd3f
 @pdfPath = ./files/biz-proof-1.pdf
 @pdfSizeBytes = 102400
 

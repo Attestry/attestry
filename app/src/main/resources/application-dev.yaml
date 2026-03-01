@@ -6,6 +6,11 @@ spring:
     redis:
       host: ${REDIS_HOST:localhost}
       port: ${REDIS_PORT:6379}
+  kafka:
+    bootstrap-servers: ${KAFKA_BOOTSTRAP_SERVERS:localhost:9092}
+    client-id: ${KAFKA_CLIENT_ID:attestry-dev}
+    consumer:
+      group-id: ${KAFKA_CONSUMER_GROUP:attestry-ledger-dev}
 
 app:
   auth:
@@ -19,3 +24,10 @@ app:
       endpoint: ${S3_ENDPOINT:}
       access-key: ${AWS_ACCESS_KEY_ID:}
       secret-key: ${AWS_SECRET_ACCESS_KEY:}
+  kafka:
+    client-id: ${KAFKA_CLIENT_ID:attestry-dev}
+    consumer-group-id: ${KAFKA_CONSUMER_GROUP:attestry-ledger-dev}
+    outbox:
+      batch-size: ${KAFKA_OUTBOX_BATCH_SIZE:100}
+      max-retries: ${KAFKA_OUTBOX_MAX_RETRIES:10}
+      publish-interval-ms: ${KAFKA_OUTBOX_PUBLISH_INTERVAL_MS:1000}

@@ -2,6 +2,8 @@ package io.attestry.userauth.interfaces.membership;
 
 import io.attestry.userauth.application.dto.result.MembershipInvitationResult;
 import io.attestry.userauth.application.dto.result.MembershipResult;
+import io.attestry.userauth.application.dto.result.MembershipAssignableRolesResult;
+import io.attestry.userauth.application.dto.result.MembershipPermissionTemplateResult;
 import io.attestry.userauth.application.dto.result.MembershipRoleAssignmentsResult;
 import io.attestry.userauth.application.dto.view.MembershipAdminView;
 import io.attestry.userauth.application.usecase.membership.MembershipAdminUseCase;
@@ -9,8 +11,11 @@ import io.attestry.userauth.domain.auth.model.AuthPrincipal;
 import java.util.List;
 
 import io.attestry.userauth.interfaces.membership.dto.request.InviteRequest;
+import io.attestry.userauth.interfaces.membership.dto.request.MutatePermissionTemplateRequest;
 import io.attestry.userauth.interfaces.membership.dto.request.UpdateMembershipStatusRequest;
 import io.attestry.userauth.interfaces.membership.dto.response.InvitationResponse;
+import io.attestry.userauth.interfaces.membership.dto.response.MembershipAssignableRolesResponse;
+import io.attestry.userauth.interfaces.membership.dto.response.MembershipPermissionTemplateResponse;
 import io.attestry.userauth.interfaces.membership.dto.response.MembershipResponse;
 import io.attestry.userauth.interfaces.membership.dto.response.MembershipRoleAssignmentsResponse;
 import org.springframework.http.HttpStatus;
@@ -96,6 +101,17 @@ public class MembershipAdminHttp {
         return MembershipRoleAssignmentsResponse.from(result);
     }
 
+    @GetMapping("/tenants/{tenantId}/admin/memberships/{id}/roles/available")
+    @PreAuthorize("hasAuthority('SCOPE_TENANT_ROLE_ASSIGN')")
+    public MembershipAssignableRolesResponse listAssignableRoleCodes(
+        @AuthenticationPrincipal AuthPrincipal principal,
+        @PathVariable("tenantId") String tenantId,
+        @PathVariable("id") String membershipId
+    ) {
+        MembershipAssignableRolesResult result = membershipAdminService.listAssignableRoleCodes(principal, tenantId, membershipId);
+        return MembershipAssignableRolesResponse.from(result);
+    }
+
     @PostMapping("/tenants/{tenantId}/admin/memberships/{id}/roles/{roleCode}")
     @PreAuthorize("hasAuthority('SCOPE_TENANT_ROLE_ASSIGN')")
     public MembershipRoleAssignmentsResponse assignMembershipRole(
@@ -128,5 +144,41 @@ public class MembershipAdminHttp {
             new MembershipAdminUseCase.RevokeMembershipRoleCommand(roleCode)
         );
         return MembershipRoleAssignmentsResponse.from(result);
+    }
+
+    @PostMapping("/tenants/{tenantId}/admin/memberships/{id}/permission-templates/{templateCode}/apply")
+    @PreAuthorize("hasAuthority('SCOPE_TENANT_ROLE_ASSIGN')")
+    public MembershipPermissionTemplateResponse applyPermissionTemplate(
+        @AuthenticationPrincipal AuthPrincipal principal,
+        @PathVariable("tenantId") String tenantId,
+        @PathVariable("id") String membershipId,
+        @PathVariable("templateCode") String templateCode,
+        @RequestBody(required = false) MutatePermissionTemplateRequest request
+    ) {
+        MembershipPermissionTemplateResult result = membershipAdminService.applyPermissionTemplate(
+            principal,
+            tenantId,
+            membershipId,
+            new MembershipAdminUseCase.ApplyPermissionTemplateCommand(templateCode, request == null ? null : request.reason())
+        );
+        return MembershipPermissionTemplateResponse.from(result);
+    }
+
+    @PostMapping("/tenants/{tenantId}/admin/memberships/{id}/permission-templates/{templateCode}/revoke")
+    @PreAuthorize("hasAuthority('SCOPE_TENANT_ROLE_ASSIGN')")
+    public MembershipPermissionTemplateResponse revokePermissionTemplate(
+        @AuthenticationPrincipal AuthPrincipal principal,
+        @PathVariable("tenantId") String tenantId,
+        @PathVariable("id") String membershipId,
+        @PathVariable("templateCode") String templateCode,
+        @RequestBody(required = false) MutatePermissionTemplateRequest request
+    ) {
+        MembershipPermissionTemplateResult result = membershipAdminService.revokePermissionTemplate(
+            principal,
+            tenantId,
+            membershipId,
+            new MembershipAdminUseCase.RevokePermissionTemplateCommand(templateCode, request == null ? null : request.reason())
+        );
+        return MembershipPermissionTemplateResponse.from(result);
     }
 }

@@ -16,6 +16,7 @@ import io.attestry.userauth.application.port.OnboardingEvidenceBundleRepositoryP
 import io.attestry.userauth.application.port.OnboardingEvidenceFileRepositoryPort;
 import io.attestry.userauth.application.port.OrganizationApplicationRepositoryPort;
 import io.attestry.userauth.application.port.TenantRepositoryPort;
+import io.attestry.userauth.application.port.TemplateAdminRepositoryPort;
 import io.attestry.userauth.application.usecase.onboarding.OnboardingUseCase;
 import io.attestry.userauth.common.error.DomainException;
 import io.attestry.userauth.common.error.ErrorCode;
@@ -51,6 +52,7 @@ public class OnboardingApplicationService implements OnboardingUseCase {
     private final OnboardingEvidenceBundleRepositoryPort evidenceBundleRepository;
     private final OnboardingEvidenceFileRepositoryPort evidenceFileRepository;
     private final TenantRepositoryPort tenantRepository;
+    private final TemplateAdminRepositoryPort templateAdminRepository;
     private final GroupRepositoryPort groupRepository;
     private final MembershipProvisioningRepositoryPort membershipProvisioningRepository;
     private final ObjectStoragePort objectStoragePort;
@@ -61,6 +63,7 @@ public class OnboardingApplicationService implements OnboardingUseCase {
         OnboardingEvidenceBundleRepositoryPort evidenceBundleRepository,
         OnboardingEvidenceFileRepositoryPort evidenceFileRepository,
         TenantRepositoryPort tenantRepository,
+        TemplateAdminRepositoryPort templateAdminRepository,
         GroupRepositoryPort groupRepository,
         MembershipProvisioningRepositoryPort membershipProvisioningRepository,
         ObjectStoragePort objectStoragePort,
@@ -70,6 +73,7 @@ public class OnboardingApplicationService implements OnboardingUseCase {
         this.evidenceBundleRepository = evidenceBundleRepository;
         this.evidenceFileRepository = evidenceFileRepository;
         this.tenantRepository = tenantRepository;
+        this.templateAdminRepository = templateAdminRepository;
         this.groupRepository = groupRepository;
         this.membershipProvisioningRepository = membershipProvisioningRepository;
         this.objectStoragePort = objectStoragePort;
@@ -131,6 +135,7 @@ public class OnboardingApplicationService implements OnboardingUseCase {
             TenantStatus.ACTIVE
         ));
         membershipProvisioningRepository.assignRole(membershipId, RoleCodes.TENANT_OWNER, principal.userId());
+        bindDefaultTenantOwnerTemplate(tenantId, principal.userId());
 
         applicationRepository.save(app.approve(principal.userId(), tenantId, Instant.now(clock)));
 
@@ -200,6 +205,7 @@ public class OnboardingApplicationService implements OnboardingUseCase {
             TenantStatus.ACTIVE
         ));
         membershipProvisioningRepository.assignRole(membershipId, RoleCodes.TENANT_OWNER, principal.userId());
+        bindDefaultTenantOwnerTemplate(retailTenantId, principal.userId());
 
         applicationRepository.save(app.approve(principal.userId(), retailTenantId, Instant.now(clock)));
 
@@ -357,6 +363,16 @@ public class OnboardingApplicationService implements OnboardingUseCase {
             app.country(),
             app.status().name(),
             app.rejectReason()
+        );
+    }
+
+    private void bindDefaultTenantOwnerTemplate(String tenantId, String actorUserId) {
+        templateAdminRepository.bindTemplateToTenantRole(
+            tenantId,
+            RoleCodes.TENANT_OWNER,
+            "TEMPLATE_TENANT_OWNER_CORE",
+            actorUserId,
+            Instant.now(clock)
         );
     }
 
