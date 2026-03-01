@@ -29,7 +29,7 @@ public class MembershipQueryService implements MembershipQueryUseCase {
                 membership.tenantId(),
                 membership.groupId(),
                 membership.groupType(),
-                membership.role(),
+                membershipPermissionQueryPort.findRoleCodesByMembershipId(membership.membershipId()).stream().sorted().toList(),
                 membership.status(),
                 membershipPermissionQueryPort.findPermissionCodesByMembershipId(membership.membershipId())
             ))

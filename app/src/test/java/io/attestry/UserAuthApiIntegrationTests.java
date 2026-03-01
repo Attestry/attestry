@@ -3,6 +3,7 @@ package io.attestry;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.get;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.patch;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.post;
+import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.delete;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.jsonPath;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.status;
 import static org.springframework.security.test.web.servlet.setup.SecurityMockMvcConfigurers.springSecurity;
@@ -176,7 +177,7 @@ class UserAuthApiIntegrationTests {
         membershipRoleAssignmentRepository.save(new io.attestry.userauth.infrastructure.persistence.jpa.entity.MembershipRoleAssignmentJpaEntity(
             UUID.randomUUID().toString(),
             membershipRepository.findByUserId(adminUserId).getFirst().getMembershipId(),
-            "role-retail-admin-base",
+            "role-platform-super-admin",
             null,
             Instant.now()
         ));
@@ -219,7 +220,7 @@ class UserAuthApiIntegrationTests {
         String membershipAdminToken = login(membershipAdminEmail, "MemberAdminPw123", tenantId, adminGroupId);
         String evidenceBundleId = prepareEvidenceBundle(applicantToken);
 
-        MvcResult retailCreated = mockMvc.perform(post("/tenants/{tenantId}/retail-applications", tenantId)
+        MvcResult retailCreated = mockMvc.perform(post("/retail-applications")
                 .header("Authorization", bearer(applicantToken))
                 .contentType(MediaType.APPLICATION_JSON)
                 .content(json(Map.of(
@@ -234,20 +235,30 @@ class UserAuthApiIntegrationTests {
 
         String retailAppId = readJson(retailCreated).get("applicationId").asText();
 
-        MvcResult approved = mockMvc.perform(post("/tenants/{tenantId}/admin/retail-applications/{id}/approve", tenantId, retailAppId)
+        MvcResult approved = mockMvc.perform(post("/admin/retail-applications/{id}/approve", retailAppId)
                 .header("Authorization", bearer(adminToken)))
             .andExpect(status().isOk())
-            .andExpect(jsonPath("$.tenantId").value(tenantId))
             .andReturn();
 
+        String retailTenantId = readJson(approved).get("tenantId").asText();
         String retailGroupId = readJson(approved).get("groupId").asText();
+        String applicantUserId = userAccountRepository.findByEmail(applicantEmail).orElseThrow().getUserId();
+        MembershipJpaEntity retailAdminMembership = membershipRepository
+            .findByUserIdAndTenantIdAndGroupId(applicantUserId, retailTenantId, retailGroupId)
+            .orElseThrow();
+        org.assertj.core.api.Assertions.assertThat(
+            membershipRoleAssignmentRepository.findByMembershipId(retailAdminMembership.getMembershipId())
+                .orElseThrow()
+                .getRoleId()
+        ).isEqualTo("role-tenant-owner");
+        String retailAdminToken = login(applicantEmail, applicantPassword, retailTenantId, retailGroupId);
 
         String inviteeEmail = "staff@test.com";
         String inviteePassword = "StaffPw123";
         signUp(inviteeEmail, inviteePassword, "010-3333-4444");
 
-        MvcResult invitationCreated = mockMvc.perform(post("/tenants/{tenantId}/admin/invitations", tenantId)
-                .header("Authorization", bearer(membershipAdminToken))
+        MvcResult invitationCreated = mockMvc.perform(post("/tenants/{tenantId}/admin/invitations", retailTenantId)
+                .header("Authorization", bearer(retailAdminToken))
                 .contentType(MediaType.APPLICATION_JSON)
                 .content(json(Map.of(
                     "email", inviteeEmail,
@@ -267,12 +278,12 @@ class UserAuthApiIntegrationTests {
             .andExpect(jsonPath("$.groupId").value(retailGroupId))
             .andExpect(jsonPath("$.status").value("ACTIVE"));
 
-        mockMvc.perform(get("/tenants/{tenantId}/admin/memberships", tenantId)
-                .header("Authorization", bearer(membershipAdminToken)))
+        mockMvc.perform(get("/tenants/{tenantId}/admin/memberships", retailTenantId)
+                .header("Authorization", bearer(retailAdminToken)))
             .andExpect(status().isOk());
 
         org.assertj.core.api.Assertions.assertThat(invitationRepository.findById(invitationId)).isPresent();
-        org.assertj.core.api.Assertions.assertThat(membershipRepository.findByTenantId(tenantId)).isNotEmpty();
+        org.assertj.core.api.Assertions.assertThat(membershipRepository.findByTenantId(retailTenantId)).isNotEmpty();
     }
 
     @Test
@@ -336,15 +347,17 @@ class UserAuthApiIntegrationTests {
 
         String adminToken = login("membership-admin@test.com", "AdminPw123", tenantId, adminGroupId);
 
+        mockMvc.perform(post("/tenants/{tenantId}/admin/memberships/{id}/roles/{roleCode}", tenantId, targetMembership.getMembershipId(), "BRAND_OPERATOR")
+                .header("Authorization", bearer(adminToken)))
+            .andExpect(status().isOk())
+            .andExpect(jsonPath("$.membershipId").value(targetMembership.getMembershipId()))
+            .andExpect(jsonPath("$.roleCodes[?(@ == 'BRAND_OPERATOR')]").exists());
+
         mockMvc.perform(patch("/tenants/{tenantId}/admin/memberships/{id}/role", tenantId, targetMembership.getMembershipId())
                 .header("Authorization", bearer(adminToken))
                 .contentType(MediaType.APPLICATION_JSON)
-                .content(json(Map.of(
-                    "role", "OPERATOR"
-                ))))
-            .andExpect(status().isOk())
-            .andExpect(jsonPath("$.role").value("OPERATOR"))
-            .andExpect(jsonPath("$.status").value("ACTIVE"));
+                .content(json(Map.of("role", "OPERATOR"))))
+            .andExpect(status().isNotFound());
 
         mockMvc.perform(patch("/tenants/{tenantId}/admin/memberships/{id}/status", tenantId, targetMembership.getMembershipId())
                 .header("Authorization", bearer(adminToken))
@@ -443,6 +456,156 @@ class UserAuthApiIntegrationTests {
             .get()
             .extracting(MembershipJpaEntity::getGroupStatus)
             .isEqualTo(GroupStatus.ACTIVE);
+    }
+
+    @Test
+    void roleAssignmentApiShouldAssignListAndRevoke() throws Exception {
+        String tenantId = UUID.randomUUID().toString();
+        String groupId = UUID.randomUUID().toString();
+        String adminUserId = UUID.randomUUID().toString();
+        String targetUserId = UUID.randomUUID().toString();
+
+        tenantRepository.save(new TenantJpaEntity(tenantId, "Tenant D", "KR", TenantStatus.ACTIVE));
+        groupRepository.save(new GroupJpaEntity(groupId, tenantId, GroupType.BRAND, GroupStatus.ACTIVE));
+
+        userAccountRepository.save(new UserAccountJpaEntity(
+            adminUserId,
+            "assign-admin@test.com",
+            passwordHasher.hash("AdminPw123"),
+            "010-8888-1111",
+            UserStatus.ACTIVE,
+            VerificationLevel.NONE
+        ));
+        userAccountRepository.save(new UserAccountJpaEntity(
+            targetUserId,
+            "assign-target@test.com",
+            passwordHasher.hash("TargetPw123"),
+            "010-8888-2222",
+            UserStatus.ACTIVE,
+            VerificationLevel.NONE
+        ));
+
+        MembershipJpaEntity adminMembership = membershipRepository.save(new MembershipJpaEntity(
+            UUID.randomUUID().toString(),
+            adminUserId,
+            groupId,
+            tenantId,
+            GroupType.BRAND,
+            MembershipRole.ADMIN,
+            MembershipStatus.ACTIVE,
+            GroupStatus.ACTIVE,
+            TenantStatus.ACTIVE
+        ));
+        membershipRoleAssignmentRepository.save(new io.attestry.userauth.infrastructure.persistence.jpa.entity.MembershipRoleAssignmentJpaEntity(
+            UUID.randomUUID().toString(),
+            adminMembership.getMembershipId(),
+            "role-tenant-membership-admin",
+            null,
+            Instant.now()
+        ));
+
+        MembershipJpaEntity targetMembership = membershipRepository.save(new MembershipJpaEntity(
+            UUID.randomUUID().toString(),
+            targetUserId,
+            groupId,
+            tenantId,
+            GroupType.BRAND,
+            MembershipRole.STAFF,
+            MembershipStatus.ACTIVE,
+            GroupStatus.ACTIVE,
+            TenantStatus.ACTIVE
+        ));
+        membershipRoleAssignmentRepository.save(new io.attestry.userauth.infrastructure.persistence.jpa.entity.MembershipRoleAssignmentJpaEntity(
+            UUID.randomUUID().toString(),
+            targetMembership.getMembershipId(),
+            "role-group-staff",
+            null,
+            Instant.now()
+        ));
+
+        String adminToken = login("assign-admin@test.com", "AdminPw123", tenantId, groupId);
+
+        mockMvc.perform(post("/tenants/{tenantId}/admin/memberships/{id}/roles/{roleCode}", tenantId, targetMembership.getMembershipId(), "BRAND_OPERATOR")
+                .header("Authorization", bearer(adminToken)))
+            .andExpect(status().isOk())
+            .andExpect(jsonPath("$.membershipId").value(targetMembership.getMembershipId()))
+            .andExpect(jsonPath("$.roleCodes").isArray())
+            .andExpect(jsonPath("$.roleCodes[?(@ == 'BRAND_OPERATOR')]").exists());
+
+        mockMvc.perform(get("/tenants/{tenantId}/admin/memberships/{id}/roles", tenantId, targetMembership.getMembershipId())
+                .header("Authorization", bearer(adminToken)))
+            .andExpect(status().isOk())
+            .andExpect(jsonPath("$.roleCodes[?(@ == 'BRAND_OPERATOR')]").exists());
+
+        mockMvc.perform(delete("/tenants/{tenantId}/admin/memberships/{id}/roles/{roleCode}", tenantId, targetMembership.getMembershipId(), "BRAND_OPERATOR")
+                .header("Authorization", bearer(adminToken)))
+            .andExpect(status().isOk())
+            .andExpect(jsonPath("$.roleCodes[?(@ == 'BRAND_OPERATOR')]").doesNotExist());
+    }
+
+    @Test
+    void roleAssignmentApiShouldDenySensitiveRoleByTenantMembershipAdmin() throws Exception {
+        String tenantId = UUID.randomUUID().toString();
+        String groupId = UUID.randomUUID().toString();
+        String adminUserId = UUID.randomUUID().toString();
+        String targetUserId = UUID.randomUUID().toString();
+
+        tenantRepository.save(new TenantJpaEntity(tenantId, "Tenant E", "KR", TenantStatus.ACTIVE));
+        groupRepository.save(new GroupJpaEntity(groupId, tenantId, GroupType.BRAND, GroupStatus.ACTIVE));
+
+        userAccountRepository.save(new UserAccountJpaEntity(
+            adminUserId,
+            "sensitive-admin@test.com",
+            passwordHasher.hash("AdminPw123"),
+            "010-9999-1111",
+            UserStatus.ACTIVE,
+            VerificationLevel.NONE
+        ));
+        userAccountRepository.save(new UserAccountJpaEntity(
+            targetUserId,
+            "sensitive-target@test.com",
+            passwordHasher.hash("TargetPw123"),
+            "010-9999-2222",
+            UserStatus.ACTIVE,
+            VerificationLevel.NONE
+        ));
+
+        MembershipJpaEntity adminMembership = membershipRepository.save(new MembershipJpaEntity(
+            UUID.randomUUID().toString(),
+            adminUserId,
+            groupId,
+            tenantId,
+            GroupType.BRAND,
+            MembershipRole.ADMIN,
+            MembershipStatus.ACTIVE,
+            GroupStatus.ACTIVE,
+            TenantStatus.ACTIVE
+        ));
+        membershipRoleAssignmentRepository.save(new io.attestry.userauth.infrastructure.persistence.jpa.entity.MembershipRoleAssignmentJpaEntity(
+            UUID.randomUUID().toString(),
+            adminMembership.getMembershipId(),
+            "role-tenant-membership-admin",
+            null,
+            Instant.now()
+        ));
+
+        MembershipJpaEntity targetMembership = membershipRepository.save(new MembershipJpaEntity(
+            UUID.randomUUID().toString(),
+            targetUserId,
+            groupId,
+            tenantId,
+            GroupType.BRAND,
+            MembershipRole.STAFF,
+            MembershipStatus.ACTIVE,
+            GroupStatus.ACTIVE,
+            TenantStatus.ACTIVE
+        ));
+
+        String adminToken = login("sensitive-admin@test.com", "AdminPw123", tenantId, groupId);
+
+        mockMvc.perform(post("/tenants/{tenantId}/admin/memberships/{id}/roles/{roleCode}", tenantId, targetMembership.getMembershipId(), "TENANT_OWNER")
+                .header("Authorization", bearer(adminToken)))
+            .andExpect(status().isForbidden());
     }
 
     private void signUp(String email, String password, String phone) throws Exception {

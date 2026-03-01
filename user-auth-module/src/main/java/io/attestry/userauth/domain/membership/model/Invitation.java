@@ -37,9 +37,11 @@ public record Invitation(
         if (status != InvitationStatus.PENDING) {
             throw new DomainException(ErrorCode.INVALID_APPLICATION_STATE, "Invitation is not pending");
         }
-        if (!inviteeEmail.equals(accepterEmail)) {
-            throw new DomainException(ErrorCode.FORBIDDEN_SCOPE, "Invitation recipient mismatch");
-        }
+
+        //TODO("소셜로그인 허용할때 정책 적용 / 또는 회사 계정으로만 가입되게?")
+//        if (!inviteeEmail.equals(accepterEmail)) {
+//            throw new DomainException(ErrorCode.FORBIDDEN_SCOPE, "Invitation recipient mismatch");
+//        }
         return new Invitation(
             invitationId,
             tenantId,

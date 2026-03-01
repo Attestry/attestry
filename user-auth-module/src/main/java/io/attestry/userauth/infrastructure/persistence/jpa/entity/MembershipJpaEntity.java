@@ -11,6 +11,7 @@ import jakarta.persistence.EnumType;
 import jakarta.persistence.Enumerated;
 import jakarta.persistence.Id;
 import jakarta.persistence.Table;
+import jakarta.persistence.Transient;
 
 @Entity
 @Table(name = "memberships")
@@ -33,9 +34,10 @@ public class MembershipJpaEntity {
     @Column(name = "group_type", nullable = false)
     private GroupType groupType;
 
-    @Enumerated(EnumType.STRING)
-    @Column(name = "role", nullable = false)
-    private MembershipRole role;
+    // Deprecated: membership.role removed from DB schema (v2 cleanup).
+    // Keep transient field for temporary domain/backward-compatibility usage.
+    @Transient
+    private MembershipRole role = MembershipRole.STAFF;
 
     @Enumerated(EnumType.STRING)
     @Column(name = "status", nullable = false)

@@ -20,6 +20,7 @@ import io.attestry.userauth.application.usecase.onboarding.OnboardingUseCase;
 import io.attestry.userauth.common.error.DomainException;
 import io.attestry.userauth.common.error.ErrorCode;
 import io.attestry.userauth.domain.auth.model.AuthPrincipal;
+import io.attestry.userauth.domain.auth.model.RoleCodes;
 import io.attestry.userauth.domain.membership.model.Membership;
 import io.attestry.userauth.domain.membership.model.MembershipRole;
 import io.attestry.userauth.domain.membership.model.MembershipStatus;
@@ -129,6 +130,7 @@ public class OnboardingApplicationService implements OnboardingUseCase {
             GroupStatus.ACTIVE,
             TenantStatus.ACTIVE
         ));
+        membershipProvisioningRepository.assignRole(membershipId, RoleCodes.TENANT_OWNER, principal.userId());
 
         applicationRepository.save(app.approve(principal.userId(), tenantId, Instant.now(clock)));
 
@@ -146,14 +148,12 @@ public class OnboardingApplicationService implements OnboardingUseCase {
     @Transactional
     public ApplicationResult createRetailApplication(
         AuthPrincipal principal,
-        String tenantId,
         CreateRetailApplicationCommand command
     ) {
         requireReadyEvidenceOwnedByPrincipal(principal.userId(), command.evidenceBundleId());
-        assertUniqueRetail(tenantId, command.retailName(), command.bizRegNo());
+        assertUniqueRetail(command.retailName(), command.bizRegNo());
         OrganizationApplication application = OrganizationApplication.createRetail(
             principal.userId(),
-            tenantId,
             command.retailName(),
             command.country(),
             command.bizRegNo(),
@@ -164,51 +164,52 @@ public class OnboardingApplicationService implements OnboardingUseCase {
 
     @Override
     @Transactional(readOnly = true)
-    public ApplicationView getRetailApplication(String tenantId, String applicationId) {
-        return toApplicationView(findRetailApplication(tenantId, applicationId));
+    public ApplicationView getRetailApplication(String applicationId) {
+        return toApplicationView(findRetailApplication(applicationId));
     }
 
     @Override
     @Transactional(readOnly = true)
-    public List<ApplicationView> listRetailApplications(String tenantId) {
-        return applicationRepository.findByTenantAndType(tenantId, GroupType.RETAIL).stream()
+    public List<ApplicationView> listRetailApplications() {
+        return applicationRepository.findByType(GroupType.RETAIL).stream()
             .map(this::toApplicationView)
             .toList();
     }
 
     @Override
     @Transactional
-    public ApproveApplicationResult approveRetailApplication(AuthPrincipal principal, String tenantId, String applicationId) {
-        assertTenantIsolation(principal, tenantId);
-        OrganizationApplication app = findRetailApplication(tenantId, applicationId);
+    public ApproveApplicationResult approveRetailApplication(AuthPrincipal principal, String applicationId) {
+        OrganizationApplication app = findRetailApplication(applicationId);
         app.assertPending();
 
+        String retailTenantId = UUID.randomUUID().toString();
         String groupId = UUID.randomUUID().toString();
         String membershipId = UUID.randomUUID().toString();
 
-        groupRepository.save(new Group(groupId, tenantId, GroupType.RETAIL, GroupStatus.ACTIVE));
+        tenantRepository.save(new Tenant(retailTenantId, app.orgName(), app.country(), TenantStatus.ACTIVE));
+        groupRepository.save(new Group(groupId, retailTenantId, GroupType.RETAIL, GroupStatus.ACTIVE));
         membershipProvisioningRepository.save(new Membership(
             membershipId,
             app.applicantUserId(),
             groupId,
-            tenantId,
+            retailTenantId,
             GroupType.RETAIL,
             MembershipRole.ADMIN,
             MembershipStatus.ACTIVE,
             GroupStatus.ACTIVE,
             TenantStatus.ACTIVE
         ));
+        membershipProvisioningRepository.assignRole(membershipId, RoleCodes.TENANT_OWNER, principal.userId());
 
-        applicationRepository.save(app.approve(principal.userId(), tenantId, Instant.now(clock)));
+        applicationRepository.save(app.approve(principal.userId(), retailTenantId, Instant.now(clock)));
 
-        return new ApproveApplicationResult(tenantId, groupId, membershipId);
+        return new ApproveApplicationResult(retailTenantId, groupId, membershipId);
     }
 
     @Override
     @Transactional
-    public ApplicationResult rejectRetailApplication(AuthPrincipal principal, String tenantId, String applicationId, String rejectReason) {
-        assertTenantIsolation(principal, tenantId);
-        OrganizationApplication app = findRetailApplication(tenantId, applicationId);
+    public ApplicationResult rejectRetailApplication(AuthPrincipal principal, String applicationId, String rejectReason) {
+        OrganizationApplication app = findRetailApplication(applicationId);
         return toApplicationResult(applicationRepository.save(app.reject(principal.userId(), rejectReason, Instant.now(clock))));
     }
 
@@ -292,10 +293,10 @@ public class OnboardingApplicationService implements OnboardingUseCase {
         return app;
     }
 
-    private OrganizationApplication findRetailApplication(String tenantId, String applicationId) {
+    private OrganizationApplication findRetailApplication(String applicationId) {
         OrganizationApplication app = applicationRepository.findById(applicationId)
             .orElseThrow(() -> new DomainException(ErrorCode.APPLICATION_NOT_FOUND, "Application not found"));
-        if (app.type() != GroupType.RETAIL || !tenantId.equals(app.tenantId())) {
+        if (app.type() != GroupType.RETAIL) {
             throw new DomainException(ErrorCode.APPLICATION_NOT_FOUND, "Application not found");
         }
         return app;
@@ -320,14 +321,17 @@ public class OnboardingApplicationService implements OnboardingUseCase {
         }
     }
 
-    private void assertUniqueRetail(String tenantId, String orgName, String bizRegNo) {
+    private void assertUniqueRetail(String orgName, String bizRegNo) {
         String normalizedOrgName = normalize(orgName);
-        if (applicationRepository.existsRetailByTenantAndOrgName(tenantId, normalizedOrgName)) {
-            throw new DomainException(ErrorCode.DUPLICATE_ORGANIZATION_NAME, "Retail name already exists in tenant");
+        if (applicationRepository.existsBrandByOrgName(normalizedOrgName)
+            || applicationRepository.existsRetailByTenantAndOrgName(null, normalizedOrgName)) {
+            throw new DomainException(ErrorCode.DUPLICATE_ORGANIZATION_NAME, "Retail name already exists");
         }
         String normalizedBizRegNo = normalizeOrNull(bizRegNo);
-        if (normalizedBizRegNo != null && applicationRepository.existsRetailByTenantAndBizRegNo(tenantId, normalizedBizRegNo)) {
-            throw new DomainException(ErrorCode.DUPLICATE_BIZ_REG_NO, "Business registration number already exists in tenant");
+        if (normalizedBizRegNo != null
+            && (applicationRepository.existsBrandByBizRegNo(normalizedBizRegNo)
+            || applicationRepository.existsRetailByTenantAndBizRegNo(null, normalizedBizRegNo))) {
+            throw new DomainException(ErrorCode.DUPLICATE_BIZ_REG_NO, "Business registration number already exists");
         }
     }
 

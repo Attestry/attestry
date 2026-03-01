@@ -2,12 +2,13 @@ package io.attestry.userauth.interfaces.membership.dto.response;
 
 import io.attestry.userauth.application.dto.result.MembershipResult;
 import io.attestry.userauth.application.dto.view.MembershipAdminView;
+import java.util.List;
 
 public record MembershipResponse(
         String membershipId,
         String tenantId,
         String groupId,
-        String role,
+        List<String> roleCodes,
         String status
 ) {
     public static MembershipResponse from(MembershipResult membership) {
@@ -15,7 +16,7 @@ public record MembershipResponse(
                 membership.membershipId(),
                 membership.tenantId(),
                 membership.groupId(),
-                membership.role(),
+                membership.roleCodes(),
                 membership.status()
         );
     }
@@ -24,7 +25,7 @@ public record MembershipResponse(
                 membership.membershipId(),
                 membership.tenantId(),
                 membership.groupId(),
-                membership.role(),
+                membership.roleCodes(),
                 membership.status()
         );
     }

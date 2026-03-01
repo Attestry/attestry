@@ -2,19 +2,21 @@ package io.attestry.userauth.interfaces.membership;
 
 import io.attestry.userauth.application.dto.result.MembershipInvitationResult;
 import io.attestry.userauth.application.dto.result.MembershipResult;
+import io.attestry.userauth.application.dto.result.MembershipRoleAssignmentsResult;
 import io.attestry.userauth.application.dto.view.MembershipAdminView;
 import io.attestry.userauth.application.usecase.membership.MembershipAdminUseCase;
 import io.attestry.userauth.domain.auth.model.AuthPrincipal;
 import java.util.List;
 
 import io.attestry.userauth.interfaces.membership.dto.request.InviteRequest;
-import io.attestry.userauth.interfaces.membership.dto.request.UpdateMembershipRoleRequest;
 import io.attestry.userauth.interfaces.membership.dto.request.UpdateMembershipStatusRequest;
 import io.attestry.userauth.interfaces.membership.dto.response.InvitationResponse;
 import io.attestry.userauth.interfaces.membership.dto.response.MembershipResponse;
+import io.attestry.userauth.interfaces.membership.dto.response.MembershipRoleAssignmentsResponse;
 import org.springframework.http.HttpStatus;
 import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.security.core.annotation.AuthenticationPrincipal;
+import org.springframework.web.bind.annotation.DeleteMapping;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.PatchMapping;
 import org.springframework.web.bind.annotation.PathVariable;
@@ -42,6 +44,7 @@ public class MembershipAdminHttp {
         @PathVariable("tenantId") String tenantId,
         @RequestBody InviteRequest request
     ) {
+
         MembershipInvitationResult result = membershipAdminService.invite(
             principal,
             tenantId,
@@ -50,9 +53,9 @@ public class MembershipAdminHttp {
         return InvitationResponse.from(result);
     }
 
-    @PostMapping("/invitations/{id}/accept")
-    public MembershipResponse acceptInvitation(@AuthenticationPrincipal AuthPrincipal principal, @PathVariable("id") String id) {
-        MembershipResult result = membershipAdminService.acceptInvitation(principal, id);
+    @PostMapping("/invitations/{invitationId}/accept")
+    public MembershipResponse acceptInvitation(@AuthenticationPrincipal AuthPrincipal principal, @PathVariable("invitationId") String invitationId) {
+        MembershipResult result = membershipAdminService.acceptInvitation(principal, invitationId);
         return MembershipResponse.from(result);
     }
 
@@ -63,23 +66,6 @@ public class MembershipAdminHttp {
             .stream()
             .map(MembershipResponse::from)
             .toList();
-    }
-
-    @PatchMapping("/tenants/{tenantId}/admin/memberships/{id}/role")
-    @PreAuthorize("hasAuthority('SCOPE_TENANT_ROLE_ASSIGN')")
-    public MembershipResponse updateMembershipRole(
-        @AuthenticationPrincipal AuthPrincipal principal,
-        @PathVariable("tenantId") String tenantId,
-        @PathVariable("id") String membershipId,
-        @RequestBody UpdateMembershipRoleRequest request
-    ) {
-        MembershipResult result = membershipAdminService.updateMembershipRole(
-            principal,
-            tenantId,
-            membershipId,
-            new MembershipAdminUseCase.UpdateMembershipRoleCommand(request.role())
-        );
-        return MembershipResponse.from(result);
     }
 
     @PatchMapping("/tenants/{tenantId}/admin/memberships/{id}/status")
@@ -97,5 +83,50 @@ public class MembershipAdminHttp {
             new MembershipAdminUseCase.UpdateMembershipStatusCommand(request.status())
         );
         return MembershipResponse.from(result);
+    }
+
+    @GetMapping("/tenants/{tenantId}/admin/memberships/{id}/roles")
+    @PreAuthorize("hasAuthority('SCOPE_TENANT_ROLE_ASSIGN')")
+    public MembershipRoleAssignmentsResponse listMembershipRoles(
+        @AuthenticationPrincipal AuthPrincipal principal,
+        @PathVariable("tenantId") String tenantId,
+        @PathVariable("id") String membershipId
+    ) {
+        MembershipRoleAssignmentsResult result = membershipAdminService.listMembershipRoleAssignments(principal, tenantId, membershipId);
+        return MembershipRoleAssignmentsResponse.from(result);
+    }
+
+    @PostMapping("/tenants/{tenantId}/admin/memberships/{id}/roles/{roleCode}")
+    @PreAuthorize("hasAuthority('SCOPE_TENANT_ROLE_ASSIGN')")
+    public MembershipRoleAssignmentsResponse assignMembershipRole(
+        @AuthenticationPrincipal AuthPrincipal principal,
+        @PathVariable("tenantId") String tenantId,
+        @PathVariable("id") String membershipId,
+        @PathVariable("roleCode") String roleCode
+    ) {
+        MembershipRoleAssignmentsResult result = membershipAdminService.assignMembershipRole(
+            principal,
+            tenantId,
+            membershipId,
+            new MembershipAdminUseCase.AssignMembershipRoleCommand(roleCode)
+        );
+        return MembershipRoleAssignmentsResponse.from(result);
+    }
+
+    @DeleteMapping("/tenants/{tenantId}/admin/memberships/{id}/roles/{roleCode}")
+    @PreAuthorize("hasAuthority('SCOPE_TENANT_ROLE_ASSIGN')")
+    public MembershipRoleAssignmentsResponse revokeMembershipRole(
+        @AuthenticationPrincipal AuthPrincipal principal,
+        @PathVariable("tenantId") String tenantId,
+        @PathVariable("id") String membershipId,
+        @PathVariable("roleCode") String roleCode
+    ) {
+        MembershipRoleAssignmentsResult result = membershipAdminService.revokeMembershipRole(
+            principal,
+            tenantId,
+            membershipId,
+            new MembershipAdminUseCase.RevokeMembershipRoleCommand(roleCode)
+        );
+        return MembershipRoleAssignmentsResponse.from(result);
     }
 }

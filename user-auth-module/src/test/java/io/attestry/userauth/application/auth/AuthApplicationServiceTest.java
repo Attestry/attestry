@@ -30,6 +30,7 @@ import io.attestry.userauth.domain.user.model.UserAccount;
 import io.attestry.userauth.domain.user.enums.UserStatus;
 import io.attestry.userauth.domain.user.enums.VerificationLevel;
 import java.time.Clock;
+import java.time.Duration;
 import java.time.Instant;
 import java.time.ZoneOffset;
 import java.util.ArrayList;
@@ -66,7 +67,15 @@ class AuthApplicationServiceTest {
         ));
         Clock clock = Clock.fixed(Instant.parse("2026-02-25T00:00:00Z"), ZoneOffset.UTC);
 
-        service = new AuthApplicationService(userRepo, membershipRepo, permissionQueryPort, passwordHasher, tokenPort, clock);
+        service = new AuthApplicationService(
+            userRepo,
+            membershipRepo,
+            permissionQueryPort,
+            passwordHasher,
+            tokenPort,
+            clock,
+            Duration.ofMinutes(15)
+        );
     }
 
     @Test
@@ -361,6 +370,11 @@ class AuthApplicationServiceTest {
         @Override
         public Set<String> findPermissionCodesByGlobalRoleCode(String roleCode) {
             return permissionByRoleCode.getOrDefault(roleCode, Set.of());
+        }
+
+        @Override
+        public Set<String> findRoleCodesByMembershipId(String membershipId) {
+            return Set.of();
         }
 
         void seed(String membershipId, Set<String> codes) {

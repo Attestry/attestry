@@ -1,10 +1,12 @@
 package io.attestry.userauth.application.dto.view;
 
+import java.util.List;
+
 public record MembershipAdminView(
     String membershipId,
     String tenantId,
     String groupId,
-    String role,
+    List<String> roleCodes,
     String status
 ) {
 }

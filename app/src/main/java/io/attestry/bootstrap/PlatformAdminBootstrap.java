@@ -147,7 +147,6 @@ public class PlatformAdminBootstrap implements ApplicationRunner {
                 """
                 UPDATE memberships
                 SET group_type = 'INTERNAL',
-                    role = 'ADMIN',
                     status = 'ACTIVE',
                     group_status = 'ACTIVE',
                     tenant_status = 'ACTIVE'
@@ -167,9 +166,9 @@ public class PlatformAdminBootstrap implements ApplicationRunner {
             """
             INSERT INTO memberships (
                 membership_id, user_id, group_id, tenant_id, group_type,
-                role, status, group_status, tenant_status
+                status, group_status, tenant_status
             )
-            VALUES (?, ?, ?, ?, 'INTERNAL', 'ADMIN', 'ACTIVE', 'ACTIVE', 'ACTIVE')
+            VALUES (?, ?, ?, ?, 'INTERNAL', 'ACTIVE', 'ACTIVE', 'ACTIVE')
             """,
             membershipId,
             userId,

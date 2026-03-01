@@ -108,5 +108,10 @@ class EvaluateAuthorizationServiceTest {
             }
             return Set.of();
         }
+
+        @Override
+        public Set<String> findRoleCodesByMembershipId(String membershipId) {
+            return Set.of();
+        }
     }
 }

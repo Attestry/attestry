@@ -8,6 +8,7 @@ import jakarta.persistence.EnumType;
 import jakarta.persistence.Enumerated;
 import jakarta.persistence.Id;
 import jakarta.persistence.Table;
+import jakarta.persistence.Version;
 import java.time.Instant;
 
 @Entity
@@ -53,6 +54,10 @@ public class OrganizationApplicationJpaEntity {
     @Column(name = "reject_reason", length = 1000)
     private String rejectReason;
 
+    @Version
+    @Column(name = "row_version", nullable = false)
+    private long rowVersion;
+
     protected OrganizationApplicationJpaEntity() {
     }
 
@@ -68,7 +73,8 @@ public class OrganizationApplicationJpaEntity {
         ApplicationStatus status,
         String reviewedByAdminId,
         Instant reviewedAt,
-        String rejectReason
+        String rejectReason,
+        long rowVersion
     ) {
         this.applicationId = applicationId;
         this.type = type;
@@ -82,6 +88,7 @@ public class OrganizationApplicationJpaEntity {
         this.reviewedByAdminId = reviewedByAdminId;
         this.reviewedAt = reviewedAt;
         this.rejectReason = rejectReason;
+        this.rowVersion = rowVersion;
     }
 
     public String getApplicationId() {
@@ -130,5 +137,9 @@ public class OrganizationApplicationJpaEntity {
 
     public String getRejectReason() {
         return rejectReason;
+    }
+
+    public long getRowVersion() {
+        return rowVersion;
     }
 }

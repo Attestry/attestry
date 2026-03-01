@@ -54,6 +54,11 @@ class MembershipQueryServiceTest {
             public Set<String> findPermissionCodesByGlobalRoleCode(String roleCode) {
                 return Set.of();
             }
+
+            @Override
+            public Set<String> findRoleCodesByMembershipId(String membershipId) {
+                return Set.of("RETAIL_OPERATOR");
+            }
         };
 
         MembershipQueryService service = new MembershipQueryService(repository, permissionQueryPort);
@@ -62,6 +67,7 @@ class MembershipQueryServiceTest {
         assertEquals(1, views.size());
         MembershipView view = views.getFirst();
         assertEquals("m1", view.membershipId());
+        assertEquals(List.of("RETAIL_OPERATOR"), view.roleCodes());
         assertTrue(view.effectiveScopes().contains(PermissionCodes.RETAIL_RELEASE));
         assertTrue(view.effectiveScopes().contains(PermissionCodes.RETAIL_TRANSFER_CREATE));
     }

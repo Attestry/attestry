@@ -46,7 +46,6 @@ public record OrganizationApplication(
 
     public static OrganizationApplication createRetail(
         String applicantUserId,
-        String tenantId,
         String orgName,
         String country,
         String bizRegNo,
@@ -57,7 +56,7 @@ public record OrganizationApplication(
             UUID.randomUUID().toString(),
             GroupType.RETAIL,
             applicantUserId,
-            tenantId,
+            null,
             orgName,
             country,
             bizRegNo,

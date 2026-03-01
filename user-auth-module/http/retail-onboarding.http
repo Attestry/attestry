@@ -1,0 +1,31 @@
+@baseUrl = http://localhost:8080
+@contentType = application/json
+@accessToken = 1ac36650-3281-4e04-8b7e-b46c27304356
+@pdfPath = ./user-auth-module/http/files/biz-proof-1.pdf
+@pdfSizeBytes = 102400
+
+@tenantId = REPLACE_TENANT_ID
+@applicationId = 81caf94d-227c-4c6a-b3c1-5153bd2f19dc
+@evidenceBundleId = e2212b4c-8d86-43d0-a4b9-ec7debc29c22
+
+
+
+
+
+### 9) Create retail application (독립 retail tenant 온보딩 신청)
+POST {{baseUrl}}/retail-applications
+Authorization: Bearer {{accessToken}}
+Content-Type: {{contentType}}
+
+{
+  "retailName": "Attestry Retail Shop",
+  "country": "KR",
+  "bizRegNo": "220-22-23456",
+  "evidenceBundleId": "{{evidenceBundleId}}"
+}
+
+
+### 10) Get retail application
+GET {{baseUrl}}/retail-applications/{{applicationId}}
+Authorization: Bearer {{accessToken}}
+

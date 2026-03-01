@@ -1,8 +1,8 @@
 package io.attestry.userauth.application.dto.view;
 
 import io.attestry.userauth.domain.organization.model.GroupType;
-import io.attestry.userauth.domain.membership.model.MembershipRole;
 import io.attestry.userauth.domain.membership.model.MembershipStatus;
+import java.util.List;
 import java.util.Set;
 
 public record MembershipView(
@@ -10,7 +10,7 @@ public record MembershipView(
     String tenantId,
     String groupId,
     GroupType groupType,
-    MembershipRole role,
+    List<String> roleCodes,
     MembershipStatus status,
     Set<String> effectiveScopes
 ) {

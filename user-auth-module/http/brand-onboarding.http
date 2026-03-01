@@ -1,0 +1,44 @@
+### =========================================================
+### User Auth API - Onboarding Scenario Collection
+### =========================================================
+
+@baseUrl = http://localhost:8080
+@contentType = application/json
+@accessToken = fede2825-da4f-42b5-a5e9-925dcfe18f0d
+@pdfPath = ./user-auth-module/http/files/biz-proof-1.pdf
+@pdfSizeBytes = 102400
+
+@tenantId = REPLACE_TENANT_ID
+@applicationId = c8f65c88-7da4-4e61-8f9a-311ddd42017c
+@evidenceBundleId = f03548df-83f1-4e08-b4f9-c91acf1b7add
+
+
+
+
+
+### NOTE
+### 현재 도메인 정책은 증빙 파일을 PDF만 허용합니다.
+### (image/png, image/jpeg 업로드는 presign 단계/도메인 검증에서 거절됨)
+
+### =========================================================
+### A) 원샷 플로우: presign -> upload(PUT) -> complete
+### =========================================================
+
+
+### 4) Create brand application
+POST {{baseUrl}}/brand-applications
+Authorization: Bearer {{accessToken}}
+Content-Type: {{contentType}}
+
+{
+  "brandName": "GUCCI",
+  "country": "KR",
+  "bizRegNo": "110-11-56382",
+  "evidenceBundleId": "0ca7a75e-9b77-46cd-b087-5a69b4c97670"
+}
+
+
+### 5) Get brand application
+GET {{baseUrl}}/brand-applications/{{applicationId}}
+Authorization: Bearer {{accessToken}}
+

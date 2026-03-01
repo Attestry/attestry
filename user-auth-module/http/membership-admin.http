@@ -4,13 +4,17 @@
 
 @baseUrl = http://localhost:8080
 @contentType = application/json
-@accessToken = REPLACE_ACCESS_TOKEN
+@accessToken = 0a6740a5-dac8-4816-a4a6-fefe14b9d75e
 
-@tenantId = REPLACE_TENANT_ID
-@groupId = REPLACE_GROUP_ID
-@membershipId = REPLACE_MEMBERSHIP_ID
-@invitationId = REPLACE_INVITATION_ID
-@inviteeEmail = staff.user@attestry.io
+@tenantId = 4a0d8966-0fd2-41ec-9ec1-1e38451a0e27
+@groupId = 32623e4a-2b3b-494f-bb1b-7ea0225b6ef7
+@membershipId = a3fc2c15-a2c5-4890-8fa4-ffbb88267d11
+
+@invitationId = dd622dda-f5ef-4126-9a2d-c46a88d883ca
+@inviteeEmail = staff.user3@attestry.io
+
+
+@invitationAccessToken = 70fbd1f6-1787-409e-a3b3-ef05c11912c2
 
 ### 1) Invitation create (SCOPE_TENANT_INVITATION_CREATE)
 POST {{baseUrl}}/tenants/{{tenantId}}/admin/invitations
@@ -25,34 +29,38 @@ Content-Type: {{contentType}}
 
 ### 2) Invitation accept (로그인한 초대 대상자 토큰으로 호출)
 POST {{baseUrl}}/invitations/{{invitationId}}/accept
-Authorization: Bearer {{accessToken}}
+Authorization: Bearer {{invitationAccessToken}}
+
 
 ### 3) Membership list (SCOPE_TENANT_MEMBERSHIP_VIEW)
 GET {{baseUrl}}/tenants/{{tenantId}}/admin/memberships
 Authorization: Bearer {{accessToken}}
 
-### 4) Membership role update (SCOPE_TENANT_ROLE_ASSIGN + LIVE_RECHECK)
-PATCH {{baseUrl}}/tenants/{{tenantId}}/admin/memberships/{{membershipId}}/role
-Authorization: Bearer {{accessToken}}
-Content-Type: {{contentType}}
-
-{
-  "role": "OPERATOR"
-}
-
-### 5) Membership status update (SCOPE_TENANT_MEMBERSHIP_ENFORCE + LIVE_RECHECK)
+### 4) Membership status update (SCOPE_TENANT_MEMBERSHIP_ENFORCE + LIVE_RECHECK)
 PATCH {{baseUrl}}/tenants/{{tenantId}}/admin/memberships/{{membershipId}}/status
 Authorization: Bearer {{accessToken}}
 Content-Type: {{contentType}}
 
 {
-  "status": "SUSPENDED"
+  "status": "ACTIVE"
 }
 
-### 6) Group suspend (SCOPE_TENANT_GROUP_SUSPEND)
+### 5) Membership role assignments list (SCOPE_TENANT_ROLE_ASSIGN)
+GET {{baseUrl}}/tenants/{{tenantId}}/admin/memberships/{{membershipId}}/roles
+Authorization: Bearer {{accessToken}}
+
+### 6) Membership role assign (SCOPE_TENANT_ROLE_ASSIGN)
+POST {{baseUrl}}/tenants/{{tenantId}}/admin/memberships/{{membershipId}}/roles/TENANT_MEMBERSHIP_ADMIN
+Authorization: Bearer {{accessToken}}
+
+### 7) Membership role revoke (SCOPE_TENANT_ROLE_ASSIGN)
+DELETE {{baseUrl}}/tenants/{{tenantId}}/admin/memberships/{{membershipId}}/roles/BRAND_OPERATOR
+Authorization: Bearer {{accessToken}}
+
+### 8) Group suspend (SCOPE_TENANT_GROUP_SUSPEND)
 POST {{baseUrl}}/tenants/{{tenantId}}/admin/groups/{{groupId}}/suspend
 Authorization: Bearer {{accessToken}}
 
-### 7) Group unsuspend (SCOPE_TENANT_GROUP_RESUME)
+### 9) Group unsuspend (SCOPE_TENANT_GROUP_RESUME)
 POST {{baseUrl}}/tenants/{{tenantId}}/admin/groups/{{groupId}}/unsuspend
 Authorization: Bearer {{accessToken}}

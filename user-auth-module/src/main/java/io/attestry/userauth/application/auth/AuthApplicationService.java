@@ -28,11 +28,10 @@ import java.util.List;
 import java.util.Optional;
 import java.util.Set;
 import org.springframework.stereotype.Service;
+import org.springframework.beans.factory.annotation.Value;
 
 @Service
 public class AuthApplicationService implements AuthUseCase {
-
-    private static final Duration ACCESS_TOKEN_TTL = Duration.ofHours(24);
 
     private final UserAccountRepositoryPort userAccountRepository;
     private final MembershipRepositoryPort membershipRepository;
@@ -40,6 +39,7 @@ public class AuthApplicationService implements AuthUseCase {
     private final PasswordHasherPort passwordHasher;
     private final AccessTokenPort accessTokenPort;
     private final Clock clock;
+    private final Duration accessTokenTtl;
 
     public AuthApplicationService(
         UserAccountRepositoryPort userAccountRepository,
@@ -47,7 +47,8 @@ public class AuthApplicationService implements AuthUseCase {
         MembershipPermissionQueryPort membershipPermissionQueryPort,
         PasswordHasherPort passwordHasher,
         AccessTokenPort accessTokenPort,
-        Clock clock
+        Clock clock,
+        @Value("${app.auth.token.access-ttl:PT15M}") Duration accessTokenTtl
     ) {
         this.userAccountRepository = userAccountRepository;
         this.membershipRepository = membershipRepository;
@@ -55,6 +56,7 @@ public class AuthApplicationService implements AuthUseCase {
         this.passwordHasher = passwordHasher;
         this.accessTokenPort = accessTokenPort;
         this.clock = clock;
+        this.accessTokenTtl = accessTokenTtl;
     }
 
     @Override
@@ -82,7 +84,7 @@ public class AuthApplicationService implements AuthUseCase {
             account.verificationLevel(),
             loginContext.scopes(),
             now,
-            ACCESS_TOKEN_TTL
+            accessTokenTtl
         );
         String token = accessTokenPort.issue(principal);
 

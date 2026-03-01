@@ -10,5 +10,7 @@ public interface MembershipJpaRepository extends JpaRepository<MembershipJpaEnti
     List<MembershipJpaEntity> findByTenantId(String tenantId);
     List<MembershipJpaEntity> findByGroupId(String groupId);
 
+    Optional<MembershipJpaEntity> findByMembershipIdAndTenantId(String membershipId, String tenantId);
+
     Optional<MembershipJpaEntity> findByUserIdAndTenantIdAndGroupId(String userId, String tenantId, String groupId);
 }

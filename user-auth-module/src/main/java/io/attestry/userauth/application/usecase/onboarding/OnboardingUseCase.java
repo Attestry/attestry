@@ -15,6 +15,8 @@ import java.util.List;
 public interface OnboardingUseCase {
     ApplicationResult createBrandApplication(AuthPrincipal principal, CreateBrandApplicationCommand command);
 
+    ApplicationResult createRetailApplication(AuthPrincipal principal, CreateRetailApplicationCommand command);
+
     List<ApplicationView> listBrandApplications();
 
     ApplicationView getBrandApplication(String applicationId);
@@ -23,15 +25,13 @@ public interface OnboardingUseCase {
 
     ApplicationResult rejectBrandApplication(AuthPrincipal principal, String applicationId, String rejectReason);
 
-    ApplicationResult createRetailApplication(AuthPrincipal principal, String tenantId, CreateRetailApplicationCommand command);
+    ApplicationView getRetailApplication(String applicationId);
 
-    ApplicationView getRetailApplication(String tenantId, String applicationId);
+    List<ApplicationView> listRetailApplications();
 
-    List<ApplicationView> listRetailApplications(String tenantId);
+    ApproveApplicationResult approveRetailApplication(AuthPrincipal principal, String applicationId);
 
-    ApproveApplicationResult approveRetailApplication(AuthPrincipal principal, String tenantId, String applicationId);
-
-    ApplicationResult rejectRetailApplication(AuthPrincipal principal, String tenantId, String applicationId, String rejectReason);
+    ApplicationResult rejectRetailApplication(AuthPrincipal principal, String applicationId, String rejectReason);
 
     PresignedEvidenceUploadResult presignEvidenceUpload(AuthPrincipal principal, PresignEvidenceUploadCommand command);
 

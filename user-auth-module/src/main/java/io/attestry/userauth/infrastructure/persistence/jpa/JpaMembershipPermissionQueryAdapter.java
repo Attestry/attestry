@@ -52,4 +52,19 @@ public class JpaMembershipPermissionQueryAdapter implements MembershipPermission
             roleCode
         ));
     }
+
+    @Override
+    public Set<String> findRoleCodesByMembershipId(String membershipId) {
+        return new LinkedHashSet<>(jdbcTemplate.queryForList(
+            """
+                SELECT r.code
+                FROM membership_role_assignments mra
+                JOIN roles r ON r.role_id = mra.role_id
+                WHERE mra.membership_id = ?
+                  AND r.enabled = TRUE
+                """,
+            String.class,
+            membershipId
+        ));
+    }
 }

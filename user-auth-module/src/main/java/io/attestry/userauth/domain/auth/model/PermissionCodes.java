@@ -9,7 +9,6 @@ public final class PermissionCodes {
     public static final String TENANT_CREATE_APPROVE = "TENANT_CREATE_APPROVE";
     public static final String TENANT_SUSPEND = "TENANT_SUSPEND";
     public static final String GLOBAL_AUDIT_READ = "GLOBAL_AUDIT_READ";
-    public static final String TENANT_GROUP_CREATE = "TENANT_GROUP_CREATE";
     public static final String TENANT_GROUP_SUSPEND = "TENANT_GROUP_SUSPEND";
     public static final String TENANT_GROUP_RESUME = "TENANT_GROUP_RESUME";
     public static final String TENANT_INVITATION_CREATE = "TENANT_INVITATION_CREATE";
@@ -18,6 +17,15 @@ public final class PermissionCodes {
     public static final String TENANT_MEMBERSHIP_VIEW = "TENANT_MEMBERSHIP_VIEW";
     public static final String TENANT_ROLE_ASSIGN = "TENANT_ROLE_ASSIGN";
     public static final String TENANT_MEMBERSHIP_ENFORCE = "TENANT_MEMBERSHIP_ENFORCE";
+    public static final String PARTNER_LINK_CREATE = "PARTNER_LINK_CREATE";
+    public static final String PARTNER_LINK_READ = "PARTNER_LINK_READ";
+    public static final String PARTNER_LINK_SUSPEND = "PARTNER_LINK_SUSPEND";
+    public static final String PARTNER_LINK_RESUME = "PARTNER_LINK_RESUME";
+    public static final String PARTNER_LINK_TERMINATE = "PARTNER_LINK_TERMINATE";
+    public static final String PARTNER_LINK_APPROVE = "PARTNER_LINK_APPROVE";
+    public static final String DELEGATION_GRANT = "DELEGATION_GRANT";
+    public static final String DELEGATION_REVOKE = "DELEGATION_REVOKE";
+    public static final String DELEGATION_READ = "DELEGATION_READ";
     public static final String BRAND_MINT = "BRAND_MINT";
     public static final String BRAND_VOID = "BRAND_VOID";
     public static final String RETAIL_RELEASE = "RETAIL_RELEASE";

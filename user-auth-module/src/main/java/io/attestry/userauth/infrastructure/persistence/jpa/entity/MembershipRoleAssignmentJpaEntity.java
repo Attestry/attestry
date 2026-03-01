@@ -50,4 +50,8 @@ public class MembershipRoleAssignmentJpaEntity {
     public String getAssignmentId() {
         return assignmentId;
     }
+
+    public String getRoleId() {
+        return roleId;
+    }
 }

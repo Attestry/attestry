@@ -20,7 +20,10 @@ public class JpaOrganizationApplicationRepositoryAdapter implements Organization
 
     @Override
     public OrganizationApplication save(OrganizationApplication application) {
-        return toDomain(repository.save(toEntity(application)));
+        long rowVersion = repository.findById(application.applicationId())
+            .map(OrganizationApplicationJpaEntity::getRowVersion)
+            .orElse(0L);
+        return toDomain(repository.save(toEntity(application, rowVersion)));
     }
 
     @Override
@@ -75,7 +78,7 @@ public class JpaOrganizationApplicationRepositoryAdapter implements Organization
         );
     }
 
-    private OrganizationApplicationJpaEntity toEntity(OrganizationApplication domain) {
+    private OrganizationApplicationJpaEntity toEntity(OrganizationApplication domain, long rowVersion) {
         return new OrganizationApplicationJpaEntity(
             domain.applicationId(),
             domain.type(),
@@ -88,7 +91,8 @@ public class JpaOrganizationApplicationRepositoryAdapter implements Organization
             domain.status(),
             domain.reviewedByAdminId(),
             domain.reviewedAt(),
-            domain.rejectReason()
+            domain.rejectReason(),
+            rowVersion
         );
     }
 }

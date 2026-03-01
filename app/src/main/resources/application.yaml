@@ -24,6 +24,7 @@ app:
     token:
       provider: ${AUTH_TOKEN_PROVIDER:MEMORY}
       redis-key-prefix: ${AUTH_TOKEN_REDIS_PREFIX:auth:access-token:}
+      access-ttl: ${AUTH_TOKEN_ACCESS_TTL:PT15M}
   bootstrap:
     platform-admin:
       enabled: ${BOOTSTRAP_PLATFORM_ADMIN_ENABLED:false}

@@ -6,8 +6,10 @@ import io.attestry.userauth.domain.membership.model.MembershipRole;
 import io.attestry.userauth.domain.membership.model.MembershipStatus;
 import io.attestry.userauth.domain.organization.model.GroupStatus;
 import io.attestry.userauth.domain.organization.model.GroupType;
+import java.time.Instant;
 import java.util.List;
 import java.util.Optional;
+import java.util.Set;
 
 public interface MembershipAdminRepositoryPort {
     Optional<UserProfileView> findUserById(String userId);
@@ -28,7 +30,13 @@ public interface MembershipAdminRepositoryPort {
 
     Optional<Membership> findMembershipById(String membershipId);
 
-    Membership updateMembership(String membershipId, MembershipRole role, MembershipStatus status);
+    Membership updateMembership(String tenantId, String membershipId, MembershipRole role, MembershipStatus status);
+
+    Set<String> findRoleCodesByMembershipId(String membershipId);
+
+    Set<String> assignRoleToMembership(String membershipId, String roleCode, String actorUserId, Instant assignedAt);
+
+    Set<String> revokeRoleFromMembership(String membershipId, String roleCode);
 
     record UserProfileView(String userId, String email) {
     }

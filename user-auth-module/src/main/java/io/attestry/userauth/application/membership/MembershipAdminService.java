@@ -3,11 +3,13 @@ package io.attestry.userauth.application.membership;
 import io.attestry.userauth.application.dto.result.MembershipInvitationResult;
 import io.attestry.userauth.application.dto.result.MembershipResult;
 import io.attestry.userauth.application.dto.result.GroupAdminResult;
+import io.attestry.userauth.application.dto.result.MembershipRoleAssignmentsResult;
 import io.attestry.userauth.application.dto.view.MembershipAdminView;
 import io.attestry.userauth.application.dto.command.AuthzEvaluateCommand;
 import io.attestry.userauth.application.dto.command.PolicyDecisionMode;
 import io.attestry.userauth.application.dto.result.AuthzEvaluateResult;
 import io.attestry.userauth.application.port.MembershipAdminRepositoryPort;
+import io.attestry.userauth.application.port.MembershipRepositoryPort;
 import io.attestry.userauth.application.port.RoleAssignmentAuditPort;
 import io.attestry.userauth.application.port.UserAccountRepositoryPort;
 import io.attestry.userauth.application.usecase.membership.MembershipAdminUseCase;
@@ -18,13 +20,18 @@ import io.attestry.userauth.domain.auth.model.AuthPrincipal;
 import io.attestry.userauth.domain.auth.model.PermissionCodes;
 import io.attestry.userauth.domain.membership.model.Invitation;
 import io.attestry.userauth.domain.membership.model.Membership;
+import io.attestry.userauth.domain.organization.model.GroupType;
 import io.attestry.userauth.domain.organization.model.Group;
 import io.attestry.userauth.domain.organization.model.GroupStatus;
 import io.attestry.userauth.domain.user.model.UserAccount;
 import io.attestry.userauth.domain.policy.TenantIsolationPolicy;
+import io.attestry.userauth.domain.policy.RoleAssignmentPolicy;
 import java.time.Clock;
 import java.time.Instant;
+import java.util.Locale;
+import java.util.LinkedHashSet;
 import java.util.List;
+import java.util.Set;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
@@ -32,6 +39,7 @@ import org.springframework.transaction.annotation.Transactional;
 public class MembershipAdminService implements MembershipAdminUseCase {
 
     private final MembershipAdminRepositoryPort membershipAdminRepository;
+    private final MembershipRepositoryPort membershipRepository;
     private final UserAccountRepositoryPort userAccountRepository;
     private final EvaluateAuthorizationUseCase evaluateAuthorizationUseCase;
     private final RoleAssignmentAuditPort roleAssignmentAuditPort;
@@ -39,12 +47,14 @@ public class MembershipAdminService implements MembershipAdminUseCase {
 
     public MembershipAdminService(
         MembershipAdminRepositoryPort membershipAdminRepository,
+        MembershipRepositoryPort membershipRepository,
         UserAccountRepositoryPort userAccountRepository,
         EvaluateAuthorizationUseCase evaluateAuthorizationUseCase,
         RoleAssignmentAuditPort roleAssignmentAuditPort,
         Clock clock
     ) {
         this.membershipAdminRepository = membershipAdminRepository;
+        this.membershipRepository = membershipRepository;
         this.userAccountRepository = userAccountRepository;
         this.evaluateAuthorizationUseCase = evaluateAuthorizationUseCase;
         this.roleAssignmentAuditPort = roleAssignmentAuditPort;
@@ -104,63 +114,38 @@ public class MembershipAdminService implements MembershipAdminUseCase {
     }
 
     @Override
+    @Transactional(readOnly = true)
+    public MembershipRoleAssignmentsResult listMembershipRoleAssignments(AuthPrincipal principal, String tenantId, String membershipId) {
+        assertTenantIsolation(principal, tenantId);
+        Membership target = membershipAdminRepository.findMembershipById(membershipId)
+            .orElseThrow(() -> new DomainException(ErrorCode.MEMBERSHIP_NOT_FOUND, "Membership not found"));
+        if (!tenantId.equals(target.tenantId())) {
+            throw new DomainException(ErrorCode.TENANT_ISOLATION_VIOLATION, "Cross-tenant membership access denied");
+        }
+        Set<String> roleCodes = membershipAdminRepository.findRoleCodesByMembershipId(membershipId);
+        return new MembershipRoleAssignmentsResult(membershipId, roleCodes.stream().sorted().toList());
+    }
+
+    @Override
     @Transactional
-    public MembershipResult updateMembershipRole(
+    public MembershipRoleAssignmentsResult assignMembershipRole(
         AuthPrincipal principal,
         String tenantId,
         String membershipId,
-        UpdateMembershipRoleCommand command
+        AssignMembershipRoleCommand command
     ) {
-        assertTenantIsolation(principal, tenantId);
-        Membership current = membershipAdminRepository.findMembershipById(membershipId)
-            .orElseThrow(() -> new DomainException(ErrorCode.MEMBERSHIP_NOT_FOUND, "Membership not found"));
+        return mutateMembershipRoleAssignment(principal, tenantId, membershipId, command.roleCode(), true);
+    }
 
-        if (!tenantId.equals(current.tenantId())) {
-            throw new DomainException(ErrorCode.TENANT_ISOLATION_VIOLATION, "Cross-tenant membership access denied");
-        }
-        if (current.userId().equals(principal.userId())) {
-            throw new DomainException(ErrorCode.FORBIDDEN_SCOPE, "Self role assignment is not allowed");
-        }
-        if (command.role() == null || command.role() == current.role()) {
-            return toMembershipResult(current);
-        }
-
-        Instant requestedAt = Instant.now(clock);
-        AuthzEvaluateResult decision = evaluateAuthorizationUseCase.evaluate(
-            principal,
-            new AuthzEvaluateCommand(
-                tenantId,
-                PermissionCodes.TENANT_ROLE_ASSIGN,
-                "membership:" + membershipId,
-                PolicyDecisionMode.LIVE_RECHECK
-            )
-        );
-        Instant decidedAt = Instant.now(clock);
-        roleAssignmentAuditPort.log(
-            principal.userId(),
-            principal.tenantId(),
-            membershipId,
-            current.role().name(),
-            command.role().name(),
-            PolicyDecisionMode.LIVE_RECHECK.name(),
-            decision.allowed(),
-            decision.reason(),
-            requestedAt,
-            decidedAt
-        );
-        if (!decision.allowed()) {
-            throw new DomainException(
-                decision.reason() != null ? ErrorCode.valueOf(decision.reason()) : ErrorCode.FORBIDDEN_SCOPE,
-                "Role assignment denied by live policy check"
-            );
-        }
-
-        Membership updated = membershipAdminRepository.updateMembership(
-            current.membershipId(),
-            command.role(),
-            current.status()
-        );
-        return toMembershipResult(updated);
+    @Override
+    @Transactional
+    public MembershipRoleAssignmentsResult revokeMembershipRole(
+        AuthPrincipal principal,
+        String tenantId,
+        String membershipId,
+        RevokeMembershipRoleCommand command
+    ) {
+        return mutateMembershipRoleAssignment(principal, tenantId, membershipId, command.roleCode(), false);
     }
 
     @Override
@@ -200,6 +185,7 @@ public class MembershipAdminService implements MembershipAdminUseCase {
         }
 
         Membership updated = membershipAdminRepository.updateMembership(
+            tenantId,
             current.membershipId(),
             current.role(),
             command.status()
@@ -211,6 +197,7 @@ public class MembershipAdminService implements MembershipAdminUseCase {
     @Transactional
     public GroupAdminResult suspendGroup(AuthPrincipal principal, String tenantId, String groupId) {
         assertTenantIsolation(principal, tenantId);
+        assertLivePermission(principal, tenantId, PermissionCodes.TENANT_GROUP_SUSPEND, "group:" + groupId);
         MembershipAdminRepositoryPort.GroupView groupView = membershipAdminRepository.findGroupById(groupId)
             .orElseThrow(() -> new DomainException(ErrorCode.GROUP_NOT_FOUND, "Group not found"));
 
@@ -249,6 +236,133 @@ public class MembershipAdminService implements MembershipAdminUseCase {
         }
     }
 
+    private void assertLivePermission(AuthPrincipal principal, String tenantId, String action, String resourceRef) {
+        AuthzEvaluateResult decision = evaluateAuthorizationUseCase.evaluate(
+            principal,
+            new AuthzEvaluateCommand(
+                tenantId,
+                action,
+                resourceRef,
+                PolicyDecisionMode.LIVE_RECHECK
+            )
+        );
+        if (!decision.allowed()) {
+            throw new DomainException(
+                decision.reason() != null ? ErrorCode.valueOf(decision.reason()) : ErrorCode.FORBIDDEN_SCOPE,
+                "Action denied by live policy check"
+            );
+        }
+    }
+
+    private MembershipRoleAssignmentsResult mutateMembershipRoleAssignment(
+        AuthPrincipal principal,
+        String tenantId,
+        String membershipId,
+        String roleCode,
+        boolean assign
+    ) {
+        String normalizedRoleCode = roleCode == null ? null : roleCode.trim().toUpperCase(Locale.ROOT);
+        if (normalizedRoleCode == null || normalizedRoleCode.isBlank()) {
+            throw new DomainException(ErrorCode.ROLE_NOT_FOUND, "Role code is required");
+        }
+        assertTenantIsolation(principal, tenantId);
+        Membership target = membershipAdminRepository.findMembershipById(membershipId)
+            .orElseThrow(() -> new DomainException(ErrorCode.MEMBERSHIP_NOT_FOUND, "Membership not found"));
+        if (!tenantId.equals(target.tenantId())) {
+            throw new DomainException(ErrorCode.TENANT_ISOLATION_VIOLATION, "Cross-tenant membership access denied");
+        }
+
+        Membership actorMembership = membershipRepository.findByUserId(principal.userId()).stream()
+            .filter(Membership::isActive)
+            .filter(membership -> tenantId.equals(membership.tenantId()))
+            .findFirst()
+            .orElseThrow(() -> new DomainException(ErrorCode.FORBIDDEN_SCOPE, "Actor has no active membership in tenant"));
+        Set<String> actorRoles = membershipAdminRepository.findRoleCodesByMembershipId(actorMembership.membershipId());
+
+        Instant requestedAt = Instant.now(clock);
+        if (RoleAssignmentPolicy.isSelfEscalationDenied(actorMembership.membershipId(), membershipId, normalizedRoleCode)) {
+            roleAssignmentAuditPort.log(
+                principal.userId(),
+                tenantId,
+                membershipId,
+                assign ? null : normalizedRoleCode,
+                assign ? normalizedRoleCode : null,
+                "POLICY_CHECK",
+                false,
+                ErrorCode.FORBIDDEN_SCOPE.name(),
+                requestedAt,
+                Instant.now(clock)
+            );
+            throw new DomainException(ErrorCode.FORBIDDEN_SCOPE, "Self escalation is not allowed");
+        }
+        if (!RoleAssignmentPolicy.canAssign(actorRoles, normalizedRoleCode)) {
+            roleAssignmentAuditPort.log(
+                principal.userId(),
+                tenantId,
+                membershipId,
+                assign ? null : normalizedRoleCode,
+                assign ? normalizedRoleCode : null,
+                "POLICY_CHECK",
+                false,
+                ErrorCode.FORBIDDEN_SCOPE.name(),
+                requestedAt,
+                Instant.now(clock)
+            );
+            throw new DomainException(ErrorCode.FORBIDDEN_SCOPE, "Role assignment is not allowed");
+        }
+
+        PolicyDecisionMode mode = RoleAssignmentPolicy.requiresLiveRecheck(normalizedRoleCode)
+            ? PolicyDecisionMode.LIVE_RECHECK
+            : PolicyDecisionMode.TOKEN_SNAPSHOT;
+        AuthzEvaluateResult decision = evaluateAuthorizationUseCase.evaluate(
+            principal,
+            new AuthzEvaluateCommand(
+                tenantId,
+                PermissionCodes.TENANT_ROLE_ASSIGN,
+                "membership:" + membershipId + ":role:" + normalizedRoleCode,
+                mode
+            )
+        );
+        if (!decision.allowed()) {
+            roleAssignmentAuditPort.log(
+                principal.userId(),
+                tenantId,
+                membershipId,
+                assign ? null : normalizedRoleCode,
+                assign ? normalizedRoleCode : null,
+                mode.name(),
+                false,
+                decision.reason(),
+                requestedAt,
+                Instant.now(clock)
+            );
+            throw new DomainException(
+                decision.reason() != null ? ErrorCode.valueOf(decision.reason()) : ErrorCode.FORBIDDEN_SCOPE,
+                "Role assignment denied by policy check"
+            );
+        }
+
+        Set<String> updatedRoleCodes = assign
+            ? membershipAdminRepository.assignRoleToMembership(membershipId, normalizedRoleCode, principal.userId(), Instant.now(clock))
+            : membershipAdminRepository.revokeRoleFromMembership(membershipId, normalizedRoleCode);
+        roleAssignmentAuditPort.log(
+            principal.userId(),
+            tenantId,
+            membershipId,
+            assign ? null : normalizedRoleCode,
+            assign ? normalizedRoleCode : null,
+            mode.name(),
+            true,
+            null,
+            requestedAt,
+            Instant.now(clock)
+        );
+        return new MembershipRoleAssignmentsResult(
+            membershipId,
+            new LinkedHashSet<>(updatedRoleCodes).stream().sorted().toList()
+        );
+    }
+
     private MembershipInvitationResult toInvitationResult(Invitation invitation) {
         return new MembershipInvitationResult(
             invitation.invitationId(),
@@ -261,21 +375,23 @@ public class MembershipAdminService implements MembershipAdminUseCase {
     }
 
     private MembershipResult toMembershipResult(Membership membership) {
+        List<String> roleCodes = membershipAdminRepository.findRoleCodesByMembershipId(membership.membershipId()).stream().sorted().toList();
         return new MembershipResult(
             membership.membershipId(),
             membership.tenantId(),
             membership.groupId(),
-            membership.role().name(),
+            roleCodes,
             membership.status().name()
         );
     }
 
     private MembershipAdminView toMembershipView(Membership membership) {
+        List<String> roleCodes = membershipAdminRepository.findRoleCodesByMembershipId(membership.membershipId()).stream().sorted().toList();
         return new MembershipAdminView(
             membership.membershipId(),
             membership.tenantId(),
             membership.groupId(),
-            membership.role().name(),
+            roleCodes,
             membership.status().name()
         );
     }

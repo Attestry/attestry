@@ -5,17 +5,28 @@
 @baseUrl = http://localhost:8080
 @contentType = application/json
 
-@email = qa.user1@attestry.io
+@email = qa.user3@attestry.io
 @password = Password123!
-@phone = 010-1234-5678
+@phone = 010-1234-5671
+
+@brand-email = qa.brand1@attestry.io
+@brand-password = Password123!
+@brand-phone = 010-1235-9999
+
+@retail-email = qa.retail2@attestry.io
+@retail-password = Password123!
+@retail-phone = 010-1234-9998
+
 
 @adminEmail = platform.admin@attestry.local
 @adminPassword = PlatformAdm1n!2026
 
 
-@tenantId = fae5ddb4-e430-4e70-b8ae-841a0f80f9ec
-@groupId = abb30794-beba-4b26-b4f1-4cc53323402a
-@accessToken = REPLACE_ACCESS_TOKEN
+@brand-tenantId = f430fa89-c55b-4b65-b40f-1973109af42f
+@brand-groupId = 6b97e16e-26ad-4c16-8585-9a72f03b6dd2
+
+@accessTokne = REPLACE_ACCESS_TOKEN
+@brand-accessToken = REPLACE_ACCESS_TOKEN
 
 
 ### 1) SignUp
@@ -27,6 +38,31 @@ Content-Type: {{contentType}}
   "password": "{{password}}",
   "phone": "{{phone}}"
 }
+
+
+### brand - SignUp
+POST {{baseUrl}}/auth/signup
+Content-Type: {{contentType}}
+
+{
+  "email": "{{brand-email}}",
+  "password": "{{brand-password}}",
+  "phone": "{{brand-phone}}"
+}
+
+
+### retail - SignUp
+POST {{baseUrl}}/auth/signup
+Content-Type: {{contentType}}
+
+{
+  "email": "{{retail-email}}",
+  "password": "{{retail-password}}",
+  "phone": "{{retail-phone}}"
+}
+
+
+
 
 
 ### 2) Login - admin
@@ -55,15 +91,26 @@ Content-Type: {{contentType}}
 }
 
 
-### 3) Login - Case B: tenantId/groupId 모두 지정 (특정 membership 직접 선택)
+### 2) Login - brand
 POST {{baseUrl}}/auth/login
 Content-Type: {{contentType}}
 
 {
-  "email": "{{email}}",
-  "password": "{{password}}",
-  "tenantId": "{{tenantId}}",
-  "groupId": "{{groupId}}"
+  "email": "{{brand-email}}",
+  "password": "{{brand-password}}"
+}
+
+
+
+### 2) Login - retail
+POST {{baseUrl}}/auth/login
+Content-Type: {{contentType}}
+
+{
+  "email": "{{retail-email}}",
+  "password": "{{retail-password}}",
+  "tenantId": null,
+  "groupId": null
 }
 
 

@@ -1,6 +1,8 @@
 package io.attestry.userauth.infrastructure.persistence.jpa;
 
 import io.attestry.userauth.application.port.MembershipAdminRepositoryPort;
+import io.attestry.userauth.common.error.DomainException;
+import io.attestry.userauth.common.error.ErrorCode;
 import io.attestry.userauth.domain.membership.model.Invitation;
 import io.attestry.userauth.domain.membership.model.Membership;
 import io.attestry.userauth.domain.membership.model.MembershipRole;
@@ -15,10 +17,12 @@ import io.attestry.userauth.infrastructure.persistence.jpa.repository.GroupJpaRe
 import io.attestry.userauth.infrastructure.persistence.jpa.repository.InvitationJpaRepository;
 import io.attestry.userauth.infrastructure.persistence.jpa.repository.MembershipJpaRepository;
 import io.attestry.userauth.infrastructure.persistence.jpa.repository.MembershipRoleAssignmentJpaRepository;
+import io.attestry.userauth.infrastructure.persistence.jpa.repository.RoleJpaRepository;
 import io.attestry.userauth.infrastructure.persistence.jpa.repository.UserAccountJpaRepository;
 import java.time.Instant;
 import java.util.List;
 import java.util.Optional;
+import java.util.Set;
 import java.util.UUID;
 import org.springframework.stereotype.Repository;
 
@@ -28,6 +32,7 @@ public class JpaMembershipAdminRepositoryAdapter implements MembershipAdminRepos
     private final InvitationJpaRepository invitationRepository;
     private final MembershipJpaRepository membershipRepository;
     private final MembershipRoleAssignmentJpaRepository membershipRoleAssignmentRepository;
+    private final RoleJpaRepository roleRepository;
     private final UserAccountJpaRepository userAccountRepository;
     private final GroupJpaRepository groupRepository;
 
@@ -35,12 +40,14 @@ public class JpaMembershipAdminRepositoryAdapter implements MembershipAdminRepos
         InvitationJpaRepository invitationRepository,
         MembershipJpaRepository membershipRepository,
         MembershipRoleAssignmentJpaRepository membershipRoleAssignmentRepository,
+        RoleJpaRepository roleRepository,
         UserAccountJpaRepository userAccountRepository,
         GroupJpaRepository groupRepository
     ) {
         this.invitationRepository = invitationRepository;
         this.membershipRepository = membershipRepository;
         this.membershipRoleAssignmentRepository = membershipRoleAssignmentRepository;
+        this.roleRepository = roleRepository;
         this.userAccountRepository = userAccountRepository;
         this.groupRepository = groupRepository;
     }
@@ -116,7 +123,11 @@ public class JpaMembershipAdminRepositoryAdapter implements MembershipAdminRepos
 
     @Override
     public Membership createMembership(String userId, String groupId, String tenantId, MembershipRole role) {
-        GroupView group = findGroupById(groupId).orElseThrow();
+        GroupView group = findGroupById(groupId)
+            .orElseThrow(() -> new DomainException(ErrorCode.GROUP_NOT_FOUND, "Group not found"));
+        if (!tenantId.equals(group.tenantId())) {
+            throw new DomainException(ErrorCode.TENANT_ISOLATION_VIOLATION, "Cross-tenant membership creation denied");
+        }
         MembershipJpaEntity saved = membershipRepository.save(new MembershipJpaEntity(
             UUID.randomUUID().toString(),
             userId,
@@ -149,8 +160,9 @@ public class JpaMembershipAdminRepositoryAdapter implements MembershipAdminRepos
     }
 
     @Override
-    public Membership updateMembership(String membershipId, MembershipRole role, MembershipStatus status) {
-        MembershipJpaEntity current = membershipRepository.findById(membershipId).orElseThrow();
+    public Membership updateMembership(String tenantId, String membershipId, MembershipRole role, MembershipStatus status) {
+        MembershipJpaEntity current = membershipRepository.findByMembershipIdAndTenantId(membershipId, tenantId)
+            .orElseThrow(() -> new DomainException(ErrorCode.MEMBERSHIP_NOT_FOUND, "Membership not found"));
         MembershipJpaEntity saved = membershipRepository.save(new MembershipJpaEntity(
             current.getMembershipId(),
             current.getUserId(),
@@ -162,17 +174,53 @@ public class JpaMembershipAdminRepositoryAdapter implements MembershipAdminRepos
             current.getGroupStatus(),
             current.getTenantStatus()
         ));
-        if (current.getRole() != role) {
-            MembershipRoleAssignmentJpaEntity assignment = membershipRoleAssignmentRepository.findByMembershipId(saved.getMembershipId()).orElse(null);
+        String expectedRoleId = DefaultRoleIdMapper.map(saved.getRole(), saved.getGroupType());
+        MembershipRoleAssignmentJpaEntity assignment = membershipRoleAssignmentRepository.findByMembershipId(saved.getMembershipId()).orElse(null);
+        if (assignment == null || !expectedRoleId.equals(assignment.getRoleId())) {
             membershipRoleAssignmentRepository.save(new MembershipRoleAssignmentJpaEntity(
                 assignment == null ? UUID.randomUUID().toString() : assignment.getAssignmentId(),
                 saved.getMembershipId(),
-                DefaultRoleIdMapper.map(saved.getRole(), saved.getGroupType()),
+                expectedRoleId,
                 null,
                 Instant.now()
             ));
         }
         return toDomain(saved);
+    }
+
+    @Override
+    public Set<String> findRoleCodesByMembershipId(String membershipId) {
+        return Set.copyOf(membershipRoleAssignmentRepository.findRoleCodesByMembershipId(membershipId));
+    }
+
+    @Override
+    public Set<String> assignRoleToMembership(String membershipId, String roleCode, String actorUserId, Instant assignedAt) {
+        String roleId = roleRepository.findByTenantIdIsNullAndCodeAndEnabledTrue(roleCode)
+            .orElseThrow(() -> new DomainException(ErrorCode.ROLE_NOT_FOUND, "Role not found"))
+            .getRoleId();
+        MembershipRoleAssignmentJpaEntity current = membershipRoleAssignmentRepository.findByMembershipId(membershipId).orElse(null);
+        if (current != null && roleId.equals(current.getRoleId())) {
+            return findRoleCodesByMembershipId(membershipId);
+        }
+        membershipRoleAssignmentRepository.save(new MembershipRoleAssignmentJpaEntity(
+            current == null ? UUID.randomUUID().toString() : current.getAssignmentId(),
+            membershipId,
+            roleId,
+            actorUserId,
+            assignedAt
+        ));
+        return findRoleCodesByMembershipId(membershipId);
+    }
+
+    @Override
+    public Set<String> revokeRoleFromMembership(String membershipId, String roleCode) {
+        String roleId = roleRepository.findByTenantIdIsNullAndCodeAndEnabledTrue(roleCode)
+            .orElseThrow(() -> new DomainException(ErrorCode.ROLE_NOT_FOUND, "Role not found"))
+            .getRoleId();
+        MembershipRoleAssignmentJpaEntity assignment = membershipRoleAssignmentRepository.findByMembershipIdAndRoleId(membershipId, roleId)
+            .orElseThrow(() -> new DomainException(ErrorCode.ROLE_ASSIGNMENT_NOT_FOUND, "Role assignment not found"));
+        membershipRoleAssignmentRepository.deleteByMembershipIdAndRoleId(assignment.getMembershipId(), assignment.getRoleId());
+        return findRoleCodesByMembershipId(membershipId);
     }
 
     private Invitation toDomain(InvitationJpaEntity entity) {

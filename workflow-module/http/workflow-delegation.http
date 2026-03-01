@@ -1,0 +1,51 @@
+### =========================================================
+### Workflow API - Delegation (Phase 3)
+### =========================================================
+
+@baseUrl = http://localhost:8080
+@contentType = application/json
+@accessToken = REPLACE_ACCESS_TOKEN
+@brandTenantId = REPLACE_BRAND_TENANT_ID
+@partnerTenantId = REPLACE_PARTNER_TENANT_ID
+@partnerLinkId = REPLACE_PARTNER_LINK_ID
+@delegationId = REPLACE_DELEGATION_ID
+
+### 1) Grant Delegation (SCOPE_DELEGATION_GRANT)
+POST {{baseUrl}}/workflows/tenants/{{brandTenantId}}/delegations
+Authorization: Bearer {{accessToken}}
+Content-Type: {{contentType}}
+
+{
+  "partnerLinkId": "{{partnerLinkId}}",
+  "partnerTenantId": "{{partnerTenantId}}",
+  "resourceType": "PASSPORT",
+  "resourceId": "passport_123",
+  "permissionCode": "RETAIL_RELEASE",
+  "expiresAt": null,
+  "note": "retail release delegation"
+}
+
+### 2) List Delegations (SCOPE_DELEGATION_READ)
+GET {{baseUrl}}/workflows/tenants/{{brandTenantId}}/delegations
+Authorization: Bearer {{accessToken}}
+
+### 3) Revoke Delegation (SCOPE_DELEGATION_REVOKE)
+POST {{baseUrl}}/workflows/delegations/{{delegationId}}/revoke
+Authorization: Bearer {{accessToken}}
+Content-Type: {{contentType}}
+
+{
+  "reason": "manual revoke"
+}
+
+### 4) Internal evaluate (used by product/ledger in future phase)
+POST {{baseUrl}}/workflows/internal/delegations/evaluate
+Content-Type: {{contentType}}
+
+{
+  "brandTenantId": "{{brandTenantId}}",
+  "partnerTenantId": "{{partnerTenantId}}",
+  "resourceType": "PASSPORT",
+  "resourceId": "passport_123",
+  "permissionCode": "RETAIL_RELEASE"
+}

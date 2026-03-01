@@ -1,8 +1,9 @@
 package io.attestry.userauth.application.usecase.membership;
 
 import io.attestry.userauth.application.dto.result.MembershipInvitationResult;
-import io.attestry.userauth.application.dto.result.MembershipResult;
 import io.attestry.userauth.application.dto.result.GroupAdminResult;
+import io.attestry.userauth.application.dto.result.MembershipResult;
+import io.attestry.userauth.application.dto.result.MembershipRoleAssignmentsResult;
 import io.attestry.userauth.application.dto.view.MembershipAdminView;
 import io.attestry.userauth.domain.auth.model.AuthPrincipal;
 import io.attestry.userauth.domain.membership.model.MembershipRole;
@@ -16,13 +17,27 @@ public interface MembershipAdminUseCase {
 
     List<MembershipAdminView> listMemberships(AuthPrincipal principal, String tenantId);
 
-    MembershipResult updateMembershipRole(AuthPrincipal principal, String tenantId, String membershipId, UpdateMembershipRoleCommand command);
-
     MembershipResult updateMembershipStatus(
         AuthPrincipal principal,
         String tenantId,
         String membershipId,
         UpdateMembershipStatusCommand command
+    );
+
+    MembershipRoleAssignmentsResult listMembershipRoleAssignments(AuthPrincipal principal, String tenantId, String membershipId);
+
+    MembershipRoleAssignmentsResult assignMembershipRole(
+        AuthPrincipal principal,
+        String tenantId,
+        String membershipId,
+        AssignMembershipRoleCommand command
+    );
+
+    MembershipRoleAssignmentsResult revokeMembershipRole(
+        AuthPrincipal principal,
+        String tenantId,
+        String membershipId,
+        RevokeMembershipRoleCommand command
     );
 
     GroupAdminResult suspendGroup(AuthPrincipal principal, String tenantId, String groupId);
@@ -32,9 +47,12 @@ public interface MembershipAdminUseCase {
     record InviteCommand(String email, String groupId, MembershipRole role) {
     }
 
-    record UpdateMembershipRoleCommand(MembershipRole role) {
+    record UpdateMembershipStatusCommand(MembershipStatus status) {
     }
 
-    record UpdateMembershipStatusCommand(MembershipStatus status) {
+    record AssignMembershipRoleCommand(String roleCode) {
+    }
+
+    record RevokeMembershipRoleCommand(String roleCode) {
     }
 }
