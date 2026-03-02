@@ -5,6 +5,8 @@ import io.attestry.userauth.application.dto.result.MembershipResult;
 import io.attestry.userauth.application.dto.result.MembershipAssignableRolesResult;
 import io.attestry.userauth.application.dto.result.MembershipPermissionTemplateResult;
 import io.attestry.userauth.application.dto.result.MembershipRoleAssignmentsResult;
+import io.attestry.userauth.application.dto.result.TenantAvailableTemplateCodesResult;
+import io.attestry.userauth.application.dto.command.ActorContext;
 import io.attestry.userauth.application.dto.view.MembershipAdminView;
 import io.attestry.userauth.application.usecase.membership.MembershipAdminUseCase;
 import io.attestry.userauth.domain.auth.model.AuthPrincipal;
@@ -18,6 +20,7 @@ import io.attestry.userauth.interfaces.membership.dto.response.MembershipAssigna
 import io.attestry.userauth.interfaces.membership.dto.response.MembershipPermissionTemplateResponse;
 import io.attestry.userauth.interfaces.membership.dto.response.MembershipResponse;
 import io.attestry.userauth.interfaces.membership.dto.response.MembershipRoleAssignmentsResponse;
+import io.attestry.userauth.interfaces.membership.dto.response.TenantAvailableTemplateCodesResponse;
 import org.springframework.http.HttpStatus;
 import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.security.core.annotation.AuthenticationPrincipal;
@@ -51,7 +54,7 @@ public class MembershipAdminHttp {
     ) {
 
         MembershipInvitationResult result = membershipAdminService.invite(
-            principal,
+            toActorContext(principal),
             tenantId,
             new MembershipAdminUseCase.InviteCommand(request.email(), request.groupId(), request.role())
         );
@@ -60,14 +63,14 @@ public class MembershipAdminHttp {
 
     @PostMapping("/invitations/{invitationId}/accept")
     public MembershipResponse acceptInvitation(@AuthenticationPrincipal AuthPrincipal principal, @PathVariable("invitationId") String invitationId) {
-        MembershipResult result = membershipAdminService.acceptInvitation(principal, invitationId);
+        MembershipResult result = membershipAdminService.acceptInvitation(toActorContext(principal), invitationId);
         return MembershipResponse.from(result);
     }
 
     @GetMapping("/tenants/{tenantId}/admin/memberships")
     @PreAuthorize("hasAuthority('SCOPE_TENANT_MEMBERSHIP_VIEW')")
     public List<MembershipResponse> listMemberships(@AuthenticationPrincipal AuthPrincipal principal, @PathVariable("tenantId") String tenantId) {
-        return membershipAdminService.listMemberships(principal, tenantId)
+        return membershipAdminService.listMemberships(toActorContext(principal), tenantId)
             .stream()
             .map(MembershipResponse::from)
             .toList();
@@ -82,7 +85,7 @@ public class MembershipAdminHttp {
         @RequestBody UpdateMembershipStatusRequest request
     ) {
         MembershipResult result = membershipAdminService.updateMembershipStatus(
-            principal,
+            toActorContext(principal),
             tenantId,
             membershipId,
             new MembershipAdminUseCase.UpdateMembershipStatusCommand(request.status())
@@ -97,7 +100,7 @@ public class MembershipAdminHttp {
         @PathVariable("tenantId") String tenantId,
         @PathVariable("id") String membershipId
     ) {
-        MembershipRoleAssignmentsResult result = membershipAdminService.listMembershipRoleAssignments(principal, tenantId, membershipId);
+        MembershipRoleAssignmentsResult result = membershipAdminService.listMembershipRoleAssignments(toActorContext(principal), tenantId, membershipId);
         return MembershipRoleAssignmentsResponse.from(result);
     }
 
@@ -108,8 +111,21 @@ public class MembershipAdminHttp {
         @PathVariable("tenantId") String tenantId,
         @PathVariable("id") String membershipId
     ) {
-        MembershipAssignableRolesResult result = membershipAdminService.listAssignableRoleCodes(principal, tenantId, membershipId);
+        MembershipAssignableRolesResult result = membershipAdminService.listAssignableRoleCodes(toActorContext(principal), tenantId, membershipId);
         return MembershipAssignableRolesResponse.from(result);
+    }
+
+    @GetMapping("/tenants/{tenantId}/admin/permission-templates/available")
+    @PreAuthorize("hasAuthority('SCOPE_TENANT_ROLE_ASSIGN')")
+    public TenantAvailableTemplateCodesResponse listTenantAvailableTemplateCodes(
+        @AuthenticationPrincipal AuthPrincipal principal,
+        @PathVariable("tenantId") String tenantId
+    ) {
+        TenantAvailableTemplateCodesResult result = membershipAdminService.listTenantAvailableTemplateCodes(
+            toActorContext(principal),
+            tenantId
+        );
+        return TenantAvailableTemplateCodesResponse.from(result);
     }
 
     @PostMapping("/tenants/{tenantId}/admin/memberships/{id}/roles/{roleCode}")
@@ -121,7 +137,7 @@ public class MembershipAdminHttp {
         @PathVariable("roleCode") String roleCode
     ) {
         MembershipRoleAssignmentsResult result = membershipAdminService.assignMembershipRole(
-            principal,
+            toActorContext(principal),
             tenantId,
             membershipId,
             new MembershipAdminUseCase.AssignMembershipRoleCommand(roleCode)
@@ -138,7 +154,7 @@ public class MembershipAdminHttp {
         @PathVariable("roleCode") String roleCode
     ) {
         MembershipRoleAssignmentsResult result = membershipAdminService.revokeMembershipRole(
-            principal,
+            toActorContext(principal),
             tenantId,
             membershipId,
             new MembershipAdminUseCase.RevokeMembershipRoleCommand(roleCode)
@@ -156,7 +172,7 @@ public class MembershipAdminHttp {
         @RequestBody(required = false) MutatePermissionTemplateRequest request
     ) {
         MembershipPermissionTemplateResult result = membershipAdminService.applyPermissionTemplate(
-            principal,
+            toActorContext(principal),
             tenantId,
             membershipId,
             new MembershipAdminUseCase.ApplyPermissionTemplateCommand(templateCode, request == null ? null : request.reason())
@@ -174,11 +190,23 @@ public class MembershipAdminHttp {
         @RequestBody(required = false) MutatePermissionTemplateRequest request
     ) {
         MembershipPermissionTemplateResult result = membershipAdminService.revokePermissionTemplate(
-            principal,
+            toActorContext(principal),
             tenantId,
             membershipId,
             new MembershipAdminUseCase.RevokePermissionTemplateCommand(templateCode, request == null ? null : request.reason())
         );
         return MembershipPermissionTemplateResponse.from(result);
+    }
+
+    private ActorContext toActorContext(AuthPrincipal principal) {
+        return new ActorContext(
+            principal.tokenId(),
+            principal.userId(),
+            principal.tenantId(),
+            principal.groupId(),
+            principal.verificationLevel(),
+            principal.scopes(),
+            principal.expiresAt()
+        );
     }
 }

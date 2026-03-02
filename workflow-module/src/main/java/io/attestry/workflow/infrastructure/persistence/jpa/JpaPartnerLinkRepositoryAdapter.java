@@ -34,19 +34,19 @@ public class JpaPartnerLinkRepositoryAdapter implements PartnerLinkRepositoryPor
 
     @Override
     public List<PartnerLink> findByTenantId(String tenantId) {
-        return repository.findByBrandTenantIdOrPartnerTenantId(tenantId, tenantId).stream().map(this::toDomain).toList();
+        return repository.findBySourceTenantIdOrTargetTenantId(tenantId, tenantId).stream().map(this::toDomain).toList();
     }
 
     @Override
-    public boolean existsByBrandAndPartnerAndTypeAndStatus(
-        String brandTenantId,
-        String partnerTenantId,
+    public boolean existsBySourceAndTargetAndTypeAndStatus(
+        String sourceTenantId,
+        String targetTenantId,
         PartnerType partnerType,
         PartnerLinkStatus status
     ) {
-        return repository.existsByBrandTenantIdAndPartnerTenantIdAndPartnerTypeAndStatus(
-            brandTenantId,
-            partnerTenantId,
+        return repository.existsBySourceTenantIdAndTargetTenantIdAndPartnerTypeAndStatus(
+            sourceTenantId,
+            targetTenantId,
             partnerType,
             status
         );
@@ -55,8 +55,8 @@ public class JpaPartnerLinkRepositoryAdapter implements PartnerLinkRepositoryPor
     private PartnerLink toDomain(PartnerLinkJpaEntity entity) {
         return new PartnerLink(
             entity.getPartnerLinkId(),
-            entity.getBrandTenantId(),
-            entity.getPartnerTenantId(),
+            entity.getSourceTenantId(),
+            entity.getTargetTenantId(),
             entity.getPartnerType(),
             entity.getStatus(),
             entity.getCreatedByUserId(),
@@ -71,8 +71,8 @@ public class JpaPartnerLinkRepositoryAdapter implements PartnerLinkRepositoryPor
     private PartnerLinkJpaEntity toEntity(PartnerLink link, long rowVersion) {
         return new PartnerLinkJpaEntity(
             link.partnerLinkId(),
-            link.brandTenantId(),
-            link.partnerTenantId(),
+            link.sourceTenantId(),
+            link.targetTenantId(),
             link.partnerType(),
             link.status(),
             link.createdByUserId(),

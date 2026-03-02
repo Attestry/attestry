@@ -4,6 +4,7 @@ import io.attestry.userauth.application.port.MembershipProvisioningRepositoryPor
 import io.attestry.userauth.common.error.DomainException;
 import io.attestry.userauth.common.error.ErrorCode;
 import io.attestry.userauth.domain.membership.model.Membership;
+import io.attestry.userauth.domain.membership.policy.DefaultMembershipRolePolicy;
 import io.attestry.userauth.infrastructure.persistence.jpa.entity.MembershipRoleAssignmentJpaEntity;
 import io.attestry.userauth.infrastructure.persistence.jpa.entity.MembershipJpaEntity;
 import io.attestry.userauth.infrastructure.persistence.jpa.repository.MembershipRoleAssignmentJpaRepository;
@@ -48,7 +49,7 @@ public class JpaMembershipProvisioningRepositoryAdapter implements MembershipPro
             membershipRoleAssignmentRepository.save(new MembershipRoleAssignmentJpaEntity(
                 UUID.randomUUID().toString(),
                 saved.getMembershipId(),
-                DefaultRoleIdMapper.map(saved.getRole(), saved.getGroupType()),
+                resolveGlobalRoleIdByCode(DefaultMembershipRolePolicy.resolveGlobalRoleCode(saved.getRole(), saved.getGroupType())),
                 null,
                 Instant.now()
             ));
@@ -80,5 +81,11 @@ public class JpaMembershipProvisioningRepositoryAdapter implements MembershipPro
             assignedByUserId,
             Instant.now()
         ));
+    }
+
+    private String resolveGlobalRoleIdByCode(String roleCode) {
+        return roleRepository.findByTenantIdIsNullAndCodeAndEnabledTrue(roleCode)
+            .orElseThrow(() -> new DomainException(ErrorCode.ROLE_NOT_FOUND, "Role not found"))
+            .getRoleId();
     }
 }

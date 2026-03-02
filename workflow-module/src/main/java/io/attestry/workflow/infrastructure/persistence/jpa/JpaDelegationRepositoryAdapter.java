@@ -33,20 +33,20 @@ public class JpaDelegationRepositoryAdapter implements DelegationRepositoryPort 
 
     @Override
     public List<Delegation> findByTenantId(String tenantId) {
-        return repository.findByBrandTenantIdOrPartnerTenantId(tenantId, tenantId).stream().map(this::toDomain).toList();
+        return repository.findBySourceTenantIdOrTargetTenantId(tenantId, tenantId).stream().map(this::toDomain).toList();
     }
 
     @Override
     public Optional<Delegation> findActive(
-        String brandTenantId,
-        String partnerTenantId,
+        String sourceTenantId,
+        String targetTenantId,
         String resourceType,
         String resourceId,
         String permissionCode
     ) {
-        return repository.findByBrandTenantIdAndPartnerTenantIdAndResourceTypeAndResourceIdAndPermissionCodeAndStatus(
-            brandTenantId,
-            partnerTenantId,
+        return repository.findBySourceTenantIdAndTargetTenantIdAndResourceTypeAndResourceIdAndPermissionCodeAndStatus(
+            sourceTenantId,
+            targetTenantId,
             resourceType,
             resourceId,
             permissionCode,
@@ -56,15 +56,15 @@ public class JpaDelegationRepositoryAdapter implements DelegationRepositoryPort 
 
     @Override
     public boolean existsActive(
-        String brandTenantId,
-        String partnerTenantId,
+        String sourceTenantId,
+        String targetTenantId,
         String resourceType,
         String resourceId,
         String permissionCode
     ) {
-        return repository.existsByBrandTenantIdAndPartnerTenantIdAndResourceTypeAndResourceIdAndPermissionCodeAndStatus(
-            brandTenantId,
-            partnerTenantId,
+        return repository.existsBySourceTenantIdAndTargetTenantIdAndResourceTypeAndResourceIdAndPermissionCodeAndStatus(
+            sourceTenantId,
+            targetTenantId,
             resourceType,
             resourceId,
             permissionCode,
@@ -76,8 +76,8 @@ public class JpaDelegationRepositoryAdapter implements DelegationRepositoryPort 
         return new Delegation(
             entity.getDelegationId(),
             entity.getPartnerLinkId(),
-            entity.getBrandTenantId(),
-            entity.getPartnerTenantId(),
+            entity.getSourceTenantId(),
+            entity.getTargetTenantId(),
             entity.getResourceType(),
             entity.getResourceId(),
             entity.getPermissionCode(),
@@ -95,8 +95,8 @@ public class JpaDelegationRepositoryAdapter implements DelegationRepositoryPort 
         return new DelegationJpaEntity(
             delegation.delegationId(),
             delegation.partnerLinkId(),
-            delegation.brandTenantId(),
-            delegation.partnerTenantId(),
+            delegation.sourceTenantId(),
+            delegation.targetTenantId(),
             delegation.resourceType(),
             delegation.resourceId(),
             delegation.permissionCode(),

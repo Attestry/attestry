@@ -3,7 +3,7 @@ package io.attestry.userauth.domain.policy;
 import static org.junit.jupiter.api.Assertions.assertFalse;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
-import io.attestry.userauth.domain.auth.model.AuthPrincipal;
+import io.attestry.userauth.application.dto.command.ActorContext;
 import io.attestry.userauth.domain.auth.model.PermissionCodes;
 import io.attestry.userauth.domain.user.enums.VerificationLevel;
 import java.time.Instant;
@@ -14,7 +14,7 @@ class AuthorizationPolicyTest {
 
     @Test
     void shouldAllowWhenScopeAndTenantMatch() {
-        AuthPrincipal principal = new AuthPrincipal(
+        ActorContext actor = new ActorContext(
             "t1",
             "u1",
             "tenant-a",
@@ -24,12 +24,12 @@ class AuthorizationPolicyTest {
             Instant.parse("2026-02-25T01:00:00Z")
         );
 
-        assertTrue(AuthorizationPolicy.isAllowed(principal, "tenant-a", PermissionCodes.BRAND_MINT));
+        assertTrue(AuthorizationPolicy.isAllowed(actor, "tenant-a", PermissionCodes.BRAND_MINT));
     }
 
     @Test
     void shouldDenyWhenScopeMissing() {
-        AuthPrincipal principal = new AuthPrincipal(
+        ActorContext actor = new ActorContext(
             "t1",
             "u1",
             "tenant-a",
@@ -39,12 +39,12 @@ class AuthorizationPolicyTest {
             Instant.parse("2026-02-25T01:00:00Z")
         );
 
-        assertFalse(AuthorizationPolicy.isAllowed(principal, "tenant-a", PermissionCodes.BRAND_MINT));
+        assertFalse(AuthorizationPolicy.isAllowed(actor, "tenant-a", PermissionCodes.BRAND_MINT));
     }
 
     @Test
     void shouldDenyWhenTenantDifferent() {
-        AuthPrincipal principal = new AuthPrincipal(
+        ActorContext actor = new ActorContext(
             "t1",
             "u1",
             "tenant-a",
@@ -54,6 +54,6 @@ class AuthorizationPolicyTest {
             Instant.parse("2026-02-25T01:00:00Z")
         );
 
-        assertFalse(AuthorizationPolicy.isAllowed(principal, "tenant-b", PermissionCodes.BRAND_MINT));
+        assertFalse(AuthorizationPolicy.isAllowed(actor, "tenant-b", PermissionCodes.BRAND_MINT));
     }
 }

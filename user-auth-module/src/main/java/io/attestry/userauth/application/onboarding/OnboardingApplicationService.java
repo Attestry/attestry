@@ -1,6 +1,7 @@
 package io.attestry.userauth.application.onboarding;
 
 import io.attestry.userauth.application.dto.command.CompleteEvidenceUploadCommand;
+import io.attestry.userauth.application.dto.command.ActorContext;
 import io.attestry.userauth.application.dto.command.CreateBrandApplicationCommand;
 import io.attestry.userauth.application.dto.command.CreateRetailApplicationCommand;
 import io.attestry.userauth.application.dto.command.PresignEvidenceUploadCommand;
@@ -20,8 +21,8 @@ import io.attestry.userauth.application.port.TemplateAdminRepositoryPort;
 import io.attestry.userauth.application.usecase.onboarding.OnboardingUseCase;
 import io.attestry.userauth.common.error.DomainException;
 import io.attestry.userauth.common.error.ErrorCode;
-import io.attestry.userauth.domain.auth.model.AuthPrincipal;
 import io.attestry.userauth.domain.auth.model.RoleCodes;
+import io.attestry.userauth.domain.auth.policy.SystemPermissionTemplateCatalog;
 import io.attestry.userauth.domain.membership.model.Membership;
 import io.attestry.userauth.domain.membership.model.MembershipRole;
 import io.attestry.userauth.domain.membership.model.MembershipStatus;
@@ -82,11 +83,11 @@ public class OnboardingApplicationService implements OnboardingUseCase {
 
     @Override
     @Transactional
-    public ApplicationResult createBrandApplication(AuthPrincipal principal, CreateBrandApplicationCommand command) {
-        requireReadyEvidenceOwnedByPrincipal(principal.userId(), command.evidenceBundleId());
+    public ApplicationResult createBrandApplication(ActorContext actor, CreateBrandApplicationCommand command) {
+        requireReadyEvidenceOwnedByPrincipal(actor.userId(), command.evidenceBundleId());
         assertUniqueBrand(command.brandName(), command.bizRegNo());
         OrganizationApplication application = OrganizationApplication.createBrand(
-            principal.userId(),
+            actor.userId(),
             command.brandName(),
             command.country(),
             command.bizRegNo(),
@@ -113,7 +114,7 @@ public class OnboardingApplicationService implements OnboardingUseCase {
     //TODO("이메일 발송로직")
     @Override
     @Transactional
-    public ApproveApplicationResult approveBrandApplication(AuthPrincipal principal, String applicationId) {
+    public ApproveApplicationResult approveBrandApplication(ActorContext actor, String applicationId) {
         OrganizationApplication app = findBrandApplication(applicationId);
         app.assertPending();
 
@@ -134,31 +135,31 @@ public class OnboardingApplicationService implements OnboardingUseCase {
             GroupStatus.ACTIVE,
             TenantStatus.ACTIVE
         ));
-        membershipProvisioningRepository.assignRole(membershipId, RoleCodes.TENANT_OWNER, principal.userId());
-        bindDefaultTenantOwnerTemplate(tenantId, principal.userId());
+        membershipProvisioningRepository.assignRole(membershipId, RoleCodes.TENANT_OWNER, actor.userId());
+        bindDefaultTenantOwnerTemplate(tenantId, actor.userId());
 
-        applicationRepository.save(app.approve(principal.userId(), tenantId, Instant.now(clock)));
+        applicationRepository.save(app.approve(actor.userId(), tenantId, Instant.now(clock)));
 
         return new ApproveApplicationResult(tenantId, groupId, membershipId);
     }
 
     @Override
     @Transactional
-    public ApplicationResult rejectBrandApplication(AuthPrincipal principal, String applicationId, String rejectReason) {
+    public ApplicationResult rejectBrandApplication(ActorContext actor, String applicationId, String rejectReason) {
         OrganizationApplication app = findBrandApplication(applicationId);
-        return toApplicationResult(applicationRepository.save(app.reject(principal.userId(), rejectReason, Instant.now(clock))));
+        return toApplicationResult(applicationRepository.save(app.reject(actor.userId(), rejectReason, Instant.now(clock))));
     }
 
     @Override
     @Transactional
     public ApplicationResult createRetailApplication(
-        AuthPrincipal principal,
+        ActorContext actor,
         CreateRetailApplicationCommand command
     ) {
-        requireReadyEvidenceOwnedByPrincipal(principal.userId(), command.evidenceBundleId());
+        requireReadyEvidenceOwnedByPrincipal(actor.userId(), command.evidenceBundleId());
         assertUniqueRetail(command.retailName(), command.bizRegNo());
         OrganizationApplication application = OrganizationApplication.createRetail(
-            principal.userId(),
+            actor.userId(),
             command.retailName(),
             command.country(),
             command.bizRegNo(),
@@ -183,7 +184,7 @@ public class OnboardingApplicationService implements OnboardingUseCase {
 
     @Override
     @Transactional
-    public ApproveApplicationResult approveRetailApplication(AuthPrincipal principal, String applicationId) {
+    public ApproveApplicationResult approveRetailApplication(ActorContext actor, String applicationId) {
         OrganizationApplication app = findRetailApplication(applicationId);
         app.assertPending();
 
@@ -204,28 +205,28 @@ public class OnboardingApplicationService implements OnboardingUseCase {
             GroupStatus.ACTIVE,
             TenantStatus.ACTIVE
         ));
-        membershipProvisioningRepository.assignRole(membershipId, RoleCodes.TENANT_OWNER, principal.userId());
-        bindDefaultTenantOwnerTemplate(retailTenantId, principal.userId());
+        membershipProvisioningRepository.assignRole(membershipId, RoleCodes.TENANT_OWNER, actor.userId());
+        bindDefaultTenantOwnerTemplate(retailTenantId, actor.userId());
 
-        applicationRepository.save(app.approve(principal.userId(), retailTenantId, Instant.now(clock)));
+        applicationRepository.save(app.approve(actor.userId(), retailTenantId, Instant.now(clock)));
 
         return new ApproveApplicationResult(retailTenantId, groupId, membershipId);
     }
 
     @Override
     @Transactional
-    public ApplicationResult rejectRetailApplication(AuthPrincipal principal, String applicationId, String rejectReason) {
+    public ApplicationResult rejectRetailApplication(ActorContext actor, String applicationId, String rejectReason) {
         OrganizationApplication app = findRetailApplication(applicationId);
-        return toApplicationResult(applicationRepository.save(app.reject(principal.userId(), rejectReason, Instant.now(clock))));
+        return toApplicationResult(applicationRepository.save(app.reject(actor.userId(), rejectReason, Instant.now(clock))));
     }
 
     @Override
     @Transactional
-    public PresignedEvidenceUploadResult presignEvidenceUpload(AuthPrincipal principal, PresignEvidenceUploadCommand command) {
+    public PresignedEvidenceUploadResult presignEvidenceUpload(ActorContext actor, PresignEvidenceUploadCommand command) {
         Instant now = Instant.now(clock);
-        OnboardingEvidenceBundle bundle = resolveOrCreateBundle(principal, command.evidenceBundleId(), now);
+        OnboardingEvidenceBundle bundle = resolveOrCreateBundle(actor, command.evidenceBundleId(), now);
         assertBundleFileLimit(bundle.evidenceBundleId());
-        String objectKey = buildObjectKey(principal.userId(), bundle.evidenceBundleId(), command.fileName());
+        String objectKey = buildObjectKey(actor.userId(), bundle.evidenceBundleId(), command.fileName());
 
         OnboardingEvidenceFile evidenceFile = evidenceFileRepository.save(OnboardingEvidenceFile.start(
             bundle.evidenceBundleId(),
@@ -252,12 +253,12 @@ public class OnboardingApplicationService implements OnboardingUseCase {
 
     @Override
     @Transactional
-    public EvidenceBundleResult completeEvidenceUpload(AuthPrincipal principal, CompleteEvidenceUploadCommand command) {
+    public EvidenceBundleResult completeEvidenceUpload(ActorContext actor, CompleteEvidenceUploadCommand command) {
         requireText(command.evidenceBundleId(), "evidenceBundleId");
         requireText(command.evidenceFileId(), "evidenceFileId");
         OnboardingEvidenceBundle bundle = evidenceBundleRepository.findById(command.evidenceBundleId())
             .orElseThrow(() -> new DomainException(ErrorCode.EVIDENCE_NOT_FOUND, "Evidence not found"));
-        bundle.assertOwnedBy(principal.userId());
+        bundle.assertOwnedBy(actor.userId());
 
         OnboardingEvidenceFile evidenceFile = evidenceFileRepository.findById(command.evidenceFileId())
             .orElseThrow(() -> new DomainException(ErrorCode.EVIDENCE_NOT_FOUND, "Evidence not found"));
@@ -284,8 +285,8 @@ public class OnboardingApplicationService implements OnboardingUseCase {
         return new EvidenceBundleResult(currentBundle.evidenceBundleId(), currentBundle.status().name());
     }
 
-    private void assertTenantIsolation(AuthPrincipal principal, String tenantId) {
-        if (!TenantIsolationPolicy.isIsolated(principal.tenantId(), tenantId)) {
+    private void assertTenantIsolation(ActorContext actor, String tenantId) {
+        if (!TenantIsolationPolicy.isIsolated(actor.tenantId(), tenantId)) {
             throw new DomainException(ErrorCode.TENANT_ISOLATION_VIOLATION, "Cross-tenant access denied");
         }
     }
@@ -370,7 +371,7 @@ public class OnboardingApplicationService implements OnboardingUseCase {
         templateAdminRepository.bindTemplateToTenantRole(
             tenantId,
             RoleCodes.TENANT_OWNER,
-            "TEMPLATE_TENANT_OWNER_CORE",
+            SystemPermissionTemplateCatalog.TEMPLATE_TENANT_OWNER_CORE,
             actorUserId,
             Instant.now(clock)
         );
@@ -389,13 +390,13 @@ public class OnboardingApplicationService implements OnboardingUseCase {
         );
     }
 
-    private OnboardingEvidenceBundle resolveOrCreateBundle(AuthPrincipal principal, String requestedBundleId, Instant now) {
+    private OnboardingEvidenceBundle resolveOrCreateBundle(ActorContext actor, String requestedBundleId, Instant now) {
         if (requestedBundleId == null || requestedBundleId.isBlank()) {
-            return evidenceBundleRepository.save(OnboardingEvidenceBundle.create(principal.userId(), now));
+            return evidenceBundleRepository.save(OnboardingEvidenceBundle.create(actor.userId(), now));
         }
         OnboardingEvidenceBundle bundle = evidenceBundleRepository.findById(requestedBundleId)
             .orElseThrow(() -> new DomainException(ErrorCode.EVIDENCE_NOT_FOUND, "Evidence not found"));
-        bundle.assertOwnedBy(principal.userId());
+        bundle.assertOwnedBy(actor.userId());
         bundle.assertCollecting();
         return bundle;
     }

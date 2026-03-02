@@ -19,11 +19,11 @@ public class PartnerLinkJpaEntity {
     @Column(name = "partner_link_id", nullable = false, length = 36)
     private String partnerLinkId;
 
-    @Column(name = "brand_tenant_id", nullable = false, length = 36)
-    private String brandTenantId;
+    @Column(name = "source_tenant_id", nullable = false, length = 36)
+    private String sourceTenantId;
 
-    @Column(name = "partner_tenant_id", nullable = false, length = 36)
-    private String partnerTenantId;
+    @Column(name = "target_tenant_id", nullable = false, length = 36)
+    private String targetTenantId;
 
     @Enumerated(EnumType.STRING)
     @Column(name = "partner_type", nullable = false, length = 30)
@@ -60,8 +60,8 @@ public class PartnerLinkJpaEntity {
 
     public PartnerLinkJpaEntity(
         String partnerLinkId,
-        String brandTenantId,
-        String partnerTenantId,
+        String sourceTenantId,
+        String targetTenantId,
         PartnerType partnerType,
         PartnerLinkStatus status,
         String createdByUserId,
@@ -73,8 +73,8 @@ public class PartnerLinkJpaEntity {
         long rowVersion
     ) {
         this.partnerLinkId = partnerLinkId;
-        this.brandTenantId = brandTenantId;
-        this.partnerTenantId = partnerTenantId;
+        this.sourceTenantId = sourceTenantId;
+        this.targetTenantId = targetTenantId;
         this.partnerType = partnerType;
         this.status = status;
         this.createdByUserId = createdByUserId;
@@ -90,12 +90,21 @@ public class PartnerLinkJpaEntity {
         return partnerLinkId;
     }
 
+    public String getSourceTenantId() {
+        return sourceTenantId;
+    }
+
+    public String getTargetTenantId() {
+        return targetTenantId;
+    }
+
+    // Backward compatibility for transitional usages.
     public String getBrandTenantId() {
-        return brandTenantId;
+        return sourceTenantId;
     }
 
     public String getPartnerTenantId() {
-        return partnerTenantId;
+        return targetTenantId;
     }
 
     public PartnerType getPartnerType() {

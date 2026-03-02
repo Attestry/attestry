@@ -4,6 +4,7 @@ import io.attestry.userauth.application.dto.command.CompleteEvidenceUploadComman
 import io.attestry.userauth.application.dto.command.CreateBrandApplicationCommand;
 import io.attestry.userauth.application.dto.command.CreateRetailApplicationCommand;
 import io.attestry.userauth.application.dto.command.PresignEvidenceUploadCommand;
+import io.attestry.userauth.application.dto.command.ActorContext;
 import io.attestry.userauth.application.dto.result.ApplicationResult;
 import io.attestry.userauth.application.usecase.onboarding.OnboardingUseCase;
 import io.attestry.userauth.domain.auth.model.AuthPrincipal;
@@ -42,7 +43,7 @@ public class OnboardingHttp {
     ) {
         return PresignedEvidenceUploadResponse.from(
             onboardingService.presignEvidenceUpload(
-                principal,
+                toActorContext(principal),
                 new PresignEvidenceUploadCommand(request.evidenceBundleId(), request.fileName(), request.contentType())
             )
         );
@@ -55,7 +56,7 @@ public class OnboardingHttp {
     ) {
         return EvidenceBundleResponse.from(
             onboardingService.completeEvidenceUpload(
-                principal,
+                toActorContext(principal),
                 new CompleteEvidenceUploadCommand(request.evidenceBundleId(), request.evidenceFileId(), request.sizeBytes())
             )
         );
@@ -68,7 +69,7 @@ public class OnboardingHttp {
         @RequestBody CreateBrandApplicationRequest request
     ) {
         ApplicationResult result = onboardingService.createBrandApplication(
-            principal,
+            toActorContext(principal),
             new CreateBrandApplicationCommand(
                 request.brandName(),
                 request.country(),
@@ -91,7 +92,7 @@ public class OnboardingHttp {
         @RequestBody CreateRetailApplicationRequest request
     ) {
         ApplicationResult result = onboardingService.createRetailApplication(
-            principal,
+            toActorContext(principal),
             new CreateRetailApplicationCommand(
                 request.retailName(),
                 request.country(),
@@ -105,5 +106,17 @@ public class OnboardingHttp {
     @GetMapping("/retail-applications/{id}")
     public ApplicationResponse getRetailApplication(@PathVariable("id") String id) {
         return ApplicationResponse.from(onboardingService.getRetailApplication(id));
+    }
+
+    private ActorContext toActorContext(AuthPrincipal principal) {
+        return new ActorContext(
+            principal.tokenId(),
+            principal.userId(),
+            principal.tenantId(),
+            principal.groupId(),
+            principal.verificationLevel(),
+            principal.scopes(),
+            principal.expiresAt()
+        );
     }
 }

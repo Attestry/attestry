@@ -2,6 +2,7 @@ package io.attestry.workflow.application.partner;
 
 import io.attestry.userauth.common.error.DomainException;
 import io.attestry.userauth.common.error.ErrorCode;
+import io.attestry.userauth.application.dto.command.ActorContext;
 import io.attestry.userauth.application.dto.command.AuthzEvaluateCommand;
 import io.attestry.userauth.application.dto.command.PolicyDecisionMode;
 import io.attestry.userauth.application.dto.result.AuthzEvaluateResult;
@@ -43,18 +44,18 @@ public class PartnerLinkService implements PartnerLinkUseCase {
 
     @Override
     @Transactional
-    public PartnerLinkResult create(AuthPrincipal principal, String brandTenantId, CreatePartnerLinkCommand command) {
-        assertTenantContext(principal, brandTenantId);
-        assertLivePermission(principal, brandTenantId, PermissionCodes.PARTNER_LINK_CREATE, "partner-link:create");
-        if (!tenantReadPort.existsActiveTenant(brandTenantId) || !tenantReadPort.existsActiveTenant(command.partnerTenantId())) {
+    public PartnerLinkResult create(AuthPrincipal principal, String sourceTenantId, CreatePartnerLinkCommand command) {
+        assertTenantContext(principal, sourceTenantId);
+        assertLivePermission(principal, sourceTenantId, PermissionCodes.PARTNER_LINK_CREATE, "partner-link:create");
+        if (!tenantReadPort.existsActiveTenant(sourceTenantId) || !tenantReadPort.existsActiveTenant(command.targetTenantId())) {
             throw new DomainException(ErrorCode.TENANT_NOT_FOUND, "Tenant not found or inactive");
         }
-        if (brandTenantId.equals(command.partnerTenantId())) {
-            throw new DomainException(ErrorCode.INVALID_APPLICATION_STATE, "Partner tenant must be different from brand tenant");
+        if (sourceTenantId.equals(command.targetTenantId())) {
+            throw new DomainException(ErrorCode.INVALID_APPLICATION_STATE, "Target tenant must be different from source tenant");
         }
-        boolean alreadyActive = repository.existsByBrandAndPartnerAndTypeAndStatus(
-            brandTenantId,
-            command.partnerTenantId(),
+        boolean alreadyActive = repository.existsBySourceAndTargetAndTypeAndStatus(
+            sourceTenantId,
+            command.targetTenantId(),
             command.partnerType(),
             PartnerLinkStatus.ACTIVE
         );
@@ -62,8 +63,8 @@ public class PartnerLinkService implements PartnerLinkUseCase {
             throw new DomainException(ErrorCode.PARTNER_LINK_ALREADY_ACTIVE, "Active partner link already exists");
         }
         PartnerLink created = repository.save(PartnerLink.create(
-            brandTenantId,
-            command.partnerTenantId(),
+            sourceTenantId,
+            command.targetTenantId(),
             command.partnerType(),
             principal.userId(),
             Instant.now(clock)
@@ -75,7 +76,7 @@ public class PartnerLinkService implements PartnerLinkUseCase {
     @Transactional
     public PartnerLinkResult approve(AuthPrincipal principal, String partnerLinkId) {
         PartnerLink partnerLink = getById(partnerLinkId);
-        String policyTenantId = principal.tenantId() != null ? principal.tenantId() : partnerLink.brandTenantId();
+        String policyTenantId = principal.tenantId() != null ? principal.tenantId() : partnerLink.sourceTenantId();
         assertLivePermission(principal, policyTenantId, PermissionCodes.PARTNER_LINK_APPROVE, "partner-link:" + partnerLinkId);
         return toResult(repository.save(partnerLink.approve(principal.userId(), Instant.now(clock))));
     }
@@ -84,7 +85,7 @@ public class PartnerLinkService implements PartnerLinkUseCase {
     @Transactional
     public PartnerLinkResult reject(AuthPrincipal principal, String partnerLinkId, String reason) {
         PartnerLink partnerLink = getById(partnerLinkId);
-        String policyTenantId = principal.tenantId() != null ? principal.tenantId() : partnerLink.brandTenantId();
+        String policyTenantId = principal.tenantId() != null ? principal.tenantId() : partnerLink.sourceTenantId();
         assertLivePermission(principal, policyTenantId, PermissionCodes.PARTNER_LINK_APPROVE, "partner-link:" + partnerLinkId);
         return toResult(repository.save(partnerLink.reject(principal.userId(), reason, Instant.now(clock))));
     }
@@ -93,8 +94,8 @@ public class PartnerLinkService implements PartnerLinkUseCase {
     @Transactional
     public PartnerLinkResult suspend(AuthPrincipal principal, String partnerLinkId) {
         PartnerLink partnerLink = getById(partnerLinkId);
-        assertTenantContext(principal, partnerLink.brandTenantId());
-        assertLivePermission(principal, partnerLink.brandTenantId(), PermissionCodes.PARTNER_LINK_SUSPEND, "partner-link:" + partnerLinkId);
+        assertTenantContext(principal, partnerLink.sourceTenantId());
+        assertLivePermission(principal, partnerLink.sourceTenantId(), PermissionCodes.PARTNER_LINK_SUSPEND, "partner-link:" + partnerLinkId);
         return toResult(repository.save(partnerLink.suspend(principal.userId(), Instant.now(clock))));
     }
 
@@ -102,8 +103,8 @@ public class PartnerLinkService implements PartnerLinkUseCase {
     @Transactional
     public PartnerLinkResult resume(AuthPrincipal principal, String partnerLinkId) {
         PartnerLink partnerLink = getById(partnerLinkId);
-        assertTenantContext(principal, partnerLink.brandTenantId());
-        assertLivePermission(principal, partnerLink.brandTenantId(), PermissionCodes.PARTNER_LINK_RESUME, "partner-link:" + partnerLinkId);
+        assertTenantContext(principal, partnerLink.sourceTenantId());
+        assertLivePermission(principal, partnerLink.sourceTenantId(), PermissionCodes.PARTNER_LINK_RESUME, "partner-link:" + partnerLinkId);
         return toResult(repository.save(partnerLink.resume(principal.userId(), Instant.now(clock))));
     }
 
@@ -111,8 +112,8 @@ public class PartnerLinkService implements PartnerLinkUseCase {
     @Transactional
     public PartnerLinkResult terminate(AuthPrincipal principal, String partnerLinkId, String reason) {
         PartnerLink partnerLink = getById(partnerLinkId);
-        assertTenantContext(principal, partnerLink.brandTenantId());
-        assertLivePermission(principal, partnerLink.brandTenantId(), PermissionCodes.PARTNER_LINK_TERMINATE, "partner-link:" + partnerLinkId);
+        assertTenantContext(principal, partnerLink.sourceTenantId());
+        assertLivePermission(principal, partnerLink.sourceTenantId(), PermissionCodes.PARTNER_LINK_TERMINATE, "partner-link:" + partnerLinkId);
         return toResult(repository.save(partnerLink.terminate(principal.userId(), reason, Instant.now(clock))));
     }
 
@@ -136,7 +137,7 @@ public class PartnerLinkService implements PartnerLinkUseCase {
 
     private void assertLivePermission(AuthPrincipal principal, String tenantId, String action, String resourceRef) {
         AuthzEvaluateResult decision = evaluateAuthorizationUseCase.evaluate(
-            principal,
+            toActorContext(principal),
             new AuthzEvaluateCommand(tenantId, action, resourceRef, PolicyDecisionMode.LIVE_RECHECK)
         );
         if (!decision.allowed()) {
@@ -147,11 +148,23 @@ public class PartnerLinkService implements PartnerLinkUseCase {
         }
     }
 
+    private ActorContext toActorContext(AuthPrincipal principal) {
+        return new ActorContext(
+            principal.tokenId(),
+            principal.userId(),
+            principal.tenantId(),
+            principal.groupId(),
+            principal.verificationLevel(),
+            principal.scopes(),
+            principal.expiresAt()
+        );
+    }
+
     private PartnerLinkResult toResult(PartnerLink link) {
         return new PartnerLinkResult(
             link.partnerLinkId(),
-            link.brandTenantId(),
-            link.partnerTenantId(),
+            link.sourceTenantId(),
+            link.targetTenantId(),
             link.partnerType().name(),
             link.status().name(),
             link.reason()

@@ -4,7 +4,7 @@ import java.time.Instant;
 
 public record GrantDelegationCommand(
     String partnerLinkId,
-    String partnerTenantId,
+    String targetTenantId,
     String resourceType,
     String resourceId,
     String permissionCode,

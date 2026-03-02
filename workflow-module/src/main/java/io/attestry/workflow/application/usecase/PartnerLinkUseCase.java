@@ -6,7 +6,7 @@ import io.attestry.workflow.application.partner.result.PartnerLinkResult;
 import java.util.List;
 
 public interface PartnerLinkUseCase {
-    PartnerLinkResult create(AuthPrincipal principal, String brandTenantId, CreatePartnerLinkCommand command);
+    PartnerLinkResult create(AuthPrincipal principal, String sourceTenantId, CreatePartnerLinkCommand command);
 
     PartnerLinkResult approve(AuthPrincipal principal, String partnerLinkId);
 

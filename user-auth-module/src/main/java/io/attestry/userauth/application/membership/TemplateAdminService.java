@@ -1,21 +1,16 @@
 package io.attestry.userauth.application.membership;
 
+import io.attestry.userauth.application.dto.command.ActorContext;
 import io.attestry.userauth.application.dto.result.PermissionTemplateResult;
 import io.attestry.userauth.application.dto.result.TenantRoleTemplateBindingResult;
-import io.attestry.userauth.application.port.MembershipAdminRepositoryPort;
-import io.attestry.userauth.application.port.MembershipRepositoryPort;
 import io.attestry.userauth.application.port.TemplateAdminRepositoryPort;
 import io.attestry.userauth.application.usecase.membership.TemplateAdminUseCase;
 import io.attestry.userauth.common.error.DomainException;
 import io.attestry.userauth.common.error.ErrorCode;
-import io.attestry.userauth.domain.auth.model.AuthPrincipal;
-import io.attestry.userauth.domain.auth.model.RoleCodes;
-import io.attestry.userauth.domain.membership.model.Membership;
+import io.attestry.userauth.domain.policy.TenantRoleTemplateBindingPolicy;
 import java.time.Clock;
 import java.time.Instant;
-import java.util.LinkedHashSet;
 import java.util.List;
-import java.util.Locale;
 import java.util.Set;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
@@ -23,40 +18,37 @@ import org.springframework.transaction.annotation.Transactional;
 @Service
 public class TemplateAdminService implements TemplateAdminUseCase {
 
-    private static final Set<String> ALLOWED_TENANT_ROLE_CODES = Set.of(
-        RoleCodes.TENANT_OWNER,
-        RoleCodes.TENANT_OPERATOR,
-        RoleCodes.TENANT_STAFF
-    );
-
     private final TemplateAdminRepositoryPort templateAdminRepository;
-    private final MembershipRepositoryPort membershipRepository;
-    private final MembershipAdminRepositoryPort membershipAdminRepository;
+    private final PlatformSuperAdminAuthorizationChecker authorizationChecker;
+    private final TemplateAdminCommandValidator validator;
+    private final TenantRoleTemplateBindingPolicy tenantRoleTemplateBindingPolicy;
     private final Clock clock;
 
     public TemplateAdminService(
         TemplateAdminRepositoryPort templateAdminRepository,
-        MembershipRepositoryPort membershipRepository,
-        MembershipAdminRepositoryPort membershipAdminRepository,
+        PlatformSuperAdminAuthorizationChecker authorizationChecker,
+        TemplateAdminCommandValidator validator,
+        TenantRoleTemplateBindingPolicy tenantRoleTemplateBindingPolicy,
         Clock clock
     ) {
         this.templateAdminRepository = templateAdminRepository;
-        this.membershipRepository = membershipRepository;
-        this.membershipAdminRepository = membershipAdminRepository;
+        this.authorizationChecker = authorizationChecker;
+        this.validator = validator;
+        this.tenantRoleTemplateBindingPolicy = tenantRoleTemplateBindingPolicy;
         this.clock = clock;
     }
 
     @Override
     @Transactional
-    public PermissionTemplateResult createTemplate(AuthPrincipal principal, CreateTemplateCommand command) {
-        assertPlatformSuperAdmin(principal);
+    public PermissionTemplateResult createTemplate(ActorContext actor, CreateTemplateCommand command) {
+        authorizationChecker.assertPlatformSuperAdmin(actor.userId());
         Instant now = Instant.now(clock);
-        String code = normalizeTemplateCode(command.code());
+        String code = validator.normalizeTemplateCode(command.code());
         TemplateAdminRepositoryPort.PermissionTemplateView created = templateAdminRepository.createTemplate(
             code,
-            normalizeRequired(command.name(), "name"),
-            normalizeOptional(command.description()),
-            principal.userId(),
+            validator.normalizeRequired(command.name(), "name"),
+            validator.normalizeOptional(command.description()),
+            actor.userId(),
             now
         );
         return toResult(created);
@@ -64,8 +56,8 @@ public class TemplateAdminService implements TemplateAdminUseCase {
 
     @Override
     @Transactional(readOnly = true)
-    public List<PermissionTemplateResult> listTemplates(AuthPrincipal principal) {
-        assertPlatformSuperAdmin(principal);
+    public List<PermissionTemplateResult> listTemplates(ActorContext actor) {
+        authorizationChecker.assertPlatformSuperAdmin(actor.userId());
         return templateAdminRepository.findAllTemplates().stream()
             .map(this::toResult)
             .toList();
@@ -73,25 +65,23 @@ public class TemplateAdminService implements TemplateAdminUseCase {
 
     @Override
     @Transactional(readOnly = true)
-    public PermissionTemplateResult getTemplate(AuthPrincipal principal, String templateCode) {
-        assertPlatformSuperAdmin(principal);
+    public PermissionTemplateResult getTemplate(ActorContext actor, String templateCode) {
+        authorizationChecker.assertPlatformSuperAdmin(actor.userId());
         return toResult(
-            templateAdminRepository.findTemplateByCode(normalizeTemplateCode(templateCode))
+            templateAdminRepository.findTemplateByCode(validator.normalizeTemplateCode(templateCode))
                 .orElseThrow(() -> new DomainException(ErrorCode.TEMPLATE_NOT_FOUND, "Template not found"))
         );
     }
 
     @Override
     @Transactional
-    public PermissionTemplateResult updateTemplate(AuthPrincipal principal, String templateCode, UpdateTemplateCommand command) {
-        assertPlatformSuperAdmin(principal);
-        if (command.name() == null && command.description() == null && command.enabled() == null) {
-            throw new DomainException(ErrorCode.INVALID_REQUEST, "At least one field must be provided");
-        }
+    public PermissionTemplateResult updateTemplate(ActorContext actor, String templateCode, UpdateTemplateCommand command) {
+        authorizationChecker.assertPlatformSuperAdmin(actor.userId());
+        validator.validateUpdateHasAtLeastOneField(command.name(), command.description(), command.enabled());
         TemplateAdminRepositoryPort.PermissionTemplateView updated = templateAdminRepository.updateTemplateMeta(
-            normalizeTemplateCode(templateCode),
-            command.name() == null ? null : normalizeRequired(command.name(), "name"),
-            command.description() == null ? null : normalizeOptional(command.description()),
+            validator.normalizeTemplateCode(templateCode),
+            command.name() == null ? null : validator.normalizeRequired(command.name(), "name"),
+            command.description() == null ? null : validator.normalizeOptional(command.description()),
             command.enabled(),
             Instant.now(clock)
         );
@@ -101,14 +91,14 @@ public class TemplateAdminService implements TemplateAdminUseCase {
     @Override
     @Transactional
     public PermissionTemplateResult replaceTemplatePermissions(
-        AuthPrincipal principal,
+        ActorContext actor,
         String templateCode,
         SetTemplatePermissionsCommand command
     ) {
-        assertPlatformSuperAdmin(principal);
-        Set<String> normalizedPermissionCodes = normalizePermissionCodes(command.permissionCodes());
+        authorizationChecker.assertPlatformSuperAdmin(actor.userId());
+        Set<String> normalizedPermissionCodes = validator.normalizePermissionCodes(command.permissionCodes());
         Set<String> updatedPermissions = templateAdminRepository.replaceTemplatePermissions(
-            normalizeTemplateCode(templateCode),
+            validator.normalizeTemplateCode(templateCode),
             normalizedPermissionCodes
         );
         return withPermissions(templateCode, updatedPermissions);
@@ -117,14 +107,14 @@ public class TemplateAdminService implements TemplateAdminUseCase {
     @Override
     @Transactional
     public PermissionTemplateResult addTemplatePermissions(
-        AuthPrincipal principal,
+        ActorContext actor,
         String templateCode,
         AddTemplatePermissionsCommand command
     ) {
-        assertPlatformSuperAdmin(principal);
-        Set<String> normalizedPermissionCodes = normalizePermissionCodes(command.permissionCodes());
+        authorizationChecker.assertPlatformSuperAdmin(actor.userId());
+        Set<String> normalizedPermissionCodes = validator.normalizePermissionCodes(command.permissionCodes());
         Set<String> updatedPermissions = templateAdminRepository.addTemplatePermissions(
-            normalizeTemplateCode(templateCode),
+            validator.normalizeTemplateCode(templateCode),
             normalizedPermissionCodes
         );
         return withPermissions(templateCode, updatedPermissions);
@@ -132,11 +122,11 @@ public class TemplateAdminService implements TemplateAdminUseCase {
 
     @Override
     @Transactional
-    public PermissionTemplateResult removeTemplatePermission(AuthPrincipal principal, String templateCode, String permissionCode) {
-        assertPlatformSuperAdmin(principal);
+    public PermissionTemplateResult removeTemplatePermission(ActorContext actor, String templateCode, String permissionCode) {
+        authorizationChecker.assertPlatformSuperAdmin(actor.userId());
         Set<String> updatedPermissions = templateAdminRepository.removeTemplatePermission(
-            normalizeTemplateCode(templateCode),
-            normalizePermissionCode(permissionCode)
+            validator.normalizeTemplateCode(templateCode),
+            validator.normalizePermissionCode(permissionCode)
         );
         return withPermissions(templateCode, updatedPermissions);
     }
@@ -144,20 +134,18 @@ public class TemplateAdminService implements TemplateAdminUseCase {
     @Override
     @Transactional
     public TenantRoleTemplateBindingResult bindTenantRoleTemplate(
-        AuthPrincipal principal,
+        ActorContext actor,
         String tenantId,
         BindTenantRoleTemplateCommand command
     ) {
-        assertPlatformSuperAdmin(principal);
-        String normalizedRoleCode = normalizeRoleCode(command.roleCode());
-        if (!ALLOWED_TENANT_ROLE_CODES.contains(normalizedRoleCode)) {
-            throw new DomainException(ErrorCode.INVALID_REQUEST, "roleCode must be one of TENANT_OWNER, TENANT_OPERATOR, TENANT_STAFF");
-        }
+        authorizationChecker.assertPlatformSuperAdmin(actor.userId());
+        String normalizedRoleCode = validator.normalizeRoleCode(command.roleCode());
+        tenantRoleTemplateBindingPolicy.assertAllowedRoleCode(normalizedRoleCode);
         TemplateAdminRepositoryPort.TenantRoleTemplateBindingView binding = templateAdminRepository.bindTemplateToTenantRole(
             tenantId,
             normalizedRoleCode,
-            normalizeTemplateCode(command.templateCode()),
-            principal.userId(),
+            validator.normalizeTemplateCode(command.templateCode()),
+            actor.userId(),
             Instant.now(clock)
         );
         return toResult(binding);
@@ -165,8 +153,8 @@ public class TemplateAdminService implements TemplateAdminUseCase {
 
     @Override
     @Transactional(readOnly = true)
-    public List<TenantRoleTemplateBindingResult> listTenantRoleTemplateBindings(AuthPrincipal principal, String tenantId) {
-        assertPlatformSuperAdmin(principal);
+    public List<TenantRoleTemplateBindingResult> listTenantRoleTemplateBindings(ActorContext actor, String tenantId) {
+        authorizationChecker.assertPlatformSuperAdmin(actor.userId());
         return templateAdminRepository.findTenantRoleTemplateBindings(tenantId).stream()
             .map(this::toResult)
             .toList();
@@ -174,29 +162,18 @@ public class TemplateAdminService implements TemplateAdminUseCase {
 
     @Override
     @Transactional
-    public void unbindTenantRoleTemplate(AuthPrincipal principal, String tenantId, String roleCode, String templateCode) {
-        assertPlatformSuperAdmin(principal);
+    public void unbindTenantRoleTemplate(ActorContext actor, String tenantId, String roleCode, String templateCode) {
+        authorizationChecker.assertPlatformSuperAdmin(actor.userId());
         templateAdminRepository.disableTenantRoleTemplateBinding(
             tenantId,
-            normalizeRoleCode(roleCode),
-            normalizeTemplateCode(templateCode),
+            validator.normalizeRoleCode(roleCode),
+            validator.normalizeTemplateCode(templateCode),
             Instant.now(clock)
         );
     }
 
-    private void assertPlatformSuperAdmin(AuthPrincipal principal) {
-        List<Membership> memberships = membershipRepository.findByUserId(principal.userId());
-        boolean allowed = memberships.stream()
-            .map(Membership::membershipId)
-            .map(membershipAdminRepository::findRoleCodesByMembershipId)
-            .anyMatch(roleCodes -> roleCodes.contains(RoleCodes.PLATFORM_SUPER_ADMIN));
-        if (!allowed) {
-            throw new DomainException(ErrorCode.FORBIDDEN_SCOPE, "PLATFORM_SUPER_ADMIN role is required");
-        }
-    }
-
     private PermissionTemplateResult withPermissions(String templateCode, Set<String> permissionCodes) {
-        TemplateAdminRepositoryPort.PermissionTemplateView template = templateAdminRepository.findTemplateByCode(normalizeTemplateCode(templateCode))
+        TemplateAdminRepositoryPort.PermissionTemplateView template = templateAdminRepository.findTemplateByCode(validator.normalizeTemplateCode(templateCode))
             .orElseThrow(() -> new DomainException(ErrorCode.TEMPLATE_NOT_FOUND, "Template not found"));
         return new PermissionTemplateResult(
             template.templateId(),
@@ -206,38 +183,6 @@ public class TemplateAdminService implements TemplateAdminUseCase {
             template.enabled(),
             permissionCodes.stream().sorted().toList()
         );
-    }
-
-    private String normalizeTemplateCode(String code) {
-        return normalizeRequired(code, "templateCode").toUpperCase(Locale.ROOT);
-    }
-
-    private String normalizeRoleCode(String code) {
-        return normalizeRequired(code, "roleCode").toUpperCase(Locale.ROOT);
-    }
-
-    private Set<String> normalizePermissionCodes(List<String> permissionCodes) {
-        if (permissionCodes == null) {
-            return Set.of();
-        }
-        return permissionCodes.stream()
-            .map(this::normalizePermissionCode)
-            .collect(java.util.stream.Collectors.toCollection(LinkedHashSet::new));
-    }
-
-    private String normalizePermissionCode(String code) {
-        return normalizeRequired(code, "permissionCode").toUpperCase(Locale.ROOT);
-    }
-
-    private String normalizeRequired(String value, String fieldName) {
-        if (value == null || value.isBlank()) {
-            throw new DomainException(ErrorCode.INVALID_REQUEST, fieldName + " is required");
-        }
-        return value.trim();
-    }
-
-    private String normalizeOptional(String value) {
-        return value == null ? null : value.trim();
     }
 
     private PermissionTemplateResult toResult(TemplateAdminRepositoryPort.PermissionTemplateView view) {

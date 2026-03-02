@@ -21,11 +21,11 @@ public class DelegationJpaEntity {
     @Column(name = "partner_link_id", nullable = false, length = 36)
     private String partnerLinkId;
 
-    @Column(name = "brand_tenant_id", nullable = false, length = 36)
-    private String brandTenantId;
+    @Column(name = "source_tenant_id", nullable = false, length = 36)
+    private String sourceTenantId;
 
-    @Column(name = "partner_tenant_id", nullable = false, length = 36)
-    private String partnerTenantId;
+    @Column(name = "target_tenant_id", nullable = false, length = 36)
+    private String targetTenantId;
 
     @Column(name = "resource_type", nullable = false, length = 50)
     private String resourceType;
@@ -68,8 +68,8 @@ public class DelegationJpaEntity {
     public DelegationJpaEntity(
         String delegationId,
         String partnerLinkId,
-        String brandTenantId,
-        String partnerTenantId,
+        String sourceTenantId,
+        String targetTenantId,
         String resourceType,
         String resourceId,
         String permissionCode,
@@ -84,8 +84,8 @@ public class DelegationJpaEntity {
     ) {
         this.delegationId = delegationId;
         this.partnerLinkId = partnerLinkId;
-        this.brandTenantId = brandTenantId;
-        this.partnerTenantId = partnerTenantId;
+        this.sourceTenantId = sourceTenantId;
+        this.targetTenantId = targetTenantId;
         this.resourceType = resourceType;
         this.resourceId = resourceId;
         this.permissionCode = permissionCode;
@@ -107,12 +107,21 @@ public class DelegationJpaEntity {
         return partnerLinkId;
     }
 
+    public String getSourceTenantId() {
+        return sourceTenantId;
+    }
+
+    public String getTargetTenantId() {
+        return targetTenantId;
+    }
+
+    // Backward compatibility for transitional usages.
     public String getBrandTenantId() {
-        return brandTenantId;
+        return sourceTenantId;
     }
 
     public String getPartnerTenantId() {
-        return partnerTenantId;
+        return targetTenantId;
     }
 
     public String getResourceType() {

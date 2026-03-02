@@ -4,18 +4,18 @@
 
 @baseUrl = http://localhost:8080
 @contentType = application/json
-@accessToken = 30058211-6f90-4081-93e9-b18572a69091
+@accessToken = 6a5ee14f-23ac-44c6-acbb-026750619d94
 
-@tenantId = 1a12757d-74fb-4e45-8dd6-77829d23fdbf
-@groupId = 7ccff262-27d0-4ccb-912e-6047223d1551
-@membershipId = 7e3e9bf7-b4e9-4c33-8d5c-f30153b0c035
+@tenantId = d3954904-f17c-4390-b4c0-b97bcc486d66
+@groupId = 2c362235-98da-454c-89ae-17d12e18c3a3
+@membershipId = 2baec8d0-315d-4ab7-a918-1e03a125a6f7
 
-@invitationId = 318e1412-beff-4ac9-8ea8-b003020696a0
+@invitationId = afe70837-3983-4b92-8989-65b636850a46
 @inviteeEmail = staff.user3@attestry.io
 
 
-@invitationAccessToken = 76f6b0ee-e4ab-4a63-8637-2d6a39a1824e
-@templateCode = TEMPLATE_BRAND_WORK
+@invitationAccessToken = d68243a9-ce89-49a5-98c9-4b1f06606905
+@templateCode = TEMPLATE_TENANT_OWNER_CORE
 @permissionCode = BRAND_VOID
 
 ### 1) Invitation create (SCOPE_TENANT_INVITATION_CREATE)
@@ -52,7 +52,7 @@ GET {{baseUrl}}/tenants/{{tenantId}}/admin/memberships/{{membershipId}}/roles
 Authorization: Bearer {{accessToken}}
 
 ### 6) Membership role assign (SCOPE_TENANT_ROLE_ASSIGN)
-POST {{baseUrl}}/tenants/{{tenantId}}/admin/memberships/{{membershipId}}/roles/TENANT_OPERATOR
+POST {{baseUrl}}/tenants/{{tenantId}}/admin/memberships/{{membershipId}}/roles/TENANT_OWNER
 Authorization: Bearer {{accessToken}}
 
 ### 7) Membership role revoke (SCOPE_TENANT_ROLE_ASSIGN)
@@ -64,8 +64,12 @@ Authorization: Bearer {{accessToken}}
 GET {{baseUrl}}/tenants/{{tenantId}}/admin/memberships/{{membershipId}}/roles/available
 Authorization: Bearer {{accessToken}}
 
-### 11) Membership template apply (SCOPE_TENANT_ROLE_ASSIGN)
-POST {{baseUrl}}/tenants/{{tenantId}}/admin/memberships/{{membershipId}}/permission-templates/{{templateCode}}/apply
+### 11) Tenant available template codes (SCOPE_TENANT_ROLE_ASSIGN)
+GET {{baseUrl}}/tenants/{{tenantId}}/admin/permission-templates/available
+Authorization: Bearer {{accessToken}}
+
+### 12) Membership template apply (SCOPE_TENANT_ROLE_ASSIGN) // 누적되는구조
+POST {{baseUrl}}/tenants/{{tenantId}}/admin/memberships/{{membershipId}}/permission-templates/TEMPLATE_BRAND_WORK/apply
 Authorization: Bearer {{accessToken}}
 Content-Type: {{contentType}}
 
@@ -73,85 +77,11 @@ Content-Type: {{contentType}}
   "reason": "operator work assignment"
 }
 
-### 12) Membership template revoke (SCOPE_TENANT_ROLE_ASSIGN)
-POST {{baseUrl}}/tenants/{{tenantId}}/admin/memberships/{{membershipId}}/permission-templates/{{templateCode}}/revoke
+### 13) Membership template revoke (SCOPE_TENANT_ROLE_ASSIGN)
+POST {{baseUrl}}/tenants/{{tenantId}}/admin/memberships/{{membershipId}}/permission-templates/TEMPLATE_TENANT_OWNER_CORE/revoke
 Authorization: Bearer {{accessToken}}
 Content-Type: {{contentType}}
 
 {
   "reason": "operator work removed"
 }
-
-### =========================================================
-### Platform Template Admin API (PLATFORM_SUPER_ADMIN)
-### =========================================================
-
-### 13) Template create
-POST {{baseUrl}}/admin/permission-templates
-Authorization: Bearer {{accessToken}}
-Content-Type: {{contentType}}
-
-{
-  "code": "TEMPLATE_BRAND_WORK",
-  "name": "Brand Work Template",
-  "description": "Brand operator work permissions"
-}
-
-### 14) Template list
-GET {{baseUrl}}/admin/permission-templates
-Authorization: Bearer {{accessToken}}
-
-### 15) Template detail
-GET {{baseUrl}}/admin/permission-templates/{{templateCode}}
-Authorization: Bearer {{accessToken}}
-
-### 16) Template patch
-PATCH {{baseUrl}}/admin/permission-templates/{{templateCode}}
-Authorization: Bearer {{accessToken}}
-Content-Type: {{contentType}}
-
-{
-  "name": "Brand Work Template v2",
-  "description": "Updated description",
-  "enabled": true
-}
-
-### 17) Template permissions replace (bulk)
-PUT {{baseUrl}}/admin/permission-templates/{{templateCode}}/permissions
-Authorization: Bearer {{accessToken}}
-Content-Type: {{contentType}}
-
-{
-  "permissionCodes": ["BRAND_MINT", "BRAND_VOID"]
-}
-
-### 18) Template permissions add
-POST {{baseUrl}}/admin/permission-templates/{{templateCode}}/permissions
-Authorization: Bearer {{accessToken}}
-Content-Type: {{contentType}}
-
-{
-  "permissionCodes": ["BRAND_MINT"]
-}
-
-### 19) Template permission remove
-DELETE {{baseUrl}}/admin/permission-templates/{{templateCode}}/permissions/{{permissionCode}}
-Authorization: Bearer {{accessToken}}
-
-### 20) Tenant role-template binding create
-POST {{baseUrl}}/admin/tenants/{{tenantId}}/role-templates
-Authorization: Bearer {{accessToken}}
-Content-Type: {{contentType}}
-
-{
-  "roleCode": "TENANT_OPERATOR",
-  "templateCode": "{{templateCode}}"
-}
-
-### 21) Tenant role-template binding list
-GET {{baseUrl}}/admin/tenants/{{tenantId}}/role-templates
-Authorization: Bearer {{accessToken}}
-
-### 22) Tenant role-template binding disable
-DELETE {{baseUrl}}/admin/tenants/{{tenantId}}/role-templates/TENANT_OPERATOR/{{templateCode}}
-Authorization: Bearer {{accessToken}}

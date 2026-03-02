@@ -8,8 +8,8 @@ import java.util.UUID;
 public record Delegation(
     String delegationId,
     String partnerLinkId,
-    String brandTenantId,
-    String partnerTenantId,
+    String sourceTenantId,
+    String targetTenantId,
     String resourceType,
     String resourceId,
     String permissionCode,
@@ -23,8 +23,8 @@ public record Delegation(
 ) {
     public static Delegation grant(
         String partnerLinkId,
-        String brandTenantId,
-        String partnerTenantId,
+        String sourceTenantId,
+        String targetTenantId,
         String resourceType,
         String resourceId,
         String permissionCode,
@@ -36,8 +36,8 @@ public record Delegation(
         return new Delegation(
             UUID.randomUUID().toString(),
             partnerLinkId,
-            brandTenantId,
-            partnerTenantId,
+            sourceTenantId,
+            targetTenantId,
             resourceType,
             resourceId,
             permissionCode,
@@ -58,8 +58,8 @@ public record Delegation(
         return new Delegation(
             delegationId,
             partnerLinkId,
-            brandTenantId,
-            partnerTenantId,
+            sourceTenantId,
+            targetTenantId,
             resourceType,
             resourceId,
             permissionCode,
@@ -75,5 +75,14 @@ public record Delegation(
 
     public boolean isExpired(Instant now) {
         return expiresAt != null && expiresAt.isBefore(now);
+    }
+
+    // Backward compatibility for older call-sites.
+    public String brandTenantId() {
+        return sourceTenantId;
+    }
+
+    public String partnerTenantId() {
+        return targetTenantId;
     }
 }

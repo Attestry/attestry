@@ -2,42 +2,42 @@ package io.attestry.userauth.application.usecase.membership;
 
 import io.attestry.userauth.application.dto.result.PermissionTemplateResult;
 import io.attestry.userauth.application.dto.result.TenantRoleTemplateBindingResult;
-import io.attestry.userauth.domain.auth.model.AuthPrincipal;
+import io.attestry.userauth.application.dto.command.ActorContext;
 import java.util.List;
 
 public interface TemplateAdminUseCase {
 
-    PermissionTemplateResult createTemplate(AuthPrincipal principal, CreateTemplateCommand command);
+    PermissionTemplateResult createTemplate(ActorContext actor, CreateTemplateCommand command);
 
-    List<PermissionTemplateResult> listTemplates(AuthPrincipal principal);
+    List<PermissionTemplateResult> listTemplates(ActorContext actor);
 
-    PermissionTemplateResult getTemplate(AuthPrincipal principal, String templateCode);
+    PermissionTemplateResult getTemplate(ActorContext actor, String templateCode);
 
-    PermissionTemplateResult updateTemplate(AuthPrincipal principal, String templateCode, UpdateTemplateCommand command);
+    PermissionTemplateResult updateTemplate(ActorContext actor, String templateCode, UpdateTemplateCommand command);
 
     PermissionTemplateResult replaceTemplatePermissions(
-        AuthPrincipal principal,
+        ActorContext actor,
         String templateCode,
         SetTemplatePermissionsCommand command
     );
 
     PermissionTemplateResult addTemplatePermissions(
-        AuthPrincipal principal,
+        ActorContext actor,
         String templateCode,
         AddTemplatePermissionsCommand command
     );
 
-    PermissionTemplateResult removeTemplatePermission(AuthPrincipal principal, String templateCode, String permissionCode);
+    PermissionTemplateResult removeTemplatePermission(ActorContext actor, String templateCode, String permissionCode);
 
     TenantRoleTemplateBindingResult bindTenantRoleTemplate(
-        AuthPrincipal principal,
+        ActorContext actor,
         String tenantId,
         BindTenantRoleTemplateCommand command
     );
 
-    List<TenantRoleTemplateBindingResult> listTenantRoleTemplateBindings(AuthPrincipal principal, String tenantId);
+    List<TenantRoleTemplateBindingResult> listTenantRoleTemplateBindings(ActorContext actor, String tenantId);
 
-    void unbindTenantRoleTemplate(AuthPrincipal principal, String tenantId, String roleCode, String templateCode);
+    void unbindTenantRoleTemplate(ActorContext actor, String tenantId, String roleCode, String templateCode);
 
     record CreateTemplateCommand(String code, String name, String description) {
     }

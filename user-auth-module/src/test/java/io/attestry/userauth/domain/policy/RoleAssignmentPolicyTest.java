@@ -9,9 +9,11 @@ import org.junit.jupiter.api.Test;
 
 class RoleAssignmentPolicyTest {
 
+    private final RoleAssignmentPolicy policy = new DefaultRoleAssignmentPolicy();
+
     @Test
     void platformAdminCanAssignSensitiveRoles() {
-        assertTrue(RoleAssignmentPolicy.canAssign(
+        assertTrue(policy.canAssign(
             Set.of(RoleCodes.PLATFORM_SUPER_ADMIN),
             RoleCodes.TENANT_OWNER
         ));
@@ -19,15 +21,23 @@ class RoleAssignmentPolicyTest {
 
     @Test
     void tenantOwnerCanAssignTenantOperator() {
-        assertTrue(RoleAssignmentPolicy.canAssign(
+        assertTrue(policy.canAssign(
             Set.of(RoleCodes.TENANT_OWNER),
             RoleCodes.TENANT_OPERATOR
         ));
     }
 
     @Test
+    void tenantOwnerCanAssignTenantOwnerToOthers() {
+        assertTrue(policy.canAssign(
+            Set.of(RoleCodes.TENANT_OWNER),
+            RoleCodes.TENANT_OWNER
+        ));
+    }
+
+    @Test
     void deprecatedRoleCannotBeAssignedEvenByPlatformAdmin() {
-        assertFalse(RoleAssignmentPolicy.canAssign(
+        assertFalse(policy.canAssign(
             Set.of(RoleCodes.PLATFORM_SUPER_ADMIN),
             "BRAND_OPERATOR"
         ));
@@ -35,18 +45,18 @@ class RoleAssignmentPolicyTest {
 
     @Test
     void sensitiveRoleRequiresLiveRecheck() {
-        assertTrue(RoleAssignmentPolicy.requiresLiveRecheck(RoleCodes.TENANT_OWNER));
-        assertFalse(RoleAssignmentPolicy.requiresLiveRecheck(RoleCodes.TENANT_OPERATOR));
+        assertTrue(policy.requiresLiveRecheck(RoleCodes.TENANT_OWNER));
+        assertFalse(policy.requiresLiveRecheck(RoleCodes.TENANT_OPERATOR));
     }
 
     @Test
     void selfEscalationDeniedForSensitiveRoles() {
-        assertTrue(RoleAssignmentPolicy.isSelfEscalationDenied(
+        assertTrue(policy.isSelfEscalationDenied(
             "membership-1",
             "membership-1",
             RoleCodes.TENANT_OWNER
         ));
-        assertFalse(RoleAssignmentPolicy.isSelfEscalationDenied(
+        assertFalse(policy.isSelfEscalationDenied(
             "membership-1",
             "membership-1",
             RoleCodes.TENANT_OPERATOR

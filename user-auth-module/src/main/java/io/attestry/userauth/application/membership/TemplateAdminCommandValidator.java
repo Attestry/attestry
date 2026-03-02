@@ -1,0 +1,63 @@
+package io.attestry.userauth.application.membership;
+
+import io.attestry.userauth.common.error.DomainException;
+import io.attestry.userauth.common.error.ErrorCode;
+import io.attestry.userauth.domain.auth.policy.PermissionCatalog;
+import java.util.LinkedHashSet;
+import java.util.List;
+import java.util.Locale;
+import java.util.Set;
+import java.util.stream.Collectors;
+import org.springframework.stereotype.Component;
+
+@Component
+public class TemplateAdminCommandValidator {
+
+    private final PermissionCatalog permissionCatalog;
+
+    public TemplateAdminCommandValidator(PermissionCatalog permissionCatalog) {
+        this.permissionCatalog = permissionCatalog;
+    }
+
+    public String normalizeTemplateCode(String code) {
+        return normalizeRequired(code, "templateCode").toUpperCase(Locale.ROOT);
+    }
+
+    public String normalizeRoleCode(String code) {
+        return normalizeRequired(code, "roleCode").toUpperCase(Locale.ROOT);
+    }
+
+    public Set<String> normalizePermissionCodes(List<String> permissionCodes) {
+        if (permissionCodes == null) {
+            return Set.of();
+        }
+        return permissionCodes.stream()
+            .map(this::normalizePermissionCode)
+            .collect(Collectors.toCollection(LinkedHashSet::new));
+    }
+
+    public String normalizePermissionCode(String code) {
+        String normalized = normalizeRequired(code, "permissionCode").toUpperCase(Locale.ROOT);
+        if (!permissionCatalog.isKnown(normalized)) {
+            throw new DomainException(ErrorCode.PERMISSION_NOT_FOUND, "Permission not found: " + normalized);
+        }
+        return normalized;
+    }
+
+    public String normalizeRequired(String value, String fieldName) {
+        if (value == null || value.isBlank()) {
+            throw new DomainException(ErrorCode.INVALID_REQUEST, fieldName + " is required");
+        }
+        return value.trim();
+    }
+
+    public String normalizeOptional(String value) {
+        return value == null ? null : value.trim();
+    }
+
+    public void validateUpdateHasAtLeastOneField(Object name, Object description, Object enabled) {
+        if (name == null && description == null && enabled == null) {
+            throw new DomainException(ErrorCode.INVALID_REQUEST, "At least one field must be provided");
+        }
+    }
+}

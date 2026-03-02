@@ -4,12 +4,12 @@
 
 @baseUrl = http://localhost:8080
 @contentType = application/json
-@accessToken = 307594e5-ac1b-4fd1-a039-dce1b9eddd3f
+@accessToken = e3481f9b-05cb-4ef4-a53a-d839ba37d111
 @pdfPath = ./user-auth-module/http/files/biz-proof-1.pdf
 @pdfSizeBytes = 102400
 
 @tenantId = REPLACE_TENANT_ID
-@applicationId = 38d9d8e0-e0b9-42fe-b862-de78b668ca09
+@applicationId = 1b4c7d46-b8f9-4f81-b717-4e2eac9ea2ac
 @evidenceBundleId = f03548df-83f1-4e08-b4f9-c91acf1b7add
 
 
@@ -34,7 +34,7 @@ Content-Type: {{contentType}}
   "brandName": "GUCCI",
   "country": "KR",
   "bizRegNo": "110-11-56382",
-  "evidenceBundleId": "9eb97ab5-a738-4b76-9ab5-07ef768a1249"
+  "evidenceBundleId": "17353514-b18c-4459-900a-fc38c199d018"
 }
 
 

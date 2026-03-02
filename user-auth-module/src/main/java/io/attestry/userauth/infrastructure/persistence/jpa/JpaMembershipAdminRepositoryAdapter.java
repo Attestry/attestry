@@ -7,6 +7,7 @@ import io.attestry.userauth.domain.membership.model.Invitation;
 import io.attestry.userauth.domain.membership.model.Membership;
 import io.attestry.userauth.domain.membership.model.MembershipRole;
 import io.attestry.userauth.domain.membership.model.MembershipStatus;
+import io.attestry.userauth.domain.membership.policy.DefaultMembershipRolePolicy;
 import io.attestry.userauth.domain.organization.model.GroupStatus;
 import io.attestry.userauth.domain.organization.model.TenantStatus;
 import io.attestry.userauth.domain.user.vo.Email;
@@ -19,6 +20,7 @@ import io.attestry.userauth.infrastructure.persistence.jpa.repository.Membership
 import io.attestry.userauth.infrastructure.persistence.jpa.repository.MembershipRoleAssignmentJpaRepository;
 import io.attestry.userauth.infrastructure.persistence.jpa.repository.RoleJpaRepository;
 import io.attestry.userauth.infrastructure.persistence.jpa.repository.UserAccountJpaRepository;
+import java.sql.Timestamp;
 import java.time.Instant;
 import java.util.List;
 import java.util.Locale;
@@ -147,7 +149,7 @@ public class JpaMembershipAdminRepositoryAdapter implements MembershipAdminRepos
         membershipRoleAssignmentRepository.save(new MembershipRoleAssignmentJpaEntity(
             UUID.randomUUID().toString(),
             saved.getMembershipId(),
-            DefaultRoleIdMapper.map(saved.getRole(), saved.getGroupType()),
+            resolveGlobalRoleIdByCode(DefaultMembershipRolePolicy.resolveGlobalRoleCode(saved.getRole(), saved.getGroupType())),
             null,
             Instant.now()
         ));
@@ -179,7 +181,7 @@ public class JpaMembershipAdminRepositoryAdapter implements MembershipAdminRepos
             current.getGroupStatus(),
             current.getTenantStatus()
         ));
-        String expectedRoleId = DefaultRoleIdMapper.map(saved.getRole(), saved.getGroupType());
+        String expectedRoleId = resolveGlobalRoleIdByCode(DefaultMembershipRolePolicy.resolveGlobalRoleCode(saved.getRole(), saved.getGroupType()));
         MembershipRoleAssignmentJpaEntity assignment = membershipRoleAssignmentRepository.findByMembershipId(saved.getMembershipId()).orElse(null);
         if (assignment == null || !expectedRoleId.equals(assignment.getRoleId())) {
             membershipRoleAssignmentRepository.save(new MembershipRoleAssignmentJpaEntity(
@@ -244,7 +246,7 @@ public class JpaMembershipAdminRepositoryAdapter implements MembershipAdminRepos
                 source,
                 reason,
                 actorUserId,
-                now,
+                Timestamp.from(now),
                 permissionCode
             );
             if (updated == 0) {
@@ -270,6 +272,61 @@ public class JpaMembershipAdminRepositoryAdapter implements MembershipAdminRepos
                 permissionCode
             );
         }
+    }
+
+    @Override
+    public Set<String> applyPermissionTemplateToMembership(
+        String membershipId,
+        String templateCode,
+        String reason,
+        String actorUserId,
+        Instant now
+    ) {
+        Set<String> permissionCodes = findEnabledPermissionCodesByTemplateCode(templateCode);
+        for (String permissionCode : permissionCodes) {
+            int updated = jdbcTemplate.update(
+                """
+                    INSERT INTO membership_permission_overrides (
+                        override_id,
+                        membership_id,
+                        permission_id,
+                        effect,
+                        source,
+                        reason,
+                        created_by_user_id,
+                        created_at
+                    )
+                    SELECT ?, ?, p.permission_id, 'ALLOW', 'TEMPLATE', ?, ?, ?
+                    FROM permissions p
+                    WHERE p.code = ?
+                      AND p.enabled = TRUE
+                    ON CONFLICT (membership_id, permission_id)
+                    DO UPDATE SET
+                        effect = EXCLUDED.effect,
+                        source = EXCLUDED.source,
+                        reason = EXCLUDED.reason,
+                        created_by_user_id = EXCLUDED.created_by_user_id,
+                        created_at = EXCLUDED.created_at
+                    """,
+                UUID.randomUUID().toString(),
+                membershipId,
+                reason,
+                actorUserId,
+                Timestamp.from(now),
+                permissionCode
+            );
+            if (updated == 0) {
+                throw new DomainException(ErrorCode.PERMISSION_NOT_FOUND, "Permission not found: " + permissionCode);
+            }
+        }
+        return permissionCodes;
+    }
+
+    @Override
+    public Set<String> revokePermissionTemplateFromMembership(String membershipId, String templateCode) {
+        Set<String> permissionCodes = findEnabledPermissionCodesByTemplateCode(templateCode);
+        deletePermissionOverrides(membershipId, permissionCodes);
+        return permissionCodes;
     }
 
     @Override
@@ -300,6 +357,46 @@ public class JpaMembershipAdminRepositoryAdapter implements MembershipAdminRepos
             .orElseThrow(() -> new DomainException(ErrorCode.ROLE_ASSIGNMENT_NOT_FOUND, "Role assignment not found"));
         membershipRoleAssignmentRepository.deleteByMembershipIdAndRoleId(assignment.getMembershipId(), assignment.getRoleId());
         return findRoleCodesByMembershipId(membershipId);
+    }
+
+    private String resolveGlobalRoleIdByCode(String roleCode) {
+        return roleRepository.findByTenantIdIsNullAndCodeAndEnabledTrue(roleCode)
+            .orElseThrow(() -> new DomainException(ErrorCode.ROLE_NOT_FOUND, "Role not found"))
+            .getRoleId();
+    }
+
+    private Set<String> findEnabledPermissionCodesByTemplateCode(String templateCode) {
+        List<String> codes = jdbcTemplate.queryForList(
+            """
+                SELECT p.code
+                FROM permission_templates pt
+                JOIN template_permissions tp ON tp.template_id = pt.template_id
+                JOIN permissions p ON p.permission_id = tp.permission_id
+                WHERE pt.code = ?
+                  AND pt.enabled = TRUE
+                  AND p.enabled = TRUE
+                ORDER BY p.code
+                """,
+            String.class,
+            templateCode
+        );
+        if (codes.isEmpty()) {
+            boolean exists = Boolean.TRUE.equals(jdbcTemplate.queryForObject(
+                """
+                    SELECT EXISTS(
+                        SELECT 1
+                        FROM permission_templates
+                        WHERE code = ?
+                    )
+                    """,
+                Boolean.class,
+                templateCode
+            ));
+            if (!exists) {
+                throw new DomainException(ErrorCode.TEMPLATE_NOT_FOUND, "Permission template not found");
+            }
+        }
+        return Set.copyOf(codes);
     }
 
     private Invitation toDomain(InvitationJpaEntity entity) {

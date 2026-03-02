@@ -1090,74 +1090,9 @@ CREATE INDEX IF NOT EXISTS idx_template_permissions_template
 CREATE INDEX IF NOT EXISTS idx_template_permissions_permission
     ON template_permissions (permission_id);
 
--- default templates (created_by_user_id is nullable for bootstrap seed)
-INSERT INTO permission_templates (
-    template_id,
-    code,
-    name,
-    description,
-    enabled,
-    created_by_user_id
-)
-SELECT
-    'tpl-brand-work',
-    'TEMPLATE_BRAND_WORK',
-    'Brand Work Template',
-    'Brand operator work permissions',
-    TRUE,
-    NULL
-WHERE NOT EXISTS (
-    SELECT 1
-    FROM permission_templates
-    WHERE code = 'TEMPLATE_BRAND_WORK'
-);
-
-INSERT INTO permission_templates (
-    template_id,
-    code,
-    name,
-    description,
-    enabled,
-    created_by_user_id
-)
-SELECT
-    'tpl-retail-work',
-    'TEMPLATE_RETAIL_WORK',
-    'Retail Work Template',
-    'Retail operator work permissions',
-    TRUE,
-    NULL
-WHERE NOT EXISTS (
-    SELECT 1
-    FROM permission_templates
-    WHERE code = 'TEMPLATE_RETAIL_WORK'
-);
-
-INSERT INTO template_permissions (template_id, permission_id)
-SELECT
-    'tpl-brand-work',
-    p.permission_id
-FROM permissions p
-WHERE p.code IN ('BRAND_MINT', 'BRAND_VOID')
-  AND NOT EXISTS (
-      SELECT 1
-      FROM template_permissions tp
-      WHERE tp.template_id = 'tpl-brand-work'
-        AND tp.permission_id = p.permission_id
-  );
-
-INSERT INTO template_permissions (template_id, permission_id)
-SELECT
-    'tpl-retail-work',
-    p.permission_id
-FROM permissions p
-WHERE p.code IN ('RETAIL_RELEASE', 'RETAIL_TRANSFER_CREATE')
-  AND NOT EXISTS (
-      SELECT 1
-      FROM template_permissions tp
-      WHERE tp.template_id = 'tpl-retail-work'
-        AND tp.permission_id = p.permission_id
-  );
+-- NOTE:
+-- System default templates and template-permission mappings are now synchronized
+-- by application code (RbacCatalogProjectionSync). Baseline keeps schema only.
 
 -- <<< END V22__permission_templates.sql
 
@@ -1195,59 +1130,9 @@ CREATE INDEX IF NOT EXISTS idx_trtb_template_enabled
 -- <<< END V23__tenant_role_template_bindings.sql
 
 -- >>> BEGIN V24__tenant_owner_template_from_role_permissions.sql
--- tenant owner template bootstrap from current role_permissions
--- source of truth for template seed: global TENANT_OWNER role-permission mapping
-
-INSERT INTO permission_templates (
-    template_id,
-    code,
-    name,
-    description,
-    enabled,
-    created_by_user_id
-)
-SELECT
-    'tpl-tenant-owner-core',
-    'TEMPLATE_TENANT_OWNER_CORE',
-    'Tenant Owner Core Template',
-    'Default tenant owner operation permissions',
-    TRUE,
-    NULL
-WHERE NOT EXISTS (
-    SELECT 1
-    FROM permission_templates
-    WHERE code = 'TEMPLATE_TENANT_OWNER_CORE'
-);
-
--- synchronize template permissions from TENANT_OWNER role_permissions
-DELETE FROM template_permissions
-WHERE template_id = (
-    SELECT template_id
-    FROM permission_templates
-    WHERE code = 'TEMPLATE_TENANT_OWNER_CORE'
-);
-
-INSERT INTO template_permissions (template_id, permission_id)
-SELECT
-    pt.template_id,
-    rp.permission_id
-FROM permission_templates pt
-JOIN roles r
-    ON r.tenant_id IS NULL
-   AND r.code = 'TENANT_OWNER'
-   AND r.enabled = TRUE
-JOIN role_permissions rp
-    ON rp.role_id = r.role_id
-JOIN permissions p
-    ON p.permission_id = rp.permission_id
-   AND p.enabled = TRUE
-WHERE pt.code = 'TEMPLATE_TENANT_OWNER_CORE'
-  AND NOT EXISTS (
-      SELECT 1
-      FROM template_permissions tp
-      WHERE tp.template_id = pt.template_id
-        AND tp.permission_id = rp.permission_id
-  );
+-- NOTE:
+-- TEMPLATE_TENANT_OWNER_CORE is now managed by code catalog and projected at runtime.
+-- Legacy SQL seed from role_permissions is removed.
 
 -- <<< END V24__tenant_owner_template_from_role_permissions.sql
 
@@ -1305,3 +1190,243 @@ WHERE role_id = 'role-tenant-owner';
 
 -- <<< END V25__tenant_owner_role_permissions_to_template_only.sql
 
+-- >>> BEGIN V26__rbac_seed_compaction.sql
+-- Final compaction for baseline:
+-- 1) keep only canonical global roles (3 tenant roles + platform + owner default)
+-- 2) keep only canonical permission codes used by code catalog
+-- 3) keep minimal global role_permissions (platform/owner), tenant permissions via templates
+
+-- ensure canonical global roles exist
+INSERT INTO roles (role_id, tenant_id, code, name, description, group_type, enabled)
+SELECT 'role-platform-super-admin', NULL, 'PLATFORM_SUPER_ADMIN', 'Platform Super Admin', 'Platform super admin role', 'ANY', TRUE
+WHERE NOT EXISTS (SELECT 1 FROM roles WHERE tenant_id IS NULL AND code = 'PLATFORM_SUPER_ADMIN');
+
+INSERT INTO roles (role_id, tenant_id, code, name, description, group_type, enabled)
+SELECT 'role-owner-default', NULL, 'OWNER_DEFAULT', 'Owner Default', 'Owner baseline role', 'ANY', TRUE
+WHERE NOT EXISTS (SELECT 1 FROM roles WHERE tenant_id IS NULL AND code = 'OWNER_DEFAULT');
+
+INSERT INTO roles (role_id, tenant_id, code, name, description, group_type, enabled)
+SELECT 'role-tenant-owner', NULL, 'TENANT_OWNER', 'Tenant Owner', 'Tenant owner role', 'ANY', TRUE
+WHERE NOT EXISTS (SELECT 1 FROM roles WHERE tenant_id IS NULL AND code = 'TENANT_OWNER');
+
+INSERT INTO roles (role_id, tenant_id, code, name, description, group_type, enabled)
+SELECT 'role-tenant-operator', NULL, 'TENANT_OPERATOR', 'Tenant Operator', 'Tenant operator role', 'ANY', TRUE
+WHERE NOT EXISTS (SELECT 1 FROM roles WHERE tenant_id IS NULL AND code = 'TENANT_OPERATOR');
+
+INSERT INTO roles (role_id, tenant_id, code, name, description, group_type, enabled)
+SELECT 'role-tenant-staff', NULL, 'TENANT_STAFF', 'Tenant Staff', 'Tenant staff role', 'ANY', TRUE
+WHERE NOT EXISTS (SELECT 1 FROM roles WHERE tenant_id IS NULL AND code = 'TENANT_STAFF');
+
+-- normalize role table to canonical global role set only
+DELETE FROM membership_role_assignments
+WHERE role_id IN (
+    SELECT role_id
+    FROM roles
+    WHERE tenant_id IS NULL
+      AND code NOT IN (
+        'PLATFORM_SUPER_ADMIN',
+        'OWNER_DEFAULT',
+        'TENANT_OWNER',
+        'TENANT_OPERATOR',
+        'TENANT_STAFF'
+      )
+);
+
+DELETE FROM role_permissions
+WHERE role_id IN (
+    SELECT role_id
+    FROM roles
+    WHERE tenant_id IS NULL
+      AND code NOT IN (
+        'PLATFORM_SUPER_ADMIN',
+        'OWNER_DEFAULT',
+        'TENANT_OWNER',
+        'TENANT_OPERATOR',
+        'TENANT_STAFF'
+      )
+);
+
+DELETE FROM roles
+WHERE tenant_id IS NULL
+  AND code NOT IN (
+    'PLATFORM_SUPER_ADMIN',
+    'OWNER_DEFAULT',
+    'TENANT_OWNER',
+    'TENANT_OPERATOR',
+    'TENANT_STAFF'
+  );
+
+-- drop non-catalog permissions (legacy/deprecated)
+DELETE FROM membership_permission_overrides
+WHERE permission_id IN (
+    SELECT permission_id
+    FROM permissions
+    WHERE code NOT IN (
+        'PLATFORM_ADMIN',
+        'TENANT_CREATE_APPROVE',
+        'TENANT_SUSPEND',
+        'GLOBAL_AUDIT_READ',
+        'TENANT_GROUP_SUSPEND',
+        'TENANT_GROUP_RESUME',
+        'TENANT_INVITATION_CREATE',
+        'TENANT_INVITATION_REVOKE',
+        'TENANT_INVITATION_VIEW',
+        'TENANT_MEMBERSHIP_VIEW',
+        'TENANT_ROLE_ASSIGN',
+        'TENANT_MEMBERSHIP_ENFORCE',
+        'PARTNER_LINK_CREATE',
+        'PARTNER_LINK_READ',
+        'PARTNER_LINK_SUSPEND',
+        'PARTNER_LINK_RESUME',
+        'PARTNER_LINK_TERMINATE',
+        'PARTNER_LINK_APPROVE',
+        'DELEGATION_GRANT',
+        'DELEGATION_REVOKE',
+        'DELEGATION_READ',
+        'BRAND_MINT',
+        'BRAND_VOID',
+        'RETAIL_RELEASE',
+        'RETAIL_TRANSFER_CREATE',
+        'PASSPORT_PERMISSION_GRANT',
+        'TENANT_AUDIT_READ',
+        'OWNER_TRANSFER_CREATE',
+        'OWNER_TRANSFER_ACCEPT',
+        'OWNER_RISK_FLAG',
+        'OWNER_RISK_CLEAR'
+    )
+);
+
+DELETE FROM template_permissions
+WHERE permission_id IN (
+    SELECT permission_id
+    FROM permissions
+    WHERE code NOT IN (
+        'PLATFORM_ADMIN',
+        'TENANT_CREATE_APPROVE',
+        'TENANT_SUSPEND',
+        'GLOBAL_AUDIT_READ',
+        'TENANT_GROUP_SUSPEND',
+        'TENANT_GROUP_RESUME',
+        'TENANT_INVITATION_CREATE',
+        'TENANT_INVITATION_REVOKE',
+        'TENANT_INVITATION_VIEW',
+        'TENANT_MEMBERSHIP_VIEW',
+        'TENANT_ROLE_ASSIGN',
+        'TENANT_MEMBERSHIP_ENFORCE',
+        'PARTNER_LINK_CREATE',
+        'PARTNER_LINK_READ',
+        'PARTNER_LINK_SUSPEND',
+        'PARTNER_LINK_RESUME',
+        'PARTNER_LINK_TERMINATE',
+        'PARTNER_LINK_APPROVE',
+        'DELEGATION_GRANT',
+        'DELEGATION_REVOKE',
+        'DELEGATION_READ',
+        'BRAND_MINT',
+        'BRAND_VOID',
+        'RETAIL_RELEASE',
+        'RETAIL_TRANSFER_CREATE',
+        'PASSPORT_PERMISSION_GRANT',
+        'TENANT_AUDIT_READ',
+        'OWNER_TRANSFER_CREATE',
+        'OWNER_TRANSFER_ACCEPT',
+        'OWNER_RISK_FLAG',
+        'OWNER_RISK_CLEAR'
+    )
+);
+
+DELETE FROM role_permissions
+WHERE permission_id IN (
+    SELECT permission_id
+    FROM permissions
+    WHERE code NOT IN (
+        'PLATFORM_ADMIN',
+        'TENANT_CREATE_APPROVE',
+        'TENANT_SUSPEND',
+        'GLOBAL_AUDIT_READ',
+        'TENANT_GROUP_SUSPEND',
+        'TENANT_GROUP_RESUME',
+        'TENANT_INVITATION_CREATE',
+        'TENANT_INVITATION_REVOKE',
+        'TENANT_INVITATION_VIEW',
+        'TENANT_MEMBERSHIP_VIEW',
+        'TENANT_ROLE_ASSIGN',
+        'TENANT_MEMBERSHIP_ENFORCE',
+        'PARTNER_LINK_CREATE',
+        'PARTNER_LINK_READ',
+        'PARTNER_LINK_SUSPEND',
+        'PARTNER_LINK_RESUME',
+        'PARTNER_LINK_TERMINATE',
+        'PARTNER_LINK_APPROVE',
+        'DELEGATION_GRANT',
+        'DELEGATION_REVOKE',
+        'DELEGATION_READ',
+        'BRAND_MINT',
+        'BRAND_VOID',
+        'RETAIL_RELEASE',
+        'RETAIL_TRANSFER_CREATE',
+        'PASSPORT_PERMISSION_GRANT',
+        'TENANT_AUDIT_READ',
+        'OWNER_TRANSFER_CREATE',
+        'OWNER_TRANSFER_ACCEPT',
+        'OWNER_RISK_FLAG',
+        'OWNER_RISK_CLEAR'
+    )
+);
+
+DELETE FROM permissions
+WHERE code NOT IN (
+    'PLATFORM_ADMIN',
+    'TENANT_CREATE_APPROVE',
+    'TENANT_SUSPEND',
+    'GLOBAL_AUDIT_READ',
+    'TENANT_GROUP_SUSPEND',
+    'TENANT_GROUP_RESUME',
+    'TENANT_INVITATION_CREATE',
+    'TENANT_INVITATION_REVOKE',
+    'TENANT_INVITATION_VIEW',
+    'TENANT_MEMBERSHIP_VIEW',
+    'TENANT_ROLE_ASSIGN',
+    'TENANT_MEMBERSHIP_ENFORCE',
+    'PARTNER_LINK_CREATE',
+    'PARTNER_LINK_READ',
+    'PARTNER_LINK_SUSPEND',
+    'PARTNER_LINK_RESUME',
+    'PARTNER_LINK_TERMINATE',
+    'PARTNER_LINK_APPROVE',
+    'DELEGATION_GRANT',
+    'DELEGATION_REVOKE',
+    'DELEGATION_READ',
+    'BRAND_MINT',
+    'BRAND_VOID',
+    'RETAIL_RELEASE',
+    'RETAIL_TRANSFER_CREATE',
+    'PASSPORT_PERMISSION_GRANT',
+    'TENANT_AUDIT_READ',
+    'OWNER_TRANSFER_CREATE',
+    'OWNER_TRANSFER_ACCEPT',
+    'OWNER_RISK_FLAG',
+    'OWNER_RISK_CLEAR'
+);
+
+-- normalize global role-permission mapping
+DELETE FROM role_permissions
+WHERE role_id IN ('role-platform-super-admin', 'role-owner-default', 'role-tenant-owner', 'role-tenant-operator', 'role-tenant-staff');
+
+INSERT INTO role_permissions (role_id, permission_id)
+SELECT 'role-platform-super-admin', p.permission_id
+FROM permissions p
+WHERE p.code IN ('PLATFORM_ADMIN', 'TENANT_CREATE_APPROVE', 'TENANT_SUSPEND', 'GLOBAL_AUDIT_READ')
+  AND p.enabled = TRUE;
+
+INSERT INTO role_permissions (role_id, permission_id)
+SELECT 'role-owner-default', p.permission_id
+FROM permissions p
+WHERE p.code IN ('OWNER_TRANSFER_CREATE', 'OWNER_TRANSFER_ACCEPT', 'OWNER_RISK_FLAG', 'OWNER_RISK_CLEAR')
+  AND p.enabled = TRUE;
+
+-- TENANT_OWNER / TENANT_OPERATOR / TENANT_STAFF:
+-- baseline role_permissions are intentionally empty.
+-- tenant effective permissions are provided by tenant-role-template bindings and overrides.
+
+-- <<< END V26__rbac_seed_compaction.sql

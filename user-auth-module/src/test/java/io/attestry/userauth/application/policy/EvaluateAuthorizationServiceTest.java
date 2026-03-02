@@ -4,15 +4,20 @@ import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertFalse;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
+import io.attestry.userauth.application.dto.command.ActorContext;
 import io.attestry.userauth.application.dto.command.AuthzEvaluateCommand;
 import io.attestry.userauth.application.dto.command.PolicyDecisionMode;
 import io.attestry.userauth.application.dto.result.AuthzEvaluateResult;
 import io.attestry.userauth.application.port.MembershipPermissionQueryPort;
 import io.attestry.userauth.application.port.MembershipRepositoryPort;
-import io.attestry.userauth.domain.auth.model.AuthPrincipal;
 import io.attestry.userauth.domain.auth.model.PermissionCodes;
 import io.attestry.userauth.domain.auth.model.RoleCodes;
 import io.attestry.userauth.domain.membership.model.Membership;
+import io.attestry.userauth.domain.membership.model.MembershipRole;
+import io.attestry.userauth.domain.membership.model.MembershipStatus;
+import io.attestry.userauth.domain.organization.model.GroupStatus;
+import io.attestry.userauth.domain.organization.model.GroupType;
+import io.attestry.userauth.domain.organization.model.TenantStatus;
 import io.attestry.userauth.domain.user.enums.VerificationLevel;
 import java.time.Instant;
 import java.util.List;
@@ -29,10 +34,10 @@ class EvaluateAuthorizationServiceTest {
 
     @Test
     void shouldDenyWhenRequiredScopeMissing() {
-        AuthPrincipal principal = principal("tenant-a", Set.of(PermissionCodes.OWNER_TRANSFER_CREATE));
+        ActorContext actor = actor("tenant-a", Set.of(PermissionCodes.OWNER_TRANSFER_CREATE));
 
         AuthzEvaluateResult result = service.evaluate(
-            principal,
+            actor,
             new AuthzEvaluateCommand("tenant-a", PermissionCodes.BRAND_MINT, "resource-1", PolicyDecisionMode.TOKEN_SNAPSHOT)
         );
 
@@ -42,10 +47,10 @@ class EvaluateAuthorizationServiceTest {
 
     @Test
     void shouldDenyWhenTenantIsolationViolation() {
-        AuthPrincipal principal = principal("tenant-a", Set.of(PermissionCodes.BRAND_MINT));
+        ActorContext actor = actor("tenant-a", Set.of(PermissionCodes.BRAND_MINT));
 
         AuthzEvaluateResult result = service.evaluate(
-            principal,
+            actor,
             new AuthzEvaluateCommand("tenant-b", PermissionCodes.BRAND_MINT, "resource-1", PolicyDecisionMode.TOKEN_SNAPSHOT)
         );
 
@@ -55,10 +60,10 @@ class EvaluateAuthorizationServiceTest {
 
     @Test
     void shouldAllowWhenScopeAndTenantBothMatch() {
-        AuthPrincipal principal = principal("tenant-a", Set.of(PermissionCodes.BRAND_MINT));
+        ActorContext actor = actor("tenant-a", Set.of(PermissionCodes.BRAND_MINT));
 
         AuthzEvaluateResult result = service.evaluate(
-            principal,
+            actor,
             new AuthzEvaluateCommand("tenant-a", PermissionCodes.BRAND_MINT, "resource-1", PolicyDecisionMode.TOKEN_SNAPSHOT)
         );
 
@@ -66,8 +71,60 @@ class EvaluateAuthorizationServiceTest {
         assertEquals(null, result.reason());
     }
 
-    private AuthPrincipal principal(String tenantId, Set<String> scopes) {
-        return new AuthPrincipal(
+    @Test
+    void liveRecheckShouldUseTenantMembershipWhenGroupIsMissing() {
+        EvaluateAuthorizationService liveService = new EvaluateAuthorizationService(
+            new SingleMembershipRepository(
+                new Membership(
+                    "membership-1",
+                    "user-1",
+                    "group-1",
+                    "tenant-a",
+                    GroupType.BRAND,
+                    MembershipRole.ADMIN,
+                    MembershipStatus.ACTIVE,
+                    GroupStatus.ACTIVE,
+                    TenantStatus.ACTIVE
+                )
+            ),
+            new MembershipPermissionQueryPort() {
+                @Override
+                public Set<String> findPermissionCodesByMembershipId(String membershipId) {
+                    return Set.of(PermissionCodes.TENANT_ROLE_ASSIGN);
+                }
+
+                @Override
+                public Set<String> findPermissionCodesByGlobalRoleCode(String roleCode) {
+                    return Set.of();
+                }
+
+                @Override
+                public Set<String> findRoleCodesByMembershipId(String membershipId) {
+                    return Set.of(RoleCodes.TENANT_OWNER);
+                }
+            }
+        );
+
+        ActorContext actor = new ActorContext(
+            "token-1",
+            "user-1",
+            "tenant-a",
+            null,
+            VerificationLevel.NONE,
+            Set.of(),
+            Instant.parse("2026-02-25T00:30:00Z")
+        );
+
+        AuthzEvaluateResult result = liveService.evaluate(
+            actor,
+            new AuthzEvaluateCommand("tenant-a", PermissionCodes.TENANT_ROLE_ASSIGN, "membership:target:role:TENANT_OWNER", PolicyDecisionMode.LIVE_RECHECK)
+        );
+
+        assertTrue(result.allowed());
+    }
+
+    private ActorContext actor(String tenantId, Set<String> scopes) {
+        return new ActorContext(
             "token-1",
             "user-1",
             tenantId,
@@ -86,6 +143,33 @@ class EvaluateAuthorizationServiceTest {
 
         @Override
         public Optional<Membership> findByUserIdAndContext(String userId, String tenantId, String groupId) {
+            return Optional.empty();
+        }
+    }
+
+    private static class SingleMembershipRepository implements MembershipRepositoryPort {
+
+        private final Membership membership;
+
+        private SingleMembershipRepository(Membership membership) {
+            this.membership = membership;
+        }
+
+        @Override
+        public List<Membership> findByUserId(String userId) {
+            if (membership.userId().equals(userId)) {
+                return List.of(membership);
+            }
+            return List.of();
+        }
+
+        @Override
+        public Optional<Membership> findByUserIdAndContext(String userId, String tenantId, String groupId) {
+            if (membership.userId().equals(userId)
+                && membership.tenantId().equals(tenantId)
+                && membership.groupId().equals(groupId)) {
+                return Optional.of(membership);
+            }
             return Optional.empty();
         }
     }

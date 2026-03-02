@@ -28,20 +28,20 @@ public class DelegationHttp {
         this.delegationUseCase = delegationUseCase;
     }
 
-    @PostMapping("/tenants/{brandTenantId}/delegations")
+    @PostMapping("/tenants/{sourceTenantId}/delegations")
     @ResponseStatus(HttpStatus.CREATED)
     @PreAuthorize("hasAuthority('SCOPE_DELEGATION_GRANT')")
     public DelegationResponse grant(
         @AuthenticationPrincipal AuthPrincipal principal,
-        @PathVariable("brandTenantId") String brandTenantId,
+        @PathVariable("sourceTenantId") String sourceTenantId,
         @RequestBody GrantDelegationRequest request
     ) {
         DelegationResult result = delegationUseCase.grant(
             principal,
-            brandTenantId,
+            sourceTenantId,
             new GrantDelegationCommand(
                 request.partnerLinkId(),
-                request.partnerTenantId(),
+                request.resolvedTargetTenantId(),
                 request.resourceType(),
                 request.resourceId(),
                 request.permissionCode(),
@@ -74,8 +74,8 @@ public class DelegationHttp {
     @PostMapping("/internal/delegations/evaluate")
     public DelegationEvaluateResponse evaluate(@RequestBody DelegationEvaluateRequest request) {
         DelegationEvaluateResult result = delegationUseCase.evaluate(
-            request.brandTenantId(),
-            request.partnerTenantId(),
+            request.resolvedSourceTenantId(),
+            request.resolvedTargetTenantId(),
             request.resourceType(),
             request.resourceId(),
             request.permissionCode()
@@ -85,6 +85,7 @@ public class DelegationHttp {
 
     public record GrantDelegationRequest(
         String partnerLinkId,
+        String targetTenantId,
         String partnerTenantId,
         String resourceType,
         String resourceId,
@@ -92,18 +93,39 @@ public class DelegationHttp {
         Instant expiresAt,
         String note
     ) {
+        String resolvedTargetTenantId() {
+            if (targetTenantId != null && !targetTenantId.isBlank()) {
+                return targetTenantId;
+            }
+            return partnerTenantId;
+        }
     }
 
     public record ReasonRequest(String reason) {
     }
 
     public record DelegationEvaluateRequest(
+        String sourceTenantId,
+        String targetTenantId,
         String brandTenantId,
         String partnerTenantId,
         String resourceType,
         String resourceId,
         String permissionCode
     ) {
+        String resolvedSourceTenantId() {
+            if (sourceTenantId != null && !sourceTenantId.isBlank()) {
+                return sourceTenantId;
+            }
+            return brandTenantId;
+        }
+
+        String resolvedTargetTenantId() {
+            if (targetTenantId != null && !targetTenantId.isBlank()) {
+                return targetTenantId;
+            }
+            return partnerTenantId;
+        }
     }
 
     public record DelegationEvaluateResponse(boolean allowed, String reason) {
@@ -112,8 +134,8 @@ public class DelegationHttp {
     public record DelegationResponse(
         String delegationId,
         String partnerLinkId,
-        String brandTenantId,
-        String partnerTenantId,
+        String sourceTenantId,
+        String targetTenantId,
         String resourceType,
         String resourceId,
         String permissionCode,
@@ -125,8 +147,8 @@ public class DelegationHttp {
             return new DelegationResponse(
                 result.delegationId(),
                 result.partnerLinkId(),
-                result.brandTenantId(),
-                result.partnerTenantId(),
+                result.sourceTenantId(),
+                result.targetTenantId(),
                 result.resourceType(),
                 result.resourceId(),
                 result.permissionCode(),

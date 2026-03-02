@@ -1,6 +1,7 @@
 package io.attestry.userauth.interfaces.policy;
 
 import io.attestry.userauth.application.dto.command.AuthzEvaluateCommand;
+import io.attestry.userauth.application.dto.command.ActorContext;
 import io.attestry.userauth.application.dto.command.PolicyDecisionMode;
 import io.attestry.userauth.application.dto.result.AuthzEvaluateResult;
 import io.attestry.userauth.application.usecase.policy.EvaluateAuthorizationUseCase;
@@ -27,7 +28,7 @@ public class AuthorizationHttp {
         @RequestBody AuthzEvaluateRequest request
     ) {
         AuthzEvaluateResult result = evaluateAuthorizationService.evaluate(
-            principal,
+            toActorContext(principal),
             new AuthzEvaluateCommand(request.tenantId(), request.action(), request.resourceRef(), request.decisionMode())
         );
 
@@ -43,5 +44,17 @@ public class AuthorizationHttp {
         java.util.Set<String> effectiveScopes,
         PolicyDecisionMode decisionMode
     ) {
+    }
+
+    private ActorContext toActorContext(AuthPrincipal principal) {
+        return new ActorContext(
+            principal.tokenId(),
+            principal.userId(),
+            principal.tenantId(),
+            principal.groupId(),
+            principal.verificationLevel(),
+            principal.scopes(),
+            principal.expiresAt()
+        );
     }
 }

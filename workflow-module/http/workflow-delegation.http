@@ -5,19 +5,19 @@
 @baseUrl = http://localhost:8080
 @contentType = application/json
 @accessToken = REPLACE_ACCESS_TOKEN
-@brandTenantId = REPLACE_BRAND_TENANT_ID
-@partnerTenantId = REPLACE_PARTNER_TENANT_ID
+@sourceTenantId = REPLACE_SOURCE_TENANT_ID
+@targetTenantId = REPLACE_TARGET_TENANT_ID
 @partnerLinkId = REPLACE_PARTNER_LINK_ID
 @delegationId = REPLACE_DELEGATION_ID
 
 ### 1) Grant Delegation (SCOPE_DELEGATION_GRANT)
-POST {{baseUrl}}/workflows/tenants/{{brandTenantId}}/delegations
+POST {{baseUrl}}/workflows/tenants/{{sourceTenantId}}/delegations
 Authorization: Bearer {{accessToken}}
 Content-Type: {{contentType}}
 
 {
   "partnerLinkId": "{{partnerLinkId}}",
-  "partnerTenantId": "{{partnerTenantId}}",
+  "targetTenantId": "{{targetTenantId}}",
   "resourceType": "PASSPORT",
   "resourceId": "passport_123",
   "permissionCode": "RETAIL_RELEASE",
@@ -26,7 +26,7 @@ Content-Type: {{contentType}}
 }
 
 ### 2) List Delegations (SCOPE_DELEGATION_READ)
-GET {{baseUrl}}/workflows/tenants/{{brandTenantId}}/delegations
+GET {{baseUrl}}/workflows/tenants/{{sourceTenantId}}/delegations
 Authorization: Bearer {{accessToken}}
 
 ### 3) Revoke Delegation (SCOPE_DELEGATION_REVOKE)
@@ -43,8 +43,8 @@ POST {{baseUrl}}/workflows/internal/delegations/evaluate
 Content-Type: {{contentType}}
 
 {
-  "brandTenantId": "{{brandTenantId}}",
-  "partnerTenantId": "{{partnerTenantId}}",
+  "sourceTenantId": "{{sourceTenantId}}",
+  "targetTenantId": "{{targetTenantId}}",
   "resourceType": "PASSPORT",
   "resourceId": "passport_123",
   "permissionCode": "RETAIL_RELEASE"

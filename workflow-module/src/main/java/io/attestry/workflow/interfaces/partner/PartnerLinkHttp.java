@@ -4,9 +4,11 @@ import io.attestry.userauth.domain.auth.model.AuthPrincipal;
 import io.attestry.workflow.application.partner.command.CreatePartnerLinkCommand;
 import io.attestry.workflow.application.partner.result.PartnerLinkResult;
 import io.attestry.workflow.application.usecase.PartnerLinkUseCase;
-import io.attestry.workflow.domain.partner.model.PartnerType;
-import java.time.Instant;
 import java.util.List;
+
+import io.attestry.workflow.interfaces.partner.dto.request.CreatePartnerLinkRequest;
+import io.attestry.workflow.interfaces.partner.dto.request.ReasonRequest;
+import io.attestry.workflow.interfaces.partner.dto.response.PartnerLinkResponse;
 import org.springframework.http.HttpStatus;
 import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.security.core.annotation.AuthenticationPrincipal;
@@ -28,19 +30,19 @@ public class PartnerLinkHttp {
         this.partnerLinkUseCase = partnerLinkUseCase;
     }
 
-    @PostMapping("/tenants/{brandTenantId}/partner-links")
+    @PostMapping("/tenants/{sourceTenantId}/partner-links")
     @ResponseStatus(HttpStatus.CREATED)
     @PreAuthorize("hasAuthority('SCOPE_PARTNER_LINK_CREATE')")
     public PartnerLinkResponse create(
         @AuthenticationPrincipal AuthPrincipal principal,
-        @PathVariable("brandTenantId") String brandTenantId,
+        @PathVariable("sourceTenantId") String sourceTenantId,
         @RequestBody CreatePartnerLinkRequest request
     ) {
         PartnerLinkResult result = partnerLinkUseCase.create(
             principal,
-            brandTenantId,
+            sourceTenantId,
             new CreatePartnerLinkCommand(
-                request.partnerTenantId(),
+                request.resolvedTargetTenantId(),
                 request.partnerType(),
                 request.proposedExpiresAt(),
                 request.message()
@@ -105,34 +107,5 @@ public class PartnerLinkHttp {
         return PartnerLinkResponse.from(partnerLinkUseCase.terminate(principal, partnerLinkId, request.reason()));
     }
 
-    public record CreatePartnerLinkRequest(
-        String partnerTenantId,
-        PartnerType partnerType,
-        Instant proposedExpiresAt,
-        String message
-    ) {
-    }
 
-    public record ReasonRequest(String reason) {
-    }
-
-    public record PartnerLinkResponse(
-        String partnerLinkId,
-        String brandTenantId,
-        String partnerTenantId,
-        String partnerType,
-        String status,
-        String reason
-    ) {
-        static PartnerLinkResponse from(PartnerLinkResult result) {
-            return new PartnerLinkResponse(
-                result.partnerLinkId(),
-                result.brandTenantId(),
-                result.partnerTenantId(),
-                result.partnerType(),
-                result.status(),
-                result.reason()
-            );
-        }
-    }
 }

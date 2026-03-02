@@ -2,6 +2,7 @@ package io.attestry.workflow.application.delegation;
 
 import io.attestry.userauth.common.error.DomainException;
 import io.attestry.userauth.common.error.ErrorCode;
+import io.attestry.userauth.application.dto.command.ActorContext;
 import io.attestry.userauth.application.dto.command.AuthzEvaluateCommand;
 import io.attestry.userauth.application.dto.command.PolicyDecisionMode;
 import io.attestry.userauth.application.dto.result.AuthzEvaluateResult;
@@ -49,24 +50,24 @@ public class DelegationService implements DelegationUseCase {
 
     @Override
     @Transactional
-    public DelegationResult grant(AuthPrincipal principal, String brandTenantId, GrantDelegationCommand command) {
-        assertTenantContext(principal, brandTenantId);
-        assertLivePermission(principal, brandTenantId, PermissionCodes.DELEGATION_GRANT, "delegation:grant");
+    public DelegationResult grant(AuthPrincipal principal, String sourceTenantId, GrantDelegationCommand command) {
+        assertTenantContext(principal, sourceTenantId);
+        assertLivePermission(principal, sourceTenantId, PermissionCodes.DELEGATION_GRANT, "delegation:grant");
         PartnerLink partnerLink = partnerLinkRepository.findById(command.partnerLinkId())
             .orElseThrow(() -> new DomainException(ErrorCode.PARTNER_LINK_NOT_FOUND, "Partner link not found"));
 
         if (partnerLink.status() != PartnerLinkStatus.ACTIVE) {
             throw new DomainException(ErrorCode.PARTNER_LINK_INVALID_STATE, "Partner link must be active");
         }
-        if (!partnerLink.brandTenantId().equals(brandTenantId) || !partnerLink.partnerTenantId().equals(command.partnerTenantId())) {
+        if (!partnerLink.sourceTenantId().equals(sourceTenantId) || !partnerLink.targetTenantId().equals(command.targetTenantId())) {
             throw new DomainException(ErrorCode.TENANT_ISOLATION_VIOLATION, "Partner link tenant mismatch");
         }
-        if (!tenantReadPort.existsActiveTenant(brandTenantId) || !tenantReadPort.existsActiveTenant(command.partnerTenantId())) {
+        if (!tenantReadPort.existsActiveTenant(sourceTenantId) || !tenantReadPort.existsActiveTenant(command.targetTenantId())) {
             throw new DomainException(ErrorCode.TENANT_NOT_FOUND, "Tenant not found or inactive");
         }
         if (delegationRepository.existsActive(
-            brandTenantId,
-            command.partnerTenantId(),
+            sourceTenantId,
+            command.targetTenantId(),
             command.resourceType(),
             command.resourceId(),
             command.permissionCode()
@@ -76,8 +77,8 @@ public class DelegationService implements DelegationUseCase {
 
         Delegation granted = delegationRepository.save(Delegation.grant(
             command.partnerLinkId(),
-            brandTenantId,
-            command.partnerTenantId(),
+            sourceTenantId,
+            command.targetTenantId(),
             command.resourceType(),
             command.resourceId(),
             command.permissionCode(),
@@ -94,8 +95,8 @@ public class DelegationService implements DelegationUseCase {
     public DelegationResult revoke(AuthPrincipal principal, String delegationId, String reason) {
         Delegation delegation = delegationRepository.findById(delegationId)
             .orElseThrow(() -> new DomainException(ErrorCode.DELEGATION_NOT_FOUND, "Delegation not found"));
-        assertTenantContext(principal, delegation.brandTenantId());
-        assertLivePermission(principal, delegation.brandTenantId(), PermissionCodes.DELEGATION_REVOKE, "delegation:" + delegationId);
+        assertTenantContext(principal, delegation.sourceTenantId());
+        assertLivePermission(principal, delegation.sourceTenantId(), PermissionCodes.DELEGATION_REVOKE, "delegation:" + delegationId);
         Delegation revoked = delegationRepository.save(delegation.revoke(principal.userId(), reason, Instant.now(clock)));
         return toResult(revoked);
     }
@@ -110,15 +111,15 @@ public class DelegationService implements DelegationUseCase {
     @Override
     @Transactional(readOnly = true)
     public DelegationEvaluateResult evaluate(
-        String brandTenantId,
-        String partnerTenantId,
+        String sourceTenantId,
+        String targetTenantId,
         String resourceType,
         String resourceId,
         String permissionCode
     ) {
         Delegation delegation = delegationRepository.findActive(
-                brandTenantId,
-                partnerTenantId,
+                sourceTenantId,
+                targetTenantId,
                 resourceType,
                 resourceId,
                 permissionCode
@@ -146,7 +147,7 @@ public class DelegationService implements DelegationUseCase {
 
     private void assertLivePermission(AuthPrincipal principal, String tenantId, String action, String resourceRef) {
         AuthzEvaluateResult decision = evaluateAuthorizationUseCase.evaluate(
-            principal,
+            toActorContext(principal),
             new AuthzEvaluateCommand(tenantId, action, resourceRef, PolicyDecisionMode.LIVE_RECHECK)
         );
         if (!decision.allowed()) {
@@ -157,12 +158,24 @@ public class DelegationService implements DelegationUseCase {
         }
     }
 
+    private ActorContext toActorContext(AuthPrincipal principal) {
+        return new ActorContext(
+            principal.tokenId(),
+            principal.userId(),
+            principal.tenantId(),
+            principal.groupId(),
+            principal.verificationLevel(),
+            principal.scopes(),
+            principal.expiresAt()
+        );
+    }
+
     private DelegationResult toResult(Delegation delegation) {
         return new DelegationResult(
             delegation.delegationId(),
             delegation.partnerLinkId(),
-            delegation.brandTenantId(),
-            delegation.partnerTenantId(),
+            delegation.sourceTenantId(),
+            delegation.targetTenantId(),
             delegation.resourceType(),
             delegation.resourceId(),
             delegation.permissionCode(),

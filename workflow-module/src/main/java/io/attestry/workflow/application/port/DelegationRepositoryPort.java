@@ -12,16 +12,16 @@ public interface DelegationRepositoryPort {
     List<Delegation> findByTenantId(String tenantId);
 
     Optional<Delegation> findActive(
-        String brandTenantId,
-        String partnerTenantId,
+        String sourceTenantId,
+        String targetTenantId,
         String resourceType,
         String resourceId,
         String permissionCode
     );
 
     boolean existsActive(
-        String brandTenantId,
-        String partnerTenantId,
+        String sourceTenantId,
+        String targetTenantId,
         String resourceType,
         String resourceId,
         String permissionCode

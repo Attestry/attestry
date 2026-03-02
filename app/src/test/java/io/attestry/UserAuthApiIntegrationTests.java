@@ -554,7 +554,7 @@ class UserAuthApiIntegrationTests {
     }
 
     @Test
-    void roleAssignmentApiShouldDenySensitiveRoleByTenantMembershipAdmin() throws Exception {
+    void roleAssignmentApiShouldAllowTenantOwnerToAssignTenantOwner() throws Exception {
         String tenantId = UUID.randomUUID().toString();
         String groupId = UUID.randomUUID().toString();
         String adminUserId = UUID.randomUUID().toString();
@@ -616,7 +616,10 @@ class UserAuthApiIntegrationTests {
 
         mockMvc.perform(post("/tenants/{tenantId}/admin/memberships/{id}/roles/{roleCode}", tenantId, targetMembership.getMembershipId(), "TENANT_OWNER")
                 .header("Authorization", bearer(adminToken)))
-            .andExpect(status().isForbidden());
+            .andExpect(status().isOk())
+            .andExpect(jsonPath("$.membershipId").value(targetMembership.getMembershipId()))
+            .andExpect(jsonPath("$.roleCodes").isArray())
+            .andExpect(jsonPath("$.roleCodes").value(org.hamcrest.Matchers.hasItem("TENANT_OWNER")));
     }
 
     private void signUp(String email, String password, String phone) throws Exception {

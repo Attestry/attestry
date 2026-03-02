@@ -5,8 +5,8 @@ import java.time.Instant;
 public record DelegationResult(
     String delegationId,
     String partnerLinkId,
-    String brandTenantId,
-    String partnerTenantId,
+    String sourceTenantId,
+    String targetTenantId,
     String resourceType,
     String resourceId,
     String permissionCode,

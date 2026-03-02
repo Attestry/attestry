@@ -1,6 +1,7 @@
 package io.attestry.userauth.interfaces.onboarding;
 
 import io.attestry.userauth.application.dto.result.ApproveApplicationResult;
+import io.attestry.userauth.application.dto.command.ActorContext;
 import io.attestry.userauth.application.usecase.onboarding.OnboardingUseCase;
 import io.attestry.userauth.domain.auth.model.AuthPrincipal;
 import io.attestry.userauth.interfaces.onboarding.dto.request.RejectApplicationRequest;
@@ -40,7 +41,7 @@ public class OnboardingAdminHttp {
         @AuthenticationPrincipal AuthPrincipal principal,
         @PathVariable(name = "applicationId") String applicationId
     ) {
-        ApproveApplicationResult result = onboardingService.approveBrandApplication(principal, applicationId);
+        ApproveApplicationResult result = onboardingService.approveBrandApplication(toActorContext(principal), applicationId);
         return new ApproveResponse(result.tenantId(), result.groupId(), result.membershipId());
     }
 
@@ -52,7 +53,7 @@ public class OnboardingAdminHttp {
         @PathVariable(name = "applicationId") String applicationId,
         @RequestBody RejectApplicationRequest request
     ) {
-        onboardingService.rejectBrandApplication(principal, applicationId, request.reason());
+        onboardingService.rejectBrandApplication(toActorContext(principal), applicationId, request.reason());
     }
 
     @GetMapping("/admin/retail-applications")
@@ -67,7 +68,7 @@ public class OnboardingAdminHttp {
         @AuthenticationPrincipal AuthPrincipal principal,
         @PathVariable("id") String id
     ) {
-        ApproveApplicationResult result = onboardingService.approveRetailApplication(principal, id);
+        ApproveApplicationResult result = onboardingService.approveRetailApplication(toActorContext(principal), id);
         return new ApproveResponse(result.tenantId(), result.groupId(), result.membershipId());
     }
 
@@ -79,6 +80,18 @@ public class OnboardingAdminHttp {
         @PathVariable("id") String id,
         @RequestBody RejectApplicationRequest request
     ) {
-        onboardingService.rejectRetailApplication(principal, id, request.reason());
+        onboardingService.rejectRetailApplication(toActorContext(principal), id, request.reason());
+    }
+
+    private ActorContext toActorContext(AuthPrincipal principal) {
+        return new ActorContext(
+            principal.tokenId(),
+            principal.userId(),
+            principal.tenantId(),
+            principal.groupId(),
+            principal.verificationLevel(),
+            principal.scopes(),
+            principal.expiresAt()
+        );
     }
 }

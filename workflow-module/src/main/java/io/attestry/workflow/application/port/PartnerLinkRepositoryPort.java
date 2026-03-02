@@ -13,9 +13,9 @@ public interface PartnerLinkRepositoryPort {
 
     List<PartnerLink> findByTenantId(String tenantId);
 
-    boolean existsByBrandAndPartnerAndTypeAndStatus(
-        String brandTenantId,
-        String partnerTenantId,
+    boolean existsBySourceAndTargetAndTypeAndStatus(
+        String sourceTenantId,
+        String targetTenantId,
         PartnerType partnerType,
         PartnerLinkStatus status
     );

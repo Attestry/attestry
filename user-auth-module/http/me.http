@@ -3,7 +3,7 @@
 ### =========================================================
 
 @baseUrl = http://localhost:8080
-@accessToken = 30058211-6f90-4081-93e9-b18572a69091
+@accessToken = 60d76f2d-7c0d-411f-8377-2d76f22417f6
 
 ### 1) 내 멤버십 조회
 GET {{baseUrl}}/me/memberships

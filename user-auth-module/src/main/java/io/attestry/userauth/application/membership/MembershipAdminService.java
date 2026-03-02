@@ -6,19 +6,20 @@ import io.attestry.userauth.application.dto.result.MembershipResult;
 import io.attestry.userauth.application.dto.result.GroupAdminResult;
 import io.attestry.userauth.application.dto.result.MembershipPermissionTemplateResult;
 import io.attestry.userauth.application.dto.result.MembershipRoleAssignmentsResult;
+import io.attestry.userauth.application.dto.result.TenantAvailableTemplateCodesResult;
 import io.attestry.userauth.application.dto.view.MembershipAdminView;
+import io.attestry.userauth.application.dto.command.ActorContext;
 import io.attestry.userauth.application.dto.command.AuthzEvaluateCommand;
 import io.attestry.userauth.application.dto.command.PolicyDecisionMode;
 import io.attestry.userauth.application.dto.result.AuthzEvaluateResult;
 import io.attestry.userauth.application.port.MembershipAdminRepositoryPort;
 import io.attestry.userauth.application.port.MembershipRepositoryPort;
-import io.attestry.userauth.application.port.RoleAssignmentAuditPort;
+import io.attestry.userauth.application.port.TemplateAdminRepositoryPort;
 import io.attestry.userauth.application.port.UserAccountRepositoryPort;
 import io.attestry.userauth.application.usecase.membership.MembershipAdminUseCase;
 import io.attestry.userauth.application.usecase.policy.EvaluateAuthorizationUseCase;
 import io.attestry.userauth.common.error.DomainException;
 import io.attestry.userauth.common.error.ErrorCode;
-import io.attestry.userauth.domain.auth.model.AuthPrincipal;
 import io.attestry.userauth.domain.auth.model.PermissionCodes;
 import io.attestry.userauth.domain.membership.model.Invitation;
 import io.attestry.userauth.domain.membership.model.Membership;
@@ -26,15 +27,18 @@ import io.attestry.userauth.domain.organization.model.GroupType;
 import io.attestry.userauth.domain.organization.model.Group;
 import io.attestry.userauth.domain.organization.model.GroupStatus;
 import io.attestry.userauth.domain.user.model.UserAccount;
+import io.attestry.userauth.domain.policy.RoleAssignmentDomainService;
 import io.attestry.userauth.domain.policy.TenantIsolationPolicy;
-import io.attestry.userauth.domain.policy.RoleAssignmentPolicy;
-import io.attestry.userauth.domain.policy.PermissionTemplatePolicy;
+import io.attestry.userauth.domain.policy.TemplateApplicationDomainService;
+import io.attestry.userauth.domain.membership.event.RoleAssignmentAuditedEvent;
+import io.attestry.userauth.domain.membership.event.TemplatePermissionMutatedEvent;
 import java.time.Clock;
 import java.time.Instant;
 import java.util.Locale;
 import java.util.LinkedHashSet;
 import java.util.List;
 import java.util.Set;
+import org.springframework.context.ApplicationEventPublisher;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
@@ -44,31 +48,40 @@ public class MembershipAdminService implements MembershipAdminUseCase {
     private final MembershipAdminRepositoryPort membershipAdminRepository;
     private final MembershipRepositoryPort membershipRepository;
     private final UserAccountRepositoryPort userAccountRepository;
+    private final TemplateAdminRepositoryPort templateAdminRepository;
     private final EvaluateAuthorizationUseCase evaluateAuthorizationUseCase;
-    private final RoleAssignmentAuditPort roleAssignmentAuditPort;
+    private final RoleAssignmentDomainService roleAssignmentDomainService;
+    private final TemplateApplicationDomainService templateApplicationDomainService;
+    private final ApplicationEventPublisher eventPublisher;
     private final Clock clock;
 
     public MembershipAdminService(
         MembershipAdminRepositoryPort membershipAdminRepository,
         MembershipRepositoryPort membershipRepository,
         UserAccountRepositoryPort userAccountRepository,
+        TemplateAdminRepositoryPort templateAdminRepository,
         EvaluateAuthorizationUseCase evaluateAuthorizationUseCase,
-        RoleAssignmentAuditPort roleAssignmentAuditPort,
+        RoleAssignmentDomainService roleAssignmentDomainService,
+        TemplateApplicationDomainService templateApplicationDomainService,
+        ApplicationEventPublisher eventPublisher,
         Clock clock
     ) {
         this.membershipAdminRepository = membershipAdminRepository;
         this.membershipRepository = membershipRepository;
         this.userAccountRepository = userAccountRepository;
+        this.templateAdminRepository = templateAdminRepository;
         this.evaluateAuthorizationUseCase = evaluateAuthorizationUseCase;
-        this.roleAssignmentAuditPort = roleAssignmentAuditPort;
+        this.roleAssignmentDomainService = roleAssignmentDomainService;
+        this.templateApplicationDomainService = templateApplicationDomainService;
+        this.eventPublisher = eventPublisher;
         this.clock = clock;
     }
 
     // TODO("이메일 발송로직")
     @Override
     @Transactional
-    public MembershipInvitationResult invite(AuthPrincipal principal, String tenantId, InviteCommand command) {
-        assertTenantIsolation(principal, tenantId);
+    public MembershipInvitationResult invite(ActorContext actor, String tenantId, InviteCommand command) {
+        assertTenantIsolation(actor, tenantId);
         MembershipAdminRepositoryPort.GroupView group = membershipAdminRepository.findGroupById(command.groupId())
             .orElseThrow(() -> new DomainException(ErrorCode.MEMBERSHIP_NOT_FOUND, "Group not found"));
 
@@ -81,7 +94,7 @@ public class MembershipAdminService implements MembershipAdminUseCase {
             command.groupId(),
             command.email(),
             command.role(),
-            principal.userId(),
+            actor.userId(),
             Instant.now(clock)
         );
         return toInvitationResult(membershipAdminRepository.saveInvitation(invitation));
@@ -89,28 +102,28 @@ public class MembershipAdminService implements MembershipAdminUseCase {
 
     @Override
     @Transactional
-    public MembershipResult acceptInvitation(AuthPrincipal principal, String invitationId) {
+    public MembershipResult acceptInvitation(ActorContext actor, String invitationId) {
         Invitation invitation = membershipAdminRepository.findInvitationById(invitationId)
             .orElseThrow(() -> new DomainException(ErrorCode.INVITATION_NOT_FOUND, "Invitation not found"));
 
-        UserAccount userAccount = userAccountRepository.findByUserId(principal.userId())
+        UserAccount userAccount = userAccountRepository.findByUserId(actor.userId())
             .orElseThrow(() -> new DomainException(ErrorCode.USER_NOT_FOUND, "User not found"));
 
         Membership membership = membershipAdminRepository.createMembership(
-            principal.userId(),
+            actor.userId(),
             invitation.groupId(),
             invitation.tenantId(),
             invitation.role()
         );
-        membershipAdminRepository.saveInvitation(invitation.accept(principal.userId(), userAccount.user().email(), Instant.now(clock)));
+        membershipAdminRepository.saveInvitation(invitation.accept(actor.userId(), userAccount.user().email(), Instant.now(clock)));
 
         return toMembershipResult(membership);
     }
 
     @Override
     @Transactional(readOnly = true)
-    public List<MembershipAdminView> listMemberships(AuthPrincipal principal, String tenantId) {
-        assertTenantIsolation(principal, tenantId);
+    public List<MembershipAdminView> listMemberships(ActorContext actor, String tenantId) {
+        assertTenantIsolation(actor, tenantId);
         return membershipAdminRepository.findMembershipsByTenantId(tenantId).stream()
             .map(this::toMembershipView)
             .toList();
@@ -118,8 +131,8 @@ public class MembershipAdminService implements MembershipAdminUseCase {
 
     @Override
     @Transactional(readOnly = true)
-    public MembershipRoleAssignmentsResult listMembershipRoleAssignments(AuthPrincipal principal, String tenantId, String membershipId) {
-        assertTenantIsolation(principal, tenantId);
+    public MembershipRoleAssignmentsResult listMembershipRoleAssignments(ActorContext actor, String tenantId, String membershipId) {
+        assertTenantIsolation(actor, tenantId);
         Membership target = membershipAdminRepository.findMembershipById(membershipId)
             .orElseThrow(() -> new DomainException(ErrorCode.MEMBERSHIP_NOT_FOUND, "Membership not found"));
         if (!tenantId.equals(target.tenantId())) {
@@ -131,20 +144,26 @@ public class MembershipAdminService implements MembershipAdminUseCase {
 
     @Override
     @Transactional(readOnly = true)
-    public MembershipAssignableRolesResult listAssignableRoleCodes(AuthPrincipal principal, String tenantId, String membershipId) {
-        assertTenantIsolation(principal, tenantId);
+    public MembershipAssignableRolesResult listAssignableRoleCodes(ActorContext actor, String tenantId, String membershipId) {
+        assertTenantIsolation(actor, tenantId);
         Membership target = membershipAdminRepository.findMembershipById(membershipId)
             .orElseThrow(() -> new DomainException(ErrorCode.MEMBERSHIP_NOT_FOUND, "Membership not found"));
         if (!tenantId.equals(target.tenantId())) {
             throw new DomainException(ErrorCode.TENANT_ISOLATION_VIOLATION, "Cross-tenant membership access denied");
         }
 
-        Membership actorMembership = resolveActiveActorMembership(principal.userId(), tenantId);
+        Membership actorMembership = resolveActiveActorMembership(actor.userId(), tenantId);
         Set<String> actorRoles = membershipAdminRepository.findRoleCodesByMembershipId(actorMembership.membershipId());
         List<String> assignableRoleCodes = membershipAdminRepository.findGlobalEnabledRoleCodes().stream()
-            .filter(roleCode -> RoleAssignmentPolicy.canAssign(actorRoles, roleCode))
-            .filter(roleCode -> !RoleAssignmentPolicy.isSelfEscalationDenied(actorMembership.membershipId(), membershipId, roleCode))
-            .filter(roleCode -> isRoleAssignableByAuthorization(principal, tenantId, membershipId, roleCode))
+            .map(roleCode -> roleAssignmentDomainService.evaluate(
+                actorRoles,
+                actorMembership.membershipId(),
+                membershipId,
+                roleCode
+            ))
+            .filter(evaluation -> !evaluation.denied())
+            .filter(evaluation -> isRoleAssignableByAuthorization(actor, tenantId, membershipId, evaluation))
+            .map(RoleAssignmentDomainService.Evaluation::normalizedRoleCode)
             .sorted()
             .toList();
 
@@ -152,58 +171,72 @@ public class MembershipAdminService implements MembershipAdminUseCase {
     }
 
     @Override
+    @Transactional(readOnly = true)
+    public TenantAvailableTemplateCodesResult listTenantAvailableTemplateCodes(ActorContext actor, String tenantId) {
+        assertTenantIsolation(actor, tenantId);
+        resolveActiveActorMembership(actor.userId(), tenantId);
+        List<String> templateCodes = templateAdminRepository.findTenantRoleTemplateBindings(tenantId).stream()
+            .filter(TemplateAdminRepositoryPort.TenantRoleTemplateBindingView::enabled)
+            .map(TemplateAdminRepositoryPort.TenantRoleTemplateBindingView::templateCode)
+            .distinct()
+            .sorted()
+            .toList();
+        return new TenantAvailableTemplateCodesResult(tenantId, templateCodes);
+    }
+
+    @Override
     @Transactional
     public MembershipRoleAssignmentsResult assignMembershipRole(
-        AuthPrincipal principal,
+        ActorContext actor,
         String tenantId,
         String membershipId,
         AssignMembershipRoleCommand command
     ) {
-        return mutateMembershipRoleAssignment(principal, tenantId, membershipId, command.roleCode(), true);
+        return mutateMembershipRoleAssignment(actor, tenantId, membershipId, command.roleCode(), true);
     }
 
     @Override
     @Transactional
     public MembershipRoleAssignmentsResult revokeMembershipRole(
-        AuthPrincipal principal,
+        ActorContext actor,
         String tenantId,
         String membershipId,
         RevokeMembershipRoleCommand command
     ) {
-        return mutateMembershipRoleAssignment(principal, tenantId, membershipId, command.roleCode(), false);
+        return mutateMembershipRoleAssignment(actor, tenantId, membershipId, command.roleCode(), false);
     }
 
     @Override
     @Transactional
     public MembershipPermissionTemplateResult applyPermissionTemplate(
-        AuthPrincipal principal,
+        ActorContext actor,
         String tenantId,
         String membershipId,
         ApplyPermissionTemplateCommand command
     ) {
-        return mutatePermissionTemplate(principal, tenantId, membershipId, command.templateCode(), command.reason(), true);
+        return mutatePermissionTemplate(actor, tenantId, membershipId, command.templateCode(), command.reason(), true);
     }
 
     @Override
     @Transactional
     public MembershipPermissionTemplateResult revokePermissionTemplate(
-        AuthPrincipal principal,
+        ActorContext actor,
         String tenantId,
         String membershipId,
         RevokePermissionTemplateCommand command
     ) {
-        return mutatePermissionTemplate(principal, tenantId, membershipId, command.templateCode(), command.reason(), false);
+        return mutatePermissionTemplate(actor, tenantId, membershipId, command.templateCode(), command.reason(), false);
     }
 
     @Override
     @Transactional
     public MembershipResult updateMembershipStatus(
-        AuthPrincipal principal,
+        ActorContext actor,
         String tenantId,
         String membershipId,
         UpdateMembershipStatusCommand command
     ) {
-        assertTenantIsolation(principal, tenantId);
+        assertTenantIsolation(actor, tenantId);
         Membership current = membershipAdminRepository.findMembershipById(membershipId)
             .orElseThrow(() -> new DomainException(ErrorCode.MEMBERSHIP_NOT_FOUND, "Membership not found"));
 
@@ -216,7 +249,7 @@ public class MembershipAdminService implements MembershipAdminUseCase {
         }
 
         AuthzEvaluateResult decision = evaluateAuthorizationUseCase.evaluate(
-            principal,
+            actor,
             new AuthzEvaluateCommand(
                 tenantId,
                 PermissionCodes.TENANT_MEMBERSHIP_ENFORCE,
@@ -242,9 +275,9 @@ public class MembershipAdminService implements MembershipAdminUseCase {
 
     @Override
     @Transactional
-    public GroupAdminResult suspendGroup(AuthPrincipal principal, String tenantId, String groupId) {
-        assertTenantIsolation(principal, tenantId);
-        assertLivePermission(principal, tenantId, PermissionCodes.TENANT_GROUP_SUSPEND, "group:" + groupId);
+    public GroupAdminResult suspendGroup(ActorContext actor, String tenantId, String groupId) {
+        assertTenantIsolation(actor, tenantId);
+        assertLivePermission(actor, tenantId, PermissionCodes.TENANT_GROUP_SUSPEND, "group:" + groupId);
         MembershipAdminRepositoryPort.GroupView groupView = membershipAdminRepository.findGroupById(groupId)
             .orElseThrow(() -> new DomainException(ErrorCode.GROUP_NOT_FOUND, "Group not found"));
 
@@ -262,8 +295,8 @@ public class MembershipAdminService implements MembershipAdminUseCase {
 
     @Override
     @Transactional
-    public GroupAdminResult unsuspendGroup(AuthPrincipal principal, String tenantId, String groupId) {
-        assertTenantIsolation(principal, tenantId);
+    public GroupAdminResult unsuspendGroup(ActorContext actor, String tenantId, String groupId) {
+        assertTenantIsolation(actor, tenantId);
         MembershipAdminRepositoryPort.GroupView groupView = membershipAdminRepository.findGroupById(groupId)
             .orElseThrow(() -> new DomainException(ErrorCode.GROUP_NOT_FOUND, "Group not found"));
         if (!tenantId.equals(groupView.tenantId())) {
@@ -277,15 +310,15 @@ public class MembershipAdminService implements MembershipAdminUseCase {
         return toGroupResult(saved);
     }
 
-    private void assertTenantIsolation(AuthPrincipal principal, String tenantId) {
-        if (!TenantIsolationPolicy.isIsolated(principal.tenantId(), tenantId)) {
+    private void assertTenantIsolation(ActorContext actor, String tenantId) {
+        if (!TenantIsolationPolicy.isIsolated(actor.tenantId(), tenantId)) {
             throw new DomainException(ErrorCode.TENANT_ISOLATION_VIOLATION, "Cross-tenant access denied");
         }
     }
 
-    private void assertLivePermission(AuthPrincipal principal, String tenantId, String action, String resourceRef) {
+    private void assertLivePermission(ActorContext actor, String tenantId, String action, String resourceRef) {
         AuthzEvaluateResult decision = evaluateAuthorizationUseCase.evaluate(
-            principal,
+            actor,
             new AuthzEvaluateCommand(
                 tenantId,
                 action,
@@ -302,63 +335,45 @@ public class MembershipAdminService implements MembershipAdminUseCase {
     }
 
     private MembershipRoleAssignmentsResult mutateMembershipRoleAssignment(
-        AuthPrincipal principal,
+        ActorContext actor,
         String tenantId,
         String membershipId,
         String roleCode,
         boolean assign
     ) {
-        String normalizedRoleCode = roleCode == null ? null : roleCode.trim().toUpperCase(Locale.ROOT);
-        if (normalizedRoleCode == null || normalizedRoleCode.isBlank()) {
-            throw new DomainException(ErrorCode.ROLE_NOT_FOUND, "Role code is required");
-        }
-        assertTenantIsolation(principal, tenantId);
+        assertTenantIsolation(actor, tenantId);
         Membership target = membershipAdminRepository.findMembershipById(membershipId)
             .orElseThrow(() -> new DomainException(ErrorCode.MEMBERSHIP_NOT_FOUND, "Membership not found"));
         if (!tenantId.equals(target.tenantId())) {
             throw new DomainException(ErrorCode.TENANT_ISOLATION_VIOLATION, "Cross-tenant membership access denied");
         }
 
-        Membership actorMembership = resolveActiveActorMembership(principal.userId(), tenantId);
+        Membership actorMembership = resolveActiveActorMembership(actor.userId(), tenantId);
         Set<String> actorRoles = membershipAdminRepository.findRoleCodesByMembershipId(actorMembership.membershipId());
+        RoleAssignmentDomainService.Evaluation roleEvaluation = roleAssignmentDomainService.evaluate(
+            actorRoles,
+            actorMembership.membershipId(),
+            membershipId,
+            roleCode
+        );
+        String normalizedRoleCode = roleEvaluation.normalizedRoleCode();
+        if (roleEvaluation.denialReason() == RoleAssignmentDomainService.DenialReason.INVALID_ROLE_CODE) {
+            throw new DomainException(ErrorCode.ROLE_NOT_FOUND, "Role code is required");
+        }
 
         Instant requestedAt = Instant.now(clock);
-        if (RoleAssignmentPolicy.isSelfEscalationDenied(actorMembership.membershipId(), membershipId, normalizedRoleCode)) {
-            roleAssignmentAuditPort.log(
-                principal.userId(),
-                tenantId,
-                membershipId,
-                assign ? null : normalizedRoleCode,
-                assign ? normalizedRoleCode : null,
-                "POLICY_CHECK",
-                false,
-                ErrorCode.FORBIDDEN_SCOPE.name(),
-                requestedAt,
-                Instant.now(clock)
-            );
+        if (roleEvaluation.denialReason() == RoleAssignmentDomainService.DenialReason.SELF_ESCALATION_DENIED) {
+            publishRoleAuditEvent(actor.userId(), tenantId, membershipId, normalizedRoleCode, assign, "POLICY_CHECK", false, ErrorCode.FORBIDDEN_SCOPE.name(), requestedAt);
             throw new DomainException(ErrorCode.FORBIDDEN_SCOPE, "Self escalation is not allowed");
         }
-        if (!RoleAssignmentPolicy.canAssign(actorRoles, normalizedRoleCode)) {
-            roleAssignmentAuditPort.log(
-                principal.userId(),
-                tenantId,
-                membershipId,
-                assign ? null : normalizedRoleCode,
-                assign ? normalizedRoleCode : null,
-                "POLICY_CHECK",
-                false,
-                ErrorCode.FORBIDDEN_SCOPE.name(),
-                requestedAt,
-                Instant.now(clock)
-            );
+        if (roleEvaluation.denialReason() == RoleAssignmentDomainService.DenialReason.NOT_ASSIGNABLE) {
+            publishRoleAuditEvent(actor.userId(), tenantId, membershipId, normalizedRoleCode, assign, "POLICY_CHECK", false, ErrorCode.FORBIDDEN_SCOPE.name(), requestedAt);
             throw new DomainException(ErrorCode.FORBIDDEN_SCOPE, "Role assignment is not allowed");
         }
 
-        PolicyDecisionMode mode = RoleAssignmentPolicy.requiresLiveRecheck(normalizedRoleCode)
-            ? PolicyDecisionMode.LIVE_RECHECK
-            : PolicyDecisionMode.TOKEN_SNAPSHOT;
+        PolicyDecisionMode mode = roleEvaluation.decisionMode();
         AuthzEvaluateResult decision = evaluateAuthorizationUseCase.evaluate(
-            principal,
+            actor,
             new AuthzEvaluateCommand(
                 tenantId,
                 PermissionCodes.TENANT_ROLE_ASSIGN,
@@ -367,18 +382,7 @@ public class MembershipAdminService implements MembershipAdminUseCase {
             )
         );
         if (!decision.allowed()) {
-            roleAssignmentAuditPort.log(
-                principal.userId(),
-                tenantId,
-                membershipId,
-                assign ? null : normalizedRoleCode,
-                assign ? normalizedRoleCode : null,
-                mode.name(),
-                false,
-                decision.reason(),
-                requestedAt,
-                Instant.now(clock)
-            );
+            publishRoleAuditEvent(actor.userId(), tenantId, membershipId, normalizedRoleCode, assign, mode.name(), false, decision.reason(), requestedAt);
             throw new DomainException(
                 decision.reason() != null ? ErrorCode.valueOf(decision.reason()) : ErrorCode.FORBIDDEN_SCOPE,
                 "Role assignment denied by policy check"
@@ -386,20 +390,9 @@ public class MembershipAdminService implements MembershipAdminUseCase {
         }
 
         Set<String> updatedRoleCodes = assign
-            ? membershipAdminRepository.assignRoleToMembership(membershipId, normalizedRoleCode, principal.userId(), Instant.now(clock))
+            ? membershipAdminRepository.assignRoleToMembership(membershipId, normalizedRoleCode, actor.userId(), Instant.now(clock))
             : membershipAdminRepository.revokeRoleFromMembership(membershipId, normalizedRoleCode);
-        roleAssignmentAuditPort.log(
-            principal.userId(),
-            tenantId,
-            membershipId,
-            assign ? null : normalizedRoleCode,
-            assign ? normalizedRoleCode : null,
-            mode.name(),
-            true,
-            null,
-            requestedAt,
-            Instant.now(clock)
-        );
+        publishRoleAuditEvent(actor.userId(), tenantId, membershipId, normalizedRoleCode, assign, mode.name(), true, null, requestedAt);
         return new MembershipRoleAssignmentsResult(
             membershipId,
             new LinkedHashSet<>(updatedRoleCodes).stream().sorted().toList()
@@ -407,54 +400,80 @@ public class MembershipAdminService implements MembershipAdminUseCase {
     }
 
     private MembershipPermissionTemplateResult mutatePermissionTemplate(
-        AuthPrincipal principal,
+        ActorContext actor,
         String tenantId,
         String membershipId,
         String templateCode,
         String reason,
         boolean apply
     ) {
-        assertTenantIsolation(principal, tenantId);
+        assertTenantIsolation(actor, tenantId);
         Membership target = membershipAdminRepository.findMembershipById(membershipId)
             .orElseThrow(() -> new DomainException(ErrorCode.MEMBERSHIP_NOT_FOUND, "Membership not found"));
         if (!tenantId.equals(target.tenantId())) {
             throw new DomainException(ErrorCode.TENANT_ISOLATION_VIOLATION, "Cross-tenant membership access denied");
         }
 
-        Membership actorMembership = resolveActiveActorMembership(principal.userId(), tenantId);
+        Membership actorMembership = resolveActiveActorMembership(actor.userId(), tenantId);
         Set<String> actorRoles = membershipAdminRepository.findRoleCodesByMembershipId(actorMembership.membershipId());
-        if (!actorRoles.contains(io.attestry.userauth.domain.auth.model.RoleCodes.TENANT_OWNER)
-            && !actorRoles.contains(io.attestry.userauth.domain.auth.model.RoleCodes.PLATFORM_SUPER_ADMIN)) {
+        String normalizedTemplateCode = normalizeTemplateCode(templateCode);
+        TemplateAdminRepositoryPort.PermissionTemplateView template = templateAdminRepository.findTemplateByCode(normalizedTemplateCode)
+            .orElseThrow(() -> new DomainException(ErrorCode.TEMPLATE_NOT_FOUND, "Permission template not found"));
+        TemplateApplicationDomainService.Evaluation templateEvaluation = templateApplicationDomainService.evaluate(
+            actorRoles,
+            normalizedTemplateCode,
+            template.enabled()
+        );
+        if (templateEvaluation.denialReason() == TemplateApplicationDomainService.DenialReason.ACTOR_NOT_ALLOWED) {
             throw new DomainException(ErrorCode.FORBIDDEN_SCOPE, "Permission template operation requires TENANT_OWNER");
         }
-
-        String normalizedTemplateCode = PermissionTemplatePolicy.normalize(templateCode);
+        if (templateEvaluation.denialReason() == TemplateApplicationDomainService.DenialReason.TEMPLATE_DISABLED) {
+            throw new DomainException(ErrorCode.FORBIDDEN_SCOPE, "Permission template is disabled");
+        }
         assertLivePermission(
-            principal,
+            actor,
             tenantId,
             PermissionCodes.TENANT_ROLE_ASSIGN,
             "membership:" + membershipId + ":template:" + normalizedTemplateCode
         );
-        Set<String> permissionCodes = new LinkedHashSet<>(PermissionTemplatePolicy.resolvePermissionCodes(normalizedTemplateCode));
         Instant now = Instant.now(clock);
+        Set<String> permissionCodes;
         if (apply) {
-            membershipAdminRepository.upsertPermissionOverrides(
+            permissionCodes = membershipAdminRepository.applyPermissionTemplateToMembership(
                 membershipId,
-                permissionCodes,
-                "TEMPLATE",
+                normalizedTemplateCode,
                 reason == null ? normalizedTemplateCode : reason,
-                principal.userId(),
+                actor.userId(),
                 now
             );
         } else {
-            membershipAdminRepository.deletePermissionOverrides(membershipId, permissionCodes);
+            permissionCodes = membershipAdminRepository.revokePermissionTemplateFromMembership(
+                membershipId,
+                normalizedTemplateCode
+            );
         }
+        publishTemplatePermissionEvent(
+            actor.userId(),
+            tenantId,
+            membershipId,
+            templateEvaluation.normalizedTemplateCode(),
+            apply,
+            now,
+            reason == null ? normalizedTemplateCode : reason
+        );
         return new MembershipPermissionTemplateResult(
             membershipId,
-            normalizedTemplateCode,
+            templateEvaluation.normalizedTemplateCode(),
             apply ? "APPLY" : "REVOKE",
             permissionCodes.stream().sorted().toList()
         );
+    }
+
+    private String normalizeTemplateCode(String templateCode) {
+        if (templateCode == null || templateCode.isBlank()) {
+            throw new DomainException(ErrorCode.INVALID_REQUEST, "templateCode is required");
+        }
+        return templateCode.trim().toUpperCase(Locale.ROOT);
     }
 
     private Membership resolveActiveActorMembership(String actorUserId, String tenantId) {
@@ -466,24 +485,66 @@ public class MembershipAdminService implements MembershipAdminUseCase {
     }
 
     private boolean isRoleAssignableByAuthorization(
-        AuthPrincipal principal,
+        ActorContext actor,
         String tenantId,
         String membershipId,
-        String roleCode
+        RoleAssignmentDomainService.Evaluation roleEvaluation
     ) {
-        PolicyDecisionMode mode = RoleAssignmentPolicy.requiresLiveRecheck(roleCode)
-            ? PolicyDecisionMode.LIVE_RECHECK
-            : PolicyDecisionMode.TOKEN_SNAPSHOT;
         AuthzEvaluateResult decision = evaluateAuthorizationUseCase.evaluate(
-            principal,
+            actor,
             new AuthzEvaluateCommand(
                 tenantId,
                 PermissionCodes.TENANT_ROLE_ASSIGN,
-                "membership:" + membershipId + ":role:" + roleCode,
-                mode
+                "membership:" + membershipId + ":role:" + roleEvaluation.normalizedRoleCode(),
+                roleEvaluation.decisionMode()
             )
         );
         return decision.allowed();
+    }
+
+    private void publishRoleAuditEvent(
+        String actorUserId,
+        String tenantId,
+        String membershipId,
+        String roleCode,
+        boolean assign,
+        String decisionSource,
+        boolean allowed,
+        String reasonCode,
+        Instant requestedAt
+    ) {
+        eventPublisher.publishEvent(new RoleAssignmentAuditedEvent(
+            actorUserId,
+            tenantId,
+            membershipId,
+            assign ? null : roleCode,
+            assign ? roleCode : null,
+            decisionSource,
+            allowed,
+            reasonCode,
+            requestedAt,
+            Instant.now(clock)
+        ));
+    }
+
+    private void publishTemplatePermissionEvent(
+        String actorUserId,
+        String tenantId,
+        String membershipId,
+        String templateCode,
+        boolean applied,
+        Instant occurredAt,
+        String reason
+    ) {
+        eventPublisher.publishEvent(new TemplatePermissionMutatedEvent(
+            actorUserId,
+            tenantId,
+            membershipId,
+            templateCode,
+            applied ? TemplatePermissionMutatedEvent.Action.APPLY : TemplatePermissionMutatedEvent.Action.REVOKE,
+            occurredAt,
+            reason
+        ));
     }
 
     private MembershipInvitationResult toInvitationResult(Invitation invitation) {

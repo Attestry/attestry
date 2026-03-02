@@ -7,8 +7,8 @@ import java.util.UUID;
 
 public record PartnerLink(
     String partnerLinkId,
-    String brandTenantId,
-    String partnerTenantId,
+    String sourceTenantId,
+    String targetTenantId,
     PartnerType partnerType,
     PartnerLinkStatus status,
     String createdByUserId,
@@ -19,16 +19,16 @@ public record PartnerLink(
     String reason
 ) {
     public static PartnerLink create(
-        String brandTenantId,
-        String partnerTenantId,
+        String sourceTenantId,
+        String targetTenantId,
         PartnerType partnerType,
         String actorUserId,
         Instant now
     ) {
         return new PartnerLink(
             UUID.randomUUID().toString(),
-            brandTenantId,
-            partnerTenantId,
+            sourceTenantId,
+            targetTenantId,
             partnerType,
             PartnerLinkStatus.PENDING,
             actorUserId,
@@ -46,8 +46,8 @@ public record PartnerLink(
         }
         return new PartnerLink(
             partnerLinkId,
-            brandTenantId,
-            partnerTenantId,
+            sourceTenantId,
+            targetTenantId,
             partnerType,
             PartnerLinkStatus.ACTIVE,
             createdByUserId,
@@ -65,8 +65,8 @@ public record PartnerLink(
         }
         return new PartnerLink(
             partnerLinkId,
-            brandTenantId,
-            partnerTenantId,
+            sourceTenantId,
+            targetTenantId,
             partnerType,
             PartnerLinkStatus.REJECTED,
             createdByUserId,
@@ -84,8 +84,8 @@ public record PartnerLink(
         }
         return new PartnerLink(
             partnerLinkId,
-            brandTenantId,
-            partnerTenantId,
+            sourceTenantId,
+            targetTenantId,
             partnerType,
             PartnerLinkStatus.SUSPENDED,
             createdByUserId,
@@ -103,8 +103,8 @@ public record PartnerLink(
         }
         return new PartnerLink(
             partnerLinkId,
-            brandTenantId,
-            partnerTenantId,
+            sourceTenantId,
+            targetTenantId,
             partnerType,
             PartnerLinkStatus.ACTIVE,
             createdByUserId,
@@ -122,8 +122,8 @@ public record PartnerLink(
         }
         return new PartnerLink(
             partnerLinkId,
-            brandTenantId,
-            partnerTenantId,
+            sourceTenantId,
+            targetTenantId,
             partnerType,
             PartnerLinkStatus.TERMINATED,
             createdByUserId,
@@ -133,5 +133,14 @@ public record PartnerLink(
             now,
             terminateReason
         );
+    }
+
+    // Backward compatibility for older call-sites.
+    public String brandTenantId() {
+        return sourceTenantId;
+    }
+
+    public String partnerTenantId() {
+        return targetTenantId;
     }
 }

@@ -3,8 +3,10 @@ package io.attestry.userauth.infrastructure.persistence.jpa;
 import io.attestry.userauth.application.port.TemplateAdminRepositoryPort;
 import io.attestry.userauth.common.error.DomainException;
 import io.attestry.userauth.common.error.ErrorCode;
+import io.attestry.userauth.domain.auth.policy.PermissionCatalog;
 import java.sql.ResultSet;
 import java.sql.SQLException;
+import java.sql.Timestamp;
 import java.time.Instant;
 import java.util.LinkedHashSet;
 import java.util.List;
@@ -18,9 +20,11 @@ import org.springframework.stereotype.Repository;
 public class JpaTemplateAdminRepositoryAdapter implements TemplateAdminRepositoryPort {
 
     private final JdbcTemplate jdbcTemplate;
+    private final PermissionCatalog permissionCatalog;
 
-    public JpaTemplateAdminRepositoryAdapter(JdbcTemplate jdbcTemplate) {
+    public JpaTemplateAdminRepositoryAdapter(JdbcTemplate jdbcTemplate, PermissionCatalog permissionCatalog) {
         this.jdbcTemplate = jdbcTemplate;
+        this.permissionCatalog = permissionCatalog;
     }
 
     @Override
@@ -78,7 +82,7 @@ public class JpaTemplateAdminRepositoryAdapter implements TemplateAdminRepositor
             name,
             description,
             actorUserId,
-            now
+            Timestamp.from(now)
         );
         return findTemplateByCode(code)
             .orElseThrow(() -> new DomainException(ErrorCode.TEMPLATE_NOT_FOUND, "Template not found after create"));
@@ -106,7 +110,7 @@ public class JpaTemplateAdminRepositoryAdapter implements TemplateAdminRepositor
             name,
             description,
             enabled,
-            now,
+            Timestamp.from(now),
             code
         );
         return findTemplateByCode(code)
@@ -208,7 +212,7 @@ public class JpaTemplateAdminRepositoryAdapter implements TemplateAdminRepositor
                 roleCode,
                 templateId,
                 actorUserId,
-                now
+                Timestamp.from(now)
             );
         } else {
             jdbcTemplate.update(
@@ -220,7 +224,7 @@ public class JpaTemplateAdminRepositoryAdapter implements TemplateAdminRepositor
                       AND role_code = ?
                       AND template_id = ?
                     """,
-                now,
+                Timestamp.from(now),
                 tenantId,
                 roleCode,
                 templateId
@@ -259,7 +263,7 @@ public class JpaTemplateAdminRepositoryAdapter implements TemplateAdminRepositor
                   AND role_code = ?
                   AND template_id = ?
                 """,
-            now,
+            Timestamp.from(now),
             tenantId,
             roleCode,
             templateId
@@ -310,17 +314,7 @@ public class JpaTemplateAdminRepositoryAdapter implements TemplateAdminRepositor
 
     private void ensurePermissionCodesExist(Set<String> permissionCodes) {
         for (String permissionCode : permissionCodes) {
-            Integer count = jdbcTemplate.queryForObject(
-                """
-                    SELECT COUNT(1)
-                    FROM permissions
-                    WHERE code = ?
-                      AND enabled = TRUE
-                    """,
-                Integer.class,
-                permissionCode
-            );
-            if (count == null || count == 0) {
+            if (!permissionCatalog.isKnown(permissionCode)) {
                 throw new DomainException(ErrorCode.PERMISSION_NOT_FOUND, "Permission not found: " + permissionCode);
             }
         }

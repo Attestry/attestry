@@ -2,6 +2,7 @@ package io.attestry.userauth.interfaces.template;
 
 import io.attestry.userauth.application.dto.result.PermissionTemplateResult;
 import io.attestry.userauth.application.dto.result.TenantRoleTemplateBindingResult;
+import io.attestry.userauth.application.dto.command.ActorContext;
 import io.attestry.userauth.application.usecase.membership.TemplateAdminUseCase;
 import io.attestry.userauth.domain.auth.model.AuthPrincipal;
 import io.attestry.userauth.interfaces.template.dto.request.BindTenantRoleTemplateRequest;
@@ -11,7 +12,6 @@ import io.attestry.userauth.interfaces.template.dto.request.UpdatePermissionTemp
 import io.attestry.userauth.interfaces.template.dto.response.PermissionTemplateResponse;
 import io.attestry.userauth.interfaces.template.dto.response.TenantRoleTemplateBindingResponse;
 import java.util.List;
-import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.security.core.annotation.AuthenticationPrincipal;
 import org.springframework.web.bind.annotation.DeleteMapping;
 import org.springframework.web.bind.annotation.GetMapping;
@@ -25,7 +25,6 @@ import org.springframework.web.bind.annotation.RestController;
 
 @RestController
 @RequestMapping("/admin")
-@PreAuthorize("hasAuthority('SCOPE_PLATFORM_ADMIN')")
 public class TemplateAdminHttp {
 
     private final TemplateAdminUseCase templateAdminService;
@@ -40,7 +39,7 @@ public class TemplateAdminHttp {
         @RequestBody CreatePermissionTemplateRequest request
     ) {
         PermissionTemplateResult result = templateAdminService.createTemplate(
-            principal,
+            toActorContext(principal),
             new TemplateAdminUseCase.CreateTemplateCommand(request.code(), request.name(), request.description())
         );
         return PermissionTemplateResponse.from(result);
@@ -48,7 +47,7 @@ public class TemplateAdminHttp {
 
     @GetMapping("/permission-templates")
     public List<PermissionTemplateResponse> listTemplates(@AuthenticationPrincipal AuthPrincipal principal) {
-        return templateAdminService.listTemplates(principal).stream()
+        return templateAdminService.listTemplates(toActorContext(principal)).stream()
             .map(PermissionTemplateResponse::from)
             .toList();
     }
@@ -58,7 +57,7 @@ public class TemplateAdminHttp {
         @AuthenticationPrincipal AuthPrincipal principal,
         @PathVariable("templateCode") String templateCode
     ) {
-        return PermissionTemplateResponse.from(templateAdminService.getTemplate(principal, templateCode));
+        return PermissionTemplateResponse.from(templateAdminService.getTemplate(toActorContext(principal), templateCode));
     }
 
     @PatchMapping("/permission-templates/{templateCode}")
@@ -68,7 +67,7 @@ public class TemplateAdminHttp {
         @RequestBody UpdatePermissionTemplateRequest request
     ) {
         PermissionTemplateResult result = templateAdminService.updateTemplate(
-            principal,
+            toActorContext(principal),
             templateCode,
             new TemplateAdminUseCase.UpdateTemplateCommand(request.name(), request.description(), request.enabled())
         );
@@ -82,7 +81,7 @@ public class TemplateAdminHttp {
         @RequestBody SetTemplatePermissionsRequest request
     ) {
         PermissionTemplateResult result = templateAdminService.replaceTemplatePermissions(
-            principal,
+            toActorContext(principal),
             templateCode,
             new TemplateAdminUseCase.SetTemplatePermissionsCommand(request.permissionCodes())
         );
@@ -96,7 +95,7 @@ public class TemplateAdminHttp {
         @RequestBody SetTemplatePermissionsRequest request
     ) {
         PermissionTemplateResult result = templateAdminService.addTemplatePermissions(
-            principal,
+            toActorContext(principal),
             templateCode,
             new TemplateAdminUseCase.AddTemplatePermissionsCommand(request.permissionCodes())
         );
@@ -110,7 +109,7 @@ public class TemplateAdminHttp {
         @PathVariable("permissionCode") String permissionCode
     ) {
         return PermissionTemplateResponse.from(
-            templateAdminService.removeTemplatePermission(principal, templateCode, permissionCode)
+            templateAdminService.removeTemplatePermission(toActorContext(principal), templateCode, permissionCode)
         );
     }
 
@@ -121,7 +120,7 @@ public class TemplateAdminHttp {
         @RequestBody BindTenantRoleTemplateRequest request
     ) {
         TenantRoleTemplateBindingResult result = templateAdminService.bindTenantRoleTemplate(
-            principal,
+            toActorContext(principal),
             tenantId,
             new TemplateAdminUseCase.BindTenantRoleTemplateCommand(request.roleCode(), request.templateCode())
         );
@@ -133,7 +132,7 @@ public class TemplateAdminHttp {
         @AuthenticationPrincipal AuthPrincipal principal,
         @PathVariable("tenantId") String tenantId
     ) {
-        return templateAdminService.listTenantRoleTemplateBindings(principal, tenantId).stream()
+        return templateAdminService.listTenantRoleTemplateBindings(toActorContext(principal), tenantId).stream()
             .map(TenantRoleTemplateBindingResponse::from)
             .toList();
     }
@@ -145,6 +144,18 @@ public class TemplateAdminHttp {
         @PathVariable("roleCode") String roleCode,
         @PathVariable("templateCode") String templateCode
     ) {
-        templateAdminService.unbindTenantRoleTemplate(principal, tenantId, roleCode, templateCode);
+        templateAdminService.unbindTenantRoleTemplate(toActorContext(principal), tenantId, roleCode, templateCode);
+    }
+
+    private ActorContext toActorContext(AuthPrincipal principal) {
+        return new ActorContext(
+            principal.tokenId(),
+            principal.userId(),
+            principal.tenantId(),
+            principal.groupId(),
+            principal.verificationLevel(),
+            principal.scopes(),
+            principal.expiresAt()
+        );
     }
 }

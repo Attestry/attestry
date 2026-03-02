@@ -7,15 +7,15 @@ import io.attestry.workflow.application.delegation.result.DelegationResult;
 import java.util.List;
 
 public interface DelegationUseCase {
-    DelegationResult grant(AuthPrincipal principal, String brandTenantId, GrantDelegationCommand command);
+    DelegationResult grant(AuthPrincipal principal, String sourceTenantId, GrantDelegationCommand command);
 
     DelegationResult revoke(AuthPrincipal principal, String delegationId, String reason);
 
     List<DelegationResult> listByTenant(AuthPrincipal principal, String tenantId);
 
     DelegationEvaluateResult evaluate(
-        String brandTenantId,
-        String partnerTenantId,
+        String sourceTenantId,
+        String targetTenantId,
         String resourceType,
         String resourceId,
         String permissionCode

@@ -7,11 +7,11 @@ import java.util.List;
 import org.springframework.data.jpa.repository.JpaRepository;
 
 public interface PartnerLinkJpaRepository extends JpaRepository<PartnerLinkJpaEntity, String> {
-    List<PartnerLinkJpaEntity> findByBrandTenantIdOrPartnerTenantId(String brandTenantId, String partnerTenantId);
+    List<PartnerLinkJpaEntity> findBySourceTenantIdOrTargetTenantId(String sourceTenantId, String targetTenantId);
 
-    boolean existsByBrandTenantIdAndPartnerTenantIdAndPartnerTypeAndStatus(
-        String brandTenantId,
-        String partnerTenantId,
+    boolean existsBySourceTenantIdAndTargetTenantIdAndPartnerTypeAndStatus(
+        String sourceTenantId,
+        String targetTenantId,
         PartnerType partnerType,
         PartnerLinkStatus status
     );

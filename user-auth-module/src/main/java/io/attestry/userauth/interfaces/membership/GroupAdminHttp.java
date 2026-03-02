@@ -1,6 +1,7 @@
 package io.attestry.userauth.interfaces.membership;
 
 import io.attestry.userauth.application.dto.result.GroupAdminResult;
+import io.attestry.userauth.application.dto.command.ActorContext;
 import io.attestry.userauth.application.usecase.membership.MembershipAdminUseCase;
 import io.attestry.userauth.domain.auth.model.AuthPrincipal;
 import io.attestry.userauth.interfaces.membership.dto.response.GroupResponse;
@@ -29,7 +30,7 @@ public class GroupAdminHttp {
         @PathVariable("tenantId") String tenantId,
         @PathVariable("id") String groupId
     ) {
-        GroupAdminResult result = membershipAdminService.suspendGroup(principal, tenantId, groupId);
+        GroupAdminResult result = membershipAdminService.suspendGroup(toActorContext(principal), tenantId, groupId);
         return GroupResponse.from(result);
     }
 
@@ -40,8 +41,20 @@ public class GroupAdminHttp {
         @PathVariable("tenantId") String tenantId,
         @PathVariable("id") String groupId
     ) {
-        GroupAdminResult result = membershipAdminService.unsuspendGroup(principal, tenantId, groupId);
+        GroupAdminResult result = membershipAdminService.unsuspendGroup(toActorContext(principal), tenantId, groupId);
         return GroupResponse.from(result);
+    }
+
+    private ActorContext toActorContext(AuthPrincipal principal) {
+        return new ActorContext(
+            principal.tokenId(),
+            principal.userId(),
+            principal.tenantId(),
+            principal.groupId(),
+            principal.verificationLevel(),
+            principal.scopes(),
+            principal.expiresAt()
+        );
     }
 
 }

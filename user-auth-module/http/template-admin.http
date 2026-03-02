@@ -7,8 +7,8 @@
 @contentType = application/json
 @platformAccessToken = d0f7749c-7dd3-425c-898a-e583ffc89bc5
 
-@tenantId = 1a12757d-74fb-4e45-8dd6-77829d23fdbf
-@templateCode = TEMPLATE_BRAND_WORK
+@tenantId = d3954904-f17c-4390-b4c0-b97bcc486d66
+@templateCode = TEMPLATE_RETAIL_WORK
 @permissionCode = BRAND_VOID
 
 ### 1) Template create
@@ -69,7 +69,7 @@ Authorization: Bearer {{platformAccessToken}}
 Content-Type: {{contentType}}
 
 {
-  "roleCode": "TENANT_OPERATOR",
+  "roleCode": "TENANT_OWNER",
   "templateCode": "{{templateCode}}"
 }
 
@@ -80,3 +80,5 @@ Authorization: Bearer {{platformAccessToken}}
 ### 10) Tenant role-template binding disable
 DELETE {{baseUrl}}/admin/tenants/{{tenantId}}/role-templates/TENANT_OPERATOR/{{templateCode}}
 Authorization: Bearer {{platformAccessToken}}
+
+

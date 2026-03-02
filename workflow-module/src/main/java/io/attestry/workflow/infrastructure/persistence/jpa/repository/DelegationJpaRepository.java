@@ -7,20 +7,20 @@ import java.util.Optional;
 import org.springframework.data.jpa.repository.JpaRepository;
 
 public interface DelegationJpaRepository extends JpaRepository<DelegationJpaEntity, String> {
-    List<DelegationJpaEntity> findByBrandTenantIdOrPartnerTenantId(String brandTenantId, String partnerTenantId);
+    List<DelegationJpaEntity> findBySourceTenantIdOrTargetTenantId(String sourceTenantId, String targetTenantId);
 
-    Optional<DelegationJpaEntity> findByBrandTenantIdAndPartnerTenantIdAndResourceTypeAndResourceIdAndPermissionCodeAndStatus(
-        String brandTenantId,
-        String partnerTenantId,
+    Optional<DelegationJpaEntity> findBySourceTenantIdAndTargetTenantIdAndResourceTypeAndResourceIdAndPermissionCodeAndStatus(
+        String sourceTenantId,
+        String targetTenantId,
         String resourceType,
         String resourceId,
         String permissionCode,
         DelegationStatus status
     );
 
-    boolean existsByBrandTenantIdAndPartnerTenantIdAndResourceTypeAndResourceIdAndPermissionCodeAndStatus(
-        String brandTenantId,
-        String partnerTenantId,
+    boolean existsBySourceTenantIdAndTargetTenantIdAndResourceTypeAndResourceIdAndPermissionCodeAndStatus(
+        String sourceTenantId,
+        String targetTenantId,
         String resourceType,
         String resourceId,
         String permissionCode,

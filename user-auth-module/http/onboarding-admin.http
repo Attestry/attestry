@@ -1,7 +1,7 @@
 ### =========================================================
 ### User Auth API - Onboarding Scenario Collection
 ### =========================================================
-@adminAccessToken = 7f694d1c-e690-4914-9729-31c02e95c484
+@adminAccessToken = ff1a5544-9d70-4b1a-9bb8-167c59ea2cca
 
 
 @baseUrl = http://localhost:8080
@@ -10,7 +10,7 @@
 @pdfSizeBytes = 102400
 
 @tenantId = REPLACE_TENANT_ID
-@applicationId = 38d9d8e0-e0b9-42fe-b862-de78b668ca09
+@applicationId = 7724b85e-173a-49aa-a732-ba4052c2205b
 
 
 ### 6) List brand applications (platform/admin scope 필요)

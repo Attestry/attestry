@@ -4,7 +4,7 @@ import io.attestry.workflow.domain.partner.model.PartnerType;
 import java.time.Instant;
 
 public record CreatePartnerLinkCommand(
-    String partnerTenantId,
+    String targetTenantId,
     PartnerType partnerType,
     Instant proposedExpiresAt,
     String message

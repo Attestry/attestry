@@ -1,66 +1,69 @@
 package io.attestry.userauth.application.usecase.membership;
 
+import io.attestry.userauth.application.dto.command.ActorContext;
 import io.attestry.userauth.application.dto.result.MembershipInvitationResult;
 import io.attestry.userauth.application.dto.result.GroupAdminResult;
 import io.attestry.userauth.application.dto.result.MembershipPermissionTemplateResult;
 import io.attestry.userauth.application.dto.result.MembershipAssignableRolesResult;
 import io.attestry.userauth.application.dto.result.MembershipResult;
 import io.attestry.userauth.application.dto.result.MembershipRoleAssignmentsResult;
+import io.attestry.userauth.application.dto.result.TenantAvailableTemplateCodesResult;
 import io.attestry.userauth.application.dto.view.MembershipAdminView;
-import io.attestry.userauth.domain.auth.model.AuthPrincipal;
 import io.attestry.userauth.domain.membership.model.MembershipRole;
 import io.attestry.userauth.domain.membership.model.MembershipStatus;
 import java.util.List;
 
 public interface MembershipAdminUseCase {
-    MembershipInvitationResult invite(AuthPrincipal principal, String tenantId, InviteCommand command);
+    MembershipInvitationResult invite(ActorContext actor, String tenantId, InviteCommand command);
 
-    MembershipResult acceptInvitation(AuthPrincipal principal, String invitationId);
+    MembershipResult acceptInvitation(ActorContext actor, String invitationId);
 
-    List<MembershipAdminView> listMemberships(AuthPrincipal principal, String tenantId);
+    List<MembershipAdminView> listMemberships(ActorContext actor, String tenantId);
 
     MembershipResult updateMembershipStatus(
-        AuthPrincipal principal,
+        ActorContext actor,
         String tenantId,
         String membershipId,
         UpdateMembershipStatusCommand command
     );
 
-    MembershipRoleAssignmentsResult listMembershipRoleAssignments(AuthPrincipal principal, String tenantId, String membershipId);
+    MembershipRoleAssignmentsResult listMembershipRoleAssignments(ActorContext actor, String tenantId, String membershipId);
 
-    MembershipAssignableRolesResult listAssignableRoleCodes(AuthPrincipal principal, String tenantId, String membershipId);
+    MembershipAssignableRolesResult listAssignableRoleCodes(ActorContext actor, String tenantId, String membershipId);
+
+    TenantAvailableTemplateCodesResult listTenantAvailableTemplateCodes(ActorContext actor, String tenantId);
 
     MembershipRoleAssignmentsResult assignMembershipRole(
-        AuthPrincipal principal,
+        ActorContext actor,
         String tenantId,
         String membershipId,
         AssignMembershipRoleCommand command
     );
 
     MembershipRoleAssignmentsResult revokeMembershipRole(
-        AuthPrincipal principal,
+        ActorContext actor,
         String tenantId,
         String membershipId,
         RevokeMembershipRoleCommand command
     );
 
     MembershipPermissionTemplateResult applyPermissionTemplate(
-        AuthPrincipal principal,
+        ActorContext actor,
         String tenantId,
         String membershipId,
         ApplyPermissionTemplateCommand command
     );
 
     MembershipPermissionTemplateResult revokePermissionTemplate(
-        AuthPrincipal principal,
+        ActorContext actor,
         String tenantId,
         String membershipId,
         RevokePermissionTemplateCommand command
     );
 
-    GroupAdminResult suspendGroup(AuthPrincipal principal, String tenantId, String groupId);
+    GroupAdminResult suspendGroup(ActorContext actor, String tenantId, String groupId);
 
-    GroupAdminResult unsuspendGroup(AuthPrincipal principal, String tenantId, String groupId);
+    GroupAdminResult unsuspendGroup(ActorContext actor, String tenantId, String groupId);
 
     record InviteCommand(String email, String groupId, MembershipRole role) {
     }
