@@ -20,16 +20,38 @@ Content-Type: {{contentType}}
   "targetTenantId": "{{targetTenantId}}",
   "resourceType": "PASSPORT",
   "resourceId": "passport_123",
-  "permissionCode": "RETAIL_RELEASE",
+  "permissionCode": "BRAND_RELEASE",
   "expiresAt": null,
-  "note": "retail release delegation"
+  "note": "brand release delegation"
 }
 
-### 2) List Delegations (SCOPE_DELEGATION_READ)
+### 2) Batch Grant Passport Delegations (SCOPE_DELEGATION_GRANT)
+POST {{baseUrl}}/workflows/tenants/{{sourceTenantId}}/partners/{{partnerLinkId}}/passport-delegations
+Authorization: Bearer {{accessToken}}
+Content-Type: {{contentType}}
+
+{
+  "passportIds": ["passport_001", "passport_002", "passport_003"],
+  "expiresAt": "2026-06-01T00:00:00Z",
+  "note": "Q2 소매 위임"
+}
+
+### 3) Batch Grant - without expiry
+POST {{baseUrl}}/workflows/tenants/{{sourceTenantId}}/partners/{{partnerLinkId}}/passport-delegations
+Authorization: Bearer {{accessToken}}
+Content-Type: {{contentType}}
+
+{
+  "passportIds": ["passport_001"],
+  "expiresAt": null,
+  "note": null
+}
+
+### 4) List Delegations (SCOPE_DELEGATION_READ)
 GET {{baseUrl}}/workflows/tenants/{{sourceTenantId}}/delegations
 Authorization: Bearer {{accessToken}}
 
-### 3) Revoke Delegation (SCOPE_DELEGATION_REVOKE)
+### 5) Revoke Delegation (SCOPE_DELEGATION_REVOKE)
 POST {{baseUrl}}/workflows/delegations/{{delegationId}}/revoke
 Authorization: Bearer {{accessToken}}
 Content-Type: {{contentType}}
@@ -38,7 +60,7 @@ Content-Type: {{contentType}}
   "reason": "manual revoke"
 }
 
-### 4) Internal evaluate (used by product/ledger in future phase)
+### 6) Internal evaluate (used by product/ledger in future phase)
 POST {{baseUrl}}/workflows/internal/delegations/evaluate
 Content-Type: {{contentType}}
 
@@ -47,5 +69,5 @@ Content-Type: {{contentType}}
   "targetTenantId": "{{targetTenantId}}",
   "resourceType": "PASSPORT",
   "resourceId": "passport_123",
-  "permissionCode": "RETAIL_RELEASE"
+  "permissionCode": "BRAND_RELEASE"
 }

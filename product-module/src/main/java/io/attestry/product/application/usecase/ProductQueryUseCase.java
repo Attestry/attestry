@@ -1,0 +1,35 @@
+package io.attestry.product.application.usecase;
+
+import java.time.Instant;
+import java.util.List;
+
+public interface ProductQueryUseCase {
+
+    AssetStateResponse getAssetState(String passportId);
+
+    OwnerResponse getCurrentOwner(String passportId);
+
+    boolean hasActivePermission(String passportId, String sellerGroupId);
+
+    List<MyPassportResponse> listMyPassports(String ownerId);
+
+    record AssetStateResponse(String assetId, String passportId, String assetState, String riskFlag) {
+    }
+
+    record OwnerResponse(String passportId, String ownerId, Instant updatedAt) {
+    }
+
+    record MyPassportResponse(
+        String passportId,
+        String qrPublicCode,
+        String tenantId,
+        String groupId,
+        String assetId,
+        String serialNumber,
+        String modelName,
+        String assetState,
+        String riskFlag,
+        Instant ownedSince
+    ) {
+    }
+}

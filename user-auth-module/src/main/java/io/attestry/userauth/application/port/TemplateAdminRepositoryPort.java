@@ -9,29 +9,47 @@ public interface TemplateAdminRepositoryPort {
 
     Optional<PermissionTemplateView> findTemplateByCode(String templateCode);
 
+    Optional<PermissionTemplateView> findTemplateByCodeAndTenantId(String templateCode, String tenantId);
+
+    Optional<PermissionTemplateView> findTemplateVisibleToTenant(String templateCode, String tenantId);
+
     List<PermissionTemplateView> findAllTemplates();
+
+    List<PermissionTemplateView> findTemplatesVisibleToTenant(String tenantId);
 
     PermissionTemplateView createTemplate(
         String code,
         String name,
         String description,
+        String tenantId,
         String actorUserId,
         Instant now
     );
 
     PermissionTemplateView updateTemplateMeta(
         String code,
+        String tenantId,
         String name,
         String description,
         Boolean enabled,
         Instant now
     );
 
-    Set<String> replaceTemplatePermissions(String templateCode, Set<String> permissionCodes);
+    PermissionView createPermission(
+        String code,
+        String name,
+        String description,
+        String resourceType,
+        String action
+    );
 
-    Set<String> addTemplatePermissions(String templateCode, Set<String> permissionCodes);
+    List<PermissionView> findAllPermissions();
 
-    Set<String> removeTemplatePermission(String templateCode, String permissionCode);
+    Set<String> replaceTemplatePermissions(String templateCode, String tenantId, Set<String> permissionCodes);
+
+    Set<String> addTemplatePermissions(String templateCode, String tenantId, Set<String> permissionCodes);
+
+    Set<String> removeTemplatePermission(String templateCode, String tenantId, String permissionCode);
 
     TenantRoleTemplateBindingView bindTemplateToTenantRole(
         String tenantId,
@@ -47,6 +65,7 @@ public interface TemplateAdminRepositoryPort {
 
     record PermissionTemplateView(
         String templateId,
+        String tenantId,
         String code,
         String name,
         String description,
@@ -60,6 +79,17 @@ public interface TemplateAdminRepositoryPort {
         String tenantId,
         String roleCode,
         String templateCode,
+        boolean enabled
+    ) {
+    }
+
+    record PermissionView(
+        String permissionId,
+        String code,
+        String name,
+        String description,
+        String resourceType,
+        String action,
         boolean enabled
     ) {
     }

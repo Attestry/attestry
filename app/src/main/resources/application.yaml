@@ -37,6 +37,15 @@ spring:
     listener:
       missing-topics-fatal: false
 
+management:
+  endpoints:
+    web:
+      exposure:
+        include: health, info, metrics, prometheus
+  metrics:
+    tags:
+      application: attestry
+
 app:
   auth:
     token:
@@ -65,3 +74,12 @@ app:
       batch-size: ${KAFKA_OUTBOX_BATCH_SIZE:100}
       max-retries: ${KAFKA_OUTBOX_MAX_RETRIES:5}
       publish-interval-ms: ${KAFKA_OUTBOX_PUBLISH_INTERVAL_MS:2000}
+  ledger:
+    integrity-check:
+      enabled: ${LEDGER_INTEGRITY_CHECK_ENABLED:false}
+      cron: ${LEDGER_INTEGRITY_CHECK_CRON:0 0 3 * * *}
+  product:
+    passport-permission-projection:
+      enabled: ${PRODUCT_PERMISSION_PROJECTION_ENABLED:true}
+      initial-delay-ms: ${PRODUCT_PERMISSION_PROJECTION_INITIAL_DELAY_MS:3000}
+      sync-interval-ms: ${PRODUCT_PERMISSION_PROJECTION_SYNC_INTERVAL_MS:5000}

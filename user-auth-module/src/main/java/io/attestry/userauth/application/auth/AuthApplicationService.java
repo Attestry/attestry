@@ -13,13 +13,13 @@ import io.attestry.userauth.application.port.UserAccountRepositoryPort;
 import io.attestry.userauth.application.usecase.auth.AuthUseCase;
 import io.attestry.userauth.common.error.DomainException;
 import io.attestry.userauth.common.error.ErrorCode;
-import io.attestry.userauth.domain.auth.model.AuthPrincipal;
-import io.attestry.userauth.domain.auth.model.LoginContext;
-import io.attestry.userauth.domain.auth.model.RoleCodes;
+import io.attestry.userauth.security.AuthPrincipal;
+import io.attestry.userauth.domain.authorization.model.LoginContext;
+import io.attestry.userauth.domain.authorization.model.RoleCodes;
 import io.attestry.userauth.domain.membership.model.Membership;
 import io.attestry.userauth.domain.membership.policy.MembershipSelectionPolicy;
-import io.attestry.userauth.domain.user.vo.Email;
-import io.attestry.userauth.domain.user.model.UserAccount;
+import io.attestry.userauth.domain.identity.model.Email;
+import io.attestry.userauth.domain.identity.model.UserAccount;
 import java.time.Duration;
 import java.time.Clock;
 import java.time.Instant;
@@ -63,7 +63,7 @@ public class AuthApplicationService implements AuthUseCase {
     public SignUpResult signUp(SignUpCommand command) {
         String passwordHash = passwordHasher.hash(command.password());
         UserAccount userAccount = UserAccount.register(command.email(), command.phone(), passwordHash);
-        return new SignUpResult(userAccountRepository.saveNew(userAccount).user().userId());
+        return new SignUpResult(userAccountRepository.saveNew(userAccount).userId());
     }
 
     @Override
@@ -147,7 +147,8 @@ public class AuthApplicationService implements AuthUseCase {
     public VerifyPhoneResult verifyPhone(String userId) {
         UserAccount account = userAccountRepository.findByUserId(userId)
             .orElseThrow(() -> new DomainException(ErrorCode.USER_NOT_FOUND, "User not found"));
-        UserAccount verified = userAccountRepository.save(account.verifyPhone());
-        return new VerifyPhoneResult(verified.userId(), verified.verificationLevel());
+        account.verifyPhone();
+        userAccountRepository.save(account);
+        return new VerifyPhoneResult(account.userId(), account.verificationLevel());
     }
 }

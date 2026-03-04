@@ -1,11 +1,8 @@
-### =========================================================
-### User Auth API - Me
-### =========================================================
+### User Auth - Me APIs
 
 @baseUrl = http://localhost:8080
-@accessToken = 60d76f2d-7c0d-411f-8377-2d76f22417f6
+@accessToken = 15b00968-4eab-457b-921f-9c0a28261158
 
-### 1) 내 멤버십 조회
+### 1) My memberships
 GET {{baseUrl}}/me/memberships
 Authorization: Bearer {{accessToken}}
-

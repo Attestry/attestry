@@ -1,0 +1,29 @@
+### =========================================================
+### Passport Permission Scenario
+### =========================================================
+
+@baseUrl = http://localhost:8080
+@contentType = application/json
+@brandAccessToken = REPLACE_BRAND_TENANT_TOKEN
+@passportId = REPLACE_PASSPORT_ID
+@sellerGroupId = REPLACE_SELLER_GROUP_ID
+@permissionId = REPLACE_PERMISSION_ID
+
+### 1) Grant Permission
+POST {{baseUrl}}/products/passports/{{passportId}}/permissions
+Authorization: Bearer {{brandAccessToken}}
+Content-Type: {{contentType}}
+
+{
+  "sellerGroupId": "{{sellerGroupId}}",
+  "scope": "RETAIL_SALE",
+  "expiresAt": null
+}
+
+### 2) Suspend Permission
+PATCH {{baseUrl}}/products/passports/{{passportId}}/permissions/{{permissionId}}/suspend
+Authorization: Bearer {{brandAccessToken}}
+
+### 3) Revoke Permission
+DELETE {{baseUrl}}/products/passports/{{passportId}}/permissions/{{permissionId}}
+Authorization: Bearer {{brandAccessToken}}

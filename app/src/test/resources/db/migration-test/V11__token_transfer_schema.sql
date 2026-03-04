@@ -1,0 +1,1 @@
+/Users/min96/IdeaProjects/attestry/app/src/main/resources/db/migration/V11__token_transfer_schema.sql

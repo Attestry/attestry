@@ -8,4 +8,6 @@ public interface LedgerQueryRepositoryPort {
     List<LedgerEntry> findByPassportIdOrderBySeqAsc(String passportId);
 
     Optional<LedgerEntry> findByPassportIdAndLedgerId(String passportId, String ledgerId);
+
+    List<String> findAllPassportIds();
 }

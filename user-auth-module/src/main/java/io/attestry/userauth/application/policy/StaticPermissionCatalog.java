@@ -1,7 +1,7 @@
 package io.attestry.userauth.application.policy;
 
-import io.attestry.userauth.domain.auth.model.PermissionCodes;
-import io.attestry.userauth.domain.auth.policy.PermissionCatalog;
+import io.attestry.userauth.domain.authorization.model.PermissionCodes;
+import io.attestry.userauth.domain.authorization.policy.PermissionCatalog;
 import java.util.LinkedHashMap;
 import java.util.Locale;
 import java.util.Map;
@@ -50,9 +50,9 @@ public class StaticPermissionCatalog implements PermissionCatalog {
         add(map, PermissionCodes.DELEGATION_GRANT, "Delegation Grant", "Grant delegation", "delegation", "grant");
         add(map, PermissionCodes.DELEGATION_REVOKE, "Delegation Revoke", "Revoke delegation", "delegation", "revoke");
         add(map, PermissionCodes.DELEGATION_READ, "Delegation Read", "Read delegation", "delegation", "read");
+        add(map, PermissionCodes.BRAND_RELEASE, "Brand Release", "Release brand assets", "brand", "release");
         add(map, PermissionCodes.BRAND_MINT, "Brand Mint", "Mint brand assets", "brand", "mint");
         add(map, PermissionCodes.BRAND_VOID, "Brand Void", "Void brand assets", "brand", "void");
-        add(map, PermissionCodes.RETAIL_RELEASE, "Retail Release", "Release retail assets", "retail", "release");
         add(map, PermissionCodes.RETAIL_TRANSFER_CREATE, "Retail Transfer Create", "Create retail transfer", "retail", "transfer_create");
         add(map, PermissionCodes.PASSPORT_PERMISSION_GRANT, "Passport Permission Grant", "Grant passport permissions", "passport", "grant");
         add(map, PermissionCodes.TENANT_AUDIT_READ, "Tenant Audit Read", "Read tenant audit logs", "audit", "read");

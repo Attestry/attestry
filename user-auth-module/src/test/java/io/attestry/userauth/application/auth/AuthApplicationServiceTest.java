@@ -15,20 +15,19 @@ import io.attestry.userauth.application.port.PasswordHasherPort;
 import io.attestry.userauth.application.port.UserAccountRepositoryPort;
 import io.attestry.userauth.common.error.DomainException;
 import io.attestry.userauth.common.error.ErrorCode;
-import io.attestry.userauth.domain.auth.model.AuthPrincipal;
-import io.attestry.userauth.domain.auth.model.PermissionCodes;
-import io.attestry.userauth.domain.auth.model.RoleCodes;
+import io.attestry.userauth.security.AuthPrincipal;
+import io.attestry.userauth.domain.authorization.model.PermissionCodes;
+import io.attestry.userauth.domain.authorization.model.RoleCodes;
 import io.attestry.userauth.domain.organization.model.GroupStatus;
 import io.attestry.userauth.domain.organization.model.GroupType;
 import io.attestry.userauth.domain.membership.model.Membership;
 import io.attestry.userauth.domain.membership.model.MembershipRole;
 import io.attestry.userauth.domain.membership.model.MembershipStatus;
 import io.attestry.userauth.domain.organization.model.TenantStatus;
-import io.attestry.userauth.domain.user.vo.Email;
-import io.attestry.userauth.domain.user.model.User;
-import io.attestry.userauth.domain.user.model.UserAccount;
-import io.attestry.userauth.domain.user.enums.UserStatus;
-import io.attestry.userauth.domain.user.enums.VerificationLevel;
+import io.attestry.userauth.domain.identity.model.Email;
+import io.attestry.userauth.domain.identity.model.UserAccount;
+import io.attestry.userauth.domain.identity.model.UserStatus;
+import io.attestry.userauth.domain.identity.model.VerificationLevel;
 import java.time.Clock;
 import java.time.Duration;
 import java.time.Instant;
@@ -84,22 +83,16 @@ class AuthApplicationServiceTest {
 
         UserAccount saved = userRepo.findByUserId(userId).orElseThrow();
         assertEquals("hashed:plain", saved.passwordHash());
-        assertEquals("a@b.com", saved.user().email().value());
+        assertEquals("a@b.com", saved.email().value());
     }
 
     @Test
     void loginShouldIssueTokenWithMembershipContextAndScopes() {
-        User user = userRepo.seed("u1", "admin@brand.com", "hashed:pw", UserStatus.ACTIVE, VerificationLevel.NONE);
-        membershipRepo.seed(new Membership(
-            "m1",
-            user.userId(),
-            "g1",
-            "t1",
-            GroupType.BRAND,
-            MembershipRole.ADMIN,
-            MembershipStatus.ACTIVE,
-            GroupStatus.ACTIVE,
-            TenantStatus.ACTIVE
+        userRepo.seed("u1", "admin@brand.com", "hashed:pw", UserStatus.ACTIVE, VerificationLevel.NONE);
+        membershipRepo.seed(Membership.reconstitute(
+            "m1", "u1", "g1", "t1",
+            GroupType.BRAND, MembershipRole.ADMIN, MembershipStatus.ACTIVE,
+            GroupStatus.ACTIVE, TenantStatus.ACTIVE, Set.of()
         ));
         permissionQueryPort.seed("m1", Set.of(
             PermissionCodes.TENANT_MEMBERSHIP_VIEW,
@@ -163,17 +156,11 @@ class AuthApplicationServiceTest {
 
     @Test
     void loginShouldFailWhenRequestedMembershipNotFound() {
-        User user = userRepo.seed("u1", "a@b.com", "hashed:pw", UserStatus.ACTIVE, VerificationLevel.NONE);
-        membershipRepo.seed(new Membership(
-            "m1",
-            user.userId(),
-            "g1",
-            "t1",
-            GroupType.RETAIL,
-            MembershipRole.OPERATOR,
-            MembershipStatus.ACTIVE,
-            GroupStatus.ACTIVE,
-            TenantStatus.ACTIVE
+        userRepo.seed("u1", "a@b.com", "hashed:pw", UserStatus.ACTIVE, VerificationLevel.NONE);
+        membershipRepo.seed(Membership.reconstitute(
+            "m1", "u1", "g1", "t1",
+            GroupType.RETAIL, MembershipRole.OPERATOR, MembershipStatus.ACTIVE,
+            GroupStatus.ACTIVE, TenantStatus.ACTIVE, Set.of()
         ));
 
         DomainException ex = assertThrows(DomainException.class,
@@ -184,17 +171,11 @@ class AuthApplicationServiceTest {
 
     @Test
     void loginShouldFailWhenRequestedMembershipInactive() {
-        User user = userRepo.seed("u1", "a@b.com", "hashed:pw", UserStatus.ACTIVE, VerificationLevel.NONE);
-        membershipRepo.seed(new Membership(
-            "m1",
-            user.userId(),
-            "g1",
-            "t1",
-            GroupType.RETAIL,
-            MembershipRole.OPERATOR,
-            MembershipStatus.SUSPENDED,
-            GroupStatus.ACTIVE,
-            TenantStatus.ACTIVE
+        userRepo.seed("u1", "a@b.com", "hashed:pw", UserStatus.ACTIVE, VerificationLevel.NONE);
+        membershipRepo.seed(Membership.reconstitute(
+            "m1", "u1", "g1", "t1",
+            GroupType.RETAIL, MembershipRole.OPERATOR, MembershipStatus.SUSPENDED,
+            GroupStatus.ACTIVE, TenantStatus.ACTIVE, Set.of()
         ));
 
         DomainException ex = assertThrows(DomainException.class,
@@ -237,7 +218,7 @@ class AuthApplicationServiceTest {
 
         service.verifyPhone("u1");
 
-        VerificationLevel updated = userRepo.findByUserId("u1").orElseThrow().user().verificationLevel();
+        VerificationLevel updated = userRepo.findByUserId("u1").orElseThrow().verificationLevel();
         assertEquals(VerificationLevel.PHONE_VERIFIED, updated);
     }
 
@@ -269,34 +250,22 @@ class AuthApplicationServiceTest {
 
         @Override
         public UserAccount saveNew(UserAccount userAccount) {
-            UserAccount account = new UserAccount(
-                new User(
-                    userAccount.user().userId(),
-                    userAccount.user().email(),
-                    userAccount.user().phone(),
-                    userAccount.user().status(),
-                    userAccount.user().verificationLevel()
-                ),
-                userAccount.passwordHash()
-            );
-            byUserId.put(account.user().userId(), account);
-            userIdByEmail.put(account.user().email().value(), account.user().userId());
-            return account;
+            byUserId.put(userAccount.userId(), userAccount);
+            userIdByEmail.put(userAccount.email().value(), userAccount.userId());
+            return userAccount;
         }
 
         @Override
         public UserAccount save(UserAccount userAccount) {
-            byUserId.put(userAccount.user().userId(), userAccount);
-            userIdByEmail.put(userAccount.user().email().value(), userAccount.user().userId());
+            byUserId.put(userAccount.userId(), userAccount);
+            userIdByEmail.put(userAccount.email().value(), userAccount.userId());
             return userAccount;
         }
 
-        User seed(String userId, String email, String passwordHash, UserStatus status, VerificationLevel level) {
-            User user = new User(userId, Email.of(email), "010", status, level);
-            UserAccount account = new UserAccount(user, passwordHash);
+        void seed(String userId, String email, String passwordHash, UserStatus status, VerificationLevel level) {
+            UserAccount account = UserAccount.reconstitute(userId, Email.of(email), "010", passwordHash, status, level);
             byUserId.put(userId, account);
-            userIdByEmail.put(user.email().value(), userId);
-            return user;
+            userIdByEmail.put(email, userId);
         }
     }
 

@@ -16,10 +16,6 @@ public interface MembershipAdminRepositoryPort {
 
     Optional<GroupView> findGroupById(String groupId);
 
-    GroupView saveGroup(GroupView group);
-
-    void updateGroupStatusOnMemberships(String groupId, GroupStatus status);
-
     Invitation saveInvitation(Invitation invitation);
 
     Optional<Invitation> findInvitationById(String invitationId);
@@ -43,10 +39,6 @@ public interface MembershipAdminRepositoryPort {
     Set<String> applyPermissionTemplateToMembership(String membershipId, String templateCode, String reason, String actorUserId, Instant now);
 
     Set<String> revokePermissionTemplateFromMembership(String membershipId, String templateCode);
-
-    Set<String> assignRoleToMembership(String membershipId, String roleCode, String actorUserId, Instant assignedAt);
-
-    Set<String> revokeRoleFromMembership(String membershipId, String roleCode);
 
     record UserProfileView(String userId, String email) {
     }

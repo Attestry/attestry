@@ -1,0 +1,36 @@
+### =========================================================
+### Product Risk Management Scenario
+### =========================================================
+
+@baseUrl = http://localhost:8080
+@contentType = application/json
+@ownerAccessToken = REPLACE_OWNER_TOKEN
+@passportId = REPLACE_PASSPORT_ID
+
+### 1) Flag Stolen
+POST {{baseUrl}}/products/passports/{{passportId}}/risk/stolen
+Authorization: Bearer {{ownerAccessToken}}
+Content-Type: {{contentType}}
+
+{
+  "policeReportNo": "PR-2026-00123"
+}
+
+### 2) Check state after stolen flag
+GET {{baseUrl}}/products/passports/{{passportId}}/state
+Authorization: Bearer {{ownerAccessToken}}
+
+### 3) Clear risk
+DELETE {{baseUrl}}/products/passports/{{passportId}}/risk
+Authorization: Bearer {{ownerAccessToken}}
+
+### 4) Flag Lost
+POST {{baseUrl}}/products/passports/{{passportId}}/risk/lost
+Authorization: Bearer {{ownerAccessToken}}
+Content-Type: {{contentType}}
+
+{}
+
+### 5) Clear risk (after lost)
+DELETE {{baseUrl}}/products/passports/{{passportId}}/risk
+Authorization: Bearer {{ownerAccessToken}}

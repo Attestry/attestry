@@ -2,43 +2,30 @@ package io.attestry.userauth.application.onboarding;
 
 import io.attestry.userauth.application.dto.command.CompleteEvidenceUploadCommand;
 import io.attestry.userauth.application.dto.command.ActorContext;
-import io.attestry.userauth.application.dto.command.CreateBrandApplicationCommand;
-import io.attestry.userauth.application.dto.command.CreateRetailApplicationCommand;
+import io.attestry.userauth.application.dto.command.CreateApplicationCommand;
 import io.attestry.userauth.application.dto.command.PresignEvidenceUploadCommand;
 import io.attestry.userauth.application.dto.result.ApplicationResult;
 import io.attestry.userauth.application.dto.result.ApproveApplicationResult;
 import io.attestry.userauth.application.dto.result.EvidenceBundleResult;
 import io.attestry.userauth.application.dto.result.PresignedEvidenceUploadResult;
 import io.attestry.userauth.application.dto.view.ApplicationView;
-import io.attestry.userauth.application.port.GroupRepositoryPort;
-import io.attestry.userauth.application.port.MembershipProvisioningRepositoryPort;
+import io.attestry.userauth.application.onboarding.OnboardingProvisioningService.ProvisioningResult;
 import io.attestry.userauth.application.port.ObjectStoragePort;
 import io.attestry.userauth.application.port.OnboardingEvidenceBundleRepositoryPort;
-import io.attestry.userauth.application.port.OnboardingEvidenceFileRepositoryPort;
 import io.attestry.userauth.application.port.OrganizationApplicationRepositoryPort;
-import io.attestry.userauth.application.port.TenantRepositoryPort;
-import io.attestry.userauth.application.port.TemplateAdminRepositoryPort;
 import io.attestry.userauth.application.usecase.onboarding.OnboardingUseCase;
 import io.attestry.userauth.common.error.DomainException;
 import io.attestry.userauth.common.error.ErrorCode;
-import io.attestry.userauth.domain.auth.model.RoleCodes;
-import io.attestry.userauth.domain.auth.policy.SystemPermissionTemplateCatalog;
-import io.attestry.userauth.domain.membership.model.Membership;
-import io.attestry.userauth.domain.membership.model.MembershipRole;
-import io.attestry.userauth.domain.membership.model.MembershipStatus;
 import io.attestry.userauth.domain.onboarding.model.OnboardingEvidenceBundle;
 import io.attestry.userauth.domain.onboarding.model.OnboardingEvidenceFile;
 import io.attestry.userauth.domain.onboarding.model.OrganizationApplication;
-import io.attestry.userauth.domain.organization.model.Group;
-import io.attestry.userauth.domain.organization.model.GroupStatus;
+import io.attestry.userauth.domain.onboarding.policy.OrganizationUniquenessPolicy;
 import io.attestry.userauth.domain.organization.model.GroupType;
-import io.attestry.userauth.domain.organization.model.Tenant;
-import io.attestry.userauth.domain.organization.model.TenantStatus;
-import io.attestry.userauth.domain.policy.TenantIsolationPolicy;
 import java.time.Clock;
 import java.time.Duration;
 import java.time.Instant;
 import java.util.List;
+import java.util.Locale;
 import java.util.UUID;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
@@ -47,177 +34,111 @@ import org.springframework.transaction.annotation.Transactional;
 public class OnboardingApplicationService implements OnboardingUseCase {
 
     private static final Duration PRESIGN_TTL = Duration.ofMinutes(15);
-    private static final int MAX_EVIDENCE_FILES_PER_BUNDLE = 5;
 
     private final OrganizationApplicationRepositoryPort applicationRepository;
     private final OnboardingEvidenceBundleRepositoryPort evidenceBundleRepository;
-    private final OnboardingEvidenceFileRepositoryPort evidenceFileRepository;
-    private final TenantRepositoryPort tenantRepository;
-    private final TemplateAdminRepositoryPort templateAdminRepository;
-    private final GroupRepositoryPort groupRepository;
-    private final MembershipProvisioningRepositoryPort membershipProvisioningRepository;
+    private final OnboardingProvisioningService provisioningService;
+    private final OrganizationUniquenessPolicy uniquenessPolicy;
     private final ObjectStoragePort objectStoragePort;
     private final Clock clock;
 
     public OnboardingApplicationService(
         OrganizationApplicationRepositoryPort applicationRepository,
         OnboardingEvidenceBundleRepositoryPort evidenceBundleRepository,
-        OnboardingEvidenceFileRepositoryPort evidenceFileRepository,
-        TenantRepositoryPort tenantRepository,
-        TemplateAdminRepositoryPort templateAdminRepository,
-        GroupRepositoryPort groupRepository,
-        MembershipProvisioningRepositoryPort membershipProvisioningRepository,
+        OnboardingProvisioningService provisioningService,
+        OrganizationUniquenessPolicy uniquenessPolicy,
         ObjectStoragePort objectStoragePort,
         Clock clock
     ) {
         this.applicationRepository = applicationRepository;
         this.evidenceBundleRepository = evidenceBundleRepository;
-        this.evidenceFileRepository = evidenceFileRepository;
-        this.tenantRepository = tenantRepository;
-        this.templateAdminRepository = templateAdminRepository;
-        this.groupRepository = groupRepository;
-        this.membershipProvisioningRepository = membershipProvisioningRepository;
+        this.provisioningService = provisioningService;
+        this.uniquenessPolicy = uniquenessPolicy;
         this.objectStoragePort = objectStoragePort;
         this.clock = clock;
     }
 
     @Override
     @Transactional
-    public ApplicationResult createBrandApplication(ActorContext actor, CreateBrandApplicationCommand command) {
+    public ApplicationResult createApplication(ActorContext actor, CreateApplicationCommand command) {
+        GroupType type = parseRequestedType(command.type());
         requireReadyEvidenceOwnedByPrincipal(actor.userId(), command.evidenceBundleId());
-        assertUniqueBrand(command.brandName(), command.bizRegNo());
-        OrganizationApplication application = OrganizationApplication.createBrand(
-            actor.userId(),
-            command.brandName(),
-            command.country(),
-            command.bizRegNo(),
-            command.evidenceBundleId()
-        );
+        OrganizationApplication application = switch (type) {
+            case BRAND -> {
+                uniquenessPolicy.assertUniqueBrand(command.orgName(), command.bizRegNo());
+                yield OrganizationApplication.createBrand(
+                    actor.userId(),
+                    command.orgName(),
+                    command.country(),
+                    command.bizRegNo(),
+                    command.evidenceBundleId()
+                );
+            }
+            case RETAIL -> {
+                uniquenessPolicy.assertUniqueRetail(command.orgName(), command.bizRegNo());
+                yield OrganizationApplication.createRetail(
+                    actor.userId(),
+                    command.orgName(),
+                    command.country(),
+                    command.bizRegNo(),
+                    command.evidenceBundleId()
+                );
+            }
+            default -> throw new DomainException(ErrorCode.INVALID_REQUEST, "Only BRAND or RETAIL application type is supported");
+        };
         return toApplicationResult(applicationRepository.save(application));
     }
 
     @Override
     @Transactional(readOnly = true)
-    public List<ApplicationView> listBrandApplications() {
-        return applicationRepository.findByType(GroupType.BRAND).stream()
+    public List<ApplicationView> listApplications(String type) {
+        GroupType parsedType = parseOptionalRequestedType(type);
+        List<OrganizationApplication> applications = parsedType == null
+            ? applicationRepository.findAll()
+            : applicationRepository.findByType(parsedType);
+        return applications.stream()
             .map(this::toApplicationView)
             .toList();
     }
 
     @Override
     @Transactional(readOnly = true)
-    public ApplicationView getBrandApplication(String applicationId) {
-        return toApplicationView(findBrandApplication(applicationId));
+    public List<ApplicationView> listMyApplications(ActorContext actor) {
+        return applicationRepository.findByApplicantUserId(actor.userId()).stream()
+            .map(this::toApplicationView)
+            .toList();
     }
 
+    @Override
+    @Transactional(readOnly = true)
+    public ApplicationView getMyApplication(ActorContext actor, String applicationId) {
+        OrganizationApplication application = applicationRepository.findByIdAndApplicantUserId(applicationId, actor.userId())
+            .orElseThrow(() -> new DomainException(ErrorCode.APPLICATION_NOT_FOUND, "Application not found"));
+        return toApplicationView(application);
+    }
 
     //TODO("이메일 발송로직")
     @Override
     @Transactional
-    public ApproveApplicationResult approveBrandApplication(ActorContext actor, String applicationId) {
-        OrganizationApplication app = findBrandApplication(applicationId);
+    public ApproveApplicationResult approveApplication(ActorContext actor, String applicationId) {
+        OrganizationApplication app = findApplication(applicationId);
         app.assertPending();
 
-        String tenantId = UUID.randomUUID().toString();
-        String groupId = UUID.randomUUID().toString();
-        String membershipId = UUID.randomUUID().toString();
+        ProvisioningResult result = provisioningService.provision(
+            app.type(), app.applicantUserId(), app.orgName(), app.country(), actor.userId());
 
-        tenantRepository.save(new Tenant(tenantId, app.orgName(), app.country(), TenantStatus.ACTIVE));
-        groupRepository.save(new Group(groupId, tenantId, GroupType.BRAND, GroupStatus.ACTIVE));
-        membershipProvisioningRepository.save(new Membership(
-            membershipId,
-            app.applicantUserId(),
-            groupId,
-            tenantId,
-            GroupType.BRAND,
-            MembershipRole.ADMIN,
-            MembershipStatus.ACTIVE,
-            GroupStatus.ACTIVE,
-            TenantStatus.ACTIVE
-        ));
-        membershipProvisioningRepository.assignRole(membershipId, RoleCodes.TENANT_OWNER, actor.userId());
-        bindDefaultTenantOwnerTemplate(tenantId, actor.userId());
+        app.approve(actor.userId(), result.tenantId(), Instant.now(clock));
+        applicationRepository.save(app);
 
-        applicationRepository.save(app.approve(actor.userId(), tenantId, Instant.now(clock)));
-
-        return new ApproveApplicationResult(tenantId, groupId, membershipId);
+        return new ApproveApplicationResult(result.tenantId(), result.groupId(), result.membershipId());
     }
 
     @Override
     @Transactional
-    public ApplicationResult rejectBrandApplication(ActorContext actor, String applicationId, String rejectReason) {
-        OrganizationApplication app = findBrandApplication(applicationId);
-        return toApplicationResult(applicationRepository.save(app.reject(actor.userId(), rejectReason, Instant.now(clock))));
-    }
-
-    @Override
-    @Transactional
-    public ApplicationResult createRetailApplication(
-        ActorContext actor,
-        CreateRetailApplicationCommand command
-    ) {
-        requireReadyEvidenceOwnedByPrincipal(actor.userId(), command.evidenceBundleId());
-        assertUniqueRetail(command.retailName(), command.bizRegNo());
-        OrganizationApplication application = OrganizationApplication.createRetail(
-            actor.userId(),
-            command.retailName(),
-            command.country(),
-            command.bizRegNo(),
-            command.evidenceBundleId()
-        );
-        return toApplicationResult(applicationRepository.save(application));
-    }
-
-    @Override
-    @Transactional(readOnly = true)
-    public ApplicationView getRetailApplication(String applicationId) {
-        return toApplicationView(findRetailApplication(applicationId));
-    }
-
-    @Override
-    @Transactional(readOnly = true)
-    public List<ApplicationView> listRetailApplications() {
-        return applicationRepository.findByType(GroupType.RETAIL).stream()
-            .map(this::toApplicationView)
-            .toList();
-    }
-
-    @Override
-    @Transactional
-    public ApproveApplicationResult approveRetailApplication(ActorContext actor, String applicationId) {
-        OrganizationApplication app = findRetailApplication(applicationId);
-        app.assertPending();
-
-        String retailTenantId = UUID.randomUUID().toString();
-        String groupId = UUID.randomUUID().toString();
-        String membershipId = UUID.randomUUID().toString();
-
-        tenantRepository.save(new Tenant(retailTenantId, app.orgName(), app.country(), TenantStatus.ACTIVE));
-        groupRepository.save(new Group(groupId, retailTenantId, GroupType.RETAIL, GroupStatus.ACTIVE));
-        membershipProvisioningRepository.save(new Membership(
-            membershipId,
-            app.applicantUserId(),
-            groupId,
-            retailTenantId,
-            GroupType.RETAIL,
-            MembershipRole.ADMIN,
-            MembershipStatus.ACTIVE,
-            GroupStatus.ACTIVE,
-            TenantStatus.ACTIVE
-        ));
-        membershipProvisioningRepository.assignRole(membershipId, RoleCodes.TENANT_OWNER, actor.userId());
-        bindDefaultTenantOwnerTemplate(retailTenantId, actor.userId());
-
-        applicationRepository.save(app.approve(actor.userId(), retailTenantId, Instant.now(clock)));
-
-        return new ApproveApplicationResult(retailTenantId, groupId, membershipId);
-    }
-
-    @Override
-    @Transactional
-    public ApplicationResult rejectRetailApplication(ActorContext actor, String applicationId, String rejectReason) {
-        OrganizationApplication app = findRetailApplication(applicationId);
-        return toApplicationResult(applicationRepository.save(app.reject(actor.userId(), rejectReason, Instant.now(clock))));
+    public ApplicationResult rejectApplication(ActorContext actor, String applicationId, String rejectReason) {
+        OrganizationApplication app = findApplication(applicationId);
+        app.reject(actor.userId(), rejectReason, Instant.now(clock));
+        return toApplicationResult(applicationRepository.save(app));
     }
 
     @Override
@@ -225,16 +146,15 @@ public class OnboardingApplicationService implements OnboardingUseCase {
     public PresignedEvidenceUploadResult presignEvidenceUpload(ActorContext actor, PresignEvidenceUploadCommand command) {
         Instant now = Instant.now(clock);
         OnboardingEvidenceBundle bundle = resolveOrCreateBundle(actor, command.evidenceBundleId(), now);
-        assertBundleFileLimit(bundle.evidenceBundleId());
         String objectKey = buildObjectKey(actor.userId(), bundle.evidenceBundleId(), command.fileName());
 
-        OnboardingEvidenceFile evidenceFile = evidenceFileRepository.save(OnboardingEvidenceFile.start(
-            bundle.evidenceBundleId(),
+        OnboardingEvidenceFile evidenceFile = bundle.addFile(
             command.fileName(),
             command.contentType(),
             objectKey,
             now
-        ));
+        );
+        evidenceBundleRepository.save(bundle);
 
         ObjectStoragePort.PresignedUpload presignedUpload = objectStoragePort.issuePresignedUpload(
             objectKey,
@@ -260,53 +180,24 @@ public class OnboardingApplicationService implements OnboardingUseCase {
             .orElseThrow(() -> new DomainException(ErrorCode.EVIDENCE_NOT_FOUND, "Evidence not found"));
         bundle.assertOwnedBy(actor.userId());
 
-        OnboardingEvidenceFile evidenceFile = evidenceFileRepository.findById(command.evidenceFileId())
-            .orElseThrow(() -> new DomainException(ErrorCode.EVIDENCE_NOT_FOUND, "Evidence not found"));
-        evidenceFile.assertBelongsToBundle(bundle.evidenceBundleId());
+        OnboardingEvidenceFile evidenceFile = bundle.files().stream()
+            .filter(f -> f.evidenceFileId().equals(command.evidenceFileId()))
+            .findFirst()
+            .orElseThrow(() -> new DomainException(ErrorCode.EVIDENCE_NOT_FOUND, "Evidence file not found in bundle"));
+
         if (!objectStoragePort.objectExists(evidenceFile.objectKey())) {
             throw new DomainException(ErrorCode.EVIDENCE_NOT_FOUND, "Uploaded object not found");
         }
 
-        evidenceFileRepository.save(
-            evidenceFile.complete(command.sizeBytes(), Instant.now(clock))
-        );
+        bundle.completeFile(command.evidenceFileId(), command.sizeBytes(), Instant.now(clock));
+        evidenceBundleRepository.save(bundle);
 
-        List<OnboardingEvidenceFile> files = evidenceFileRepository.findByBundleId(bundle.evidenceBundleId());
-        if (files.isEmpty()) {
-            throw new DomainException(ErrorCode.INVALID_APPLICATION_STATE, "Evidence bundle has no files");
-        }
-
-        OnboardingEvidenceBundle currentBundle = bundle;
-        boolean allReady = files.stream().allMatch(OnboardingEvidenceFile::isReady);
-        if (allReady) {
-            currentBundle = evidenceBundleRepository.save(bundle.markReady(Instant.now(clock)));
-        }
-
-        return new EvidenceBundleResult(currentBundle.evidenceBundleId(), currentBundle.status().name());
+        return new EvidenceBundleResult(bundle.evidenceBundleId(), bundle.status().name());
     }
 
-    private void assertTenantIsolation(ActorContext actor, String tenantId) {
-        if (!TenantIsolationPolicy.isIsolated(actor.tenantId(), tenantId)) {
-            throw new DomainException(ErrorCode.TENANT_ISOLATION_VIOLATION, "Cross-tenant access denied");
-        }
-    }
-
-    private OrganizationApplication findBrandApplication(String applicationId) {
-        OrganizationApplication app = applicationRepository.findById(applicationId)
+    private OrganizationApplication findApplication(String applicationId) {
+        return applicationRepository.findById(applicationId)
             .orElseThrow(() -> new DomainException(ErrorCode.APPLICATION_NOT_FOUND, "Application not found"));
-        if (app.type() != GroupType.BRAND) {
-            throw new DomainException(ErrorCode.APPLICATION_NOT_FOUND, "Application not found");
-        }
-        return app;
-    }
-
-    private OrganizationApplication findRetailApplication(String applicationId) {
-        OrganizationApplication app = applicationRepository.findById(applicationId)
-            .orElseThrow(() -> new DomainException(ErrorCode.APPLICATION_NOT_FOUND, "Application not found"));
-        if (app.type() != GroupType.RETAIL) {
-            throw new DomainException(ErrorCode.APPLICATION_NOT_FOUND, "Application not found");
-        }
-        return app;
     }
 
     private void requireReadyEvidenceOwnedByPrincipal(String userId, String evidenceBundleId) {
@@ -315,43 +206,6 @@ public class OnboardingApplicationService implements OnboardingUseCase {
             .orElseThrow(() -> new DomainException(ErrorCode.EVIDENCE_NOT_FOUND, "Evidence not found"));
         bundle.assertOwnedBy(userId);
         bundle.assertReady();
-    }
-
-    private void assertUniqueBrand(String orgName, String bizRegNo) {
-        String normalizedOrgName = normalize(orgName);
-        if (applicationRepository.existsBrandByOrgName(normalizedOrgName)) {
-            throw new DomainException(ErrorCode.DUPLICATE_ORGANIZATION_NAME, "Brand name already exists");
-        }
-        String normalizedBizRegNo = normalizeOrNull(bizRegNo);
-        if (normalizedBizRegNo != null && applicationRepository.existsBrandByBizRegNo(normalizedBizRegNo)) {
-            throw new DomainException(ErrorCode.DUPLICATE_BIZ_REG_NO, "Business registration number already exists");
-        }
-    }
-
-    private void assertUniqueRetail(String orgName, String bizRegNo) {
-        String normalizedOrgName = normalize(orgName);
-        if (applicationRepository.existsBrandByOrgName(normalizedOrgName)
-            || applicationRepository.existsRetailByTenantAndOrgName(null, normalizedOrgName)) {
-            throw new DomainException(ErrorCode.DUPLICATE_ORGANIZATION_NAME, "Retail name already exists");
-        }
-        String normalizedBizRegNo = normalizeOrNull(bizRegNo);
-        if (normalizedBizRegNo != null
-            && (applicationRepository.existsBrandByBizRegNo(normalizedBizRegNo)
-            || applicationRepository.existsRetailByTenantAndBizRegNo(null, normalizedBizRegNo))) {
-            throw new DomainException(ErrorCode.DUPLICATE_BIZ_REG_NO, "Business registration number already exists");
-        }
-    }
-
-    private String normalize(String value) {
-        return value == null ? "" : value.trim();
-    }
-
-    private String normalizeOrNull(String value) {
-        if (value == null) {
-            return null;
-        }
-        String normalized = value.trim();
-        return normalized.isEmpty() ? null : normalized;
     }
 
     private ApplicationResult toApplicationResult(OrganizationApplication app) {
@@ -364,16 +218,6 @@ public class OnboardingApplicationService implements OnboardingUseCase {
             app.country(),
             app.status().name(),
             app.rejectReason()
-        );
-    }
-
-    private void bindDefaultTenantOwnerTemplate(String tenantId, String actorUserId) {
-        templateAdminRepository.bindTemplateToTenantRole(
-            tenantId,
-            RoleCodes.TENANT_OWNER,
-            SystemPermissionTemplateCatalog.TEMPLATE_TENANT_OWNER_CORE,
-            actorUserId,
-            Instant.now(clock)
         );
     }
 
@@ -401,16 +245,6 @@ public class OnboardingApplicationService implements OnboardingUseCase {
         return bundle;
     }
 
-    private void assertBundleFileLimit(String bundleId) {
-        int currentCount = evidenceFileRepository.findByBundleId(bundleId).size();
-        if (currentCount >= MAX_EVIDENCE_FILES_PER_BUNDLE) {
-            throw new DomainException(
-                ErrorCode.EVIDENCE_FILE_LIMIT_EXCEEDED,
-                "Maximum 5 evidence files are allowed per bundle"
-            );
-        }
-    }
-
     private String buildObjectKey(String userId, String bundleId, String fileName) {
         String safeFileName = fileName == null ? "evidence.bin" : fileName.replaceAll("[^a-zA-Z0-9._-]", "_");
         return "onboarding/" + userId + "/" + bundleId + "/" + UUID.randomUUID() + "/" + safeFileName;
@@ -420,5 +254,27 @@ public class OnboardingApplicationService implements OnboardingUseCase {
         if (value == null || value.isBlank()) {
             throw new DomainException(ErrorCode.INVALID_APPLICATION_STATE, fieldName + " is required");
         }
+    }
+
+    private GroupType parseRequestedType(String value) {
+        if (value == null || value.isBlank()) {
+            throw new DomainException(ErrorCode.INVALID_REQUEST, "type is required");
+        }
+        try {
+            GroupType type = GroupType.valueOf(value.trim().toUpperCase(Locale.ROOT));
+            if (type == GroupType.BRAND || type == GroupType.RETAIL) {
+                return type;
+            }
+        } catch (IllegalArgumentException ignored) {
+            // handled below
+        }
+        throw new DomainException(ErrorCode.INVALID_REQUEST, "type must be BRAND or RETAIL");
+    }
+
+    private GroupType parseOptionalRequestedType(String value) {
+        if (value == null || value.isBlank()) {
+            return null;
+        }
+        return parseRequestedType(value);
     }
 }

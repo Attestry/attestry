@@ -1,16 +1,20 @@
 package io.attestry.userauth.infrastructure.persistence.jpa;
 
 import io.attestry.userauth.application.port.MembershipAdminRepositoryPort;
+import io.attestry.userauth.application.port.MembershipPermissionOverridePort;
+import io.attestry.userauth.application.port.RoleCatalogQueryPort;
 import io.attestry.userauth.common.error.DomainException;
 import io.attestry.userauth.common.error.ErrorCode;
 import io.attestry.userauth.domain.membership.model.Invitation;
 import io.attestry.userauth.domain.membership.model.Membership;
 import io.attestry.userauth.domain.membership.model.MembershipRole;
 import io.attestry.userauth.domain.membership.model.MembershipStatus;
+import io.attestry.userauth.domain.membership.model.RoleAssignment;
 import io.attestry.userauth.domain.membership.policy.DefaultMembershipRolePolicy;
+import io.attestry.userauth.domain.membership.repository.MembershipRepository;
 import io.attestry.userauth.domain.organization.model.GroupStatus;
 import io.attestry.userauth.domain.organization.model.TenantStatus;
-import io.attestry.userauth.domain.user.vo.Email;
+import io.attestry.userauth.domain.identity.model.Email;
 import io.attestry.userauth.infrastructure.persistence.jpa.entity.InvitationJpaEntity;
 import io.attestry.userauth.infrastructure.persistence.jpa.entity.MembershipJpaEntity;
 import io.attestry.userauth.infrastructure.persistence.jpa.entity.MembershipRoleAssignmentJpaEntity;
@@ -22,16 +26,20 @@ import io.attestry.userauth.infrastructure.persistence.jpa.repository.RoleJpaRep
 import io.attestry.userauth.infrastructure.persistence.jpa.repository.UserAccountJpaRepository;
 import java.sql.Timestamp;
 import java.time.Instant;
+import java.util.HashSet;
 import java.util.List;
 import java.util.Locale;
 import java.util.Optional;
 import java.util.Set;
 import java.util.UUID;
+import java.util.stream.Collectors;
 import org.springframework.jdbc.core.JdbcTemplate;
 import org.springframework.stereotype.Repository;
 
 @Repository
-public class JpaMembershipAdminRepositoryAdapter implements MembershipAdminRepositoryPort {
+public class JpaMembershipAdminRepositoryAdapter
+    implements MembershipAdminRepositoryPort, MembershipRepository,
+               MembershipPermissionOverridePort, RoleCatalogQueryPort {
 
     private final InvitationJpaRepository invitationRepository;
     private final MembershipJpaRepository membershipRepository;
@@ -72,19 +80,6 @@ public class JpaMembershipAdminRepositoryAdapter implements MembershipAdminRepos
     }
 
     @Override
-    public GroupView saveGroup(GroupView group) {
-        io.attestry.userauth.infrastructure.persistence.jpa.entity.GroupJpaEntity saved = groupRepository.save(
-            new io.attestry.userauth.infrastructure.persistence.jpa.entity.GroupJpaEntity(
-                group.groupId(),
-                group.tenantId(),
-                group.type(),
-                group.status()
-            )
-        );
-        return new GroupView(saved.getGroupId(), saved.getTenantId(), saved.getType(), saved.getStatus());
-    }
-
-    @Override
     public void updateGroupStatusOnMemberships(String groupId, GroupStatus status) {
         List<MembershipJpaEntity> memberships = membershipRepository.findByGroupId(groupId);
         if (memberships.isEmpty()) {
@@ -120,12 +115,12 @@ public class JpaMembershipAdminRepositoryAdapter implements MembershipAdminRepos
             invitation.acceptedBy(),
             invitation.acceptedAt()
         ));
-        return toDomain(saved);
+        return toInvitationDomain(saved);
     }
 
     @Override
     public Optional<Invitation> findInvitationById(String invitationId) {
-        return invitationRepository.findById(invitationId).map(this::toDomain);
+        return invitationRepository.findById(invitationId).map(this::toInvitationDomain);
     }
 
     @Override
@@ -146,24 +141,28 @@ public class JpaMembershipAdminRepositoryAdapter implements MembershipAdminRepos
             group.status(),
             TenantStatus.ACTIVE
         ));
+        String defaultRoleCode = DefaultMembershipRolePolicy.resolveGlobalRoleCode(saved.getRole(), saved.getGroupType());
+        String roleId = resolveGlobalRoleIdByCode(defaultRoleCode);
+        Instant now = Instant.now();
         membershipRoleAssignmentRepository.save(new MembershipRoleAssignmentJpaEntity(
             UUID.randomUUID().toString(),
             saved.getMembershipId(),
-            resolveGlobalRoleIdByCode(DefaultMembershipRolePolicy.resolveGlobalRoleCode(saved.getRole(), saved.getGroupType())),
+            roleId,
             null,
-            Instant.now()
+            now
         ));
-        return toDomain(saved);
+        Set<RoleAssignment> assignments = Set.of(new RoleAssignment(defaultRoleCode, null, now));
+        return toMembershipDomain(saved, assignments);
     }
 
     @Override
     public List<Membership> findMembershipsByTenantId(String tenantId) {
-        return membershipRepository.findByTenantId(tenantId).stream().map(this::toDomain).toList();
+        return membershipRepository.findByTenantId(tenantId).stream().map(this::toMembershipDomainWithRoles).toList();
     }
 
     @Override
     public Optional<Membership> findMembershipById(String membershipId) {
-        return membershipRepository.findById(membershipId).map(this::toDomain);
+        return membershipRepository.findById(membershipId).map(this::toMembershipDomainWithRoles);
     }
 
     @Override
@@ -181,18 +180,7 @@ public class JpaMembershipAdminRepositoryAdapter implements MembershipAdminRepos
             current.getGroupStatus(),
             current.getTenantStatus()
         ));
-        String expectedRoleId = resolveGlobalRoleIdByCode(DefaultMembershipRolePolicy.resolveGlobalRoleCode(saved.getRole(), saved.getGroupType()));
-        MembershipRoleAssignmentJpaEntity assignment = membershipRoleAssignmentRepository.findByMembershipId(saved.getMembershipId()).orElse(null);
-        if (assignment == null || !expectedRoleId.equals(assignment.getRoleId())) {
-            membershipRoleAssignmentRepository.save(new MembershipRoleAssignmentJpaEntity(
-                assignment == null ? UUID.randomUUID().toString() : assignment.getAssignmentId(),
-                saved.getMembershipId(),
-                expectedRoleId,
-                null,
-                Instant.now()
-            ));
-        }
-        return toDomain(saved);
+        return toMembershipDomainWithRoles(saved);
     }
 
     @Override
@@ -204,7 +192,7 @@ public class JpaMembershipAdminRepositoryAdapter implements MembershipAdminRepos
     public Set<String> findGlobalEnabledRoleCodes() {
         return roleRepository.findByTenantIdIsNullAndEnabledTrue().stream()
             .map(role -> role.getCode().trim().toUpperCase(Locale.ROOT))
-            .collect(java.util.stream.Collectors.toCollection(java.util.LinkedHashSet::new));
+            .collect(Collectors.toCollection(java.util.LinkedHashSet::new));
     }
 
     @Override
@@ -329,36 +317,6 @@ public class JpaMembershipAdminRepositoryAdapter implements MembershipAdminRepos
         return permissionCodes;
     }
 
-    @Override
-    public Set<String> assignRoleToMembership(String membershipId, String roleCode, String actorUserId, Instant assignedAt) {
-        String roleId = roleRepository.findByTenantIdIsNullAndCodeAndEnabledTrue(roleCode)
-            .orElseThrow(() -> new DomainException(ErrorCode.ROLE_NOT_FOUND, "Role not found"))
-            .getRoleId();
-        MembershipRoleAssignmentJpaEntity current = membershipRoleAssignmentRepository.findByMembershipId(membershipId).orElse(null);
-        if (current != null && roleId.equals(current.getRoleId())) {
-            return findRoleCodesByMembershipId(membershipId);
-        }
-        membershipRoleAssignmentRepository.save(new MembershipRoleAssignmentJpaEntity(
-            current == null ? UUID.randomUUID().toString() : current.getAssignmentId(),
-            membershipId,
-            roleId,
-            actorUserId,
-            assignedAt
-        ));
-        return findRoleCodesByMembershipId(membershipId);
-    }
-
-    @Override
-    public Set<String> revokeRoleFromMembership(String membershipId, String roleCode) {
-        String roleId = roleRepository.findByTenantIdIsNullAndCodeAndEnabledTrue(roleCode)
-            .orElseThrow(() -> new DomainException(ErrorCode.ROLE_NOT_FOUND, "Role not found"))
-            .getRoleId();
-        MembershipRoleAssignmentJpaEntity assignment = membershipRoleAssignmentRepository.findByMembershipIdAndRoleId(membershipId, roleId)
-            .orElseThrow(() -> new DomainException(ErrorCode.ROLE_ASSIGNMENT_NOT_FOUND, "Role assignment not found"));
-        membershipRoleAssignmentRepository.deleteByMembershipIdAndRoleId(assignment.getMembershipId(), assignment.getRoleId());
-        return findRoleCodesByMembershipId(membershipId);
-    }
-
     private String resolveGlobalRoleIdByCode(String roleCode) {
         return roleRepository.findByTenantIdIsNullAndCodeAndEnabledTrue(roleCode)
             .orElseThrow(() -> new DomainException(ErrorCode.ROLE_NOT_FOUND, "Role not found"))
@@ -399,8 +357,133 @@ public class JpaMembershipAdminRepositoryAdapter implements MembershipAdminRepos
         return Set.copyOf(codes);
     }
 
-    private Invitation toDomain(InvitationJpaEntity entity) {
-        return new Invitation(
+    // --- MembershipRepository interface methods ---
+
+    @Override
+    public Optional<Membership> findById(String membershipId) {
+        return findMembershipById(membershipId);
+    }
+
+    @Override
+    public Membership save(Membership membership) {
+        MembershipJpaEntity saved = membershipRepository.save(new MembershipJpaEntity(
+            membership.membershipId(),
+            membership.userId(),
+            membership.groupId(),
+            membership.tenantId(),
+            membership.groupType(),
+            membership.role(),
+            membership.status(),
+            membership.groupStatus(),
+            membership.tenantStatus()
+        ));
+        syncRoleAssignments(membership);
+        return membership;
+    }
+
+    @Override
+    public List<Membership> findByUserId(String userId) {
+        return membershipRepository.findByUserId(userId).stream().map(this::toMembershipDomainWithRoles).toList();
+    }
+
+    @Override
+    public Optional<Membership> findByUserIdAndContext(String userId, String tenantId, String groupId) {
+        return membershipRepository.findByUserIdAndTenantIdAndGroupId(userId, tenantId, groupId).map(this::toMembershipDomainWithRoles);
+    }
+
+    @Override
+    public List<Membership> findByTenantId(String tenantId) {
+        return findMembershipsByTenantId(tenantId);
+    }
+
+    @Override
+    public List<Membership> findByGroupId(String groupId) {
+        return membershipRepository.findByGroupId(groupId).stream().map(this::toMembershipDomainWithRoles).toList();
+    }
+
+    private void syncRoleAssignments(Membership membership) {
+        Set<RoleAssignment> desired = membership.roleAssignments();
+        List<MembershipRoleAssignmentJpaEntity> existing = membershipRoleAssignmentRepository
+            .findAllByMembershipId(membership.membershipId());
+
+        Set<String> existingCodes = new HashSet<>();
+        for (MembershipRoleAssignmentJpaEntity e : existing) {
+            List<String> codes = membershipRoleAssignmentRepository.findRoleCodesByMembershipId(membership.membershipId());
+            existingCodes.addAll(codes);
+            break;
+        }
+
+        Set<String> desiredCodes = desired.stream().map(RoleAssignment::roleCode).collect(Collectors.toSet());
+
+        // Remove assignments not in desired set
+        for (MembershipRoleAssignmentJpaEntity e : existing) {
+            String code = findRoleCodeByRoleId(e.getRoleId());
+            if (code != null && !desiredCodes.contains(code)) {
+                membershipRoleAssignmentRepository.deleteByMembershipIdAndRoleId(e.getMembershipId(), e.getRoleId());
+            }
+        }
+
+        // Add/update assignments in desired set
+        for (RoleAssignment ra : desired) {
+            String roleId = roleRepository.findByTenantIdIsNullAndCodeAndEnabledTrue(ra.roleCode())
+                .map(r -> r.getRoleId())
+                .orElse(null);
+            if (roleId == null) continue;
+
+            Optional<MembershipRoleAssignmentJpaEntity> existingAssignment =
+                membershipRoleAssignmentRepository.findByMembershipIdAndRoleId(membership.membershipId(), roleId);
+            if (existingAssignment.isEmpty()) {
+                membershipRoleAssignmentRepository.save(new MembershipRoleAssignmentJpaEntity(
+                    UUID.randomUUID().toString(),
+                    membership.membershipId(),
+                    roleId,
+                    ra.assignedByUserId(),
+                    ra.assignedAt()
+                ));
+            }
+        }
+    }
+
+    private String findRoleCodeByRoleId(String roleId) {
+        return roleRepository.findById(roleId)
+            .map(r -> r.getCode().trim().toUpperCase(Locale.ROOT))
+            .orElse(null);
+    }
+
+    private Set<RoleAssignment> loadRoleAssignments(String membershipId) {
+        List<MembershipRoleAssignmentJpaEntity> entities = membershipRoleAssignmentRepository.findAllByMembershipId(membershipId);
+        Set<RoleAssignment> assignments = new HashSet<>();
+        for (MembershipRoleAssignmentJpaEntity e : entities) {
+            String code = findRoleCodeByRoleId(e.getRoleId());
+            if (code != null) {
+                assignments.add(new RoleAssignment(code, null, null));
+            }
+        }
+        return assignments;
+    }
+
+    private Membership toMembershipDomainWithRoles(MembershipJpaEntity entity) {
+        Set<RoleAssignment> roles = loadRoleAssignments(entity.getMembershipId());
+        return toMembershipDomain(entity, roles);
+    }
+
+    private Membership toMembershipDomain(MembershipJpaEntity entity, Set<RoleAssignment> roleAssignments) {
+        return Membership.reconstitute(
+            entity.getMembershipId(),
+            entity.getUserId(),
+            entity.getGroupId(),
+            entity.getTenantId(),
+            entity.getGroupType(),
+            entity.getRole(),
+            entity.getStatus(),
+            entity.getGroupStatus(),
+            entity.getTenantStatus(),
+            roleAssignments
+        );
+    }
+
+    private Invitation toInvitationDomain(InvitationJpaEntity entity) {
+        return Invitation.reconstitute(
             entity.getInvitationId(),
             entity.getTenantId(),
             entity.getGroupId(),
@@ -411,20 +494,6 @@ public class JpaMembershipAdminRepositoryAdapter implements MembershipAdminRepos
             entity.getInvitedAt(),
             entity.getAcceptedBy(),
             entity.getAcceptedAt()
-        );
-    }
-
-    private Membership toDomain(MembershipJpaEntity entity) {
-        return new Membership(
-            entity.getMembershipId(),
-            entity.getUserId(),
-            entity.getGroupId(),
-            entity.getTenantId(),
-            entity.getGroupType(),
-            entity.getRole(),
-            entity.getStatus(),
-            entity.getGroupStatus(),
-            entity.getTenantStatus()
         );
     }
 }

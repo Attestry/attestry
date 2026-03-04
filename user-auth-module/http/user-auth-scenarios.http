@@ -1,0 +1,296 @@
+### =========================================================
+### User-Auth End-to-End Scenario Pack
+### =========================================================
+### 목적
+### - 실제 업무 흐름 순서대로 API를 실행하기 위한 시나리오 모음
+### - IntelliJ HTTP Client 기준 (@name + client.global.set 사용)
+
+@baseUrl = http://localhost:8080
+@contentType = application/json
+
+### 계정 샘플 (환경에 맞게 변경)
+@platformEmail = platform.admin@attestry.local
+@platformPassword = PlatformAdm1n!2026
+
+@ownerEmail = scenario.owner@attestry.io
+@ownerPassword = Password123!
+@ownerPhone = 010-1111-2222
+
+@operatorEmail = scenario.operator@attestry.io
+@operatorPassword = Password123!
+@operatorPhone = 010-3333-4444
+
+@templateOwnerCore = TEMPLATE_TENANT_OWNER_CORE
+@templateWork = TEMPLATE_BRAND_WORK
+
+### 수동 입력 fallback 값
+@tenantId = REPLACE_TENANT_ID
+@groupId = REPLACE_GROUP_ID
+@membershipId = REPLACE_MEMBERSHIP_ID
+@invitationId = REPLACE_INVITATION_ID
+@applicationId = REPLACE_APPLICATION_ID
+
+
+### =========================================================
+### [Scenario A] 사용자 준비: 회원가입 + 로그인
+### =========================================================
+
+### A-1) Owner signup (이미 존재하면 409 가능)
+POST {{baseUrl}}/auth/signup
+Content-Type: {{contentType}}
+
+{
+  "email": "{{ownerEmail}}",
+  "password": "{{ownerPassword}}",
+  "phone": "{{ownerPhone}}"
+}
+
+### A-2) Operator signup (이미 존재하면 409 가능)
+POST {{baseUrl}}/auth/signup
+Content-Type: {{contentType}}
+
+{
+  "email": "{{operatorEmail}}",
+  "password": "{{operatorPassword}}",
+  "phone": "{{operatorPhone}}"
+}
+
+### A-3) Platform login
+# @name platformLogin
+POST {{baseUrl}}/auth/login
+Content-Type: {{contentType}}
+
+{
+  "email": "{{platformEmail}}",
+  "password": "{{platformPassword}}",
+  "tenantId": null,
+  "groupId": null
+}
+
+> {%
+  client.global.set("platformAccessToken", response.body.accessToken);
+%}
+
+### A-4) Owner login (온보딩 승인 후 tenant/group 포함 재로그인 권장)
+# @name ownerLogin
+POST {{baseUrl}}/auth/login
+Content-Type: {{contentType}}
+
+{
+  "email": "{{ownerEmail}}",
+  "password": "{{ownerPassword}}",
+  "tenantId": null,
+  "groupId": null
+}
+
+> {%
+  client.global.set("ownerAccessToken", response.body.accessToken);
+%}
+
+
+### =========================================================
+### [Scenario B] 온보딩 + 승인 + 기본 운영자 초대/권한 부여
+### =========================================================
+
+### B-1) 증빙 presign
+# @name presignEvidence
+POST {{baseUrl}}/onboarding/evidences/presign
+Authorization: Bearer {{ownerAccessToken}}
+Content-Type: {{contentType}}
+
+{
+  "evidenceBundleId": null,
+  "fileName": "biz-proof-1.pdf",
+  "contentType": "application/pdf"
+}
+
+> {%
+  client.global.set("evidenceBundleId", response.body.evidenceBundleId);
+  client.global.set("evidenceFileId", response.body.evidenceFileId);
+  client.global.set("uploadUrl", response.body.uploadUrl);
+%}
+
+### B-2) presigned URL 업로드
+PUT {{uploadUrl}}
+Content-Type: application/pdf
+
+< ./files/biz-proof-1.pdf
+
+### B-3) 증빙 complete
+POST {{baseUrl}}/onboarding/evidences/complete
+Authorization: Bearer {{ownerAccessToken}}
+Content-Type: {{contentType}}
+
+{
+  "evidenceBundleId": "{{evidenceBundleId}}",
+  "evidenceFileId": "{{evidenceFileId}}",
+  "sizeBytes": 102400
+}
+
+### B-4) 브랜드 신청
+# @name createBrandApplication
+POST {{baseUrl}}/onboarding/applications
+Authorization: Bearer {{ownerAccessToken}}
+Content-Type: {{contentType}}
+
+{
+  "type": "BRAND",
+  "orgName": "SCENARIO_BRAND",
+  "country": "KR",
+  "bizRegNo": "110-11-56382",
+  "evidenceBundleId": "{{evidenceBundleId}}"
+}
+
+> {%
+  client.global.set("applicationId", response.body.applicationId);
+%}
+
+### B-5) 플랫폼 관리자: 신청 승인
+# @name approveBrandApplication
+POST {{baseUrl}}/admin/onboarding/applications/{{applicationId}}/approve
+Authorization: Bearer {{platformAccessToken}}
+
+> {%
+  client.global.set("tenantId", response.body.tenantId);
+  client.global.set("groupId", response.body.groupId);
+  client.global.set("ownerMembershipId", response.body.membershipId);
+%}
+
+### B-6) Owner tenant 컨텍스트로 재로그인
+# @name ownerTenantLogin
+POST {{baseUrl}}/auth/login
+Content-Type: {{contentType}}
+
+{
+  "email": "{{ownerEmail}}",
+  "password": "{{ownerPassword}}",
+  "tenantId": "{{tenantId}}",
+  "groupId": "{{groupId}}"
+}
+
+> {%
+  client.global.set("ownerTenantAccessToken", response.body.accessToken);
+%}
+
+### B-7) 플랫폼 관리자: tenant role-template 바인딩 (operator)
+POST {{baseUrl}}/admin/tenants/{{tenantId}}/role-templates
+Authorization: Bearer {{platformAccessToken}}
+Content-Type: {{contentType}}
+
+{
+  "roleCode": "TENANT_OPERATOR",
+  "templateCode": "{{templateWork}}"
+}
+
+### B-8) Owner: 운영자 초대
+# @name inviteOperator
+POST {{baseUrl}}/tenants/{{tenantId}}/admin/invitations
+Authorization: Bearer {{ownerTenantAccessToken}}
+Content-Type: {{contentType}}
+
+{
+  "email": "{{operatorEmail}}",
+  "groupId": "{{groupId}}",
+  "role": "STAFF"
+}
+
+> {%
+  client.global.set("invitationId", response.body.invitationId);
+%}
+
+### B-9) Operator login
+# @name operatorLogin
+POST {{baseUrl}}/auth/login
+Content-Type: {{contentType}}
+
+{
+  "email": "{{operatorEmail}}",
+  "password": "{{operatorPassword}}",
+  "tenantId": null,
+  "groupId": null
+}
+
+> {%
+  client.global.set("operatorAccessToken", response.body.accessToken);
+%}
+
+### B-10) Operator: 초대 수락
+# @name acceptInvitation
+POST {{baseUrl}}/invitations/{{invitationId}}/accept
+Authorization: Bearer {{operatorAccessToken}}
+
+> {%
+  client.global.set("operatorMembershipId", response.body.membershipId);
+%}
+
+### B-11) Owner: Operator role 부여
+POST {{baseUrl}}/tenants/{{tenantId}}/admin/memberships/{{operatorMembershipId}}/roles/TENANT_OPERATOR
+Authorization: Bearer {{ownerTenantAccessToken}}
+
+### B-12) Owner: 테넌트 사용 가능 템플릿 조회
+GET {{baseUrl}}/tenants/{{tenantId}}/admin/permission-templates/available
+Authorization: Bearer {{ownerTenantAccessToken}}
+
+### B-13) Owner: Operator에게 작업 템플릿 적용
+POST {{baseUrl}}/tenants/{{tenantId}}/admin/memberships/{{operatorMembershipId}}/permission-templates/{{templateWork}}/apply
+Authorization: Bearer {{ownerTenantAccessToken}}
+Content-Type: {{contentType}}
+
+{
+  "reason": "scenario operator work grant"
+}
+
+### B-14) Owner: Operator 역할/권한 상태 확인
+GET {{baseUrl}}/tenants/{{tenantId}}/admin/memberships/{{operatorMembershipId}}/roles
+Authorization: Bearer {{ownerTenantAccessToken}}
+
+
+### =========================================================
+### [Scenario C] 정책 검증(실패 케이스)
+### =========================================================
+
+### C-1) Operator가 TENANT_OWNER 부여 시도 (정책상 403 기대)
+POST {{baseUrl}}/tenants/{{tenantId}}/admin/memberships/{{operatorMembershipId}}/roles/TENANT_OWNER
+Authorization: Bearer {{operatorAccessToken}}
+
+### C-2) Operator가 template 적용 시도 (정책상 403 기대)
+POST {{baseUrl}}/tenants/{{tenantId}}/admin/memberships/{{operatorMembershipId}}/permission-templates/{{templateOwnerCore}}/apply
+Authorization: Bearer {{operatorAccessToken}}
+Content-Type: {{contentType}}
+
+{
+  "reason": "should be denied"
+}
+
+### C-3) Owner가 자기 자신에게 TENANT_OWNER 재부여 (self escalation 가드 확인)
+POST {{baseUrl}}/tenants/{{tenantId}}/admin/memberships/{{ownerMembershipId}}/roles/TENANT_OWNER
+Authorization: Bearer {{ownerTenantAccessToken}}
+
+
+### =========================================================
+### [Scenario D] Authz evaluate 확인
+### =========================================================
+
+### D-1) LIVE_RECHECK 평가
+POST {{baseUrl}}/authz/evaluate
+Authorization: Bearer {{ownerTenantAccessToken}}
+Content-Type: {{contentType}}
+
+{
+  "tenantId": "{{tenantId}}",
+  "action": "TENANT_ROLE_ASSIGN",
+  "resourceRef": "membership:{{operatorMembershipId}}",
+  "decisionMode": "LIVE_RECHECK"
+}
+
+### D-2) tenant mismatch 평가 (deny 기대)
+POST {{baseUrl}}/authz/evaluate
+Authorization: Bearer {{ownerTenantAccessToken}}
+Content-Type: {{contentType}}
+
+{
+  "tenantId": "wrong-tenant-id",
+  "action": "TENANT_ROLE_ASSIGN",
+  "resourceRef": "membership:{{operatorMembershipId}}",
+  "decisionMode": "TOKEN_SNAPSHOT"
+}

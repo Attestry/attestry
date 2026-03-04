@@ -3,7 +3,6 @@ package io.attestry.userauth.infrastructure.persistence.jpa;
 import io.attestry.userauth.application.port.TemplateAdminRepositoryPort;
 import io.attestry.userauth.common.error.DomainException;
 import io.attestry.userauth.common.error.ErrorCode;
-import io.attestry.userauth.domain.auth.policy.PermissionCatalog;
 import java.sql.ResultSet;
 import java.sql.SQLException;
 import java.sql.Timestamp;
@@ -20,20 +19,19 @@ import org.springframework.stereotype.Repository;
 public class JpaTemplateAdminRepositoryAdapter implements TemplateAdminRepositoryPort {
 
     private final JdbcTemplate jdbcTemplate;
-    private final PermissionCatalog permissionCatalog;
 
-    public JpaTemplateAdminRepositoryAdapter(JdbcTemplate jdbcTemplate, PermissionCatalog permissionCatalog) {
+    public JpaTemplateAdminRepositoryAdapter(JdbcTemplate jdbcTemplate) {
         this.jdbcTemplate = jdbcTemplate;
-        this.permissionCatalog = permissionCatalog;
     }
 
     @Override
     public Optional<PermissionTemplateView> findTemplateByCode(String templateCode) {
         List<PermissionTemplateView> rows = jdbcTemplate.query(
             """
-                SELECT template_id, code, name, description, enabled
+                SELECT template_id, tenant_id, code, name, description, enabled
                 FROM permission_templates
                 WHERE code = ?
+                  AND tenant_id IS NULL
                 """,
             (rs, rowNum) -> mapTemplate(rs, findPermissionCodesByTemplateId(rs.getString("template_id"))),
             templateCode
@@ -42,14 +40,65 @@ public class JpaTemplateAdminRepositoryAdapter implements TemplateAdminRepositor
     }
 
     @Override
+    public Optional<PermissionTemplateView> findTemplateByCodeAndTenantId(String templateCode, String tenantId) {
+        List<PermissionTemplateView> rows = jdbcTemplate.query(
+            """
+                SELECT template_id, tenant_id, code, name, description, enabled
+                FROM permission_templates
+                WHERE code = ?
+                  AND tenant_id = ?
+                """,
+            (rs, rowNum) -> mapTemplate(rs, findPermissionCodesByTemplateId(rs.getString("template_id"))),
+            templateCode,
+            tenantId
+        );
+        return rows.stream().findFirst();
+    }
+
+    @Override
+    public Optional<PermissionTemplateView> findTemplateVisibleToTenant(String templateCode, String tenantId) {
+        List<PermissionTemplateView> rows = jdbcTemplate.query(
+            """
+                SELECT template_id, tenant_id, code, name, description, enabled
+                FROM permission_templates
+                WHERE code = ?
+                  AND (tenant_id IS NULL OR tenant_id = ?)
+                ORDER BY CASE WHEN tenant_id = ? THEN 0 ELSE 1 END
+                LIMIT 1
+                """,
+            (rs, rowNum) -> mapTemplate(rs, findPermissionCodesByTemplateId(rs.getString("template_id"))),
+            templateCode,
+            tenantId,
+            tenantId
+        );
+        return rows.stream().findFirst();
+    }
+
+    @Override
     public List<PermissionTemplateView> findAllTemplates() {
         return jdbcTemplate.query(
             """
-                SELECT template_id, code, name, description, enabled
+                SELECT template_id, tenant_id, code, name, description, enabled
                 FROM permission_templates
+                WHERE tenant_id IS NULL
                 ORDER BY code
                 """,
             (rs, rowNum) -> mapTemplate(rs, findPermissionCodesByTemplateId(rs.getString("template_id")))
+        );
+    }
+
+    @Override
+    public List<PermissionTemplateView> findTemplatesVisibleToTenant(String tenantId) {
+        return jdbcTemplate.query(
+            """
+                SELECT template_id, tenant_id, code, name, description, enabled
+                FROM permission_templates
+                WHERE tenant_id IS NULL OR tenant_id = ?
+                ORDER BY CASE WHEN tenant_id = ? THEN 0 ELSE 1 END, code
+                """,
+            (rs, rowNum) -> mapTemplate(rs, findPermissionCodesByTemplateId(rs.getString("template_id"))),
+            tenantId,
+            tenantId
         );
     }
 
@@ -58,10 +107,14 @@ public class JpaTemplateAdminRepositoryAdapter implements TemplateAdminRepositor
         String code,
         String name,
         String description,
+        String tenantId,
         String actorUserId,
         Instant now
     ) {
-        if (findTemplateByCode(code).isPresent()) {
+        Optional<PermissionTemplateView> existing = tenantId == null
+            ? findTemplateByCode(code)
+            : findTemplateByCodeAndTenantId(code, tenantId);
+        if (existing.isPresent()) {
             throw new DomainException(ErrorCode.DUPLICATE_TEMPLATE_CODE, "Template code already exists");
         }
         String templateId = UUID.randomUUID().toString();
@@ -69,34 +122,39 @@ public class JpaTemplateAdminRepositoryAdapter implements TemplateAdminRepositor
             """
                 INSERT INTO permission_templates (
                     template_id,
+                    tenant_id,
                     code,
                     name,
                     description,
                     enabled,
                     created_by_user_id,
                     created_at
-                ) VALUES (?, ?, ?, ?, TRUE, ?, ?)
+                ) VALUES (?, ?, ?, ?, ?, TRUE, ?, ?)
                 """,
             templateId,
+            tenantId,
             code,
             name,
             description,
             actorUserId,
             Timestamp.from(now)
         );
-        return findTemplateByCode(code)
+        return (tenantId == null ? findTemplateByCode(code) : findTemplateByCodeAndTenantId(code, tenantId))
             .orElseThrow(() -> new DomainException(ErrorCode.TEMPLATE_NOT_FOUND, "Template not found after create"));
     }
 
     @Override
     public PermissionTemplateView updateTemplateMeta(
         String code,
+        String tenantId,
         String name,
         String description,
         Boolean enabled,
         Instant now
     ) {
-        PermissionTemplateView current = findTemplateByCode(code)
+        PermissionTemplateView current = (tenantId == null
+            ? findTemplateByCode(code)
+            : findTemplateByCodeAndTenantId(code, tenantId))
             .orElseThrow(() -> new DomainException(ErrorCode.TEMPLATE_NOT_FOUND, "Template not found"));
         jdbcTemplate.update(
             """
@@ -106,20 +164,78 @@ public class JpaTemplateAdminRepositoryAdapter implements TemplateAdminRepositor
                     enabled = COALESCE(?, enabled),
                     updated_at = ?
                 WHERE code = ?
+                  AND (
+                    (? IS NULL AND tenant_id IS NULL)
+                    OR tenant_id = ?
+                  )
                 """,
             name,
             description,
             enabled,
             Timestamp.from(now),
-            code
+            code,
+            tenantId,
+            tenantId
         );
-        return findTemplateByCode(code)
+        return (tenantId == null ? findTemplateByCode(code) : findTemplateByCodeAndTenantId(code, tenantId))
             .orElseThrow(() -> new DomainException(ErrorCode.TEMPLATE_NOT_FOUND, "Template not found after update"));
     }
 
     @Override
-    public Set<String> replaceTemplatePermissions(String templateCode, Set<String> permissionCodes) {
-        String templateId = getTemplateId(templateCode);
+    public PermissionView createPermission(
+        String code,
+        String name,
+        String description,
+        String resourceType,
+        String action
+    ) {
+        Integer count = jdbcTemplate.queryForObject(
+            "SELECT COUNT(1) FROM permissions WHERE code = ?",
+            Integer.class,
+            code
+        );
+        if (count != null && count > 0) {
+            throw new DomainException(ErrorCode.INVALID_REQUEST, "Permission code already exists: " + code);
+        }
+        String permissionId = UUID.randomUUID().toString();
+        jdbcTemplate.update(
+            """
+                INSERT INTO permissions (
+                    permission_id,
+                    code,
+                    name,
+                    description,
+                    resource_type,
+                    action,
+                    enabled
+                ) VALUES (?, ?, ?, ?, ?, ?, TRUE)
+                """,
+            permissionId,
+            code,
+            name,
+            description,
+            resourceType,
+            action
+        );
+        return findPermissionByCode(code)
+            .orElseThrow(() -> new DomainException(ErrorCode.PERMISSION_NOT_FOUND, "Permission not found after create"));
+    }
+
+    @Override
+    public List<PermissionView> findAllPermissions() {
+        return jdbcTemplate.query(
+            """
+                SELECT permission_id, code, name, description, resource_type, action, enabled
+                FROM permissions
+                ORDER BY code
+                """,
+            (rs, rowNum) -> mapPermission(rs)
+        );
+    }
+
+    @Override
+    public Set<String> replaceTemplatePermissions(String templateCode, String tenantId, Set<String> permissionCodes) {
+        String templateId = getTemplateId(templateCode, tenantId);
         ensurePermissionCodesExist(permissionCodes);
         jdbcTemplate.update("DELETE FROM template_permissions WHERE template_id = ?", templateId);
         for (String permissionCode : permissionCodes) {
@@ -139,8 +255,8 @@ public class JpaTemplateAdminRepositoryAdapter implements TemplateAdminRepositor
     }
 
     @Override
-    public Set<String> addTemplatePermissions(String templateCode, Set<String> permissionCodes) {
-        String templateId = getTemplateId(templateCode);
+    public Set<String> addTemplatePermissions(String templateCode, String tenantId, Set<String> permissionCodes) {
+        String templateId = getTemplateId(templateCode, tenantId);
         ensurePermissionCodesExist(permissionCodes);
         for (String permissionCode : permissionCodes) {
             jdbcTemplate.update(
@@ -165,8 +281,8 @@ public class JpaTemplateAdminRepositoryAdapter implements TemplateAdminRepositor
     }
 
     @Override
-    public Set<String> removeTemplatePermission(String templateCode, String permissionCode) {
-        String templateId = getTemplateId(templateCode);
+    public Set<String> removeTemplatePermission(String templateCode, String tenantId, String permissionCode) {
+        String templateId = getTemplateId(templateCode, tenantId);
         jdbcTemplate.update(
             """
                 DELETE FROM template_permissions
@@ -192,7 +308,7 @@ public class JpaTemplateAdminRepositoryAdapter implements TemplateAdminRepositor
         Instant now
     ) {
         ensureTenantExists(tenantId);
-        String templateId = getTemplateId(templateCode);
+        String templateId = getBindableTemplateId(tenantId, templateCode);
         TenantRoleTemplateBindingView existing = findBinding(tenantId, roleCode, templateCode).orElse(null);
         if (existing == null) {
             jdbcTemplate.update(
@@ -253,7 +369,7 @@ public class JpaTemplateAdminRepositoryAdapter implements TemplateAdminRepositor
     @Override
     public void disableTenantRoleTemplateBinding(String tenantId, String roleCode, String templateCode, Instant now) {
         ensureTenantExists(tenantId);
-        String templateId = getTemplateId(templateCode);
+        String templateId = getBindableTemplateId(tenantId, templateCode);
         int updated = jdbcTemplate.update(
             """
                 UPDATE tenant_role_template_bindings
@@ -291,8 +407,17 @@ public class JpaTemplateAdminRepositoryAdapter implements TemplateAdminRepositor
         return rows.stream().findFirst();
     }
 
-    private String getTemplateId(String templateCode) {
-        return findTemplateByCode(templateCode)
+    private String getTemplateId(String templateCode, String tenantId) {
+        Optional<PermissionTemplateView> view = tenantId == null
+            ? findTemplateByCode(templateCode)
+            : findTemplateByCodeAndTenantId(templateCode, tenantId);
+        return view
+            .map(PermissionTemplateView::templateId)
+            .orElseThrow(() -> new DomainException(ErrorCode.TEMPLATE_NOT_FOUND, "Template not found"));
+    }
+
+    private String getBindableTemplateId(String tenantId, String templateCode) {
+        return findTemplateVisibleToTenant(templateCode, tenantId)
             .map(PermissionTemplateView::templateId)
             .orElseThrow(() -> new DomainException(ErrorCode.TEMPLATE_NOT_FOUND, "Template not found"));
     }
@@ -314,10 +439,28 @@ public class JpaTemplateAdminRepositoryAdapter implements TemplateAdminRepositor
 
     private void ensurePermissionCodesExist(Set<String> permissionCodes) {
         for (String permissionCode : permissionCodes) {
-            if (!permissionCatalog.isKnown(permissionCode)) {
+            Integer count = jdbcTemplate.queryForObject(
+                "SELECT COUNT(1) FROM permissions WHERE code = ? AND enabled = TRUE",
+                Integer.class,
+                permissionCode
+            );
+            if (count == null || count == 0) {
                 throw new DomainException(ErrorCode.PERMISSION_NOT_FOUND, "Permission not found: " + permissionCode);
             }
         }
+    }
+
+    private Optional<PermissionView> findPermissionByCode(String code) {
+        List<PermissionView> rows = jdbcTemplate.query(
+            """
+                SELECT permission_id, code, name, description, resource_type, action, enabled
+                FROM permissions
+                WHERE code = ?
+                """,
+            (rs, rowNum) -> mapPermission(rs),
+            code
+        );
+        return rows.stream().findFirst();
     }
 
     private void ensureTenantExists(String tenantId) {
@@ -334,6 +477,7 @@ public class JpaTemplateAdminRepositoryAdapter implements TemplateAdminRepositor
     private PermissionTemplateView mapTemplate(ResultSet rs, Set<String> permissionCodes) throws SQLException {
         return new PermissionTemplateView(
             rs.getString("template_id"),
+            rs.getString("tenant_id"),
             rs.getString("code"),
             rs.getString("name"),
             rs.getString("description"),
@@ -348,6 +492,18 @@ public class JpaTemplateAdminRepositoryAdapter implements TemplateAdminRepositor
             rs.getString("tenant_id"),
             rs.getString("role_code"),
             rs.getString("template_code"),
+            rs.getBoolean("enabled")
+        );
+    }
+
+    private PermissionView mapPermission(ResultSet rs) throws SQLException {
+        return new PermissionView(
+            rs.getString("permission_id"),
+            rs.getString("code"),
+            rs.getString("name"),
+            rs.getString("description"),
+            rs.getString("resource_type"),
+            rs.getString("action"),
             rs.getBoolean("enabled")
         );
     }

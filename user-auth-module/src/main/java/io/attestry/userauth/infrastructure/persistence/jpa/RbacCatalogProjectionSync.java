@@ -1,8 +1,8 @@
 package io.attestry.userauth.infrastructure.persistence.jpa;
 
-import io.attestry.userauth.domain.auth.policy.PermissionCatalog;
-import io.attestry.userauth.domain.auth.policy.SystemPermissionTemplateCatalog;
-import io.attestry.userauth.domain.auth.policy.SystemPermissionTemplateCatalog.TemplateDefinition;
+import io.attestry.userauth.domain.authorization.policy.PermissionCatalog;
+import io.attestry.userauth.domain.authorization.policy.SystemPermissionTemplateCatalog;
+import io.attestry.userauth.domain.authorization.policy.SystemPermissionTemplateCatalog.TemplateDefinition;
 import java.sql.Timestamp;
 import java.util.ArrayList;
 import java.util.List;

@@ -1,0 +1,23 @@
+package io.attestry.product.domain;
+
+public enum ProductErrorCode {
+    // Mint
+    INVALID_REQUEST,
+    FORBIDDEN_MINT,
+    GENESIS_ALREADY_EXISTS,
+    DUPLICATE_SERIAL_NUMBER,
+    TENANT_OR_GROUP_INACTIVE,
+    MINT_CONTEXT_NOT_FOUND,
+    OUTBOX_ENQUEUE_FAILED,
+
+    // Void
+    ASSET_ALREADY_VOIDED,
+    FORBIDDEN_VOID,
+    ASSET_NOT_FOUND,
+
+    // Risk
+    RISK_FLAG_ALREADY_SET,
+    FORBIDDEN_RISK_FLAG,
+    NOT_ASSET_OWNER,
+    RISK_FLAG_NOT_SET
+}

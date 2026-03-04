@@ -1,6 +1,7 @@
 package io.attestry.userauth.application.dto.command;
 
-import io.attestry.userauth.domain.user.enums.VerificationLevel;
+import io.attestry.userauth.domain.identity.model.VerificationLevel;
+import io.attestry.userauth.security.AuthPrincipal;
 import java.time.Instant;
 import java.util.Set;
 
@@ -13,4 +14,15 @@ public record ActorContext(
     Set<String> scopes,
     Instant expiresAt
 ) {
+    public static ActorContext from(AuthPrincipal principal) {
+        return new ActorContext(
+            principal.tokenId(),
+            principal.userId(),
+            principal.tenantId(),
+            principal.groupId(),
+            principal.verificationLevel(),
+            principal.scopes(),
+            principal.expiresAt()
+        );
+    }
 }

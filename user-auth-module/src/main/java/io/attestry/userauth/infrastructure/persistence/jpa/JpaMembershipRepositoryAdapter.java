@@ -6,6 +6,7 @@ import io.attestry.userauth.infrastructure.persistence.jpa.entity.MembershipJpaE
 import io.attestry.userauth.infrastructure.persistence.jpa.repository.MembershipJpaRepository;
 import java.util.List;
 import java.util.Optional;
+import java.util.Set;
 import org.springframework.stereotype.Repository;
 import org.springframework.transaction.annotation.Transactional;
 
@@ -31,7 +32,7 @@ public class JpaMembershipRepositoryAdapter implements MembershipRepositoryPort 
     }
 
     private Membership toDomain(MembershipJpaEntity entity) {
-        return new Membership(
+        return Membership.reconstitute(
             entity.getMembershipId(),
             entity.getUserId(),
             entity.getGroupId(),
@@ -40,7 +41,8 @@ public class JpaMembershipRepositoryAdapter implements MembershipRepositoryPort 
             entity.getRole(),
             entity.getStatus(),
             entity.getGroupStatus(),
-            entity.getTenantStatus()
+            entity.getTenantStatus(),
+            Set.of()
         );
     }
 }

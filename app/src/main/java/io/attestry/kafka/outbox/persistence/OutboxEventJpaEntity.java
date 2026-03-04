@@ -47,6 +47,9 @@ public class OutboxEventJpaEntity {
     @Column(name = "published_at")
     private Instant publishedAt;
 
+    @Column(name = "next_retry_at")
+    private Instant nextRetryAt;
+
     protected OutboxEventJpaEntity() {
     }
 
@@ -61,7 +64,8 @@ public class OutboxEventJpaEntity {
         int retryCount,
         String lastError,
         Instant createdAt,
-        Instant publishedAt
+        Instant publishedAt,
+        Instant nextRetryAt
     ) {
         this.eventId = eventId;
         this.aggregateType = aggregateType;
@@ -74,6 +78,7 @@ public class OutboxEventJpaEntity {
         this.lastError = lastError;
         this.createdAt = createdAt;
         this.publishedAt = publishedAt;
+        this.nextRetryAt = nextRetryAt;
     }
 
     public String getEventId() {
@@ -118,5 +123,9 @@ public class OutboxEventJpaEntity {
 
     public Instant getPublishedAt() {
         return publishedAt;
+    }
+
+    public Instant getNextRetryAt() {
+        return nextRetryAt;
     }
 }

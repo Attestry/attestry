@@ -2,7 +2,7 @@ package io.attestry.userauth.interfaces.membership;
 
 import io.attestry.userauth.application.dto.view.MembershipView;
 import io.attestry.userauth.application.usecase.membership.MembershipQueryUseCase;
-import io.attestry.userauth.domain.auth.model.AuthPrincipal;
+import io.attestry.userauth.security.AuthPrincipal;
 import java.util.List;
 import org.springframework.security.core.annotation.AuthenticationPrincipal;
 import org.springframework.web.bind.annotation.GetMapping;

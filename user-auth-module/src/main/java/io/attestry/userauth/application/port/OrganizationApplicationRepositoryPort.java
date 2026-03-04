@@ -10,7 +10,13 @@ public interface OrganizationApplicationRepositoryPort {
 
     Optional<OrganizationApplication> findById(String applicationId);
 
+    Optional<OrganizationApplication> findByIdAndApplicantUserId(String applicationId, String applicantUserId);
+
+    List<OrganizationApplication> findAll();
+
     List<OrganizationApplication> findByType(GroupType type);
+
+    List<OrganizationApplication> findByApplicantUserId(String applicantUserId);
 
     List<OrganizationApplication> findByTenantAndType(String tenantId, GroupType type);
 

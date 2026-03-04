@@ -1,56 +1,28 @@
-### =========================================================
-### User Auth API - Onboarding Scenario Collection
-### =========================================================
-@adminAccessToken = ff1a5544-9d70-4b1a-9bb8-167c59ea2cca
-
+### User Auth - Onboarding Admin APIs
+### Required scope: SCOPE_TENANT_CREATE_APPROVE
 
 @baseUrl = http://localhost:8080
 @contentType = application/json
-@pdfPath = ./user-auth-module/http/files/biz-proof-1.pdf
-@pdfSizeBytes = 102400
+@adminAccessToken = 5f7c32e6-0ff3-4239-ad6b-3bcc99b3751b
+@applicationId = 7958e5c5-66c5-4b81-997a-05ecbb12b159
 
-@tenantId = REPLACE_TENANT_ID
-@applicationId = 7724b85e-173a-49aa-a732-ba4052c2205b
-
-
-### 6) List brand applications (platform/admin scope 필요)
-GET {{baseUrl}}/admin/brand-applications
+### 1) List applications (all)
+GET {{baseUrl}}/admin/onboarding/applications
 Authorization: Bearer {{adminAccessToken}}
 
-
-
-### 7) Approve brand application (platform/admin scope 필요)
-POST {{baseUrl}}/admin/brand-applications/{{applicationId}}/approve
+### 2) List applications (filtered by type)
+GET {{baseUrl}}/admin/onboarding/applications?type=BRAND
 Authorization: Bearer {{adminAccessToken}}
 
+### 3) Approve application
+POST {{baseUrl}}/admin/onboarding/applications/{{applicationId}}/approve
+Authorization: Bearer {{adminAccessToken}}
 
-### 8) Reject brand application (platform/admin scope 필요)
-POST {{baseUrl}}/admin/brand-applications/{{applicationId}}/reject
+### 4) Reject application
+POST {{baseUrl}}/admin/onboarding/applications/{{applicationId}}/reject
 Authorization: Bearer {{adminAccessToken}}
 Content-Type: {{contentType}}
 
 {
-  "reason": "Document mismatch"
+  "reason": "invalid evidence"
 }
-
-
-### 12) Approve retail application (platform approve scope 필요)
-POST {{baseUrl}}/admin/retail-applications/{{applicationId}}/approve
-Authorization: Bearer {{adminAccessToken}}
-
-
-### 13) Reject retail application (platform approve scope 필요)
-POST {{baseUrl}}/admin/retail-applications/{{applicationId}}/reject
-Authorization: Bearer {{adminAccessToken}}
-Content-Type: {{contentType}}
-
-{
-  "reason": "Insufficient documents"
-}
-
-
-### 11) List retail applications (platform approve scope 필요)
-GET {{baseUrl}}/admin/retail-applications
-Authorization: Bearer {{adminAccessToken}}
-
-

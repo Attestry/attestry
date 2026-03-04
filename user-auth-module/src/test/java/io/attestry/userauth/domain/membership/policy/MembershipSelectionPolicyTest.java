@@ -80,16 +80,10 @@ class MembershipSelectionPolicyTest {
     }
 
     private Membership membership(String id, MembershipStatus status, GroupStatus groupStatus, TenantStatus tenantStatus) {
-        return new Membership(
-            id,
-            "u1",
-            "g1",
-            "t1",
-            GroupType.BRAND,
-            MembershipRole.ADMIN,
-            status,
-            groupStatus,
-            tenantStatus
+        return Membership.reconstitute(
+            id, "u1", "g1", "t1",
+            GroupType.BRAND, MembershipRole.ADMIN, status,
+            groupStatus, tenantStatus, java.util.Set.of()
         );
     }
 }

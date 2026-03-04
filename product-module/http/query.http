@@ -1,0 +1,19 @@
+### =========================================================
+### Product Query Scenario
+### =========================================================
+
+@baseUrl = http://localhost:8080
+@accessToken = REPLACE_ACCESS_TOKEN
+@passportId = REPLACE_PASSPORT_ID
+
+### 1) Get Asset State
+GET {{baseUrl}}/products/passports/{{passportId}}/state
+Authorization: Bearer {{accessToken}}
+
+### 2) Get Current Owner
+GET {{baseUrl}}/products/passports/{{passportId}}/owner
+Authorization: Bearer {{accessToken}}
+
+### 3) My Passports (소유 여권 목록)
+GET {{baseUrl}}/products/me/passports
+Authorization: Bearer {{accessToken}}

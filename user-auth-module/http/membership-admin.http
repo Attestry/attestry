@@ -1,44 +1,39 @@
-### =========================================================
-### User Auth API - Membership / Group Admin (RBAC v1)
-### =========================================================
+### User Auth - Membership Admin APIs
 
 @baseUrl = http://localhost:8080
 @contentType = application/json
-@accessToken = 6a5ee14f-23ac-44c6-acbb-026750619d94
+@accessToken = e1748f7a-85f7-418c-abb4-805e94af23a5
+@tenantId = b32094dc-734c-4063-b289-a5882b061b72
+@groupId = fd0ebf85-9d73-4e1d-b746-8ebfdf0929d6
+@membershipId = b8851d3b-10fe-432a-9aeb-8a47105bb695
+@invitationId = 495e6f55-bae7-4636-9f7e-338180be5e67
+@roleCode = TENANT_OPERATOR
+@templateCode = TEMPLATE_BRAND_WORK
+@invitation-accessToken = 75ed2756-4ac5-4568-b997-504b8fa76625
 
-@tenantId = d3954904-f17c-4390-b4c0-b97bcc486d66
-@groupId = 2c362235-98da-454c-89ae-17d12e18c3a3
-@membershipId = 2baec8d0-315d-4ab7-a918-1e03a125a6f7
-
-@invitationId = afe70837-3983-4b92-8989-65b636850a46
-@inviteeEmail = staff.user3@attestry.io
-
-
-@invitationAccessToken = d68243a9-ce89-49a5-98c9-4b1f06606905
-@templateCode = TEMPLATE_TENANT_OWNER_CORE
-@permissionCode = BRAND_VOID
-
-### 1) Invitation create (SCOPE_TENANT_INVITATION_CREATE)
+### 1) Invite member
+### Required scope: SCOPE_TENANT_INVITATION_CREATE
 POST {{baseUrl}}/tenants/{{tenantId}}/admin/invitations
 Authorization: Bearer {{accessToken}}
 Content-Type: {{contentType}}
 
 {
-  "email": "{{inviteeEmail}}",
+  "email": "operator1@attestry.io",
   "groupId": "{{groupId}}",
   "role": "STAFF"
 }
 
-### 2) Invitation accept (로그인한 초대 대상자 토큰으로 호출)
+### 2) Accept invitation
 POST {{baseUrl}}/invitations/{{invitationId}}/accept
-Authorization: Bearer {{invitationAccessToken}}
+Authorization: Bearer {{invitation-accessToken}}
 
-
-### 3) Membership list (SCOPE_TENANT_MEMBERSHIP_VIEW)
+### 3) List memberships
+### Required scope: SCOPE_TENANT_MEMBERSHIP_VIEW
 GET {{baseUrl}}/tenants/{{tenantId}}/admin/memberships
 Authorization: Bearer {{accessToken}}
 
-### 4) Membership status update (SCOPE_TENANT_MEMBERSHIP_ENFORCE + LIVE_RECHECK)
+### 4) Update membership status
+### Required scope: SCOPE_TENANT_MEMBERSHIP_ENFORCE
 PATCH {{baseUrl}}/tenants/{{tenantId}}/admin/memberships/{{membershipId}}/status
 Authorization: Bearer {{accessToken}}
 Content-Type: {{contentType}}
@@ -47,41 +42,47 @@ Content-Type: {{contentType}}
   "status": "ACTIVE"
 }
 
-### 5) Membership role assignments list (SCOPE_TENANT_ROLE_ASSIGN)
+### 5) List membership roles
+### Required scope: SCOPE_TENANT_ROLE_ASSIGN
 GET {{baseUrl}}/tenants/{{tenantId}}/admin/memberships/{{membershipId}}/roles
 Authorization: Bearer {{accessToken}}
 
-### 6) Membership role assign (SCOPE_TENANT_ROLE_ASSIGN)
-POST {{baseUrl}}/tenants/{{tenantId}}/admin/memberships/{{membershipId}}/roles/TENANT_OWNER
-Authorization: Bearer {{accessToken}}
-
-### 7) Membership role revoke (SCOPE_TENANT_ROLE_ASSIGN)
-DELETE {{baseUrl}}/tenants/{{tenantId}}/admin/memberships/{{membershipId}}/roles/TENANT_OPERATOR
-Authorization: Bearer {{accessToken}}
-
-
-### 10) Membership available role codes (SCOPE_TENANT_ROLE_ASSIGN)
+### 6) List assignable roles for membership
+### Required scope: SCOPE_TENANT_ROLE_ASSIGN
 GET {{baseUrl}}/tenants/{{tenantId}}/admin/memberships/{{membershipId}}/roles/available
 Authorization: Bearer {{accessToken}}
 
-### 11) Tenant available template codes (SCOPE_TENANT_ROLE_ASSIGN)
+### 7) List tenant available permission templates
+### Required scope: SCOPE_TENANT_ROLE_ASSIGN
 GET {{baseUrl}}/tenants/{{tenantId}}/admin/permission-templates/available
 Authorization: Bearer {{accessToken}}
 
-### 12) Membership template apply (SCOPE_TENANT_ROLE_ASSIGN) // 누적되는구조
-POST {{baseUrl}}/tenants/{{tenantId}}/admin/memberships/{{membershipId}}/permission-templates/TEMPLATE_BRAND_WORK/apply
+### 8) Assign role
+### Required scope: SCOPE_TENANT_ROLE_ASSIGN
+POST {{baseUrl}}/tenants/{{tenantId}}/admin/memberships/{{membershipId}}/roles/{{roleCode}}
+Authorization: Bearer {{accessToken}}
+
+### 9) Revoke role
+### Required scope: SCOPE_TENANT_ROLE_ASSIGN
+DELETE {{baseUrl}}/tenants/{{tenantId}}/admin/memberships/{{membershipId}}/roles/{{roleCode}}
+Authorization: Bearer {{accessToken}}
+
+### 10) Apply permission template to membership
+### Required scope: SCOPE_TENANT_ROLE_ASSIGN
+POST {{baseUrl}}/tenants/{{tenantId}}/admin/memberships/{{membershipId}}/permission-templates/{{templateCode}}/apply
 Authorization: Bearer {{accessToken}}
 Content-Type: {{contentType}}
 
 {
-  "reason": "operator work assignment"
+  "reason": "grant for operation"
 }
 
-### 13) Membership template revoke (SCOPE_TENANT_ROLE_ASSIGN)
-POST {{baseUrl}}/tenants/{{tenantId}}/admin/memberships/{{membershipId}}/permission-templates/TEMPLATE_TENANT_OWNER_CORE/revoke
+### 11) Revoke permission template from membership
+### Required scope: SCOPE_TENANT_ROLE_ASSIGN
+POST {{baseUrl}}/tenants/{{tenantId}}/admin/memberships/{{membershipId}}/permission-templates/{{templateCode}}/revoke
 Authorization: Bearer {{accessToken}}
 Content-Type: {{contentType}}
 
 {
-  "reason": "operator work removed"
+  "reason": "revoke temporary grant"
 }

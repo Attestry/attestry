@@ -2,7 +2,6 @@ package io.attestry.userauth.application.membership;
 
 import io.attestry.userauth.common.error.DomainException;
 import io.attestry.userauth.common.error.ErrorCode;
-import io.attestry.userauth.domain.auth.policy.PermissionCatalog;
 import java.util.LinkedHashSet;
 import java.util.List;
 import java.util.Locale;
@@ -13,10 +12,7 @@ import org.springframework.stereotype.Component;
 @Component
 public class TemplateAdminCommandValidator {
 
-    private final PermissionCatalog permissionCatalog;
-
-    public TemplateAdminCommandValidator(PermissionCatalog permissionCatalog) {
-        this.permissionCatalog = permissionCatalog;
+    public TemplateAdminCommandValidator() {
     }
 
     public String normalizeTemplateCode(String code) {
@@ -37,11 +33,15 @@ public class TemplateAdminCommandValidator {
     }
 
     public String normalizePermissionCode(String code) {
-        String normalized = normalizeRequired(code, "permissionCode").toUpperCase(Locale.ROOT);
-        if (!permissionCatalog.isKnown(normalized)) {
-            throw new DomainException(ErrorCode.PERMISSION_NOT_FOUND, "Permission not found: " + normalized);
-        }
-        return normalized;
+        return normalizeRequired(code, "permissionCode").toUpperCase(Locale.ROOT);
+    }
+
+    public String normalizeResourceType(String resourceType) {
+        return normalizeRequired(resourceType, "resourceType").toUpperCase(Locale.ROOT);
+    }
+
+    public String normalizeAction(String action) {
+        return normalizeRequired(action, "action").toUpperCase(Locale.ROOT);
     }
 
     public String normalizeRequired(String value, String fieldName) {

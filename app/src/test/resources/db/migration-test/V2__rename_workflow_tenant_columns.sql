@@ -1,0 +1,1 @@
+/Users/min96/IdeaProjects/attestry/app/src/main/resources/db/migration/V2__rename_workflow_tenant_columns.sql

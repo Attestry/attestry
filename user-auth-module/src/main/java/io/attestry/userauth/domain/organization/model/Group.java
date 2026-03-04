@@ -1,26 +1,52 @@
 package io.attestry.userauth.domain.organization.model;
 
-public record Group(
-    String groupId,
-    String tenantId,
-    GroupType type,
-    GroupStatus status
-) {
+import java.util.UUID;
+
+public class Group {
+
+    private final String groupId;
+    private final String tenantId;
+    private final GroupType type;
+    private GroupStatus status;
+
+    private Group(String groupId, String tenantId, GroupType type, GroupStatus status) {
+        this.groupId = groupId;
+        this.tenantId = tenantId;
+        this.type = type;
+        this.status = status;
+    }
+
+    public static Group create(String tenantId, GroupType type) {
+        return new Group(UUID.randomUUID().toString(), tenantId, type, GroupStatus.ACTIVE);
+    }
+
+    public static Group reconstitute(String groupId, String tenantId, GroupType type, GroupStatus status) {
+        return new Group(groupId, tenantId, type, status);
+    }
+
     public boolean isActive() {
         return status == GroupStatus.ACTIVE;
     }
 
-    public Group suspend() {
+    public boolean suspend() {
         if (status == GroupStatus.SUSPENDED) {
-            return this;
+            return false;
         }
-        return new Group(groupId, tenantId, type, GroupStatus.SUSPENDED);
+        this.status = GroupStatus.SUSPENDED;
+        return true;
     }
 
-    public Group unsuspend() {
+    public boolean unsuspend() {
         if (status == GroupStatus.ACTIVE) {
-            return this;
+            return false;
         }
-        return new Group(groupId, tenantId, type, GroupStatus.ACTIVE);
+        this.status = GroupStatus.ACTIVE;
+        return true;
     }
+
+    // Getters
+    public String groupId() { return groupId; }
+    public String tenantId() { return tenantId; }
+    public GroupType type() { return type; }
+    public GroupStatus status() { return status; }
 }

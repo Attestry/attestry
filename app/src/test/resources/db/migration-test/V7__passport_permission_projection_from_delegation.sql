@@ -1,0 +1,1 @@
+/Users/min96/IdeaProjects/attestry/app/src/main/resources/db/migration/V7__passport_permission_projection_from_delegation.sql

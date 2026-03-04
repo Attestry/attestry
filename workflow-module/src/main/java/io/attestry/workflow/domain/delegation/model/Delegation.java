@@ -1,7 +1,7 @@
 package io.attestry.workflow.domain.delegation.model;
 
-import io.attestry.userauth.common.error.DomainException;
-import io.attestry.userauth.common.error.ErrorCode;
+import io.attestry.workflow.domain.WorkflowDomainException;
+import io.attestry.workflow.domain.WorkflowErrorCode;
 import java.time.Instant;
 import java.util.UUID;
 
@@ -53,7 +53,7 @@ public record Delegation(
 
     public Delegation revoke(String actorUserId, String revokeReason, Instant now) {
         if (status != DelegationStatus.ACTIVE) {
-            throw new DomainException(ErrorCode.DELEGATION_INVALID_STATE, "Only active delegation can be revoked");
+            throw new WorkflowDomainException(WorkflowErrorCode.DELEGATION_INVALID_STATE, "Only active delegation can be revoked");
         }
         return new Delegation(
             delegationId,
@@ -75,6 +75,11 @@ public record Delegation(
 
     public boolean isExpired(Instant now) {
         return expiresAt != null && expiresAt.isBefore(now);
+    }
+
+    public boolean isPassportPermissionGrant() {
+        return "PASSPORT".equals(resourceType)
+            && "RETAIL_TRANSFER_CREATE".equals(permissionCode);
     }
 
     // Backward compatibility for older call-sites.

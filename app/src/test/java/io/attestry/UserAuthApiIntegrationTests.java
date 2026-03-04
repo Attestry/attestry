@@ -17,8 +17,8 @@ import io.attestry.userauth.domain.organization.model.GroupType;
 import io.attestry.userauth.domain.membership.model.MembershipRole;
 import io.attestry.userauth.domain.membership.model.MembershipStatus;
 import io.attestry.userauth.domain.organization.model.TenantStatus;
-import io.attestry.userauth.domain.user.enums.UserStatus;
-import io.attestry.userauth.domain.user.enums.VerificationLevel;
+import io.attestry.userauth.domain.identity.model.UserStatus;
+import io.attestry.userauth.domain.identity.model.VerificationLevel;
 import io.attestry.userauth.infrastructure.persistence.jpa.entity.GroupJpaEntity;
 import io.attestry.userauth.infrastructure.persistence.jpa.entity.MembershipJpaEntity;
 import io.attestry.userauth.infrastructure.persistence.jpa.entity.TenantJpaEntity;
@@ -124,11 +124,12 @@ class UserAuthApiIntegrationTests {
         String token = login(email, password, null, null);
         String evidenceBundleId = prepareEvidenceBundle(token);
 
-        MvcResult created = mockMvc.perform(post("/brand-applications")
+        MvcResult created = mockMvc.perform(post("/onboarding/applications")
                 .header("Authorization", bearer(token))
                 .contentType(MediaType.APPLICATION_JSON)
                 .content(json(Map.of(
-                    "brandName", "Brand X",
+                    "type", "BRAND",
+                    "orgName", "Brand X",
                     "country", "KR",
                     "bizRegNo", "111-22-33333",
                     "evidenceBundleId", evidenceBundleId
@@ -140,7 +141,7 @@ class UserAuthApiIntegrationTests {
 
         String applicationId = readJson(created).get("applicationId").asText();
 
-        mockMvc.perform(get("/brand-applications/{id}", applicationId)
+        mockMvc.perform(get("/onboarding/applications/{id}", applicationId)
                 .header("Authorization", bearer(token)))
             .andExpect(status().isOk())
             .andExpect(jsonPath("$.applicationId").value(applicationId))
@@ -226,11 +227,12 @@ class UserAuthApiIntegrationTests {
         String membershipAdminToken = login(membershipAdminEmail, "MemberAdminPw123", tenantId, adminGroupId);
         String evidenceBundleId = prepareEvidenceBundle(applicantToken);
 
-        MvcResult retailCreated = mockMvc.perform(post("/retail-applications")
+        MvcResult retailCreated = mockMvc.perform(post("/onboarding/applications")
                 .header("Authorization", bearer(applicantToken))
                 .contentType(MediaType.APPLICATION_JSON)
                 .content(json(Map.of(
-                    "retailName", "Retail One",
+                    "type", "RETAIL",
+                    "orgName", "Retail One",
                     "country", "KR",
                     "bizRegNo", "999-88-77777",
                     "evidenceBundleId", evidenceBundleId
@@ -241,7 +243,7 @@ class UserAuthApiIntegrationTests {
 
         String retailAppId = readJson(retailCreated).get("applicationId").asText();
 
-        MvcResult approved = mockMvc.perform(post("/admin/retail-applications/{id}/approve", retailAppId)
+        MvcResult approved = mockMvc.perform(post("/admin/onboarding/applications/{id}/approve", retailAppId)
                 .header("Authorization", bearer(adminToken)))
             .andExpect(status().isOk())
             .andReturn();

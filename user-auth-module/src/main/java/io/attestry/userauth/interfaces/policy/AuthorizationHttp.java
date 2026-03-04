@@ -5,8 +5,7 @@ import io.attestry.userauth.application.dto.command.ActorContext;
 import io.attestry.userauth.application.dto.command.PolicyDecisionMode;
 import io.attestry.userauth.application.dto.result.AuthzEvaluateResult;
 import io.attestry.userauth.application.usecase.policy.EvaluateAuthorizationUseCase;
-import io.attestry.userauth.domain.auth.model.AuthPrincipal;
-import org.springframework.security.core.annotation.AuthenticationPrincipal;
+import io.attestry.userauth.security.CurrentActor;
 import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RequestMapping;
@@ -24,11 +23,11 @@ public class AuthorizationHttp {
 
     @PostMapping("/evaluate")
     public AuthzEvaluateResponse evaluate(
-        @AuthenticationPrincipal AuthPrincipal principal,
+        @CurrentActor ActorContext actor,
         @RequestBody AuthzEvaluateRequest request
     ) {
         AuthzEvaluateResult result = evaluateAuthorizationService.evaluate(
-            toActorContext(principal),
+            actor,
             new AuthzEvaluateCommand(request.tenantId(), request.action(), request.resourceRef(), request.decisionMode())
         );
 
@@ -44,17 +43,5 @@ public class AuthorizationHttp {
         java.util.Set<String> effectiveScopes,
         PolicyDecisionMode decisionMode
     ) {
-    }
-
-    private ActorContext toActorContext(AuthPrincipal principal) {
-        return new ActorContext(
-            principal.tokenId(),
-            principal.userId(),
-            principal.tenantId(),
-            principal.groupId(),
-            principal.verificationLevel(),
-            principal.scopes(),
-            principal.expiresAt()
-        );
     }
 }

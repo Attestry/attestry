@@ -6,7 +6,7 @@ import static org.junit.jupiter.api.Assertions.assertTrue;
 import io.attestry.userauth.application.dto.view.MembershipView;
 import io.attestry.userauth.application.port.MembershipPermissionQueryPort;
 import io.attestry.userauth.application.port.MembershipRepositoryPort;
-import io.attestry.userauth.domain.auth.model.PermissionCodes;
+import io.attestry.userauth.domain.authorization.model.PermissionCodes;
 import io.attestry.userauth.domain.organization.model.GroupStatus;
 import io.attestry.userauth.domain.organization.model.GroupType;
 import io.attestry.userauth.domain.membership.model.Membership;
@@ -25,16 +25,10 @@ class MembershipQueryServiceTest {
         MembershipRepositoryPort repository = new MembershipRepositoryPort() {
             @Override
             public List<Membership> findByUserId(String userId) {
-                return List.of(new Membership(
-                    "m1",
-                    userId,
-                    "g1",
-                    "t1",
-                    GroupType.RETAIL,
-                    MembershipRole.OPERATOR,
-                    MembershipStatus.ACTIVE,
-                    GroupStatus.ACTIVE,
-                    TenantStatus.ACTIVE
+                return List.of(Membership.reconstitute(
+                    "m1", userId, "g1", "t1",
+                    GroupType.RETAIL, MembershipRole.OPERATOR, MembershipStatus.ACTIVE,
+                    GroupStatus.ACTIVE, TenantStatus.ACTIVE, Set.of()
                 ));
             }
 
@@ -47,7 +41,7 @@ class MembershipQueryServiceTest {
         MembershipPermissionQueryPort permissionQueryPort = new MembershipPermissionQueryPort() {
             @Override
             public Set<String> findPermissionCodesByMembershipId(String membershipId) {
-                return Set.of(PermissionCodes.RETAIL_RELEASE, PermissionCodes.RETAIL_TRANSFER_CREATE);
+                return Set.of(PermissionCodes.RETAIL_TRANSFER_CREATE);
             }
 
             @Override
@@ -68,7 +62,6 @@ class MembershipQueryServiceTest {
         MembershipView view = views.getFirst();
         assertEquals("m1", view.membershipId());
         assertEquals(List.of("TENANT_OPERATOR"), view.roleCodes());
-        assertTrue(view.effectiveScopes().contains(PermissionCodes.RETAIL_RELEASE));
         assertTrue(view.effectiveScopes().contains(PermissionCodes.RETAIL_TRANSFER_CREATE));
     }
 }

@@ -1,0 +1,77 @@
+### User Auth - Platform Template Admin APIs
+### Required scope: SCOPE_PLATFORM_ADMIN
+
+@baseUrl = http://localhost:8080
+@contentType = application/json
+@platformAccessToken = REPLACE_PLATFORM_ACCESS_TOKEN
+@templateCode = TEMPLATE_BRAND_WORK
+@permissionCode = BRAND_MINT
+
+### 1) Create permission
+POST {{baseUrl}}/admin/permission-templates/permissions
+Authorization: Bearer {{platformAccessToken}}
+Content-Type: {{contentType}}
+
+{
+  "code": "PURCHASE_CLAIM_APPROVE",
+  "name": "Purchase Claim Approve",
+  "description": "claim approve",
+  "resourceType": "PASSPORT",
+  "action": "RELEASE"
+}
+
+### 2) List permissions
+GET {{baseUrl}}/admin/permission-templates/permissions
+Authorization: Bearer {{platformAccessToken}}
+
+### 3) Create template
+POST {{baseUrl}}/admin/permission-templates
+Authorization: Bearer {{platformAccessToken}}
+Content-Type: {{contentType}}
+
+{
+  "code": "TEMPLATE_BRAND_WORK",
+  "name": "Brand Work Template",
+  "description": "Brand operator work permissions"
+}
+
+### 4) List templates
+GET {{baseUrl}}/admin/permission-templates
+Authorization: Bearer {{platformAccessToken}}
+
+### 5) Get template detail
+GET {{baseUrl}}/admin/permission-templates/{{templateCode}}
+Authorization: Bearer {{platformAccessToken}}
+
+### 6) Update template meta
+PATCH {{baseUrl}}/admin/permission-templates/{{templateCode}}
+Authorization: Bearer {{platformAccessToken}}
+Content-Type: {{contentType}}
+
+{
+  "name": "Brand Work Template v2",
+  "description": "Updated description",
+  "enabled": true
+}
+
+### 7) Replace template permissions
+PUT {{baseUrl}}/admin/permission-templates/{{templateCode}}/permissions
+Authorization: Bearer {{platformAccessToken}}
+Content-Type: {{contentType}}
+
+{
+  "permissionCodes": ["BRAND_MINT", "BRAND_RELEASE"]
+}
+
+### 8) Add template permissions
+POST {{baseUrl}}/admin/permission-templates/{{templateCode}}/permissions
+Authorization: Bearer {{platformAccessToken}}
+Content-Type: {{contentType}}
+
+{
+  "permissionCodes": ["BRAND_MINT"]
+}
+
+### 9) Remove template permission
+DELETE {{baseUrl}}/admin/permission-templates/{{templateCode}}/permissions/{{permissionCode}}
+Authorization: Bearer {{platformAccessToken}}

@@ -1,6 +1,6 @@
 package io.attestry.userauth.domain.membership.policy;
 
-import io.attestry.userauth.domain.auth.model.RoleCodes;
+import io.attestry.userauth.domain.authorization.model.RoleCodes;
 import io.attestry.userauth.domain.membership.model.MembershipRole;
 import io.attestry.userauth.domain.organization.model.GroupType;
 

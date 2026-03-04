@@ -5,7 +5,7 @@ import io.attestry.userauth.application.dto.result.SignUpResult;
 import io.attestry.userauth.application.dto.command.LoginCommand;
 import io.attestry.userauth.application.dto.command.SignUpCommand;
 import io.attestry.userauth.application.usecase.auth.AuthUseCase;
-import io.attestry.userauth.domain.auth.model.AuthPrincipal;
+import io.attestry.userauth.security.AuthPrincipal;
 import io.attestry.userauth.interfaces.auth.dto.request.LoginRequest;
 import io.attestry.userauth.interfaces.auth.dto.request.SignUpRequest;
 import io.attestry.userauth.interfaces.auth.dto.response.LoginResponse;

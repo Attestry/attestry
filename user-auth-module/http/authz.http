@@ -1,26 +1,12 @@
-### =========================================================
-### User Auth API - Authorization Evaluate
-### =========================================================
+### User Auth - Authorization Evaluate API
 
 @baseUrl = http://localhost:8080
 @contentType = application/json
-@accessToken = 4bd0892d-d7b5-4748-a56d-0f7e2f4aa2f0
+@accessToken = REPLACE_ACCESS_TOKEN
 @tenantId = REPLACE_TENANT_ID
-@resourceRef = passport_123
+@resourceRef = membership:REPLACE_MEMBERSHIP_ID
 
-### 1) Evaluate - TOKEN_SNAPSHOT
-POST {{baseUrl}}/authz/evaluate
-Authorization: Bearer {{accessToken}}
-Content-Type: {{contentType}}
-
-{
-  "tenantId": "{{tenantId}}",
-  "action": "RETAIL_RELEASE",
-  "resourceRef": "{{resourceRef}}",
-  "decisionMode": "TOKEN_SNAPSHOT"
-}
-
-### 2) Evaluate - LIVE_RECHECK (민감 액션 권장)
+### 1) Evaluate (TOKEN_SNAPSHOT)
 POST {{baseUrl}}/authz/evaluate
 Authorization: Bearer {{accessToken}}
 Content-Type: {{contentType}}
@@ -28,18 +14,18 @@ Content-Type: {{contentType}}
 {
   "tenantId": "{{tenantId}}",
   "action": "TENANT_ROLE_ASSIGN",
-  "resourceRef": "membership:REPLACE_MEMBERSHIP_ID",
-  "decisionMode": "LIVE_RECHECK"
+  "resourceRef": "{{resourceRef}}",
+  "decisionMode": "TOKEN_SNAPSHOT"
 }
 
-### 3) Evaluate - tenant mismatch 예시 (deny 기대)
+### 2) Evaluate (LIVE_RECHECK)
 POST {{baseUrl}}/authz/evaluate
 Authorization: Bearer {{accessToken}}
 Content-Type: {{contentType}}
 
 {
-  "tenantId": "wrong-tenant-id",
-  "action": "RETAIL_RELEASE",
+  "tenantId": "{{tenantId}}",
+  "action": "TENANT_ROLE_ASSIGN",
   "resourceRef": "{{resourceRef}}",
-  "decisionMode": "TOKEN_SNAPSHOT"
+  "decisionMode": "LIVE_RECHECK"
 }

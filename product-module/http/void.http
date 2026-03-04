@@ -1,0 +1,24 @@
+### =========================================================
+### Product Void Scenario
+### =========================================================
+
+@baseUrl = http://localhost:8080
+@contentType = application/json
+@brandAccessToken = REPLACE_BRAND_TENANT_TOKEN
+@tenantId = REPLACE_TENANT_ID
+@groupId = REPLACE_BRAND_GROUP_ID
+@passportId = REPLACE_PASSPORT_ID
+
+### 1) Void Asset
+POST {{baseUrl}}/products/tenants/{{tenantId}}/groups/{{groupId}}/passports/{{passportId}}/void
+Authorization: Bearer {{brandAccessToken}}
+Content-Type: {{contentType}}
+
+{
+  "reason": "COUNTERFEIT_DETECTED",
+  "note": "Counterfeit confirmed by inspection team"
+}
+
+### 2) Verify asset state after void
+GET {{baseUrl}}/products/passports/{{passportId}}/state
+Authorization: Bearer {{brandAccessToken}}

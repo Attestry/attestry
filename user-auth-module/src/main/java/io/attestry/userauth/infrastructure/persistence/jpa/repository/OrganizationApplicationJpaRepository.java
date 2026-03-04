@@ -8,6 +8,10 @@ import org.springframework.data.jpa.repository.JpaRepository;
 public interface OrganizationApplicationJpaRepository extends JpaRepository<OrganizationApplicationJpaEntity, String> {
     List<OrganizationApplicationJpaEntity> findByType(GroupType type);
 
+    List<OrganizationApplicationJpaEntity> findByApplicantUserId(String applicantUserId);
+
+    java.util.Optional<OrganizationApplicationJpaEntity> findByApplicationIdAndApplicantUserId(String applicationId, String applicantUserId);
+
     List<OrganizationApplicationJpaEntity> findByTenantId(String tenantId);
 
     List<OrganizationApplicationJpaEntity> findByTenantIdAndType(String tenantId, GroupType type);

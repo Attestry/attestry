@@ -1,110 +1,222 @@
 package io.attestry.workflow.application.delegation;
 
-import io.attestry.userauth.common.error.DomainException;
-import io.attestry.userauth.common.error.ErrorCode;
-import io.attestry.userauth.application.dto.command.ActorContext;
-import io.attestry.userauth.application.dto.command.AuthzEvaluateCommand;
-import io.attestry.userauth.application.dto.command.PolicyDecisionMode;
-import io.attestry.userauth.application.dto.result.AuthzEvaluateResult;
-import io.attestry.userauth.application.usecase.policy.EvaluateAuthorizationUseCase;
-import io.attestry.userauth.domain.auth.model.AuthPrincipal;
-import io.attestry.userauth.domain.auth.model.PermissionCodes;
+import io.attestry.userauth.security.AuthPrincipal;
+import io.attestry.userauth.domain.authorization.model.PermissionCodes;
+import io.attestry.workflow.application.delegation.command.BatchGrantPassportDelegationCommand;
 import io.attestry.workflow.application.delegation.command.GrantDelegationCommand;
+import io.attestry.workflow.application.port.PassportAuthorityQueryPort;
+import io.attestry.workflow.application.delegation.result.BatchDelegationResult;
 import io.attestry.workflow.application.delegation.result.DelegationEvaluateResult;
 import io.attestry.workflow.application.delegation.result.DelegationResult;
-import io.attestry.workflow.application.port.DelegationRepositoryPort;
-import io.attestry.workflow.application.port.PartnerLinkRepositoryPort;
+import io.attestry.workflow.application.port.DelegationPermissionProjectionPort;
 import io.attestry.workflow.application.port.TenantReadPort;
+import io.attestry.workflow.application.support.WorkflowAuthorizationSupport;
 import io.attestry.workflow.application.usecase.DelegationUseCase;
+import io.attestry.workflow.domain.WorkflowDomainException;
+import io.attestry.workflow.domain.WorkflowErrorCode;
 import io.attestry.workflow.domain.delegation.model.Delegation;
+import io.attestry.workflow.domain.delegation.policy.DelegationGrantPolicy;
+import io.attestry.workflow.domain.delegation.repository.DelegationRepository;
 import io.attestry.workflow.domain.partner.model.PartnerLink;
 import io.attestry.workflow.domain.partner.model.PartnerLinkStatus;
+import io.attestry.workflow.domain.partner.repository.PartnerLinkRepository;
 import java.time.Clock;
 import java.time.Instant;
+import java.util.ArrayList;
 import java.util.List;
+import java.util.Optional;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
 @Service
 public class DelegationService implements DelegationUseCase {
 
-    private final DelegationRepositoryPort delegationRepository;
-    private final PartnerLinkRepositoryPort partnerLinkRepository;
+    private final DelegationRepository delegationRepository;
+    private final PartnerLinkRepository partnerLinkRepository;
     private final TenantReadPort tenantReadPort;
-    private final EvaluateAuthorizationUseCase evaluateAuthorizationUseCase;
+    private final PassportAuthorityQueryPort passportAuthorityQueryPort;
+    private final DelegationPermissionProjectionPort permissionProjectionPort;
+    private final RelationshipValidator relationshipValidator;
+    private final DelegationGrantPolicy delegationGrantPolicy;
+    private final WorkflowAuthorizationSupport authorizationSupport;
     private final Clock clock;
 
     public DelegationService(
-        DelegationRepositoryPort delegationRepository,
-        PartnerLinkRepositoryPort partnerLinkRepository,
+        DelegationRepository delegationRepository,
+        PartnerLinkRepository partnerLinkRepository,
         TenantReadPort tenantReadPort,
-        EvaluateAuthorizationUseCase evaluateAuthorizationUseCase,
+        PassportAuthorityQueryPort passportAuthorityQueryPort,
+        DelegationPermissionProjectionPort permissionProjectionPort,
+        RelationshipValidator relationshipValidator,
+        DelegationGrantPolicy delegationGrantPolicy,
+        WorkflowAuthorizationSupport authorizationSupport,
         Clock clock
     ) {
         this.delegationRepository = delegationRepository;
         this.partnerLinkRepository = partnerLinkRepository;
         this.tenantReadPort = tenantReadPort;
-        this.evaluateAuthorizationUseCase = evaluateAuthorizationUseCase;
+        this.passportAuthorityQueryPort = passportAuthorityQueryPort;
+        this.permissionProjectionPort = permissionProjectionPort;
+        this.relationshipValidator = relationshipValidator;
+        this.delegationGrantPolicy = delegationGrantPolicy;
+        this.authorizationSupport = authorizationSupport;
         this.clock = clock;
     }
 
     @Override
     @Transactional
     public DelegationResult grant(AuthPrincipal principal, String sourceTenantId, GrantDelegationCommand command) {
-        assertTenantContext(principal, sourceTenantId);
-        assertLivePermission(principal, sourceTenantId, PermissionCodes.DELEGATION_GRANT, "delegation:grant");
-        PartnerLink partnerLink = partnerLinkRepository.findById(command.partnerLinkId())
-            .orElseThrow(() -> new DomainException(ErrorCode.PARTNER_LINK_NOT_FOUND, "Partner link not found"));
+        authorizationSupport.assertTenantContext(principal, sourceTenantId);
+        authorizationSupport.assertLivePermission(principal, sourceTenantId, PermissionCodes.DELEGATION_GRANT, "delegation:grant");
 
-        if (partnerLink.status() != PartnerLinkStatus.ACTIVE) {
-            throw new DomainException(ErrorCode.PARTNER_LINK_INVALID_STATE, "Partner link must be active");
-        }
-        if (!partnerLink.sourceTenantId().equals(sourceTenantId) || !partnerLink.targetTenantId().equals(command.targetTenantId())) {
-            throw new DomainException(ErrorCode.TENANT_ISOLATION_VIOLATION, "Partner link tenant mismatch");
-        }
-        if (!tenantReadPort.existsActiveTenant(sourceTenantId) || !tenantReadPort.existsActiveTenant(command.targetTenantId())) {
-            throw new DomainException(ErrorCode.TENANT_NOT_FOUND, "Tenant not found or inactive");
-        }
-        if (delegationRepository.existsActive(
-            sourceTenantId,
-            command.targetTenantId(),
-            command.resourceType(),
-            command.resourceId(),
-            command.permissionCode()
-        )) {
-            throw new DomainException(ErrorCode.DELEGATION_ALREADY_ACTIVE, "Active delegation already exists");
-        }
+        PartnerLink partnerLink = relationshipValidator.assertEligible(
+            command.partnerLinkId(), sourceTenantId, command.targetTenantId()
+        );
+        assertTenantsActive(sourceTenantId, command.targetTenantId());
+
+        Instant now = Instant.now(clock);
+        DelegationGrantPolicy.DelegationGrantContext context = resolveGrantContext(sourceTenantId, command, now);
+        delegationGrantPolicy.assertGrantable(context);
 
         Delegation granted = delegationRepository.save(Delegation.grant(
-            command.partnerLinkId(),
+            command.partnerLinkId(), sourceTenantId, command.targetTenantId(),
+            command.resourceType(), command.resourceId(), command.permissionCode(),
+            command.expiresAt(), principal.userId(), now, command.note()
+        ));
+
+        if (granted.isPassportPermissionGrant()) {
+            permissionProjectionPort.onDelegationGranted(granted, partnerLink.status().name());
+        }
+        return toResult(granted);
+    }
+
+    @Override
+    @Transactional
+    public BatchDelegationResult batchGrantPassportDelegation(
+        AuthPrincipal principal,
+        String sourceTenantId,
+        String partnerLinkId,
+        BatchGrantPassportDelegationCommand command
+    ) {
+        authorizationSupport.assertTenantContext(principal, sourceTenantId);
+        authorizationSupport.assertLivePermission(principal, sourceTenantId, PermissionCodes.DELEGATION_GRANT, "delegation:batch-grant");
+
+        PartnerLink partnerLink = relationshipValidator.assertEligibleBySource(partnerLinkId, sourceTenantId);
+        String targetTenantId = partnerLink.targetTenantId();
+        assertTenantsActive(sourceTenantId, targetTenantId);
+
+        Instant now = Instant.now(clock);
+        List<BatchDelegationResult.Entry> results = new ArrayList<>();
+
+        for (String passportId : command.passportIds()) {
+            results.add(grantSinglePassport(
+                partnerLinkId, sourceTenantId, targetTenantId, passportId,
+                command.expiresAt(), command.note(), principal.userId(), partnerLink, now
+            ));
+        }
+
+        long granted = results.stream().filter(BatchDelegationResult.Entry::isGranted).count();
+        return new BatchDelegationResult(results, command.passportIds().size(), granted);
+    }
+
+    private BatchDelegationResult.Entry grantSinglePassport(
+        String partnerLinkId, String sourceTenantId, String targetTenantId,
+        String passportId, Instant expiresAt, String note,
+        String actorUserId, PartnerLink partnerLink, Instant now
+    ) {
+        try {
+            DelegationGrantPolicy.DelegationGrantContext context = resolveGrantContextForPassport(
+                sourceTenantId, targetTenantId, passportId, expiresAt, now
+            );
+            delegationGrantPolicy.assertGrantable(context);
+
+            Delegation granted = delegationRepository.save(Delegation.grant(
+                partnerLinkId, sourceTenantId, targetTenantId,
+                "PASSPORT", passportId, "RETAIL_TRANSFER_CREATE",
+                expiresAt, actorUserId, now, note
+            ));
+
+            if (granted.isPassportPermissionGrant()) {
+                permissionProjectionPort.onDelegationGranted(granted, partnerLink.status().name());
+            }
+            return BatchDelegationResult.Entry.granted(passportId, granted.delegationId());
+        } catch (WorkflowDomainException ex) {
+            return BatchDelegationResult.Entry.failed(passportId, ex.getErrorCode().name());
+        }
+    }
+
+    private DelegationGrantPolicy.DelegationGrantContext resolveGrantContextForPassport(
+        String sourceTenantId, String targetTenantId,
+        String passportId, Instant expiresAt, Instant now
+    ) {
+        Optional<PassportAuthorityQueryPort.PassportAuthorityView> passport =
+            passportAuthorityQueryPort.findPassportAuthority(passportId);
+
+        boolean activeDelegationExists = delegationRepository.existsActive(
+            sourceTenantId, targetTenantId, "PASSPORT", passportId, "RETAIL_TRANSFER_CREATE"
+        );
+
+        return new DelegationGrantPolicy.DelegationGrantContext(
             sourceTenantId,
-            command.targetTenantId(),
+            "PASSPORT",
+            "RETAIL_TRANSFER_CREATE",
+            expiresAt,
+            passport.map(PassportAuthorityQueryPort.PassportAuthorityView::tenantId).orElse(null),
+            passport.map(PassportAuthorityQueryPort.PassportAuthorityView::assetState).orElse(null),
+            activeDelegationExists,
+            now
+        );
+    }
+
+    private void assertTenantsActive(String sourceTenantId, String targetTenantId) {
+        if (!tenantReadPort.existsActiveTenant(sourceTenantId) || !tenantReadPort.existsActiveTenant(targetTenantId)) {
+            throw new WorkflowDomainException(WorkflowErrorCode.INVALID_REQUEST, "Tenant not found or inactive");
+        }
+    }
+
+    private DelegationGrantPolicy.DelegationGrantContext resolveGrantContext(
+        String sourceTenantId, GrantDelegationCommand command, Instant now
+    ) {
+        Optional<PassportAuthorityQueryPort.PassportAuthorityView> passport =
+            "PASSPORT".equals(command.resourceType())
+                ? passportAuthorityQueryPort.findPassportAuthority(command.resourceId())
+                : Optional.empty();
+
+        boolean activeDelegationExists = delegationRepository.existsActive(
+            sourceTenantId, command.targetTenantId(),
+            command.resourceType(), command.resourceId(), command.permissionCode()
+        );
+
+        return new DelegationGrantPolicy.DelegationGrantContext(
+            sourceTenantId,
             command.resourceType(),
-            command.resourceId(),
             command.permissionCode(),
             command.expiresAt(),
-            principal.userId(),
-            Instant.now(clock),
-            command.note()
-        ));
-        return toResult(granted);
+            passport.map(PassportAuthorityQueryPort.PassportAuthorityView::tenantId).orElse(null),
+            passport.map(PassportAuthorityQueryPort.PassportAuthorityView::assetState).orElse(null),
+            activeDelegationExists,
+            now
+        );
     }
 
     @Override
     @Transactional
     public DelegationResult revoke(AuthPrincipal principal, String delegationId, String reason) {
         Delegation delegation = delegationRepository.findById(delegationId)
-            .orElseThrow(() -> new DomainException(ErrorCode.DELEGATION_NOT_FOUND, "Delegation not found"));
-        assertTenantContext(principal, delegation.sourceTenantId());
-        assertLivePermission(principal, delegation.sourceTenantId(), PermissionCodes.DELEGATION_REVOKE, "delegation:" + delegationId);
+            .orElseThrow(() -> new WorkflowDomainException(WorkflowErrorCode.DELEGATION_NOT_FOUND, "Delegation not found"));
+        authorizationSupport.assertTenantContext(principal, delegation.sourceTenantId());
+        authorizationSupport.assertLivePermission(principal, delegation.sourceTenantId(), PermissionCodes.DELEGATION_REVOKE, "delegation:" + delegationId);
         Delegation revoked = delegationRepository.save(delegation.revoke(principal.userId(), reason, Instant.now(clock)));
+        if (revoked.isPassportPermissionGrant()) {
+            permissionProjectionPort.onDelegationRevoked(revoked);
+        }
         return toResult(revoked);
     }
 
     @Override
     @Transactional(readOnly = true)
     public List<DelegationResult> listByTenant(AuthPrincipal principal, String tenantId) {
-        assertTenantContext(principal, tenantId);
+        authorizationSupport.assertTenantContext(principal, tenantId);
         return delegationRepository.findByTenantId(tenantId).stream().map(this::toResult).toList();
     }
 
@@ -137,37 +249,6 @@ public class DelegationService implements DelegationUseCase {
             return new DelegationEvaluateResult(false, "PARTNER_LINK_NOT_ACTIVE");
         }
         return new DelegationEvaluateResult(true, null);
-    }
-
-    private void assertTenantContext(AuthPrincipal principal, String tenantId) {
-        if (principal.tenantId() == null || !principal.tenantId().equals(tenantId)) {
-            throw new DomainException(ErrorCode.TENANT_ISOLATION_VIOLATION, "Cross-tenant access denied");
-        }
-    }
-
-    private void assertLivePermission(AuthPrincipal principal, String tenantId, String action, String resourceRef) {
-        AuthzEvaluateResult decision = evaluateAuthorizationUseCase.evaluate(
-            toActorContext(principal),
-            new AuthzEvaluateCommand(tenantId, action, resourceRef, PolicyDecisionMode.LIVE_RECHECK)
-        );
-        if (!decision.allowed()) {
-            throw new DomainException(
-                decision.reason() != null ? ErrorCode.valueOf(decision.reason()) : ErrorCode.FORBIDDEN_SCOPE,
-                "Action denied by live policy check"
-            );
-        }
-    }
-
-    private ActorContext toActorContext(AuthPrincipal principal) {
-        return new ActorContext(
-            principal.tokenId(),
-            principal.userId(),
-            principal.tenantId(),
-            principal.groupId(),
-            principal.verificationLevel(),
-            principal.scopes(),
-            principal.expiresAt()
-        );
     }
 
     private DelegationResult toResult(Delegation delegation) {

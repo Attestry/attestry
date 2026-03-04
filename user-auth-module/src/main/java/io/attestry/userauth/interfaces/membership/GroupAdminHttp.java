@@ -3,10 +3,9 @@ package io.attestry.userauth.interfaces.membership;
 import io.attestry.userauth.application.dto.result.GroupAdminResult;
 import io.attestry.userauth.application.dto.command.ActorContext;
 import io.attestry.userauth.application.usecase.membership.MembershipAdminUseCase;
-import io.attestry.userauth.domain.auth.model.AuthPrincipal;
+import io.attestry.userauth.security.CurrentActor;
 import io.attestry.userauth.interfaces.membership.dto.response.GroupResponse;
 import org.springframework.security.access.prepost.PreAuthorize;
-import org.springframework.security.core.annotation.AuthenticationPrincipal;
 import org.springframework.web.bind.annotation.PathVariable;
 import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.RequestMapping;
@@ -26,35 +25,22 @@ public class GroupAdminHttp {
     @PostMapping("/tenants/{tenantId}/admin/groups/{id}/suspend")
     @PreAuthorize("hasAuthority('SCOPE_TENANT_GROUP_SUSPEND')")
     public GroupResponse suspendGroup(
-        @AuthenticationPrincipal AuthPrincipal principal,
+        @CurrentActor ActorContext actor,
         @PathVariable("tenantId") String tenantId,
         @PathVariable("id") String groupId
     ) {
-        GroupAdminResult result = membershipAdminService.suspendGroup(toActorContext(principal), tenantId, groupId);
+        GroupAdminResult result = membershipAdminService.suspendGroup(actor, tenantId, groupId);
         return GroupResponse.from(result);
     }
 
     @PostMapping("/tenants/{tenantId}/admin/groups/{id}/unsuspend")
     @PreAuthorize("hasAuthority('SCOPE_TENANT_GROUP_RESUME')")
     public GroupResponse unsuspendGroup(
-        @AuthenticationPrincipal AuthPrincipal principal,
+        @CurrentActor ActorContext actor,
         @PathVariable("tenantId") String tenantId,
         @PathVariable("id") String groupId
     ) {
-        GroupAdminResult result = membershipAdminService.unsuspendGroup(toActorContext(principal), tenantId, groupId);
+        GroupAdminResult result = membershipAdminService.unsuspendGroup(actor, tenantId, groupId);
         return GroupResponse.from(result);
     }
-
-    private ActorContext toActorContext(AuthPrincipal principal) {
-        return new ActorContext(
-            principal.tokenId(),
-            principal.userId(),
-            principal.tenantId(),
-            principal.groupId(),
-            principal.verificationLevel(),
-            principal.scopes(),
-            principal.expiresAt()
-        );
-    }
-
 }

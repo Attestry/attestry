@@ -54,25 +54,7 @@ CREATE TABLE IF NOT EXISTS organization_applications (
     CONSTRAINT fk_org_tenant FOREIGN KEY (tenant_id) REFERENCES tenants (tenant_id)
 );
 
-CREATE TABLE IF NOT EXISTS approval_requests (
-    approval_id VARCHAR(36) PRIMARY KEY,
-    tenant_id VARCHAR(36) NOT NULL,
-    type VARCHAR(30) NOT NULL,
-    target_id VARCHAR(36) NOT NULL,
-    payload TEXT,
-    status VARCHAR(30) NOT NULL,
-    requested_by VARCHAR(36) NOT NULL,
-    approved_by VARCHAR(36),
-    created_at TIMESTAMP NOT NULL,
-    decided_at TIMESTAMP,
-    CONSTRAINT fk_approval_tenant FOREIGN KEY (tenant_id) REFERENCES tenants (tenant_id),
-    CONSTRAINT fk_approval_requested_by FOREIGN KEY (requested_by) REFERENCES user_accounts (user_id),
-    CONSTRAINT fk_approval_approved_by FOREIGN KEY (approved_by) REFERENCES user_accounts (user_id)
-);
-
-
 CREATE INDEX IF NOT EXISTS idx_memberships_user_id ON memberships (user_id);
 CREATE INDEX IF NOT EXISTS idx_memberships_context ON memberships (user_id, tenant_id, group_id);
 CREATE INDEX IF NOT EXISTS idx_groups_tenant_id ON tenant_groups (tenant_id);
 CREATE INDEX IF NOT EXISTS idx_org_apps_tenant_id ON organization_applications (tenant_id);
-CREATE INDEX IF NOT EXISTS idx_approvals_tenant_id ON approval_requests (tenant_id);

@@ -1,6 +1,6 @@
 package io.attestry.workflow.interfaces.partner;
 
-import io.attestry.userauth.domain.auth.model.AuthPrincipal;
+import io.attestry.userauth.security.AuthPrincipal;
 import io.attestry.workflow.application.partner.command.CreatePartnerLinkCommand;
 import io.attestry.workflow.application.partner.result.PartnerLinkResult;
 import io.attestry.workflow.application.usecase.PartnerLinkUseCase;

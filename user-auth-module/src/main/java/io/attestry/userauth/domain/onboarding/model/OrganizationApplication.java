@@ -6,20 +6,39 @@ import io.attestry.userauth.domain.organization.model.GroupType;
 import java.time.Instant;
 import java.util.UUID;
 
-public record OrganizationApplication(
-    String applicationId,
-    GroupType type,
-    String applicantUserId,
-    String tenantId,
-    String orgName,
-    String country,
-    String bizRegNo,
-    String evidenceBundleId,
-    ApplicationStatus status,
-    String reviewedByAdminId,
-    Instant reviewedAt,
-    String rejectReason
-) {
+public class OrganizationApplication {
+
+    private final String applicationId;
+    private final GroupType type;
+    private final String applicantUserId;
+    private String tenantId;
+    private final String orgName;
+    private final String country;
+    private final String bizRegNo;
+    private final String evidenceBundleId;
+    private ApplicationStatus status;
+    private String reviewedByAdminId;
+    private Instant reviewedAt;
+    private String rejectReason;
+
+    private OrganizationApplication(String applicationId, GroupType type, String applicantUserId,
+                                     String tenantId, String orgName, String country, String bizRegNo,
+                                     String evidenceBundleId, ApplicationStatus status,
+                                     String reviewedByAdminId, Instant reviewedAt, String rejectReason) {
+        this.applicationId = applicationId;
+        this.type = type;
+        this.applicantUserId = applicantUserId;
+        this.tenantId = tenantId;
+        this.orgName = orgName;
+        this.country = country;
+        this.bizRegNo = bizRegNo;
+        this.evidenceBundleId = evidenceBundleId;
+        this.status = status;
+        this.reviewedByAdminId = reviewedByAdminId;
+        this.reviewedAt = reviewedAt;
+        this.rejectReason = rejectReason;
+    }
+
     public static OrganizationApplication createBrand(
         String applicantUserId,
         String orgName,
@@ -68,40 +87,32 @@ public record OrganizationApplication(
         );
     }
 
-    public OrganizationApplication approve(String reviewerUserId, String tenantId, Instant reviewedAt) {
-        assertPending();
+    public static OrganizationApplication reconstitute(
+        String applicationId, GroupType type, String applicantUserId,
+        String tenantId, String orgName, String country, String bizRegNo,
+        String evidenceBundleId, ApplicationStatus status,
+        String reviewedByAdminId, Instant reviewedAt, String rejectReason
+    ) {
         return new OrganizationApplication(
-            applicationId,
-            type,
-            applicantUserId,
-            tenantId,
-            orgName,
-            country,
-            bizRegNo,
-            evidenceBundleId,
-            ApplicationStatus.APPROVED,
-            reviewerUserId,
-            reviewedAt,
-            null
+            applicationId, type, applicantUserId, tenantId, orgName, country, bizRegNo,
+            evidenceBundleId, status, reviewedByAdminId, reviewedAt, rejectReason
         );
     }
 
-    public OrganizationApplication reject(String reviewerUserId, String reason, Instant reviewedAt) {
+    public void approve(String reviewerUserId, String assignedTenantId, Instant now) {
         assertPending();
-        return new OrganizationApplication(
-            applicationId,
-            type,
-            applicantUserId,
-            tenantId,
-            orgName,
-            country,
-            bizRegNo,
-            evidenceBundleId,
-            ApplicationStatus.REJECTED,
-            reviewerUserId,
-            reviewedAt,
-            reason
-        );
+        this.status = ApplicationStatus.APPROVED;
+        this.tenantId = assignedTenantId;
+        this.reviewedByAdminId = reviewerUserId;
+        this.reviewedAt = now;
+    }
+
+    public void reject(String reviewerUserId, String reason, Instant now) {
+        assertPending();
+        this.status = ApplicationStatus.REJECTED;
+        this.reviewedByAdminId = reviewerUserId;
+        this.reviewedAt = now;
+        this.rejectReason = reason;
     }
 
     public void assertPending() {
@@ -115,4 +126,18 @@ public record OrganizationApplication(
             throw new DomainException(ErrorCode.INVALID_APPLICATION_STATE, "Evidence bundle id is required");
         }
     }
+
+    // Getters
+    public String applicationId() { return applicationId; }
+    public GroupType type() { return type; }
+    public String applicantUserId() { return applicantUserId; }
+    public String tenantId() { return tenantId; }
+    public String orgName() { return orgName; }
+    public String country() { return country; }
+    public String bizRegNo() { return bizRegNo; }
+    public String evidenceBundleId() { return evidenceBundleId; }
+    public ApplicationStatus status() { return status; }
+    public String reviewedByAdminId() { return reviewedByAdminId; }
+    public Instant reviewedAt() { return reviewedAt; }
+    public String rejectReason() { return rejectReason; }
 }

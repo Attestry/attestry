@@ -2,6 +2,7 @@ package io.attestry.userauth.infrastructure.persistence.jpa;
 
 import io.attestry.userauth.application.port.OrganizationApplicationRepositoryPort;
 import io.attestry.userauth.domain.onboarding.model.OrganizationApplication;
+import io.attestry.userauth.domain.onboarding.repository.OrganizationApplicationRepository;
 import io.attestry.userauth.domain.organization.model.GroupType;
 import io.attestry.userauth.infrastructure.persistence.jpa.entity.OrganizationApplicationJpaEntity;
 import io.attestry.userauth.infrastructure.persistence.jpa.repository.OrganizationApplicationJpaRepository;
@@ -10,7 +11,7 @@ import java.util.Optional;
 import org.springframework.stereotype.Repository;
 
 @Repository
-public class JpaOrganizationApplicationRepositoryAdapter implements OrganizationApplicationRepositoryPort {
+public class JpaOrganizationApplicationRepositoryAdapter implements OrganizationApplicationRepositoryPort, OrganizationApplicationRepository {
 
     private final OrganizationApplicationJpaRepository repository;
 
@@ -32,8 +33,23 @@ public class JpaOrganizationApplicationRepositoryAdapter implements Organization
     }
 
     @Override
+    public Optional<OrganizationApplication> findByIdAndApplicantUserId(String applicationId, String applicantUserId) {
+        return repository.findByApplicationIdAndApplicantUserId(applicationId, applicantUserId).map(this::toDomain);
+    }
+
+    @Override
+    public List<OrganizationApplication> findAll() {
+        return repository.findAll().stream().map(this::toDomain).toList();
+    }
+
+    @Override
     public List<OrganizationApplication> findByType(GroupType type) {
         return repository.findByType(type).stream().map(this::toDomain).toList();
+    }
+
+    @Override
+    public List<OrganizationApplication> findByApplicantUserId(String applicantUserId) {
+        return repository.findByApplicantUserId(applicantUserId).stream().map(this::toDomain).toList();
     }
 
     @Override
@@ -62,7 +78,7 @@ public class JpaOrganizationApplicationRepositoryAdapter implements Organization
     }
 
     private OrganizationApplication toDomain(OrganizationApplicationJpaEntity entity) {
-        return new OrganizationApplication(
+        return OrganizationApplication.reconstitute(
             entity.getApplicationId(),
             entity.getType(),
             entity.getApplicantUserId(),

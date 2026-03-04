@@ -5,7 +5,9 @@ import com.fasterxml.jackson.databind.ObjectMapper;
 import io.attestry.ledger.application.ledger.query.LedgerEntryView;
 import io.attestry.ledger.application.port.LedgerQueryRepositoryPort;
 import io.attestry.ledger.application.usecase.LedgerQueryUseCase;
+import io.attestry.ledger.domain.ledger.model.LedgerId;
 import io.attestry.ledger.domain.ledger.model.LedgerEntry;
+import io.attestry.ledger.domain.ledger.model.PassportId;
 import java.io.IOException;
 import java.util.List;
 import java.util.Map;
@@ -30,8 +32,8 @@ public class LedgerQueryService implements LedgerQueryUseCase {
     @Override
     @Transactional(readOnly = true)
     public List<LedgerEntryView> listByPassportId(String passportId) {
-        requireText(passportId, "passportId");
-        return repository.findByPassportIdOrderBySeqAsc(passportId).stream()
+        PassportId parsedPassportId = PassportId.of(passportId);
+        return repository.findByPassportIdOrderBySeqAsc(parsedPassportId.value()).stream()
             .map(this::toView)
             .toList();
     }
@@ -39,9 +41,9 @@ public class LedgerQueryService implements LedgerQueryUseCase {
     @Override
     @Transactional(readOnly = true)
     public LedgerEntryView getByPassportIdAndLedgerId(String passportId, String ledgerId) {
-        requireText(passportId, "passportId");
-        requireText(ledgerId, "ledgerId");
-        return repository.findByPassportIdAndLedgerId(passportId, ledgerId)
+        PassportId parsedPassportId = PassportId.of(passportId);
+        LedgerId parsedLedgerId = LedgerId.of(ledgerId);
+        return repository.findByPassportIdAndLedgerId(parsedPassportId.value(), parsedLedgerId.value())
             .map(this::toView)
             .orElseThrow(() -> new NoSuchElementException("ledger entry not found"));
     }
@@ -68,12 +70,6 @@ public class LedgerQueryService implements LedgerQueryUseCase {
             return objectMapper.readValue(json, MAP_TYPE);
         } catch (IOException ex) {
             throw new IllegalStateException("failed to parse payload_json", ex);
-        }
-    }
-
-    private void requireText(String value, String fieldName) {
-        if (value == null || value.isBlank()) {
-            throw new IllegalArgumentException(fieldName + " is required");
         }
     }
 }

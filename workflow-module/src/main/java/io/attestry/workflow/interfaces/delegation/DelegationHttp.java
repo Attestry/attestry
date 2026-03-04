@@ -1,7 +1,9 @@
 package io.attestry.workflow.interfaces.delegation;
 
-import io.attestry.userauth.domain.auth.model.AuthPrincipal;
+import io.attestry.userauth.security.AuthPrincipal;
+import io.attestry.workflow.application.delegation.command.BatchGrantPassportDelegationCommand;
 import io.attestry.workflow.application.delegation.command.GrantDelegationCommand;
+import io.attestry.workflow.application.delegation.result.BatchDelegationResult;
 import io.attestry.workflow.application.delegation.result.DelegationEvaluateResult;
 import io.attestry.workflow.application.delegation.result.DelegationResult;
 import io.attestry.workflow.application.usecase.DelegationUseCase;
@@ -50,6 +52,27 @@ public class DelegationHttp {
             )
         );
         return DelegationResponse.from(result);
+    }
+
+    @PostMapping("/tenants/{sourceTenantId}/partners/{partnerLinkId}/passport-delegations")
+    @PreAuthorize("hasAuthority('SCOPE_DELEGATION_GRANT')")
+    public BatchDelegationResponse batchGrantPassportDelegation(
+        @AuthenticationPrincipal AuthPrincipal principal,
+        @PathVariable("sourceTenantId") String sourceTenantId,
+        @PathVariable("partnerLinkId") String partnerLinkId,
+        @RequestBody BatchGrantPassportDelegationRequest request
+    ) {
+        BatchDelegationResult result = delegationUseCase.batchGrantPassportDelegation(
+            principal,
+            sourceTenantId,
+            partnerLinkId,
+            new BatchGrantPassportDelegationCommand(
+                request.passportIds(),
+                request.expiresAt(),
+                request.note()
+            )
+        );
+        return BatchDelegationResponse.from(result);
     }
 
     @PostMapping("/delegations/{id}/revoke")
@@ -129,6 +152,36 @@ public class DelegationHttp {
     }
 
     public record DelegationEvaluateResponse(boolean allowed, String reason) {
+    }
+
+    public record BatchGrantPassportDelegationRequest(
+        List<String> passportIds,
+        Instant expiresAt,
+        String note
+    ) {
+    }
+
+    public record BatchDelegationResponse(
+        List<BatchDelegationEntryResponse> results,
+        int totalRequested,
+        long totalGranted
+    ) {
+        static BatchDelegationResponse from(BatchDelegationResult result) {
+            List<BatchDelegationEntryResponse> entries = result.results().stream()
+                .map(e -> new BatchDelegationEntryResponse(
+                    e.passportId(), e.delegationId(), e.status(), e.error()
+                ))
+                .toList();
+            return new BatchDelegationResponse(entries, result.totalRequested(), result.totalGranted());
+        }
+    }
+
+    public record BatchDelegationEntryResponse(
+        String passportId,
+        String delegationId,
+        String status,
+        String error
+    ) {
     }
 
     public record DelegationResponse(

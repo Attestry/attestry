@@ -62,8 +62,6 @@ GLOBAL_AUDIT_READ
 
 기존 TENANT_ADMIN, MEMBERSHIP_MANAGE는 의미가 애매하거나 너무 큼. v1에서 이렇게 바꿔:
 
-TENANT_GROUP_CREATE
-
 TENANT_GROUP_SUSPEND / TENANT_GROUP_RESUME
 
 TENANT_INVITATION_CREATE / TENANT_INVITATION_REVOKE / TENANT_INVITATION_VIEW
@@ -120,8 +118,6 @@ TENANT_OWNER (테넌트 최상위 운영자)
 tenant 운영 전체 + 민감 운영 포함
 
 permissions:
-
-TENANT_GROUP_CREATE
 
 TENANT_GROUP_SUSPEND/RESUME
 
@@ -220,11 +216,13 @@ GET /tenants/{tenantId}/admin/memberships
 
 SCOPE_TENANT_MEMBERSHIP_VIEW
 
-중요: updateMembership 분리
+중요: role assignment와 membership status를 분리
 
-role 변경:
+role 부여/회수/조회:
 
-PATCH /tenants/{tenantId}/admin/memberships/{id}/role
+POST /tenants/{tenantId}/admin/memberships/{id}/roles/{roleCode}
+DELETE /tenants/{tenantId}/admin/memberships/{id}/roles/{roleCode}
+GET /tenants/{tenantId}/admin/memberships/{id}/roles
 
 SCOPE_TENANT_ROLE_ASSIGN
 
@@ -269,3 +267,53 @@ admin-brand-base에게 MEMBERSHIP_MANAGE를 주지 말고,
 그룹 정지/멤버십 제재/플랫폼 승인 권한은 테넌트 오너/플랫폼으로 제한해라.
 
 FULFILLMENT_RELEASE는 v1에서 RETAIL_RELEASE로 명확히 바꿔라.
+
+---
+
+## 2026-03-02 Hybrid Refactor 적용 메모
+
+### 목표
+- 코드 SoT: permission/시스템 템플릿 정의
+- DB Dynamic: tenant 바인딩/개별 override/역할 할당
+
+### 적용 내용
+1. Permission 카탈로그 추가
+- `PermissionCatalog` + `StaticPermissionCatalog`
+- 권한 코드 유효성 검증을 DB 조회가 아닌 코드 카탈로그 기준으로 전환
+
+2. 시스템 템플릿 카탈로그 추가
+- `SystemPermissionTemplateCatalog`
+- 기본 템플릿: `TEMPLATE_TENANT_OWNER_CORE`, `TEMPLATE_BRAND_WORK`, `TEMPLATE_RETAIL_WORK`
+- 온보딩 OWNER 바인딩 하드코딩 문자열 제거(카탈로그 상수 사용)
+
+3. DB projection 동기화 추가
+- `RbacCatalogProjectionSync` (애플리케이션 시작 시 실행)
+- `permissions` upsert, 시스템 템플릿 upsert, 시스템 템플릿 권한 매핑 동기화
+
+4. 템플릿 권한 검증 경계 변경
+- `TemplateAdminCommandValidator`에서 catalog 기반 검증
+- `JpaTemplateAdminRepositoryAdapter`도 catalog 기반 검증으로 정렬
+
+### 운영 원칙
+- `permissions`, 시스템 템플릿은 코드가 기준
+- 운영 커스텀은 새 템플릿 생성 + tenant-role-template binding으로 처리
+- `membership_permission_overrides`는 개인 예외 조정 용도로 유지
+
+### 검증 결과
+- `:user-auth-module:compileJava` 통과
+- `:app:test --tests io.attestry.AttestryApplicationTests --tests io.attestry.UserAuthApiIntegrationTests` 통과
+
+### baseline SQL 정리 반영 (2026-03-02)
+- `V1__baseline.sql`에서 V22/V24의 템플릿 seed SQL 제거
+- 템플릿/템플릿-권한 매핑 기본값은 `RbacCatalogProjectionSync`가 코드 카탈로그 기준으로 런타임 투영
+- 스키마는 유지, 운영 동적 데이터(바인딩/오버라이드)는 DB 유지
+
+### baseline SQL 2차 정리 반영 (2026-03-02)
+- `V1__baseline.sql` 말미에 `V26__rbac_seed_compaction` 블록 추가
+- 글로벌 role을 아래 5개로 정규화
+  - `PLATFORM_SUPER_ADMIN`, `OWNER_DEFAULT`, `TENANT_OWNER`, `TENANT_OPERATOR`, `TENANT_STAFF`
+- permission seed를 코드 카탈로그 기준 코드 목록으로 축소(legacy permission 정리)
+- 글로벌 role-permission은 최소 매핑만 유지
+  - `PLATFORM_SUPER_ADMIN`: platform 4개
+  - `OWNER_DEFAULT`: owner baseline 4개
+  - tenant 3-role은 role_permissions 비워둠(템플릿/override 기반)

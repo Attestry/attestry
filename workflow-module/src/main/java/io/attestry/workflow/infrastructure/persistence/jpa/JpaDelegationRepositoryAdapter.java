@@ -1,8 +1,8 @@
 package io.attestry.workflow.infrastructure.persistence.jpa;
 
-import io.attestry.workflow.application.port.DelegationRepositoryPort;
 import io.attestry.workflow.domain.delegation.model.Delegation;
 import io.attestry.workflow.domain.delegation.model.DelegationStatus;
+import io.attestry.workflow.domain.delegation.repository.DelegationRepository;
 import io.attestry.workflow.infrastructure.persistence.jpa.entity.DelegationJpaEntity;
 import io.attestry.workflow.infrastructure.persistence.jpa.repository.DelegationJpaRepository;
 import java.util.List;
@@ -10,7 +10,7 @@ import java.util.Optional;
 import org.springframework.stereotype.Repository;
 
 @Repository
-public class JpaDelegationRepositoryAdapter implements DelegationRepositoryPort {
+public class JpaDelegationRepositoryAdapter implements DelegationRepository {
 
     private final DelegationJpaRepository repository;
 

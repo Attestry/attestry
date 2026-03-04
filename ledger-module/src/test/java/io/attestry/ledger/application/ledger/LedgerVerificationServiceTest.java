@@ -7,6 +7,7 @@ import static org.junit.jupiter.api.Assertions.assertTrue;
 import io.attestry.ledger.application.ledger.verification.LedgerVerificationResult;
 import io.attestry.ledger.application.port.LedgerQueryRepositoryPort;
 import io.attestry.ledger.domain.ledger.model.LedgerEntry;
+import io.attestry.ledger.domain.ledger.service.LedgerChainVerifier;
 import io.attestry.ledger.infrastructure.persistence.jpa.Sha256LedgerHashService;
 import java.time.Instant;
 import java.util.ArrayList;
@@ -17,6 +18,7 @@ import org.junit.jupiter.api.Test;
 class LedgerVerificationServiceTest {
 
     private final Sha256LedgerHashService hashService = new Sha256LedgerHashService();
+    private final LedgerChainVerifier chainVerifier = new LedgerChainVerifier(hashService);
 
     @Test
     void verifyChainReturnsValidForConsistentEntries() {
@@ -37,7 +39,7 @@ class LedgerVerificationServiceTest {
             new LedgerEntry("l2", passportId, 2L, "LIFECYCLE", "TRANSFERRED", "RETAIL", "g2", t2, p2, p2, d2, e1, e2, "k2", 1)
         );
 
-        LedgerVerificationService service = new LedgerVerificationService(new InMemoryRepo(entries), hashService);
+        LedgerVerificationService service = new LedgerVerificationService(new InMemoryRepo(entries), chainVerifier);
         LedgerVerificationResult result = service.verifyChain(passportId);
 
         assertTrue(result.valid());
@@ -64,7 +66,7 @@ class LedgerVerificationServiceTest {
             new LedgerEntry("l2", passportId, 2L, "LIFECYCLE", "TRANSFERRED", "RETAIL", "g2", t2, p2, p2, d2, "wrong-prev", e2, "k2", 1)
         );
 
-        LedgerVerificationService service = new LedgerVerificationService(new InMemoryRepo(entries), hashService);
+        LedgerVerificationService service = new LedgerVerificationService(new InMemoryRepo(entries), chainVerifier);
         LedgerVerificationResult result = service.verifyChain(passportId);
 
         assertFalse(result.valid());
@@ -89,6 +91,11 @@ class LedgerVerificationServiceTest {
             return entries.stream()
                 .filter(e -> e.passportId().equals(passportId) && e.ledgerId().equals(ledgerId))
                 .findFirst();
+        }
+
+        @Override
+        public List<String> findAllPassportIds() {
+            return entries.stream().map(LedgerEntry::passportId).distinct().toList();
         }
     }
 }

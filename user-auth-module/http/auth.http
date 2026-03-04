@@ -1,162 +1,55 @@
-### =========================================================
-### User Auth API - SignUp / Login Scenario Collection
-### =========================================================
+### User Auth - Auth APIs
 
 @baseUrl = http://localhost:8080
 @contentType = application/json
+@accessToken = REPLACE_ACCESS_TOKEN
 
-@email = qa.user1@attestry.io
-@password = Password123!
-@phone = 010-1234-5671
+@admin-email = platform.admin@attestry.local
+@admin-password = PlatformAdm1n!2026
 
-@brand-email = qa.brand1@attestry.io
-@brand-password = Password123!
-@brand-phone = 010-1235-9999
-
-@retail-email = qa.retail2@attestry.io
-@retail-password = Password123!
-@retail-phone = 010-1234-9998
-
-
-@adminEmail = platform.admin@attestry.local
-@adminPassword = PlatformAdm1n!2026
-
-
-@brand-tenantId = f430fa89-c55b-4b65-b40f-1973109af42f
-@brand-groupId = 6b97e16e-26ad-4c16-8585-9a72f03b6dd2
-
-@accessTokne = REPLACE_ACCESS_TOKEN
-@brand-accessToken = REPLACE_ACCESS_TOKEN
-
-
-### 1) SignUp
+### 1) Sign up
 POST {{baseUrl}}/auth/signup
 Content-Type: {{contentType}}
 
 {
-  "email": "{{email}}",
-  "password": "{{password}}",
-  "phone": "{{phone}}"
+  "email": "user1@attestry.io",
+  "password": "Password123!",
+  "phone": "010-1234-5678"
 }
 
 
-### brand - SignUp
-POST {{baseUrl}}/auth/signup
-Content-Type: {{contentType}}
-
-{
-  "email": "{{brand-email}}",
-  "password": "{{brand-password}}",
-  "phone": "{{brand-phone}}"
-}
-
-
-### retail - SignUp
-POST {{baseUrl}}/auth/signup
-Content-Type: {{contentType}}
-
-{
-  "email": "{{retail-email}}",
-  "password": "{{retail-password}}",
-  "phone": "{{retail-phone}}"
-}
-
-
-
-
-
-### 2) Login - admin
+### 2) Login
+# @name login
 POST {{baseUrl}}/auth/login
 Content-Type: {{contentType}}
 
 {
-  "email": "{{adminEmail}}",
-  "password": "{{adminPassword}}",
+  "email": "user1@attestry.io",
+  "password": "Password123!",
   "tenantId": null,
   "groupId": null
 }
 
+> {%
+  client.global.set("accessToken", response.body.accessToken);
+%}
 
-
-
-### 2) Login - Case A: tenantId/groupId 모두 null (membership 자동 선택 or owner-only)
-POST {{baseUrl}}/auth/login
-Content-Type: {{contentType}}
-
-{
-  "email": "{{email}}",
-  "password": "{{password}}",
-  "tenantId": null,
-  "groupId": null
-}
-
-
-### 2) Login - brand
-POST {{baseUrl}}/auth/login
-Content-Type: {{contentType}}
-
-{
-  "email": "{{brand-email}}",
-  "password": "{{brand-password}}"
-}
-
-
-
-### 2) Login - retail
-POST {{baseUrl}}/auth/login
-Content-Type: {{contentType}}
-
-{
-  "email": "{{retail-email}}",
-  "password": "{{retail-password}}",
-  "tenantId": null,
-  "groupId": null
-}
-
-
-### 4) Login - Case C: tenantId만 지정, groupId는 null
-### 현재 정책상 requested membership 매칭 없이 활성 membership fallback 선택
-POST {{baseUrl}}/auth/login
-Content-Type: {{contentType}}
-
-{
-  "email": "{{email}}",
-  "password": "{{password}}",
-  "tenantId": "{{tenantId}}",
-  "groupId": null
-}
-
-
-### 5) Login - Case D: tenantId는 null, groupId만 지정
-### 현재 정책상 requested membership 매칭 없이 활성 membership fallback 선택
-POST {{baseUrl}}/auth/login
-Content-Type: {{contentType}}
-
-{
-  "email": "{{email}}",
-  "password": "{{password}}",
-  "tenantId": null,
-  "groupId": "{{groupId}}"
-}
-
-
-### 6) Login - Case E: tenantId/groupId 불일치 또는 비활성 membership (실패 기대)
-POST {{baseUrl}}/auth/login
-Content-Type: {{contentType}}
-
-{
-  "email": "{{email}}",
-  "password": "{{password}}",
-  "tenantId": "wrong-tenant-id",
-  "groupId": "wrong-group-id"
-}
-
-
-### 7) Logout
+### 3) Logout
 POST {{baseUrl}}/auth/logout
 Authorization: Bearer {{accessToken}}
 
-
-### 8) Verify Phone
+### 4) Verify phone
 POST {{baseUrl}}/auth/verify-phone
 Authorization: Bearer {{accessToken}}
+
+### 5) Login (legacy path)
+POST {{baseUrl}}/api-v1/auth/login
+Content-Type: {{contentType}}
+
+{
+  "email": "user1@attestry.io",
+  "password": "Password123!",
+  "tenantId": null,
+  "groupId": null
+}
+

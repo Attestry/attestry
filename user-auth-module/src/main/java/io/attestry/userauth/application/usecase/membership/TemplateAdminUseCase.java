@@ -1,6 +1,7 @@
 package io.attestry.userauth.application.usecase.membership;
 
 import io.attestry.userauth.application.dto.result.PermissionTemplateResult;
+import io.attestry.userauth.application.dto.result.PermissionResult;
 import io.attestry.userauth.application.dto.result.TenantRoleTemplateBindingResult;
 import io.attestry.userauth.application.dto.command.ActorContext;
 import java.util.List;
@@ -9,11 +10,23 @@ public interface TemplateAdminUseCase {
 
     PermissionTemplateResult createTemplate(ActorContext actor, CreateTemplateCommand command);
 
+    PermissionResult createPermission(ActorContext actor, CreatePermissionCommand command);
+
+    List<PermissionResult> listPermissions(ActorContext actor);
+
+    PermissionTemplateResult createTenantTemplate(ActorContext actor, String tenantId, CreateTemplateCommand command);
+
     List<PermissionTemplateResult> listTemplates(ActorContext actor);
+
+    List<PermissionTemplateResult> listTenantTemplates(ActorContext actor, String tenantId);
 
     PermissionTemplateResult getTemplate(ActorContext actor, String templateCode);
 
+    PermissionTemplateResult getTenantTemplate(ActorContext actor, String tenantId, String templateCode);
+
     PermissionTemplateResult updateTemplate(ActorContext actor, String templateCode, UpdateTemplateCommand command);
+
+    PermissionTemplateResult updateTenantTemplate(ActorContext actor, String tenantId, String templateCode, UpdateTemplateCommand command);
 
     PermissionTemplateResult replaceTemplatePermissions(
         ActorContext actor,
@@ -29,6 +42,27 @@ public interface TemplateAdminUseCase {
 
     PermissionTemplateResult removeTemplatePermission(ActorContext actor, String templateCode, String permissionCode);
 
+    PermissionTemplateResult replaceTenantTemplatePermissions(
+        ActorContext actor,
+        String tenantId,
+        String templateCode,
+        SetTemplatePermissionsCommand command
+    );
+
+    PermissionTemplateResult addTenantTemplatePermissions(
+        ActorContext actor,
+        String tenantId,
+        String templateCode,
+        AddTemplatePermissionsCommand command
+    );
+
+    PermissionTemplateResult removeTenantTemplatePermission(
+        ActorContext actor,
+        String tenantId,
+        String templateCode,
+        String permissionCode
+    );
+
     TenantRoleTemplateBindingResult bindTenantRoleTemplate(
         ActorContext actor,
         String tenantId,
@@ -40,6 +74,15 @@ public interface TemplateAdminUseCase {
     void unbindTenantRoleTemplate(ActorContext actor, String tenantId, String roleCode, String templateCode);
 
     record CreateTemplateCommand(String code, String name, String description) {
+    }
+
+    record CreatePermissionCommand(
+        String code,
+        String name,
+        String description,
+        String resourceType,
+        String action
+    ) {
     }
 
     record UpdateTemplateCommand(String name, String description, Boolean enabled) {

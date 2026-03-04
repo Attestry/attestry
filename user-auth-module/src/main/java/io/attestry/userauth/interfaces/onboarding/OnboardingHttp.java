@@ -1,22 +1,20 @@
 package io.attestry.userauth.interfaces.onboarding;
 
 import io.attestry.userauth.application.dto.command.CompleteEvidenceUploadCommand;
-import io.attestry.userauth.application.dto.command.CreateBrandApplicationCommand;
-import io.attestry.userauth.application.dto.command.CreateRetailApplicationCommand;
+import io.attestry.userauth.application.dto.command.CreateApplicationCommand;
 import io.attestry.userauth.application.dto.command.PresignEvidenceUploadCommand;
 import io.attestry.userauth.application.dto.command.ActorContext;
 import io.attestry.userauth.application.dto.result.ApplicationResult;
 import io.attestry.userauth.application.usecase.onboarding.OnboardingUseCase;
-import io.attestry.userauth.domain.auth.model.AuthPrincipal;
+import io.attestry.userauth.security.CurrentActor;
+import io.attestry.userauth.interfaces.onboarding.dto.request.CreateApplicationRequest;
 import io.attestry.userauth.interfaces.onboarding.dto.request.CompleteEvidenceUploadRequest;
-import io.attestry.userauth.interfaces.onboarding.dto.request.CreateBrandApplicationRequest;
-import io.attestry.userauth.interfaces.onboarding.dto.request.CreateRetailApplicationRequest;
 import io.attestry.userauth.interfaces.onboarding.dto.request.PresignEvidenceUploadRequest;
 import io.attestry.userauth.interfaces.onboarding.dto.response.ApplicationResponse;
 import io.attestry.userauth.interfaces.onboarding.dto.response.EvidenceBundleResponse;
 import io.attestry.userauth.interfaces.onboarding.dto.response.PresignedEvidenceUploadResponse;
+import java.util.List;
 import org.springframework.http.HttpStatus;
-import org.springframework.security.core.annotation.AuthenticationPrincipal;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.PathVariable;
 import org.springframework.web.bind.annotation.PostMapping;
@@ -38,12 +36,12 @@ public class OnboardingHttp {
     @PostMapping("/onboarding/evidences/presign")
     @ResponseStatus(HttpStatus.CREATED)
     public PresignedEvidenceUploadResponse presignEvidenceUpload(
-        @AuthenticationPrincipal AuthPrincipal principal,
+        @CurrentActor ActorContext actor,
         @RequestBody PresignEvidenceUploadRequest request
     ) {
         return PresignedEvidenceUploadResponse.from(
             onboardingService.presignEvidenceUpload(
-                toActorContext(principal),
+                actor,
                 new PresignEvidenceUploadCommand(request.evidenceBundleId(), request.fileName(), request.contentType())
             )
         );
@@ -51,27 +49,28 @@ public class OnboardingHttp {
 
     @PostMapping("/onboarding/evidences/complete")
     public EvidenceBundleResponse completeEvidenceUpload(
-        @AuthenticationPrincipal AuthPrincipal principal,
+        @CurrentActor ActorContext actor,
         @RequestBody CompleteEvidenceUploadRequest request
     ) {
         return EvidenceBundleResponse.from(
             onboardingService.completeEvidenceUpload(
-                toActorContext(principal),
+                actor,
                 new CompleteEvidenceUploadCommand(request.evidenceBundleId(), request.evidenceFileId(), request.sizeBytes())
             )
         );
     }
 
-    @PostMapping("/brand-applications")
+    @PostMapping("/onboarding/applications")
     @ResponseStatus(HttpStatus.CREATED)
-    public ApplicationResponse createBrandApplication(
-        @AuthenticationPrincipal AuthPrincipal principal,
-        @RequestBody CreateBrandApplicationRequest request
+    public ApplicationResponse createApplication(
+        @CurrentActor ActorContext actor,
+        @RequestBody CreateApplicationRequest request
     ) {
-        ApplicationResult result = onboardingService.createBrandApplication(
-            toActorContext(principal),
-            new CreateBrandApplicationCommand(
-                request.brandName(),
+        ApplicationResult result = onboardingService.createApplication(
+            actor,
+            new CreateApplicationCommand(
+                request.type(),
+                request.orgName(),
                 request.country(),
                 request.bizRegNo(),
                 request.evidenceBundleId()
@@ -80,43 +79,20 @@ public class OnboardingHttp {
         return ApplicationResponse.from(result);
     }
 
-    @GetMapping("/brand-applications/{applicationId}")
-    public ApplicationResponse getBrandApplication(@PathVariable(name = "applicationId") String applicationId) {
-        return ApplicationResponse.from(onboardingService.getBrandApplication(applicationId));
+    //TODO("my-page 에 넣어야 되나?")
+    @GetMapping("/onboarding/applications")
+    public List<ApplicationResponse> listMyApplications(@CurrentActor ActorContext actor) {
+        return onboardingService.listMyApplications(actor).stream()
+            .map(ApplicationResponse::from)
+            .toList();
     }
 
-    @PostMapping("/retail-applications")
-    @ResponseStatus(HttpStatus.CREATED)
-    public ApplicationResponse createRetailApplication(
-        @AuthenticationPrincipal AuthPrincipal principal,
-        @RequestBody CreateRetailApplicationRequest request
+    //TODO("my-page 에 넣어야 되나?")
+    @GetMapping("/onboarding/applications/{applicationId}")
+    public ApplicationResponse getMyApplication(
+        @CurrentActor ActorContext actor,
+        @PathVariable(name = "applicationId") String applicationId
     ) {
-        ApplicationResult result = onboardingService.createRetailApplication(
-            toActorContext(principal),
-            new CreateRetailApplicationCommand(
-                request.retailName(),
-                request.country(),
-                request.bizRegNo(),
-                request.evidenceBundleId()
-            )
-        );
-        return ApplicationResponse.from(result);
-    }
-
-    @GetMapping("/retail-applications/{id}")
-    public ApplicationResponse getRetailApplication(@PathVariable("id") String id) {
-        return ApplicationResponse.from(onboardingService.getRetailApplication(id));
-    }
-
-    private ActorContext toActorContext(AuthPrincipal principal) {
-        return new ActorContext(
-            principal.tokenId(),
-            principal.userId(),
-            principal.tenantId(),
-            principal.groupId(),
-            principal.verificationLevel(),
-            principal.scopes(),
-            principal.expiresAt()
-        );
+        return ApplicationResponse.from(onboardingService.getMyApplication(actor, applicationId));
     }
 }

@@ -1,6 +1,6 @@
 package io.attestry.userauth.application.port;
 
-import io.attestry.userauth.domain.auth.model.AuthPrincipal;
+import io.attestry.userauth.security.AuthPrincipal;
 import java.util.Optional;
 
 public interface AccessTokenPort {

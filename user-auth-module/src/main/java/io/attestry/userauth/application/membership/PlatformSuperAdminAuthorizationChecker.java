@@ -4,7 +4,7 @@ import io.attestry.userauth.application.port.MembershipAdminRepositoryPort;
 import io.attestry.userauth.application.port.MembershipRepositoryPort;
 import io.attestry.userauth.common.error.DomainException;
 import io.attestry.userauth.common.error.ErrorCode;
-import io.attestry.userauth.domain.auth.model.RoleCodes;
+import io.attestry.userauth.domain.authorization.model.RoleCodes;
 import io.attestry.userauth.domain.membership.model.Membership;
 import org.springframework.stereotype.Component;
 

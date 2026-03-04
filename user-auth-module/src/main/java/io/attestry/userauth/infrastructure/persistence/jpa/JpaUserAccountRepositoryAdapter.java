@@ -3,9 +3,9 @@ package io.attestry.userauth.infrastructure.persistence.jpa;
 import io.attestry.userauth.application.port.UserAccountRepositoryPort;
 import io.attestry.userauth.common.error.DomainException;
 import io.attestry.userauth.common.error.ErrorCode;
-import io.attestry.userauth.domain.user.vo.Email;
-import io.attestry.userauth.domain.user.model.User;
-import io.attestry.userauth.domain.user.model.UserAccount;
+import io.attestry.userauth.domain.identity.model.Email;
+import io.attestry.userauth.domain.identity.model.UserAccount;
+import io.attestry.userauth.domain.identity.repository.UserAccountRepository;
 import io.attestry.userauth.infrastructure.persistence.jpa.entity.UserAccountJpaEntity;
 import io.attestry.userauth.infrastructure.persistence.jpa.repository.UserAccountJpaRepository;
 import java.util.Optional;
@@ -13,7 +13,7 @@ import org.springframework.stereotype.Repository;
 import org.springframework.transaction.annotation.Transactional;
 
 @Repository
-public class JpaUserAccountRepositoryAdapter implements UserAccountRepositoryPort {
+public class JpaUserAccountRepositoryAdapter implements UserAccountRepositoryPort, UserAccountRepository {
 
     private final UserAccountJpaRepository repository;
 
@@ -34,20 +34,26 @@ public class JpaUserAccountRepositoryAdapter implements UserAccountRepositoryPor
     }
 
     @Override
+    @Transactional(readOnly = true)
+    public Optional<UserAccount> findById(String userId) {
+        return findByUserId(userId);
+    }
+
+    @Override
     @Transactional
     public UserAccount saveNew(UserAccount userAccount) {
-        String email = userAccount.user().email().value();
+        String email = userAccount.email().value();
         if (repository.existsByEmail(email)) {
             throw new DomainException(ErrorCode.DUPLICATE_EMAIL, "Email already exists");
         }
 
         UserAccountJpaEntity saved = repository.save(new UserAccountJpaEntity(
-            userAccount.user().userId(),
+            userAccount.userId(),
             email,
             userAccount.passwordHash(),
-            userAccount.user().phone(),
-            userAccount.user().status(),
-            userAccount.user().verificationLevel()
+            userAccount.phone(),
+            userAccount.status(),
+            userAccount.verificationLevel()
         ));
         return toDomain(saved);
     }
@@ -56,26 +62,24 @@ public class JpaUserAccountRepositoryAdapter implements UserAccountRepositoryPor
     @Transactional
     public UserAccount save(UserAccount userAccount) {
         UserAccountJpaEntity saved = repository.save(new UserAccountJpaEntity(
-            userAccount.user().userId(),
-            userAccount.user().email().value(),
+            userAccount.userId(),
+            userAccount.email().value(),
             userAccount.passwordHash(),
-            userAccount.user().phone(),
-            userAccount.user().status(),
-            userAccount.user().verificationLevel()
+            userAccount.phone(),
+            userAccount.status(),
+            userAccount.verificationLevel()
         ));
         return toDomain(saved);
     }
 
     private UserAccount toDomain(UserAccountJpaEntity entity) {
-        return new UserAccount(
-            new User(
-                entity.getUserId(),
-                Email.of(entity.getEmail()),
-                entity.getPhone(),
-                entity.getStatus(),
-                entity.getVerificationLevel()
-            ),
-            entity.getPasswordHash()
+        return UserAccount.reconstitute(
+            entity.getUserId(),
+            Email.of(entity.getEmail()),
+            entity.getPhone(),
+            entity.getPasswordHash(),
+            entity.getStatus(),
+            entity.getVerificationLevel()
         );
     }
 }

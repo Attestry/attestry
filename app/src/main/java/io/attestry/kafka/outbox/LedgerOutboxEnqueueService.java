@@ -42,6 +42,7 @@ public class LedgerOutboxEnqueueService {
             0,
             null,
             Instant.now(clock),
+            null,
             null
         ));
         return eventId;

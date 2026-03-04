@@ -1,7 +1,7 @@
 package io.attestry.workflow.infrastructure.persistence.jpa;
 
-import io.attestry.workflow.application.port.PartnerLinkRepositoryPort;
 import io.attestry.workflow.domain.partner.model.PartnerLink;
+import io.attestry.workflow.domain.partner.repository.PartnerLinkRepository;
 import io.attestry.workflow.domain.partner.model.PartnerLinkStatus;
 import io.attestry.workflow.domain.partner.model.PartnerType;
 import io.attestry.workflow.infrastructure.persistence.jpa.entity.PartnerLinkJpaEntity;
@@ -11,7 +11,7 @@ import java.util.Optional;
 import org.springframework.stereotype.Repository;
 
 @Repository
-public class JpaPartnerLinkRepositoryAdapter implements PartnerLinkRepositoryPort {
+public class JpaPartnerLinkRepositoryAdapter implements PartnerLinkRepository {
 
     private final PartnerLinkJpaRepository repository;
 

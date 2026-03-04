@@ -2,6 +2,7 @@ package io.attestry.ledger.infrastructure.persistence.jpa.repository;
 
 import io.attestry.ledger.infrastructure.persistence.jpa.entity.LedgerChainJpaEntity;
 import jakarta.persistence.LockModeType;
+import java.util.List;
 import java.util.Optional;
 import org.springframework.data.jpa.repository.JpaRepository;
 import org.springframework.data.jpa.repository.Lock;
@@ -13,4 +14,7 @@ public interface LedgerChainJpaRepository extends JpaRepository<LedgerChainJpaEn
     @Lock(LockModeType.PESSIMISTIC_WRITE)
     @Query("select c from LedgerChainJpaEntity c where c.passportId = :passportId")
     Optional<LedgerChainJpaEntity> findByPassportIdForUpdate(@Param("passportId") String passportId);
+
+    @Query("select c.passportId from LedgerChainJpaEntity c")
+    List<String> findAllPassportIds();
 }

@@ -4,6 +4,7 @@ import io.attestry.userauth.application.port.MembershipProvisioningRepositoryPor
 import io.attestry.userauth.common.error.DomainException;
 import io.attestry.userauth.common.error.ErrorCode;
 import io.attestry.userauth.domain.membership.model.Membership;
+import io.attestry.userauth.domain.membership.model.RoleAssignment;
 import io.attestry.userauth.domain.membership.policy.DefaultMembershipRolePolicy;
 import io.attestry.userauth.infrastructure.persistence.jpa.entity.MembershipRoleAssignmentJpaEntity;
 import io.attestry.userauth.infrastructure.persistence.jpa.entity.MembershipJpaEntity;
@@ -11,6 +12,7 @@ import io.attestry.userauth.infrastructure.persistence.jpa.repository.Membership
 import io.attestry.userauth.infrastructure.persistence.jpa.repository.MembershipJpaRepository;
 import io.attestry.userauth.infrastructure.persistence.jpa.repository.RoleJpaRepository;
 import java.time.Instant;
+import java.util.Set;
 import java.util.UUID;
 import org.springframework.stereotype.Repository;
 
@@ -46,26 +48,17 @@ public class JpaMembershipProvisioningRepositoryAdapter implements MembershipPro
         ));
 
         if (membershipRoleAssignmentRepository.findByMembershipId(saved.getMembershipId()).isEmpty()) {
+            String defaultRoleCode = DefaultMembershipRolePolicy.resolveGlobalRoleCode(saved.getRole(), saved.getGroupType());
             membershipRoleAssignmentRepository.save(new MembershipRoleAssignmentJpaEntity(
                 UUID.randomUUID().toString(),
                 saved.getMembershipId(),
-                resolveGlobalRoleIdByCode(DefaultMembershipRolePolicy.resolveGlobalRoleCode(saved.getRole(), saved.getGroupType())),
+                resolveGlobalRoleIdByCode(defaultRoleCode),
                 null,
                 Instant.now()
             ));
         }
 
-        return new Membership(
-            saved.getMembershipId(),
-            saved.getUserId(),
-            saved.getGroupId(),
-            saved.getTenantId(),
-            saved.getGroupType(),
-            saved.getRole(),
-            saved.getStatus(),
-            saved.getGroupStatus(),
-            saved.getTenantStatus()
-        );
+        return membership;
     }
 
     @Override

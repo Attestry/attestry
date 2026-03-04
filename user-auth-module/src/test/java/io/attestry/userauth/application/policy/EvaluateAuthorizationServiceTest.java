@@ -10,15 +10,15 @@ import io.attestry.userauth.application.dto.command.PolicyDecisionMode;
 import io.attestry.userauth.application.dto.result.AuthzEvaluateResult;
 import io.attestry.userauth.application.port.MembershipPermissionQueryPort;
 import io.attestry.userauth.application.port.MembershipRepositoryPort;
-import io.attestry.userauth.domain.auth.model.PermissionCodes;
-import io.attestry.userauth.domain.auth.model.RoleCodes;
+import io.attestry.userauth.domain.authorization.model.PermissionCodes;
+import io.attestry.userauth.domain.authorization.model.RoleCodes;
 import io.attestry.userauth.domain.membership.model.Membership;
 import io.attestry.userauth.domain.membership.model.MembershipRole;
 import io.attestry.userauth.domain.membership.model.MembershipStatus;
 import io.attestry.userauth.domain.organization.model.GroupStatus;
 import io.attestry.userauth.domain.organization.model.GroupType;
 import io.attestry.userauth.domain.organization.model.TenantStatus;
-import io.attestry.userauth.domain.user.enums.VerificationLevel;
+import io.attestry.userauth.domain.identity.model.VerificationLevel;
 import java.time.Instant;
 import java.util.List;
 import java.util.Optional;
@@ -75,16 +75,10 @@ class EvaluateAuthorizationServiceTest {
     void liveRecheckShouldUseTenantMembershipWhenGroupIsMissing() {
         EvaluateAuthorizationService liveService = new EvaluateAuthorizationService(
             new SingleMembershipRepository(
-                new Membership(
-                    "membership-1",
-                    "user-1",
-                    "group-1",
-                    "tenant-a",
-                    GroupType.BRAND,
-                    MembershipRole.ADMIN,
-                    MembershipStatus.ACTIVE,
-                    GroupStatus.ACTIVE,
-                    TenantStatus.ACTIVE
+                Membership.reconstitute(
+                    "membership-1", "user-1", "group-1", "tenant-a",
+                    GroupType.BRAND, MembershipRole.ADMIN, MembershipStatus.ACTIVE,
+                    GroupStatus.ACTIVE, TenantStatus.ACTIVE, java.util.Set.of()
                 )
             ),
             new MembershipPermissionQueryPort() {
