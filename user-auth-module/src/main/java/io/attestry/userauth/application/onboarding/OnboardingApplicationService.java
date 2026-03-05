@@ -43,13 +43,12 @@ public class OnboardingApplicationService implements OnboardingUseCase {
     private final Clock clock;
 
     public OnboardingApplicationService(
-        OrganizationApplicationRepositoryPort applicationRepository,
-        OnboardingEvidenceBundleRepositoryPort evidenceBundleRepository,
-        OnboardingProvisioningService provisioningService,
-        OrganizationUniquenessPolicy uniquenessPolicy,
-        ObjectStoragePort objectStoragePort,
-        Clock clock
-    ) {
+            OrganizationApplicationRepositoryPort applicationRepository,
+            OnboardingEvidenceBundleRepositoryPort evidenceBundleRepository,
+            OnboardingProvisioningService provisioningService,
+            OrganizationUniquenessPolicy uniquenessPolicy,
+            ObjectStoragePort objectStoragePort,
+            Clock clock) {
         this.applicationRepository = applicationRepository;
         this.evidenceBundleRepository = evidenceBundleRepository;
         this.provisioningService = provisioningService;
@@ -67,24 +66,32 @@ public class OnboardingApplicationService implements OnboardingUseCase {
             case BRAND -> {
                 uniquenessPolicy.assertUniqueBrand(command.orgName(), command.bizRegNo());
                 yield OrganizationApplication.createBrand(
-                    actor.userId(),
-                    command.orgName(),
-                    command.country(),
-                    command.bizRegNo(),
-                    command.evidenceBundleId()
-                );
+                        actor.userId(),
+                        command.orgName(),
+                        command.country(),
+                        command.bizRegNo(),
+                        command.evidenceBundleId());
             }
             case RETAIL -> {
                 uniquenessPolicy.assertUniqueRetail(command.orgName(), command.bizRegNo());
                 yield OrganizationApplication.createRetail(
-                    actor.userId(),
-                    command.orgName(),
-                    command.country(),
-                    command.bizRegNo(),
-                    command.evidenceBundleId()
-                );
+                        actor.userId(),
+                        command.orgName(),
+                        command.country(),
+                        command.bizRegNo(),
+                        command.evidenceBundleId());
             }
-            default -> throw new DomainException(ErrorCode.INVALID_REQUEST, "Only BRAND or RETAIL application type is supported");
+            case SERVICE -> {
+                uniquenessPolicy.assertUniqueService(command.orgName(), command.bizRegNo());
+                yield OrganizationApplication.createService(
+                        actor.userId(),
+                        command.orgName(),
+                        command.country(),
+                        command.bizRegNo(),
+                        command.evidenceBundleId());
+            }
+            default -> throw new DomainException(ErrorCode.INVALID_REQUEST,
+                    "Only BRAND, RETAIL, or SERVICE application type is supported");
         };
         return toApplicationResult(applicationRepository.save(application));
     }
@@ -94,30 +101,31 @@ public class OnboardingApplicationService implements OnboardingUseCase {
     public List<ApplicationView> listApplications(String type) {
         GroupType parsedType = parseOptionalRequestedType(type);
         List<OrganizationApplication> applications = parsedType == null
-            ? applicationRepository.findAll()
-            : applicationRepository.findByType(parsedType);
+                ? applicationRepository.findAll()
+                : applicationRepository.findByType(parsedType);
         return applications.stream()
-            .map(this::toApplicationView)
-            .toList();
+                .map(this::toApplicationView)
+                .toList();
     }
 
     @Override
     @Transactional(readOnly = true)
     public List<ApplicationView> listMyApplications(ActorContext actor) {
         return applicationRepository.findByApplicantUserId(actor.userId()).stream()
-            .map(this::toApplicationView)
-            .toList();
+                .map(this::toApplicationView)
+                .toList();
     }
 
     @Override
     @Transactional(readOnly = true)
     public ApplicationView getMyApplication(ActorContext actor, String applicationId) {
-        OrganizationApplication application = applicationRepository.findByIdAndApplicantUserId(applicationId, actor.userId())
-            .orElseThrow(() -> new DomainException(ErrorCode.APPLICATION_NOT_FOUND, "Application not found"));
+        OrganizationApplication application = applicationRepository
+                .findByIdAndApplicantUserId(applicationId, actor.userId())
+                .orElseThrow(() -> new DomainException(ErrorCode.APPLICATION_NOT_FOUND, "Application not found"));
         return toApplicationView(application);
     }
 
-    //TODO("이메일 발송로직")
+    // TODO("이메일 발송로직")
     @Override
     @Transactional
     public ApproveApplicationResult approveApplication(ActorContext actor, String applicationId) {
@@ -125,7 +133,7 @@ public class OnboardingApplicationService implements OnboardingUseCase {
         app.assertPending();
 
         ProvisioningResult result = provisioningService.provision(
-            app.type(), app.applicantUserId(), app.orgName(), app.country(), actor.userId());
+                app.type(), app.applicantUserId(), app.orgName(), app.country(), actor.userId());
 
         app.approve(actor.userId(), result.tenantId(), Instant.now(clock));
         applicationRepository.save(app);
@@ -143,32 +151,30 @@ public class OnboardingApplicationService implements OnboardingUseCase {
 
     @Override
     @Transactional
-    public PresignedEvidenceUploadResult presignEvidenceUpload(ActorContext actor, PresignEvidenceUploadCommand command) {
+    public PresignedEvidenceUploadResult presignEvidenceUpload(ActorContext actor,
+            PresignEvidenceUploadCommand command) {
         Instant now = Instant.now(clock);
         OnboardingEvidenceBundle bundle = resolveOrCreateBundle(actor, command.evidenceBundleId(), now);
         String objectKey = buildObjectKey(actor.userId(), bundle.evidenceBundleId(), command.fileName());
 
         OnboardingEvidenceFile evidenceFile = bundle.addFile(
-            command.fileName(),
-            command.contentType(),
-            objectKey,
-            now
-        );
+                command.fileName(),
+                command.contentType(),
+                objectKey,
+                now);
         evidenceBundleRepository.save(bundle);
 
         ObjectStoragePort.PresignedUpload presignedUpload = objectStoragePort.issuePresignedUpload(
-            objectKey,
-            command.contentType(),
-            PRESIGN_TTL
-        );
+                objectKey,
+                command.contentType(),
+                PRESIGN_TTL);
 
         return new PresignedEvidenceUploadResult(
-            bundle.evidenceBundleId(),
-            evidenceFile.evidenceFileId(),
-            objectKey,
-            presignedUpload.uploadUrl(),
-            presignedUpload.expiresAt()
-        );
+                bundle.evidenceBundleId(),
+                evidenceFile.evidenceFileId(),
+                objectKey,
+                presignedUpload.uploadUrl(),
+                presignedUpload.expiresAt());
     }
 
     @Override
@@ -177,13 +183,14 @@ public class OnboardingApplicationService implements OnboardingUseCase {
         requireText(command.evidenceBundleId(), "evidenceBundleId");
         requireText(command.evidenceFileId(), "evidenceFileId");
         OnboardingEvidenceBundle bundle = evidenceBundleRepository.findById(command.evidenceBundleId())
-            .orElseThrow(() -> new DomainException(ErrorCode.EVIDENCE_NOT_FOUND, "Evidence not found"));
+                .orElseThrow(() -> new DomainException(ErrorCode.EVIDENCE_NOT_FOUND, "Evidence not found"));
         bundle.assertOwnedBy(actor.userId());
 
         OnboardingEvidenceFile evidenceFile = bundle.files().stream()
-            .filter(f -> f.evidenceFileId().equals(command.evidenceFileId()))
-            .findFirst()
-            .orElseThrow(() -> new DomainException(ErrorCode.EVIDENCE_NOT_FOUND, "Evidence file not found in bundle"));
+                .filter(f -> f.evidenceFileId().equals(command.evidenceFileId()))
+                .findFirst()
+                .orElseThrow(
+                        () -> new DomainException(ErrorCode.EVIDENCE_NOT_FOUND, "Evidence file not found in bundle"));
 
         if (!objectStoragePort.objectExists(evidenceFile.objectKey())) {
             throw new DomainException(ErrorCode.EVIDENCE_NOT_FOUND, "Uploaded object not found");
@@ -197,41 +204,72 @@ public class OnboardingApplicationService implements OnboardingUseCase {
 
     private OrganizationApplication findApplication(String applicationId) {
         return applicationRepository.findById(applicationId)
-            .orElseThrow(() -> new DomainException(ErrorCode.APPLICATION_NOT_FOUND, "Application not found"));
+                .orElseThrow(() -> new DomainException(ErrorCode.APPLICATION_NOT_FOUND, "Application not found"));
     }
 
     private void requireReadyEvidenceOwnedByPrincipal(String userId, String evidenceBundleId) {
         requireText(evidenceBundleId, "evidenceBundleId");
         OnboardingEvidenceBundle bundle = evidenceBundleRepository.findById(evidenceBundleId)
-            .orElseThrow(() -> new DomainException(ErrorCode.EVIDENCE_NOT_FOUND, "Evidence not found"));
+                .orElseThrow(() -> new DomainException(ErrorCode.EVIDENCE_NOT_FOUND, "Evidence not found"));
         bundle.assertOwnedBy(userId);
         bundle.assertReady();
     }
 
     private ApplicationResult toApplicationResult(OrganizationApplication app) {
         return new ApplicationResult(
-            app.applicationId(),
-            app.type().name(),
-            app.applicantUserId(),
-            app.tenantId(),
-            app.orgName(),
-            app.country(),
-            app.status().name(),
-            app.rejectReason()
-        );
+                app.applicationId(),
+                app.type().name(),
+                app.applicantUserId(),
+                app.tenantId(),
+                app.orgName(),
+                app.country(),
+                app.bizRegNo(),
+                app.evidenceBundleId(),
+                app.status().name(),
+                app.rejectReason());
     }
 
     private ApplicationView toApplicationView(OrganizationApplication app) {
+        EvidenceFileView evidenceFile = resolveEvidenceFileView(app.evidenceBundleId());
         return new ApplicationView(
-            app.applicationId(),
-            app.type().name(),
-            app.applicantUserId(),
-            app.tenantId(),
-            app.orgName(),
-            app.country(),
-            app.status().name(),
-            app.rejectReason()
-        );
+                app.applicationId(),
+                app.type().name(),
+                app.applicantUserId(),
+                app.tenantId(),
+                app.orgName(),
+                app.country(),
+                app.bizRegNo(),
+                app.evidenceBundleId(),
+                evidenceFile.originalFileName(),
+                evidenceFile.downloadUrl(),
+                app.status().name(),
+                app.rejectReason());
+    }
+
+    private EvidenceFileView resolveEvidenceFileView(String evidenceBundleId) {
+        if (evidenceBundleId == null || evidenceBundleId.isBlank()) {
+            return EvidenceFileView.EMPTY;
+        }
+
+        OnboardingEvidenceBundle bundle = evidenceBundleRepository.findById(evidenceBundleId).orElse(null);
+        if (bundle == null || bundle.files().isEmpty()) {
+            return EvidenceFileView.EMPTY;
+        }
+
+        OnboardingEvidenceFile file = bundle.files().stream()
+                .filter(OnboardingEvidenceFile::isReady)
+                .max(java.util.Comparator.comparing(OnboardingEvidenceFile::createdAt))
+                .orElse(null);
+        if (file == null || !objectStoragePort.objectExists(file.objectKey())) {
+            return EvidenceFileView.EMPTY;
+        }
+
+        ObjectStoragePort.PresignedDownload download = objectStoragePort.issuePresignedDownload(file.objectKey(), PRESIGN_TTL);
+        return new EvidenceFileView(file.originalFileName(), download.downloadUrl());
+    }
+
+    private record EvidenceFileView(String originalFileName, String downloadUrl) {
+        private static final EvidenceFileView EMPTY = new EvidenceFileView(null, null);
     }
 
     private OnboardingEvidenceBundle resolveOrCreateBundle(ActorContext actor, String requestedBundleId, Instant now) {
@@ -239,7 +277,7 @@ public class OnboardingApplicationService implements OnboardingUseCase {
             return evidenceBundleRepository.save(OnboardingEvidenceBundle.create(actor.userId(), now));
         }
         OnboardingEvidenceBundle bundle = evidenceBundleRepository.findById(requestedBundleId)
-            .orElseThrow(() -> new DomainException(ErrorCode.EVIDENCE_NOT_FOUND, "Evidence not found"));
+                .orElseThrow(() -> new DomainException(ErrorCode.EVIDENCE_NOT_FOUND, "Evidence not found"));
         bundle.assertOwnedBy(actor.userId());
         bundle.assertCollecting();
         return bundle;
@@ -262,13 +300,13 @@ public class OnboardingApplicationService implements OnboardingUseCase {
         }
         try {
             GroupType type = GroupType.valueOf(value.trim().toUpperCase(Locale.ROOT));
-            if (type == GroupType.BRAND || type == GroupType.RETAIL) {
+            if (type == GroupType.BRAND || type == GroupType.RETAIL || type == GroupType.SERVICE) {
                 return type;
             }
         } catch (IllegalArgumentException ignored) {
             // handled below
         }
-        throw new DomainException(ErrorCode.INVALID_REQUEST, "type must be BRAND or RETAIL");
+        throw new DomainException(ErrorCode.INVALID_REQUEST, "type must be BRAND, RETAIL, or SERVICE");
     }
 
     private GroupType parseOptionalRequestedType(String value) {

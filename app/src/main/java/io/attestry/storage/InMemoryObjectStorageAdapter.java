@@ -22,4 +22,14 @@ public class InMemoryObjectStorageAdapter implements ObjectStoragePort {
     public boolean objectExists(String objectKey) {
         return knownObjectKeys.contains(objectKey);
     }
+
+    @Override
+    public PresignedDownload issuePresignedDownload(String objectKey, Duration ttl) {
+        if (!knownObjectKeys.contains(objectKey)) {
+            throw new IllegalStateException("Object does not exist in in-memory storage");
+        }
+        Instant expiresAt = Instant.now().plus(ttl);
+        String fakeUrl = "http://localhost/storage/mock-download/" + objectKey;
+        return new PresignedDownload(fakeUrl, expiresAt);
+    }
 }

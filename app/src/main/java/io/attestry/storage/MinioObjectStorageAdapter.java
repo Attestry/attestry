@@ -59,4 +59,22 @@ public class MinioObjectStorageAdapter implements ObjectStoragePort {
             return false;
         }
     }
+
+    @Override
+    public PresignedDownload issuePresignedDownload(String objectKey, Duration ttl) {
+        try {
+            int expirySeconds = (int) ttl.getSeconds();
+            String url = minioClient.getPresignedObjectUrl(
+                GetPresignedObjectUrlArgs.builder()
+                    .method(Method.GET)
+                    .bucket(bucket)
+                    .object(objectKey)
+                    .expiry(expirySeconds)
+                    .build()
+            );
+            return new PresignedDownload(url, Instant.now().plusSeconds(expirySeconds));
+        } catch (Exception ex) {
+            throw new IllegalStateException("Failed to issue MinIO presigned download URL", ex);
+        }
+    }
 }

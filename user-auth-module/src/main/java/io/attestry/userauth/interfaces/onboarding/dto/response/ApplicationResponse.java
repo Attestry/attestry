@@ -10,6 +10,10 @@ public record ApplicationResponse(
     String tenantId,
     String orgName,
     String country,
+    String bizRegNo,
+    String evidenceBundleId,
+    String evidenceOriginalFileName,
+    String evidenceDownloadUrl,
     String status,
     String rejectReason
 ) {
@@ -21,6 +25,10 @@ public record ApplicationResponse(
             app.tenantId(),
             app.orgName(),
             app.country(),
+            app.bizRegNo(),
+            app.evidenceBundleId(),
+            null,
+            null,
             app.status(),
             app.rejectReason()
         );
@@ -34,6 +42,10 @@ public record ApplicationResponse(
             app.tenantId(),
             app.orgName(),
             app.country(),
+            app.bizRegNo(),
+            app.evidenceBundleId(),
+            app.evidenceOriginalFileName(),
+            app.evidenceDownloadUrl(),
             app.status(),
             app.rejectReason()
         );

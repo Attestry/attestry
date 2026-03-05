@@ -7,6 +7,10 @@ public record ApplicationView(
     String tenantId,
     String orgName,
     String country,
+    String bizRegNo,
+    String evidenceBundleId,
+    String evidenceOriginalFileName,
+    String evidenceDownloadUrl,
     String status,
     String rejectReason
 ) {

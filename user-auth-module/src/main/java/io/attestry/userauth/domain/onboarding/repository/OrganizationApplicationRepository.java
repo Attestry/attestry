@@ -24,7 +24,11 @@ public interface OrganizationApplicationRepository {
 
     boolean existsRetailByTenantAndOrgName(String tenantId, String orgName);
 
+    boolean existsServiceByTenantAndOrgName(String tenantId, String orgName);
+
     boolean existsBrandByBizRegNo(String bizRegNo);
 
     boolean existsRetailByTenantAndBizRegNo(String tenantId, String bizRegNo);
+
+    boolean existsServiceByTenantAndBizRegNo(String tenantId, String bizRegNo);
 }

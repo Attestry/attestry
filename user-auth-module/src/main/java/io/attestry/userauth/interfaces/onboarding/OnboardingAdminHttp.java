@@ -55,4 +55,5 @@ public class OnboardingAdminHttp {
     ) {
         onboardingService.rejectApplication(actor, applicationId, request.reason());
     }
+
 }

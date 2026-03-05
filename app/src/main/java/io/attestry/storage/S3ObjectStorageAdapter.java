@@ -15,10 +15,13 @@ import software.amazon.awssdk.services.s3.S3Client;
 import software.amazon.awssdk.services.s3.S3ClientBuilder;
 import software.amazon.awssdk.services.s3.S3Configuration;
 import software.amazon.awssdk.services.s3.model.HeadObjectRequest;
+import software.amazon.awssdk.services.s3.model.GetObjectRequest;
 import software.amazon.awssdk.services.s3.model.NoSuchKeyException;
 import software.amazon.awssdk.services.s3.model.PutObjectRequest;
 import software.amazon.awssdk.services.s3.model.S3Exception;
 import software.amazon.awssdk.services.s3.presigner.S3Presigner;
+import software.amazon.awssdk.services.s3.presigner.model.GetObjectPresignRequest;
+import software.amazon.awssdk.services.s3.presigner.model.PresignedGetObjectRequest;
 import software.amazon.awssdk.services.s3.presigner.model.PresignedPutObjectRequest;
 import software.amazon.awssdk.services.s3.presigner.model.PutObjectPresignRequest;
 
@@ -98,6 +101,26 @@ public class S3ObjectStorageAdapter implements ObjectStoragePort {
             return ex.statusCode() != 404 ? throwAsIllegalState(ex) : false;
         } catch (SdkException ex) {
             throw new IllegalStateException("Failed to check S3 object existence", ex);
+        }
+    }
+
+    @Override
+    public PresignedDownload issuePresignedDownload(String objectKey, Duration ttl) {
+        try {
+            GetObjectRequest getObjectRequest = GetObjectRequest.builder()
+                .bucket(bucket)
+                .key(objectKey)
+                .build();
+
+            GetObjectPresignRequest presignRequest = GetObjectPresignRequest.builder()
+                .signatureDuration(ttl)
+                .getObjectRequest(getObjectRequest)
+                .build();
+
+            PresignedGetObjectRequest presignedRequest = s3Presigner.presignGetObject(presignRequest);
+            return new PresignedDownload(presignedRequest.url().toString(), Instant.now().plus(ttl));
+        } catch (SdkException ex) {
+            throw new IllegalStateException("Failed to issue S3 presigned download URL", ex);
         }
     }
 

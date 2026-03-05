@@ -11,7 +11,8 @@ import java.util.Optional;
 import org.springframework.stereotype.Repository;
 
 @Repository
-public class JpaOrganizationApplicationRepositoryAdapter implements OrganizationApplicationRepositoryPort, OrganizationApplicationRepository {
+public class JpaOrganizationApplicationRepositoryAdapter
+        implements OrganizationApplicationRepositoryPort, OrganizationApplicationRepository {
 
     private final OrganizationApplicationJpaRepository repository;
 
@@ -22,8 +23,8 @@ public class JpaOrganizationApplicationRepositoryAdapter implements Organization
     @Override
     public OrganizationApplication save(OrganizationApplication application) {
         long rowVersion = repository.findById(application.applicationId())
-            .map(OrganizationApplicationJpaEntity::getRowVersion)
-            .orElse(0L);
+                .map(OrganizationApplicationJpaEntity::getRowVersion)
+                .orElse(0L);
         return toDomain(repository.save(toEntity(application, rowVersion)));
     }
 
@@ -68,6 +69,11 @@ public class JpaOrganizationApplicationRepositoryAdapter implements Organization
     }
 
     @Override
+    public boolean existsServiceByTenantAndOrgName(String tenantId, String orgName) {
+        return repository.existsByTypeAndTenantIdAndOrgNameIgnoreCase(GroupType.SERVICE, tenantId, orgName);
+    }
+
+    @Override
     public boolean existsBrandByBizRegNo(String bizRegNo) {
         return repository.existsByTypeAndTenantIdIsNullAndBizRegNoIgnoreCase(GroupType.BRAND, bizRegNo);
     }
@@ -77,38 +83,41 @@ public class JpaOrganizationApplicationRepositoryAdapter implements Organization
         return repository.existsByTypeAndTenantIdAndBizRegNoIgnoreCase(GroupType.RETAIL, tenantId, bizRegNo);
     }
 
+    @Override
+    public boolean existsServiceByTenantAndBizRegNo(String tenantId, String bizRegNo) {
+        return repository.existsByTypeAndTenantIdAndBizRegNoIgnoreCase(GroupType.SERVICE, tenantId, bizRegNo);
+    }
+
     private OrganizationApplication toDomain(OrganizationApplicationJpaEntity entity) {
         return OrganizationApplication.reconstitute(
-            entity.getApplicationId(),
-            entity.getType(),
-            entity.getApplicantUserId(),
-            entity.getTenantId(),
-            entity.getOrgName(),
-            entity.getCountry(),
-            entity.getBizRegNo(),
-            entity.getEvidenceBundleId(),
-            entity.getStatus(),
-            entity.getReviewedByAdminId(),
-            entity.getReviewedAt(),
-            entity.getRejectReason()
-        );
+                entity.getApplicationId(),
+                entity.getType(),
+                entity.getApplicantUserId(),
+                entity.getTenantId(),
+                entity.getOrgName(),
+                entity.getCountry(),
+                entity.getBizRegNo(),
+                entity.getEvidenceBundleId(),
+                entity.getStatus(),
+                entity.getReviewedByAdminId(),
+                entity.getReviewedAt(),
+                entity.getRejectReason());
     }
 
     private OrganizationApplicationJpaEntity toEntity(OrganizationApplication domain, long rowVersion) {
         return new OrganizationApplicationJpaEntity(
-            domain.applicationId(),
-            domain.type(),
-            domain.applicantUserId(),
-            domain.tenantId(),
-            domain.orgName(),
-            domain.country(),
-            domain.bizRegNo(),
-            domain.evidenceBundleId(),
-            domain.status(),
-            domain.reviewedByAdminId(),
-            domain.reviewedAt(),
-            domain.rejectReason(),
-            rowVersion
-        );
+                domain.applicationId(),
+                domain.type(),
+                domain.applicantUserId(),
+                domain.tenantId(),
+                domain.orgName(),
+                domain.country(),
+                domain.bizRegNo(),
+                domain.evidenceBundleId(),
+                domain.status(),
+                domain.reviewedByAdminId(),
+                domain.reviewedAt(),
+                domain.rejectReason(),
+                rowVersion);
     }
 }

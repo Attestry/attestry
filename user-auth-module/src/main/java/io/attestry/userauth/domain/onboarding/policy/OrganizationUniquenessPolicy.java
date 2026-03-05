@@ -28,13 +28,29 @@ public class OrganizationUniquenessPolicy {
     public void assertUniqueRetail(String orgName, String bizRegNo) {
         String normalizedOrgName = normalize(orgName);
         if (repository.existsBrandByOrgName(normalizedOrgName)
-            || repository.existsRetailByTenantAndOrgName(null, normalizedOrgName)) {
+                || repository.existsRetailByTenantAndOrgName(null, normalizedOrgName)) {
             throw new DomainException(ErrorCode.DUPLICATE_ORGANIZATION_NAME, "Retail name already exists");
         }
         String normalizedBizRegNo = normalizeOrNull(bizRegNo);
         if (normalizedBizRegNo != null
-            && (repository.existsBrandByBizRegNo(normalizedBizRegNo)
-            || repository.existsRetailByTenantAndBizRegNo(null, normalizedBizRegNo))) {
+                && (repository.existsBrandByBizRegNo(normalizedBizRegNo)
+                        || repository.existsRetailByTenantAndBizRegNo(null, normalizedBizRegNo))) {
+            throw new DomainException(ErrorCode.DUPLICATE_BIZ_REG_NO, "Business registration number already exists");
+        }
+    }
+
+    public void assertUniqueService(String orgName, String bizRegNo) {
+        String normalizedOrgName = normalize(orgName);
+        if (repository.existsBrandByOrgName(normalizedOrgName)
+                || repository.existsRetailByTenantAndOrgName(null, normalizedOrgName)
+                || repository.existsServiceByTenantAndOrgName(null, normalizedOrgName)) {
+            throw new DomainException(ErrorCode.DUPLICATE_ORGANIZATION_NAME, "Service name already exists");
+        }
+        String normalizedBizRegNo = normalizeOrNull(bizRegNo);
+        if (normalizedBizRegNo != null
+                && (repository.existsBrandByBizRegNo(normalizedBizRegNo)
+                        || repository.existsRetailByTenantAndBizRegNo(null, normalizedBizRegNo)
+                        || repository.existsServiceByTenantAndBizRegNo(null, normalizedBizRegNo))) {
             throw new DomainException(ErrorCode.DUPLICATE_BIZ_REG_NO, "Business registration number already exists");
         }
     }

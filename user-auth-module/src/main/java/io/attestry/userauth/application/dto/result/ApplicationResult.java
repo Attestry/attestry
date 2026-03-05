@@ -7,6 +7,8 @@ public record ApplicationResult(
     String tenantId,
     String orgName,
     String country,
+    String bizRegNo,
+    String evidenceBundleId,
     String status,
     String rejectReason
 ) {

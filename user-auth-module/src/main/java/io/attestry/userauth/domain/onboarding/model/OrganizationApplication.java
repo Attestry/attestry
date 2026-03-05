@@ -18,13 +18,13 @@ public class OrganizationApplication {
     private final String evidenceBundleId;
     private ApplicationStatus status;
     private String reviewedByAdminId;
-    private Instant reviewedAt;
+    private java.time.Instant reviewedAt;
     private String rejectReason;
 
     private OrganizationApplication(String applicationId, GroupType type, String applicantUserId,
-                                     String tenantId, String orgName, String country, String bizRegNo,
-                                     String evidenceBundleId, ApplicationStatus status,
-                                     String reviewedByAdminId, Instant reviewedAt, String rejectReason) {
+            String tenantId, String orgName, String country, String bizRegNo,
+            String evidenceBundleId, ApplicationStatus status,
+            String reviewedByAdminId, java.time.Instant reviewedAt, String rejectReason) {
         this.applicationId = applicationId;
         this.type = type;
         this.applicantUserId = applicantUserId;
@@ -40,63 +40,79 @@ public class OrganizationApplication {
     }
 
     public static OrganizationApplication createBrand(
-        String applicantUserId,
-        String orgName,
-        String country,
-        String bizRegNo,
-        String evidenceBundleId
-    ) {
+            String applicantUserId,
+            String orgName,
+            String country,
+            String bizRegNo,
+            String evidenceBundleId) {
         validateEvidenceBundleId(evidenceBundleId);
         return new OrganizationApplication(
-            UUID.randomUUID().toString(),
-            GroupType.BRAND,
-            applicantUserId,
-            null,
-            orgName,
-            country,
-            bizRegNo,
-            evidenceBundleId,
-            ApplicationStatus.PENDING,
-            null,
-            null,
-            null
-        );
+                UUID.randomUUID().toString(),
+                GroupType.BRAND,
+                applicantUserId,
+                null,
+                orgName,
+                country,
+                bizRegNo,
+                evidenceBundleId,
+                ApplicationStatus.PENDING,
+                null,
+                null,
+                null);
+    }
+
+    public static OrganizationApplication createService(
+            String applicantUserId,
+            String orgName,
+            String country,
+            String bizRegNo,
+            String evidenceBundleId) {
+        validateEvidenceBundleId(evidenceBundleId);
+        return new OrganizationApplication(
+                UUID.randomUUID().toString(),
+                GroupType.SERVICE,
+                applicantUserId,
+                null,
+                orgName,
+                country,
+                bizRegNo,
+                evidenceBundleId,
+                ApplicationStatus.PENDING,
+                null,
+                null,
+                null);
     }
 
     public static OrganizationApplication createRetail(
-        String applicantUserId,
-        String orgName,
-        String country,
-        String bizRegNo,
-        String evidenceBundleId
-    ) {
+            String applicantUserId,
+            String orgName,
+            String country,
+            String bizRegNo,
+            String evidenceBundleId) {
         validateEvidenceBundleId(evidenceBundleId);
         return new OrganizationApplication(
-            UUID.randomUUID().toString(),
-            GroupType.RETAIL,
-            applicantUserId,
-            null,
-            orgName,
-            country,
-            bizRegNo,
-            evidenceBundleId,
-            ApplicationStatus.PENDING,
-            null,
-            null,
-            null
-        );
+                UUID.randomUUID().toString(),
+                GroupType.RETAIL,
+                applicantUserId,
+                null,
+                orgName,
+                country,
+                bizRegNo,
+                evidenceBundleId,
+                ApplicationStatus.PENDING,
+                null,
+                null,
+                null);
     }
 
     public static OrganizationApplication reconstitute(
-        String applicationId, GroupType type, String applicantUserId,
-        String tenantId, String orgName, String country, String bizRegNo,
-        String evidenceBundleId, ApplicationStatus status,
-        String reviewedByAdminId, Instant reviewedAt, String rejectReason
-    ) {
+            String applicationId, GroupType type, String applicantUserId,
+            String tenantId, String orgName, String country, String bizRegNo,
+            String evidenceBundleId, ApplicationStatus status,
+            String reviewedByAdminId, java.time.Instant reviewedAt, String rejectReason) {
         return new OrganizationApplication(
-            applicationId, type, applicantUserId, tenantId, orgName, country, bizRegNo,
-            evidenceBundleId, status, reviewedByAdminId, reviewedAt, rejectReason
-        );
+                applicationId, type, applicantUserId, tenantId, orgName, country, bizRegNo,
+                evidenceBundleId, status, reviewedByAdminId, reviewedAt, rejectReason);
     }
 
     public void approve(String reviewerUserId, String assignedTenantId, Instant now) {
@@ -128,16 +144,51 @@ public class OrganizationApplication {
     }
 
     // Getters
-    public String applicationId() { return applicationId; }
-    public GroupType type() { return type; }
-    public String applicantUserId() { return applicantUserId; }
-    public String tenantId() { return tenantId; }
-    public String orgName() { return orgName; }
-    public String country() { return country; }
-    public String bizRegNo() { return bizRegNo; }
-    public String evidenceBundleId() { return evidenceBundleId; }
-    public ApplicationStatus status() { return status; }
-    public String reviewedByAdminId() { return reviewedByAdminId; }
-    public Instant reviewedAt() { return reviewedAt; }
-    public String rejectReason() { return rejectReason; }
+    public String applicationId() {
+        return applicationId;
+    }
+
+    public GroupType type() {
+        return type;
+    }
+
+    public String applicantUserId() {
+        return applicantUserId;
+    }
+
+    public String tenantId() {
+        return tenantId;
+    }
+
+    public String orgName() {
+        return orgName;
+    }
+
+    public String country() {
+        return country;
+    }
+
+    public String bizRegNo() {
+        return bizRegNo;
+    }
+
+    public String evidenceBundleId() {
+        return evidenceBundleId;
+    }
+
+    public ApplicationStatus status() {
+        return status;
+    }
+
+    public String reviewedByAdminId() {
+        return reviewedByAdminId;
+    }
+
+    public java.time.Instant reviewedAt() {
+        return reviewedAt;
+    }
+
+    public String rejectReason() {
+        return rejectReason;
+    }
 }
