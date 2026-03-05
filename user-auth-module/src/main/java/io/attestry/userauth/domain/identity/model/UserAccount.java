@@ -10,8 +10,8 @@ public class UserAccount {
 
     private final String userId;
     private final Email email;
-    private final String phone;
-    private final String passwordHash;
+    private String phone;
+    private String passwordHash;
     private UserStatus status;
     private VerificationLevel verificationLevel;
 
@@ -48,6 +48,18 @@ public class UserAccount {
         if (passwordHash == null || passwordHash.isBlank()) {
             throw new DomainException(ErrorCode.INVALID_CREDENTIALS, "Password hash is required");
         }
+    }
+
+    public void updatePhone(String phone) {
+        this.phone = phone;
+    }
+
+    public void changePassword(String currentRawPassword, String newPasswordHash, PasswordMatcher matcher) {
+        assertPasswordMatches(currentRawPassword, matcher);
+        if (newPasswordHash == null || newPasswordHash.isBlank()) {
+            throw new DomainException(ErrorCode.INVALID_CREDENTIALS, "New password hash is required");
+        }
+        this.passwordHash = newPasswordHash;
     }
 
     public void verifyPhone() {
