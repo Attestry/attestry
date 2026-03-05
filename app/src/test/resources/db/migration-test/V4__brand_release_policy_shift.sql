@@ -1,1 +1,0 @@
-/Users/min96/IdeaProjects/attestry/app/src/main/resources/db/migration/V4__brand_release_policy_shift.sql

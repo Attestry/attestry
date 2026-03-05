@@ -72,6 +72,12 @@ public class JpaDelegationRepositoryAdapter implements DelegationRepository {
         );
     }
 
+    @Override
+    public List<Delegation> findActiveByResourceId(String resourceType, String resourceId) {
+        return repository.findByResourceTypeAndResourceIdAndStatus(resourceType, resourceId, DelegationStatus.ACTIVE)
+            .stream().map(this::toDomain).toList();
+    }
+
     private Delegation toDomain(DelegationJpaEntity entity) {
         return new Delegation(
             entity.getDelegationId(),

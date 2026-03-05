@@ -25,7 +25,6 @@ import io.attestry.workflow.domain.delegation.repository.DelegationRepository;
 import io.attestry.workflow.domain.partner.model.PartnerLink;
 import io.attestry.workflow.domain.partner.model.PartnerLinkStatus;
 import io.attestry.workflow.domain.partner.model.PartnerType;
-import io.attestry.workflow.domain.partner.repository.PartnerLinkRepository;
 import java.time.Clock;
 import java.time.Instant;
 import java.time.ZoneOffset;
@@ -42,7 +41,6 @@ import org.mockito.junit.jupiter.MockitoExtension;
 class DelegationServiceBatchTest {
 
     @Mock DelegationRepository delegationRepository;
-    @Mock PartnerLinkRepository partnerLinkRepository;
     @Mock TenantReadPort tenantReadPort;
     @Mock PassportAuthorityQueryPort passportAuthorityQueryPort;
     @Mock DelegationPermissionProjectionPort permissionProjectionPort;
@@ -73,7 +71,7 @@ class DelegationServiceBatchTest {
     @BeforeEach
     void setUp() {
         service = new DelegationService(
-            delegationRepository, partnerLinkRepository, tenantReadPort,
+            delegationRepository, tenantReadPort,
             passportAuthorityQueryPort, permissionProjectionPort,
             relationshipValidator, delegationGrantPolicy, authorizationSupport, clock
         );

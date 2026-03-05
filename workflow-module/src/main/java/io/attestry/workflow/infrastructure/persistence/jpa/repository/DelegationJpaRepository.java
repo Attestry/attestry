@@ -26,4 +26,8 @@ public interface DelegationJpaRepository extends JpaRepository<DelegationJpaEnti
         String permissionCode,
         DelegationStatus status
     );
+
+    List<DelegationJpaEntity> findByResourceTypeAndResourceIdAndStatus(
+        String resourceType, String resourceId, DelegationStatus status
+    );
 }

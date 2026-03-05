@@ -1,0 +1,60 @@
+package io.attestry.workflow.domain.servicerequest.policy;
+
+import io.attestry.workflow.domain.WorkflowDomainException;
+import io.attestry.workflow.domain.WorkflowErrorCode;
+import org.springframework.stereotype.Component;
+
+@Component
+public class ServiceSubmitPolicy {
+
+    public void assertSubmittable(ServiceSubmitContext context) {
+        assertPassportActive(context);
+        assertNoRiskFlag(context);
+        assertHasServiceRepairPermission(context);
+        assertNoDuplicateSubmission(context);
+    }
+
+    private void assertPassportActive(ServiceSubmitContext context) {
+        if (!"ACTIVE".equals(context.assetState())) {
+            throw new WorkflowDomainException(
+                WorkflowErrorCode.INVALID_STATE,
+                "Passport asset must be ACTIVE"
+            );
+        }
+    }
+
+    private void assertNoRiskFlag(ServiceSubmitContext context) {
+        if (!"NONE".equals(context.riskFlag())) {
+            throw new WorkflowDomainException(
+                WorkflowErrorCode.INVALID_STATE,
+                "Risk flagged passport cannot be submitted for service"
+            );
+        }
+    }
+
+    private void assertHasServiceRepairPermission(ServiceSubmitContext context) {
+        if (!context.hasActiveServiceRepairPermission()) {
+            throw new WorkflowDomainException(
+                WorkflowErrorCode.FORBIDDEN_SCOPE,
+                "No active SERVICE_REPAIR consent for this passport"
+            );
+        }
+    }
+
+    private void assertNoDuplicateSubmission(ServiceSubmitContext context) {
+        if (context.submittedExists()) {
+            throw new WorkflowDomainException(
+                WorkflowErrorCode.SERVICE_REQUEST_ALREADY_SUBMITTED,
+                "A SUBMITTED service request already exists for this passport"
+            );
+        }
+    }
+
+    public record ServiceSubmitContext(
+        String assetState,
+        String riskFlag,
+        boolean hasActiveServiceRepairPermission,
+        boolean submittedExists
+    ) {
+    }
+}

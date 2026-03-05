@@ -62,6 +62,27 @@ public class OnboardingProvisioningService {
             actorUserId,
             Instant.now(clock)
         );
+        templateAdminRepository.bindTemplateToTenantRole(
+            tenant.tenantId(),
+            RoleCodes.TENANT_OWNER,
+            SystemPermissionTemplateCatalog.TEMPLATE_TENANT_READ_ONLY,
+            actorUserId,
+            Instant.now(clock)
+        );
+        templateAdminRepository.bindTemplateToTenantRole(
+            tenant.tenantId(),
+            RoleCodes.TENANT_OPERATOR,
+            SystemPermissionTemplateCatalog.TEMPLATE_TENANT_READ_ONLY,
+            actorUserId,
+            Instant.now(clock)
+        );
+        templateAdminRepository.bindTemplateToTenantRole(
+            tenant.tenantId(),
+            RoleCodes.TENANT_STAFF,
+            SystemPermissionTemplateCatalog.TEMPLATE_TENANT_READ_ONLY,
+            actorUserId,
+            Instant.now(clock)
+        );
 
         return new ProvisioningResult(tenant.tenantId(), group.groupId(), membership.membershipId());
     }

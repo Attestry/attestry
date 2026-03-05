@@ -1,19 +1,21 @@
 ### =========================================================
-### Product Query Scenario
+### Product Query APIs
 ### =========================================================
 
 @baseUrl = http://localhost:8080
 @accessToken = REPLACE_ACCESS_TOKEN
-@passportId = REPLACE_PASSPORT_ID
+@passportId = 019cbc97-fa07-7072-b36b-efee059e1af5
 
-### 1) Get Asset State
+### 1) Get Passport Detail (public endpoint)
+GET {{baseUrl}}/products/passports/{{passportId}}
+
+### 2) Get Asset State (public endpoint)
 GET {{baseUrl}}/products/passports/{{passportId}}/state
-Authorization: Bearer {{accessToken}}
 
-### 2) Get Current Owner
+### 3) Get Current Owner (public endpoint)
 GET {{baseUrl}}/products/passports/{{passportId}}/owner
-Authorization: Bearer {{accessToken}}
 
-### 3) My Passports (소유 여권 목록)
+### 4) List My Passports
+### Scope: isAuthenticated()
 GET {{baseUrl}}/products/me/passports
 Authorization: Bearer {{accessToken}}

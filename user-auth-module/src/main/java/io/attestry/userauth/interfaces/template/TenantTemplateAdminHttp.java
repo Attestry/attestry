@@ -1,6 +1,7 @@
 package io.attestry.userauth.interfaces.template;
 
 import io.attestry.userauth.application.dto.command.ActorContext;
+import io.attestry.userauth.application.dto.result.PermissionResult;
 import io.attestry.userauth.application.dto.result.PermissionTemplateResult;
 import io.attestry.userauth.application.dto.result.TenantRoleTemplateBindingResult;
 import io.attestry.userauth.application.usecase.membership.TemplateAdminUseCase;
@@ -8,6 +9,7 @@ import io.attestry.userauth.interfaces.template.dto.request.BindTenantRoleTempla
 import io.attestry.userauth.interfaces.template.dto.request.CreatePermissionTemplateRequest;
 import io.attestry.userauth.interfaces.template.dto.request.SetTemplatePermissionsRequest;
 import io.attestry.userauth.interfaces.template.dto.request.UpdatePermissionTemplateRequest;
+import io.attestry.userauth.interfaces.template.dto.response.PermissionResponse;
 import io.attestry.userauth.interfaces.template.dto.response.PermissionTemplateResponse;
 import io.attestry.userauth.interfaces.template.dto.response.TenantRoleTemplateBindingResponse;
 import io.attestry.userauth.security.CurrentActor;
@@ -55,6 +57,16 @@ public class TenantTemplateAdminHttp {
     ) {
         return templateAdminService.listTenantTemplates(actor, tenantId).stream()
             .map(PermissionTemplateResponse::from)
+            .toList();
+    }
+
+    @GetMapping("/permissions")
+    public List<PermissionResponse> listPermissions(
+        @CurrentActor ActorContext actor,
+        @PathVariable("tenantId") String tenantId
+    ) {
+        return templateAdminService.listPermissions(actor).stream()
+            .map(PermissionResponse::from)
             .toList();
     }
 

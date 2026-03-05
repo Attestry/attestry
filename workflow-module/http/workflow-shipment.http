@@ -3,9 +3,9 @@
 
 @baseUrl = http://localhost:8080
 @contentType = application/json
-@brandAccessToken = REPLACE_BRAND_ACCESS_TOKEN
-@tenantId = REPLACE_TENANT_ID
-@groupId = REPLACE_GROUP_ID
+@brandAccessToken = eb4ad12f-ecc1-4090-bc31-45bf1b75e334
+@tenantId = 41e042c2-cff2-4cde-bdc2-47247fdb4ff5
+@groupId = f90fbf48-0204-48db-bb5a-20c8da972c2e
 @passportId = REPLACE_PASSPORT_ID
 @evidenceGroupId = null
 @evidenceId = REPLACE_EVIDENCE_ID

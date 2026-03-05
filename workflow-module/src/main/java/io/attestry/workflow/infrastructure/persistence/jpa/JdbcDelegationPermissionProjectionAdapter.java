@@ -19,6 +19,7 @@ public class JdbcDelegationPermissionProjectionAdapter implements DelegationPerm
     private static final String STATUS_REVOKED = "REVOKED";
     private static final String STATUS_EXPIRED = "EXPIRED";
     private static final String STATUS_LINK_INACTIVE = "LINK_INACTIVE";
+    private static final String STATUS_CONSUMED = "CONSUMED";
 
     private final JdbcTemplate jdbcTemplate;
     private final Clock clock;
@@ -49,6 +50,17 @@ public class JdbcDelegationPermissionProjectionAdapter implements DelegationPerm
             return;
         }
         upsert(delegation, STATUS_REVOKED);
+    }
+
+    @Override
+    public void onDelegationConsumed(Delegation delegation) {
+        if (!isSupportedPassportDelegation(delegation)) {
+            return;
+        }
+        if (!existsPassport(delegation.resourceId())) {
+            return;
+        }
+        upsert(delegation, STATUS_CONSUMED);
     }
 
     private boolean isSupportedPassportDelegation(Delegation delegation) {

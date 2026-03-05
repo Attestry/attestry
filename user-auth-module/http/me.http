@@ -1,7 +1,7 @@
 ### User Auth - Me APIs
 
 @baseUrl = http://localhost:8080
-@accessToken = 15b00968-4eab-457b-921f-9c0a28261158
+@accessToken = eb4ad12f-ecc1-4090-bc31-45bf1b75e334
 
 ### 1) My memberships
 GET {{baseUrl}}/me/memberships

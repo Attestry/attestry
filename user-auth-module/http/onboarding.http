@@ -2,11 +2,11 @@
 
 @baseUrl = http://localhost:8080
 @contentType = application/json
-@accessToken = d7a467b4-7354-40a8-b513-4d4feb3a9592
+@accessToken = 08af2265-0af9-4e26-b902-b091068a3097
 @applicationId = 7958e5c5-66c5-4b81-997a-05ecbb12b159
-@evidenceBundleId = 62a313a8-0277-4a36-9058-b26deda8b003
-@evidenceFileId = d9535914-391a-4627-a33f-1203ae058ac6
-@uploadUrl = http://localhost:9000/attestry-onboarding/onboarding/5ed2ccba-4173-4c4c-bec9-84ac27cd4c3d/62a313a8-0277-4a36-9058-b26deda8b003/e97892f9-f94c-49cd-a928-48fb014efcc0/biz-proof-1.pdf?X-Amz-Algorithm=AWS4-HMAC-SHA256&X-Amz-Credential=minioadmin%2F20260303%2Fus-east-1%2Fs3%2Faws4_request&X-Amz-Date=20260303T100606Z&X-Amz-Expires=900&X-Amz-SignedHeaders=host&X-Amz-Signature=c526386e44dbeb166b951e0997de1782ec5a08944d35cc76a2c65eae79305ce0
+@evidenceBundleId = d95336f6-fd17-4820-9eef-57655feab8c6
+@evidenceFileId = 7189b4cb-1572-4ad0-acb2-553f71814b20
+@uploadUrl = http://localhost:9000/attestry-onboarding/onboarding/4e342964-c313-4dc4-8169-add5ed34adfc/d95336f6-fd17-4820-9eef-57655feab8c6/a82f9c1d-d301-41fd-9854-62dcb3407805/biz-proof-1.pdf?X-Amz-Algorithm=AWS4-HMAC-SHA256&X-Amz-Credential=minioadmin%2F20260305%2Fus-east-1%2Fs3%2Faws4_request&X-Amz-Date=20260305T060017Z&X-Amz-Expires=900&X-Amz-SignedHeaders=host&X-Amz-Signature=9529fd903f73c47692b34c1a7883a74c2a2dc5b1b2a819198c6bdf0a95bf0e15
 
 ### 1) Presign evidence upload
 # @name presignEvidence
@@ -15,7 +15,7 @@ Authorization: Bearer {{accessToken}}
 Content-Type: {{contentType}}
 
 {
-  "evidenceBundleId": {{evidenceBundleId}},
+  "evidenceBundleId": null,
   "fileName": "biz-proof-1.pdf",
   "contentType": "application/pdf"
 }
@@ -49,8 +49,8 @@ Authorization: Bearer {{accessToken}}
 Content-Type: {{contentType}}
 
 {
-  "type": "BRAND",
-  "orgName": "ACME BRAND",
+  "type": "RETAIL",
+  "orgName": "무신사",
   "country": "KR",
   "bizRegNo": "123-45-67890",
   "evidenceBundleId": "{{evidenceBundleId}}"

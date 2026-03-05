@@ -65,7 +65,7 @@ public class MembershipAdminHttp {
     }
 
     @GetMapping("/tenants/{tenantId}/admin/memberships")
-    @PreAuthorize("hasAuthority('SCOPE_TENANT_MEMBERSHIP_VIEW')")
+    @PreAuthorize("hasAnyAuthority('SCOPE_TENANT_MEMBERSHIP_VIEW','SCOPE_TENANT_READ_ONLY')")
     public List<MembershipResponse> listMemberships(@CurrentActor ActorContext actor, @PathVariable("tenantId") String tenantId) {
         return membershipAdminService.listMemberships(actor, tenantId)
             .stream()

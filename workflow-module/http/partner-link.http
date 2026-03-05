@@ -4,11 +4,11 @@
 
 @baseUrl = http://localhost:8080
 @contentType = application/json
-@accessToken = 60ab6261-4ec9-4a5d-a2b2-01b34009e366
-@targetAccessToken = 60d76f2d-7c0d-411f-8377-2d76f22417f6
-@sourceTenantId = d3954904-f17c-4390-b4c0-b97bcc486d66
-@targetTenantId = 4064e490-4f2c-4cb4-b95a-906739fc8273
-@partnerLinkId = 02e331a6-2a67-4d8f-a0a6-ce329f23acb6
+@accessToken = b0e906a9-9839-4ff5-9a16-2490674ad902
+@targetAccessToken = eb4ad12f-ecc1-4090-bc31-45bf1b75e334
+@sourceTenantId = 683c1f29-b69a-41d2-b3cb-9abe01e616dc
+@targetTenantId = 4be926c6-39ce-4622-8ca4-86149abd2894
+@partnerLinkId = 5bbdd004-23df-4609-8928-87a8ad0d50af
 
 ### 1) Create PartnerLink (source tenant context + SCOPE_PARTNER_LINK_CREATE)
 POST {{baseUrl}}/workflows/tenants/{{sourceTenantId}}/partner-links

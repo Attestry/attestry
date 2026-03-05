@@ -2,14 +2,14 @@
 
 @baseUrl = http://localhost:8080
 @contentType = application/json
-@accessToken = e1748f7a-85f7-418c-abb4-805e94af23a5
-@tenantId = b32094dc-734c-4063-b289-a5882b061b72
-@groupId = fd0ebf85-9d73-4e1d-b746-8ebfdf0929d6
-@membershipId = b8851d3b-10fe-432a-9aeb-8a47105bb695
-@invitationId = 495e6f55-bae7-4636-9f7e-338180be5e67
+@accessToken = 5bd57e1e-f900-421d-a4f3-0e005c4f7346
+@tenantId = 4be926c6-39ce-4622-8ca4-86149abd2894
+@groupId = 4409809d-ba72-4a15-96cf-5cb2ab544f05
+@membershipId = 905043f9-7f2a-4242-be41-8901260a926d
+@invitationId = 2fe03ecf-eca9-48f7-b0c4-7e01d5d2815f
 @roleCode = TENANT_OPERATOR
 @templateCode = TEMPLATE_BRAND_WORK
-@invitation-accessToken = 75ed2756-4ac5-4568-b997-504b8fa76625
+@invitation-accessToken = 7a15cf5c-dec9-4724-9cb7-6c2da121b8d1
 
 ### 1) Invite member
 ### Required scope: SCOPE_TENANT_INVITATION_CREATE
@@ -59,7 +59,7 @@ Authorization: Bearer {{accessToken}}
 
 ### 8) Assign role
 ### Required scope: SCOPE_TENANT_ROLE_ASSIGN
-POST {{baseUrl}}/tenants/{{tenantId}}/admin/memberships/{{membershipId}}/roles/{{roleCode}}
+POST {{baseUrl}}/tenants/{{tenantId}}/admin/memberships/{{membershipId}}/roles/TENANT_OPERATOR
 Authorization: Bearer {{accessToken}}
 
 ### 9) Revoke role

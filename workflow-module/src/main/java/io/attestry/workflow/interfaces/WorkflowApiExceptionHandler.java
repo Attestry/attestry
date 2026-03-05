@@ -19,11 +19,11 @@ public class WorkflowApiExceptionHandler {
 
     private HttpStatus resolveStatus(WorkflowErrorCode code) {
         return switch (code) {
-            case DELEGATION_NOT_FOUND, PARTNER_LINK_NOT_FOUND, EVIDENCE_NOT_FOUND, TRANSFER_NOT_FOUND, CLAIM_NOT_FOUND -> HttpStatus.NOT_FOUND;
+            case DELEGATION_NOT_FOUND, PARTNER_LINK_NOT_FOUND, EVIDENCE_NOT_FOUND, TRANSFER_NOT_FOUND, CLAIM_NOT_FOUND, SERVICE_REQUEST_NOT_FOUND -> HttpStatus.NOT_FOUND;
             case TENANT_ISOLATION_VIOLATION, FORBIDDEN_SCOPE -> HttpStatus.FORBIDDEN;
             case TRANSFER_EXPIRED -> HttpStatus.GONE;
             case TRANSFER_BRUTE_FORCE_BLOCKED -> HttpStatus.TOO_MANY_REQUESTS;
-            case TRANSFER_ALREADY_PENDING -> HttpStatus.CONFLICT;
+            case TRANSFER_ALREADY_PENDING, SERVICE_REQUEST_ALREADY_SUBMITTED -> HttpStatus.CONFLICT;
             default -> HttpStatus.BAD_REQUEST;
         };
     }

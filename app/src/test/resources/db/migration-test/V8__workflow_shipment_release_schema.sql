@@ -1,1 +1,0 @@
-/Users/min96/IdeaProjects/attestry/app/src/main/resources/db/migration/V8__workflow_shipment_release_schema.sql

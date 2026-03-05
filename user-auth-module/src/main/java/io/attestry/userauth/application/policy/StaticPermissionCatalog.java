@@ -39,6 +39,7 @@ public class StaticPermissionCatalog implements PermissionCatalog {
         add(map, PermissionCodes.TENANT_INVITATION_REVOKE, "Tenant Invitation Revoke", "Revoke tenant invitation", "invitation", "revoke");
         add(map, PermissionCodes.TENANT_INVITATION_VIEW, "Tenant Invitation View", "View tenant invitation", "invitation", "view");
         add(map, PermissionCodes.TENANT_MEMBERSHIP_VIEW, "Tenant Membership View", "View memberships", "membership", "view");
+        add(map, PermissionCodes.TENANT_READ_ONLY, "Tenant Read Only", "Read-only access for tenant scoped resources", "tenant", "read");
         add(map, PermissionCodes.TENANT_ROLE_ASSIGN, "Tenant Role Assign", "Assign/revoke membership roles", "membership", "assign");
         add(map, PermissionCodes.TENANT_MEMBERSHIP_ENFORCE, "Tenant Membership Enforce", "Enforce membership status", "membership", "enforce");
         add(map, PermissionCodes.PARTNER_LINK_CREATE, "Partner Link Create", "Create partner links", "partner_link", "create");
@@ -60,6 +61,9 @@ public class StaticPermissionCatalog implements PermissionCatalog {
         add(map, PermissionCodes.OWNER_TRANSFER_ACCEPT, "Owner Transfer Accept", "Accept owner transfer", "owner", "transfer_accept");
         add(map, PermissionCodes.OWNER_RISK_FLAG, "Owner Risk Flag", "Flag owner risk", "owner", "risk_flag");
         add(map, PermissionCodes.OWNER_RISK_CLEAR, "Owner Risk Clear", "Clear owner risk", "owner", "risk_clear");
+        add(map, PermissionCodes.PURCHASE_CLAIM_APPROVE, "Purchase Claim Approve", "Approve purchase claims", "claim", "approve");
+        add(map, PermissionCodes.OWNER_SERVICE_CREATE, "Owner Service Create", "Create service request as owner", "owner", "service_create");
+        add(map, PermissionCodes.SERVICE_COMPLETE, "Service Complete", "Complete service request as provider", "service", "complete");
         return Map.copyOf(map);
     }
 

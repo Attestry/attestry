@@ -1,0 +1,80 @@
+package io.attestry.workflow.application.delegation;
+
+import io.attestry.workflow.application.delegation.result.DelegationEvaluateResult;
+import io.attestry.workflow.application.port.DelegationPermissionProjectionPort;
+import io.attestry.workflow.application.usecase.DelegationLifecycleUseCase;
+import io.attestry.workflow.domain.delegation.model.Delegation;
+import io.attestry.workflow.domain.delegation.repository.DelegationRepository;
+import io.attestry.workflow.domain.partner.model.PartnerLink;
+import io.attestry.workflow.domain.partner.model.PartnerLinkStatus;
+import io.attestry.workflow.domain.partner.repository.PartnerLinkRepository;
+import java.time.Clock;
+import java.time.Instant;
+import java.util.List;
+import org.springframework.stereotype.Service;
+import org.springframework.transaction.annotation.Transactional;
+
+@Service
+public class DelegationLifecycleService implements DelegationLifecycleUseCase {
+
+    private final DelegationRepository delegationRepository;
+    private final PartnerLinkRepository partnerLinkRepository;
+    private final DelegationPermissionProjectionPort permissionProjectionPort;
+    private final Clock clock;
+
+    public DelegationLifecycleService(
+        DelegationRepository delegationRepository,
+        PartnerLinkRepository partnerLinkRepository,
+        DelegationPermissionProjectionPort permissionProjectionPort,
+        Clock clock
+    ) {
+        this.delegationRepository = delegationRepository;
+        this.partnerLinkRepository = partnerLinkRepository;
+        this.permissionProjectionPort = permissionProjectionPort;
+        this.clock = clock;
+    }
+
+    @Override
+    @Transactional(readOnly = true)
+    public DelegationEvaluateResult evaluate(
+        String sourceTenantId,
+        String targetTenantId,
+        String resourceType,
+        String resourceId,
+        String permissionCode
+    ) {
+        Delegation delegation = delegationRepository.findActive(
+                sourceTenantId,
+                targetTenantId,
+                resourceType,
+                resourceId,
+                permissionCode
+            )
+            .orElse(null);
+
+        if (delegation == null) {
+            return new DelegationEvaluateResult(false, "DELEGATION_NOT_FOUND");
+        }
+        if (delegation.isExpired(Instant.now(clock))) {
+            return new DelegationEvaluateResult(false, "DELEGATION_EXPIRED");
+        }
+        PartnerLink link = partnerLinkRepository.findById(delegation.partnerLinkId()).orElse(null);
+        if (link == null || link.status() != PartnerLinkStatus.ACTIVE) {
+            return new DelegationEvaluateResult(false, "PARTNER_LINK_NOT_ACTIVE");
+        }
+        return new DelegationEvaluateResult(true, null);
+    }
+
+    @Override
+    @Transactional
+    public void consumeByPassportId(String passportId) {
+        Instant now = Instant.now(clock);
+        List<Delegation> activeDelegations = delegationRepository.findActiveByResourceId("PASSPORT", passportId);
+        for (Delegation delegation : activeDelegations) {
+            Delegation consumed = delegationRepository.save(delegation.consume(now));
+            if (consumed.isPassportPermissionGrant()) {
+                permissionProjectionPort.onDelegationConsumed(consumed);
+            }
+        }
+    }
+}

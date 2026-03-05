@@ -6,6 +6,7 @@ import io.attestry.workflow.application.delegation.command.GrantDelegationComman
 import io.attestry.workflow.application.delegation.result.BatchDelegationResult;
 import io.attestry.workflow.application.delegation.result.DelegationEvaluateResult;
 import io.attestry.workflow.application.delegation.result.DelegationResult;
+import io.attestry.workflow.application.usecase.DelegationLifecycleUseCase;
 import io.attestry.workflow.application.usecase.DelegationUseCase;
 import java.time.Instant;
 import java.util.List;
@@ -25,9 +26,11 @@ import org.springframework.web.bind.annotation.RestController;
 public class DelegationHttp {
 
     private final DelegationUseCase delegationUseCase;
+    private final DelegationLifecycleUseCase delegationLifecycleUseCase;
 
-    public DelegationHttp(DelegationUseCase delegationUseCase) {
+    public DelegationHttp(DelegationUseCase delegationUseCase, DelegationLifecycleUseCase delegationLifecycleUseCase) {
         this.delegationUseCase = delegationUseCase;
+        this.delegationLifecycleUseCase = delegationLifecycleUseCase;
     }
 
     @PostMapping("/tenants/{sourceTenantId}/delegations")
@@ -96,7 +99,7 @@ public class DelegationHttp {
 
     @PostMapping("/internal/delegations/evaluate")
     public DelegationEvaluateResponse evaluate(@RequestBody DelegationEvaluateRequest request) {
-        DelegationEvaluateResult result = delegationUseCase.evaluate(
+        DelegationEvaluateResult result = delegationLifecycleUseCase.evaluate(
             request.resolvedSourceTenantId(),
             request.resolvedTargetTenantId(),
             request.resourceType(),

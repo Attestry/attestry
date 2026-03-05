@@ -73,6 +73,28 @@ public record Delegation(
         );
     }
 
+    public Delegation consume(Instant now) {
+        if (status != DelegationStatus.ACTIVE) {
+            throw new WorkflowDomainException(WorkflowErrorCode.DELEGATION_INVALID_STATE, "Only active delegation can be consumed");
+        }
+        return new Delegation(
+            delegationId,
+            partnerLinkId,
+            sourceTenantId,
+            targetTenantId,
+            resourceType,
+            resourceId,
+            permissionCode,
+            DelegationStatus.CONSUMED,
+            expiresAt,
+            grantedByUserId,
+            createdAt,
+            revokedByUserId,
+            revokedAt,
+            reason
+        );
+    }
+
     public boolean isExpired(Instant now) {
         return expiresAt != null && expiresAt.isBefore(now);
     }

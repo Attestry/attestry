@@ -26,4 +26,6 @@ public interface DelegationRepository {
         String resourceId,
         String permissionCode
     );
+
+    List<Delegation> findActiveByResourceId(String resourceType, String resourceId);
 }

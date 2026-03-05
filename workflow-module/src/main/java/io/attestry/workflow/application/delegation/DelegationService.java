@@ -6,7 +6,6 @@ import io.attestry.workflow.application.delegation.command.BatchGrantPassportDel
 import io.attestry.workflow.application.delegation.command.GrantDelegationCommand;
 import io.attestry.workflow.application.port.PassportAuthorityQueryPort;
 import io.attestry.workflow.application.delegation.result.BatchDelegationResult;
-import io.attestry.workflow.application.delegation.result.DelegationEvaluateResult;
 import io.attestry.workflow.application.delegation.result.DelegationResult;
 import io.attestry.workflow.application.port.DelegationPermissionProjectionPort;
 import io.attestry.workflow.application.port.TenantReadPort;
@@ -18,8 +17,6 @@ import io.attestry.workflow.domain.delegation.model.Delegation;
 import io.attestry.workflow.domain.delegation.policy.DelegationGrantPolicy;
 import io.attestry.workflow.domain.delegation.repository.DelegationRepository;
 import io.attestry.workflow.domain.partner.model.PartnerLink;
-import io.attestry.workflow.domain.partner.model.PartnerLinkStatus;
-import io.attestry.workflow.domain.partner.repository.PartnerLinkRepository;
 import java.time.Clock;
 import java.time.Instant;
 import java.util.ArrayList;
@@ -32,7 +29,6 @@ import org.springframework.transaction.annotation.Transactional;
 public class DelegationService implements DelegationUseCase {
 
     private final DelegationRepository delegationRepository;
-    private final PartnerLinkRepository partnerLinkRepository;
     private final TenantReadPort tenantReadPort;
     private final PassportAuthorityQueryPort passportAuthorityQueryPort;
     private final DelegationPermissionProjectionPort permissionProjectionPort;
@@ -43,7 +39,6 @@ public class DelegationService implements DelegationUseCase {
 
     public DelegationService(
         DelegationRepository delegationRepository,
-        PartnerLinkRepository partnerLinkRepository,
         TenantReadPort tenantReadPort,
         PassportAuthorityQueryPort passportAuthorityQueryPort,
         DelegationPermissionProjectionPort permissionProjectionPort,
@@ -53,7 +48,6 @@ public class DelegationService implements DelegationUseCase {
         Clock clock
     ) {
         this.delegationRepository = delegationRepository;
-        this.partnerLinkRepository = partnerLinkRepository;
         this.tenantReadPort = tenantReadPort;
         this.passportAuthorityQueryPort = passportAuthorityQueryPort;
         this.permissionProjectionPort = permissionProjectionPort;
@@ -218,37 +212,6 @@ public class DelegationService implements DelegationUseCase {
     public List<DelegationResult> listByTenant(AuthPrincipal principal, String tenantId) {
         authorizationSupport.assertTenantContext(principal, tenantId);
         return delegationRepository.findByTenantId(tenantId).stream().map(this::toResult).toList();
-    }
-
-    @Override
-    @Transactional(readOnly = true)
-    public DelegationEvaluateResult evaluate(
-        String sourceTenantId,
-        String targetTenantId,
-        String resourceType,
-        String resourceId,
-        String permissionCode
-    ) {
-        Delegation delegation = delegationRepository.findActive(
-                sourceTenantId,
-                targetTenantId,
-                resourceType,
-                resourceId,
-                permissionCode
-            )
-            .orElse(null);
-
-        if (delegation == null) {
-            return new DelegationEvaluateResult(false, "DELEGATION_NOT_FOUND");
-        }
-        if (delegation.isExpired(Instant.now(clock))) {
-            return new DelegationEvaluateResult(false, "DELEGATION_EXPIRED");
-        }
-        PartnerLink link = partnerLinkRepository.findById(delegation.partnerLinkId()).orElse(null);
-        if (link == null || link.status() != PartnerLinkStatus.ACTIVE) {
-            return new DelegationEvaluateResult(false, "PARTNER_LINK_NOT_ACTIVE");
-        }
-        return new DelegationEvaluateResult(true, null);
     }
 
     private DelegationResult toResult(Delegation delegation) {

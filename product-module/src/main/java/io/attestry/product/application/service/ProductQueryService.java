@@ -1,5 +1,6 @@
 package io.attestry.product.application.service;
 
+import io.attestry.product.application.port.GroupPassportQueryPort;
 import io.attestry.product.application.port.MyPassportQueryPort;
 import io.attestry.product.application.port.ProductQueryPort;
 import io.attestry.product.application.usecase.ProductQueryUseCase;
@@ -7,6 +8,7 @@ import io.attestry.product.domain.ProductDomainException;
 import io.attestry.product.domain.ProductErrorCode;
 import io.attestry.product.domain.ownership.model.PassportOwnership;
 import io.attestry.product.domain.ownership.repository.PassportOwnershipRepository;
+import io.attestry.product.domain.passport.model.ProductAsset;
 import io.attestry.product.domain.passport.model.ProductPassport;
 import io.attestry.product.domain.permission.repository.PassportPermissionRepository;
 import io.attestry.product.domain.passport.repository.PassportRepository;
@@ -22,17 +24,20 @@ public class ProductQueryService implements ProductQueryUseCase, ProductQueryPor
     private final PassportOwnershipRepository ownershipRepository;
     private final PassportPermissionRepository permissionRepository;
     private final MyPassportQueryPort myPassportQueryPort;
+    private final GroupPassportQueryPort groupPassportQueryPort;
 
     public ProductQueryService(
         PassportRepository passportRepository,
         PassportOwnershipRepository ownershipRepository,
         PassportPermissionRepository permissionRepository,
-        MyPassportQueryPort myPassportQueryPort
+        MyPassportQueryPort myPassportQueryPort,
+        GroupPassportQueryPort groupPassportQueryPort
     ) {
         this.passportRepository = passportRepository;
         this.ownershipRepository = ownershipRepository;
         this.permissionRepository = permissionRepository;
         this.myPassportQueryPort = myPassportQueryPort;
+        this.groupPassportQueryPort = groupPassportQueryPort;
     }
 
     // --- ProductQueryUseCase ---
@@ -62,12 +67,50 @@ public class ProductQueryService implements ProductQueryUseCase, ProductQueryPor
     }
 
     @Override
+    public PassportDetailResponse getPassportDetail(String passportId) {
+        ProductPassport passport = findPassport(passportId);
+        ProductAsset asset = passport.getAsset();
+        PassportOwnership ownership = ownershipRepository.findByPassportId(passportId).orElse(null);
+
+        return new PassportDetailResponse(
+            passport.getPassportId(),
+            passport.getQrPublicCode(),
+            passport.getTenantId(),
+            passport.getGroupId(),
+            asset.getAssetId(),
+            asset.getSerialNumber(),
+            asset.getModelId(),
+            asset.getModelName(),
+            asset.getManufacturedAt(),
+            asset.getProductionBatch(),
+            asset.getFactoryCode(),
+            asset.getAssetState().name(),
+            asset.getRiskFlag().name(),
+            ownership == null ? null : ownership.getOwnerId(),
+            ownership == null ? null : ownership.getUpdatedAt(),
+            passport.getCreatedAt()
+        );
+    }
+
+    @Override
     public List<MyPassportResponse> listMyPassports(String ownerId) {
         return myPassportQueryPort.findByOwnerId(ownerId).stream()
             .map(v -> new MyPassportResponse(
                 v.passportId(), v.qrPublicCode(), v.tenantId(), v.groupId(),
                 v.assetId(), v.serialNumber(), v.modelName(),
                 v.assetState(), v.riskFlag(), v.ownedSince()
+            ))
+            .toList();
+    }
+
+    @Override
+    public List<MintedPassportResponse> listMintedPassports(String tenantId, String groupId) {
+        return groupPassportQueryPort.findByTenantAndGroup(tenantId, groupId).stream()
+            .map(v -> new MintedPassportResponse(
+                v.passportId(), v.qrPublicCode(),
+                v.assetId(), v.serialNumber(), v.modelId(), v.modelName(),
+                v.manufacturedAt(), v.assetState(), v.riskFlag(),
+                v.ownerId(), v.createdAt()
             ))
             .toList();
     }

@@ -7,4 +7,6 @@ public interface DelegationPermissionProjectionPort {
     void onDelegationGranted(Delegation delegation, String partnerLinkStatus);
 
     void onDelegationRevoked(Delegation delegation);
+
+    void onDelegationConsumed(Delegation delegation);
 }

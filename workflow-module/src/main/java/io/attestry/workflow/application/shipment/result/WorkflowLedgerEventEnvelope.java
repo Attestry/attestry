@@ -1,9 +1,11 @@
 package io.attestry.workflow.application.shipment.result;
 
 import io.attestry.workflow.domain.claim.model.PurchaseClaim;
+import io.attestry.workflow.domain.servicerequest.model.ServiceRequest;
 import io.attestry.workflow.domain.shipment.model.Shipment;
 import io.attestry.workflow.domain.transfer.model.TokenTransfer;
 import io.attestry.workflow.domain.transfer.model.TransferType;
+import java.util.HashMap;
 import java.time.Instant;
 import java.util.List;
 import java.util.Map;
@@ -121,6 +123,34 @@ public record WorkflowLedgerEventEnvelope(
                 "evidenceHashes", evidenceHashes
             ),
             "purchase-claim-approved-" + claim.claimId()
+        );
+    }
+
+    public static WorkflowLedgerEventEnvelope serviceConfirmed(
+        ServiceRequest request,
+        List<String> beforeEvidenceHashes,
+        List<String> afterEvidenceHashes,
+        String serviceResult
+    ) {
+        Map<String, Object> payload = new HashMap<>();
+        payload.put("serviceRequestId", request.serviceRequestId());
+        payload.put("serviceType", request.serviceType());
+        payload.put("reason", request.description() == null ? "" : request.description());
+        payload.put("result", serviceResult == null ? "" : serviceResult);
+        payload.put("beforeEvidenceHashes", beforeEvidenceHashes);
+        payload.put("afterEvidenceHashes", afterEvidenceHashes);
+        payload.put("completedAt", request.completedAt().toString());
+
+        return new WorkflowLedgerEventEnvelope(
+            "SERVICE_REQUEST",
+            request.passportId(),
+            "SERVICE",
+            "SERVICE_CONFIRMED",
+            "SERVICE_PROVIDER",
+            request.completedByUserId(),
+            request.completedAt(),
+            Map.copyOf(payload),
+            "svc-complete-" + request.serviceRequestId()
         );
     }
 }

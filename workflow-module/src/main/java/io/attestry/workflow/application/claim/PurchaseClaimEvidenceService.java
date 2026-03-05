@@ -7,12 +7,12 @@ import io.attestry.workflow.application.claim.command.PresignClaimEvidenceComman
 import io.attestry.workflow.application.port.ShipmentEvidencePort;
 import io.attestry.workflow.application.shipment.result.PresignedShipmentEvidenceUploadResult;
 import io.attestry.workflow.application.shipment.result.ShipmentEvidenceCompleteResult;
+import io.attestry.workflow.application.support.EvidenceUploadSupport;
 import io.attestry.workflow.domain.WorkflowDomainException;
 import io.attestry.workflow.domain.WorkflowErrorCode;
 import java.time.Clock;
 import java.time.Duration;
 import java.time.Instant;
-import java.util.Locale;
 import java.util.UUID;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
@@ -20,19 +20,23 @@ import org.springframework.transaction.annotation.Transactional;
 @Service
 public class PurchaseClaimEvidenceService {
 
+    private static final String OBJECT_KEY_PREFIX = "workflow/purchase-claim/";
     private static final Duration PRESIGN_TTL = Duration.ofMinutes(15);
 
     private final ShipmentEvidencePort shipmentEvidencePort;
     private final ObjectStoragePort objectStoragePort;
+    private final EvidenceUploadSupport evidenceUploadSupport;
     private final Clock clock;
 
     public PurchaseClaimEvidenceService(
         ShipmentEvidencePort shipmentEvidencePort,
         ObjectStoragePort objectStoragePort,
+        EvidenceUploadSupport evidenceUploadSupport,
         Clock clock
     ) {
         this.shipmentEvidencePort = shipmentEvidencePort;
         this.objectStoragePort = objectStoragePort;
+        this.evidenceUploadSupport = evidenceUploadSupport;
         this.clock = clock;
     }
 
@@ -50,9 +54,9 @@ public class PurchaseClaimEvidenceService {
             evidenceGroupId, command.tenantId(), command.groupId(), principal.userId(), now
         );
 
-        String safeFileName = normalizeFileName(command.fileName());
-        String contentType = normalizeContentType(command.contentType());
-        String objectKey = buildEvidenceObjectKey(command.tenantId(), command.groupId(), evidenceGroupId, safeFileName);
+        String safeFileName = evidenceUploadSupport.normalizeFileName(command.fileName());
+        String contentType = evidenceUploadSupport.normalizeContentType(command.contentType());
+        String objectKey = evidenceUploadSupport.buildObjectKey(OBJECT_KEY_PREFIX, command.tenantId(), command.groupId(), evidenceGroupId, safeFileName);
         String evidenceId = UUID.randomUUID().toString();
 
         shipmentEvidencePort.createPendingEvidence(
@@ -74,48 +78,15 @@ public class PurchaseClaimEvidenceService {
             command.evidenceGroupId(), command.evidenceId()
         ).orElseThrow(() -> new WorkflowDomainException(WorkflowErrorCode.EVIDENCE_NOT_FOUND, "Evidence file not found"));
 
-        if (!objectStoragePort.objectExists(evidence.objectKey())) {
-            throw new WorkflowDomainException(WorkflowErrorCode.EVIDENCE_NOT_FOUND, "Uploaded object not found");
-        }
-        if (command.sizeBytes() <= 0) {
-            throw new WorkflowDomainException(WorkflowErrorCode.INVALID_REQUEST, "sizeBytes must be positive");
-        }
+        evidenceUploadSupport.assertObjectUploaded(objectStoragePort.objectExists(evidence.objectKey()));
+        evidenceUploadSupport.assertPositiveSize(command.sizeBytes());
 
-        String normalizedHash = normalizeHash(command.fileHash());
+        String normalizedHash = evidenceUploadSupport.normalizeHash(command.fileHash());
         shipmentEvidencePort.markEvidenceReady(
             command.evidenceGroupId(), command.evidenceId(),
             command.sizeBytes(), normalizedHash, Instant.now(clock)
         );
 
         return new ShipmentEvidenceCompleteResult(command.evidenceGroupId(), command.evidenceId(), "READY");
-    }
-
-    private String normalizeHash(String hash) {
-        if (hash == null || hash.isBlank()) {
-            throw new WorkflowDomainException(WorkflowErrorCode.INVALID_REQUEST, "fileHash is required");
-        }
-        String normalized = hash.trim().toLowerCase(Locale.ROOT);
-        if (!normalized.matches("^[a-f0-9]{64}$")) {
-            throw new WorkflowDomainException(WorkflowErrorCode.INVALID_REQUEST, "fileHash must be sha256 hex");
-        }
-        return normalized;
-    }
-
-    private String normalizeFileName(String fileName) {
-        if (fileName == null || fileName.isBlank()) {
-            throw new WorkflowDomainException(WorkflowErrorCode.INVALID_REQUEST, "fileName is required");
-        }
-        return fileName.trim().replaceAll("[^a-zA-Z0-9._-]", "_");
-    }
-
-    private String normalizeContentType(String contentType) {
-        if (contentType == null || contentType.isBlank()) {
-            throw new WorkflowDomainException(WorkflowErrorCode.INVALID_REQUEST, "contentType is required");
-        }
-        return contentType.trim();
-    }
-
-    private String buildEvidenceObjectKey(String tenantId, String groupId, String evidenceGroupId, String fileName) {
-        return "workflow/purchase-claim/" + tenantId + "/" + groupId + "/" + evidenceGroupId + "/" + UUID.randomUUID() + "/" + fileName;
     }
 }

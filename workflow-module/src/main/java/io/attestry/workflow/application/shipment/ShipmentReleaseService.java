@@ -16,6 +16,8 @@ import io.attestry.workflow.domain.WorkflowDomainException;
 import io.attestry.workflow.domain.WorkflowErrorCode;
 import io.attestry.workflow.domain.shipment.model.Shipment;
 import io.attestry.workflow.domain.shipment.model.ShipmentStatus;
+import io.attestry.workflow.domain.shipment.policy.ShipmentReleasePolicy;
+import io.attestry.workflow.domain.shipment.policy.ShipmentReleasePolicy.ShipmentReleaseContext;
 import io.attestry.workflow.domain.shipment.repository.ShipmentRepository;
 import java.time.Clock;
 import java.time.Instant;
@@ -32,6 +34,7 @@ public class ShipmentReleaseService implements ShipmentReleaseUseCase {
     private final ShipmentProductReadPort shipmentProductReadPort;
     private final ShipmentLedgerOutboxPort shipmentLedgerOutboxPort;
     private final WorkflowAuthorizationSupport authorizationSupport;
+    private final ShipmentReleasePolicy releasePolicy;
     private final Clock clock;
 
     public ShipmentReleaseService(
@@ -40,6 +43,7 @@ public class ShipmentReleaseService implements ShipmentReleaseUseCase {
         ShipmentProductReadPort shipmentProductReadPort,
         ShipmentLedgerOutboxPort shipmentLedgerOutboxPort,
         WorkflowAuthorizationSupport authorizationSupport,
+        ShipmentReleasePolicy releasePolicy,
         Clock clock
     ) {
         this.shipmentRepository = shipmentRepository;
@@ -47,6 +51,7 @@ public class ShipmentReleaseService implements ShipmentReleaseUseCase {
         this.shipmentProductReadPort = shipmentProductReadPort;
         this.shipmentLedgerOutboxPort = shipmentLedgerOutboxPort;
         this.authorizationSupport = authorizationSupport;
+        this.releasePolicy = releasePolicy;
         this.clock = clock;
     }
 
@@ -64,18 +69,13 @@ public class ShipmentReleaseService implements ShipmentReleaseUseCase {
 
         ShipmentProductReadPort.PassportState state = shipmentProductReadPort.findPassportState(passportId)
             .orElseThrow(() -> new WorkflowDomainException(WorkflowErrorCode.INVALID_REQUEST, "Passport not found"));
-        if (!tenantId.equals(state.tenantId()) || !groupId.equals(state.groupId())) {
-            throw new WorkflowDomainException(WorkflowErrorCode.TENANT_ISOLATION_VIOLATION, "Passport does not belong to tenant/group");
-        }
-        if (!"ACTIVE".equals(state.assetState())) {
-            throw new WorkflowDomainException(WorkflowErrorCode.INVALID_STATE, "Passport asset must be ACTIVE");
-        }
-        if (!"NONE".equals(state.riskFlag())) {
-            throw new WorkflowDomainException(WorkflowErrorCode.INVALID_STATE, "Risk flagged passport cannot be released");
-        }
-        if (shipmentRepository.existsActiveReleasedByPassportId(passportId)) {
-            throw new WorkflowDomainException(WorkflowErrorCode.INVALID_STATE, "Passport is already RELEASED");
-        }
+        ShipmentReleaseContext context = new ShipmentReleaseContext(
+            tenantId, groupId,
+            state.tenantId(), state.groupId(),
+            state.assetState(), state.riskFlag(),
+            shipmentRepository.existsActiveReleasedByPassportId(passportId)
+        );
+        releasePolicy.assertReleasable(context);
 
         String evidenceGroupId = requireText(command.evidenceGroupId(), "evidenceGroupId");
         assertEvidenceGroupScope(evidenceGroupId, tenantId, groupId);

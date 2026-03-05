@@ -1,12 +1,13 @@
 ### =========================================================
-### Product Minted Genesis Scenario
+### Product Mint API
+### Scope: SCOPE_BRAND_MINT
 ### =========================================================
 
 @baseUrl = http://localhost:8080
 @contentType = application/json
-@brandAccessToken = REPLACE_BRAND_TENANT_TOKEN
-@tenantId = REPLACE_TENANT_ID
-@groupId = REPLACE_BRAND_GROUP_ID
+@brandAccessToken = 79bcd28c-5205-4bd8-9fb1-05ed1913e579
+@tenantId = 4be926c6-39ce-4622-8ca4-86149abd2894
+@groupId = 4409809d-ba72-4a15-96cf-5cb2ab544f05
 
 ### 1) Minted (Genesis)
 POST {{baseUrl}}/products/tenants/{{tenantId}}/groups/{{groupId}}/minted
@@ -14,19 +15,15 @@ Authorization: Bearer {{brandAccessToken}}
 Content-Type: {{contentType}}
 
 {
-  "serialNumber": "SN-20260303-0001",
+  "serialNumber": "SN-20260305-0001",
   "modelId": "MODEL-001",
   "modelName": "Cyber Sneaker V1",
-  "manufacturedAt": "2026-03-03T00:00:00Z",
+  "manufacturedAt": "2026-03-05T00:00:00Z",
   "productionBatch": "BATCH-01",
   "factoryCode": "F-KR-01",
   "componentRootHash": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
 }
 
-### 2) Ledger entries 확인 (consumer 반영 후)
-GET {{baseUrl}}/ledgers/passports/REPLACE_PASSPORT_ID/entries
-Authorization: Bearer {{brandAccessToken}}
-
-### 3) Ledger verify
-GET {{baseUrl}}/ledgers/passports/REPLACE_PASSPORT_ID/verify
+### 2) List Minted Passports
+GET {{baseUrl}}/products/tenants/{{tenantId}}/groups/{{groupId}}/minted
 Authorization: Bearer {{brandAccessToken}}

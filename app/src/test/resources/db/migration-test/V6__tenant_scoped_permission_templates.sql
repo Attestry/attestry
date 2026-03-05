@@ -1,1 +1,0 @@
-/Users/min96/IdeaProjects/attestry/app/src/main/resources/db/migration/V6__tenant_scoped_permission_templates.sql

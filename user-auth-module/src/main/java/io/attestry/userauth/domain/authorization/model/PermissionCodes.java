@@ -15,6 +15,7 @@ public final class PermissionCodes {
     public static final String TENANT_INVITATION_REVOKE = "TENANT_INVITATION_REVOKE";
     public static final String TENANT_INVITATION_VIEW = "TENANT_INVITATION_VIEW";
     public static final String TENANT_MEMBERSHIP_VIEW = "TENANT_MEMBERSHIP_VIEW";
+    public static final String TENANT_READ_ONLY = "TENANT_READ_ONLY";
     public static final String TENANT_ROLE_ASSIGN = "TENANT_ROLE_ASSIGN";
     public static final String TENANT_MEMBERSHIP_ENFORCE = "TENANT_MEMBERSHIP_ENFORCE";
     public static final String PARTNER_LINK_CREATE = "PARTNER_LINK_CREATE";
@@ -37,4 +38,6 @@ public final class PermissionCodes {
     public static final String OWNER_RISK_FLAG = "OWNER_RISK_FLAG";
     public static final String OWNER_RISK_CLEAR = "OWNER_RISK_CLEAR";
     public static final String PURCHASE_CLAIM_APPROVE = "PURCHASE_CLAIM_APPROVE";
+    public static final String OWNER_SERVICE_CREATE = "OWNER_SERVICE_CREATE";
+    public static final String SERVICE_COMPLETE = "SERVICE_COMPLETE";
 }

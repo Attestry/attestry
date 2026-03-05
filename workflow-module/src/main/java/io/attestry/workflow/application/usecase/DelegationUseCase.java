@@ -4,7 +4,6 @@ import io.attestry.userauth.security.AuthPrincipal;
 import io.attestry.workflow.application.delegation.command.BatchGrantPassportDelegationCommand;
 import io.attestry.workflow.application.delegation.command.GrantDelegationCommand;
 import io.attestry.workflow.application.delegation.result.BatchDelegationResult;
-import io.attestry.workflow.application.delegation.result.DelegationEvaluateResult;
 import io.attestry.workflow.application.delegation.result.DelegationResult;
 import java.util.List;
 
@@ -21,12 +20,4 @@ public interface DelegationUseCase {
     DelegationResult revoke(AuthPrincipal principal, String delegationId, String reason);
 
     List<DelegationResult> listByTenant(AuthPrincipal principal, String tenantId);
-
-    DelegationEvaluateResult evaluate(
-        String sourceTenantId,
-        String targetTenantId,
-        String resourceType,
-        String resourceId,
-        String permissionCode
-    );
 }

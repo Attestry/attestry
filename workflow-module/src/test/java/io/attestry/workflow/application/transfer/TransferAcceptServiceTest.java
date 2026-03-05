@@ -6,6 +6,7 @@ import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.anyString;
 import static org.mockito.Mockito.doNothing;
+import static org.mockito.Mockito.doThrow;
 import static org.mockito.Mockito.never;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
@@ -20,10 +21,12 @@ import io.attestry.workflow.application.shipment.result.WorkflowLedgerEventEnvel
 import io.attestry.workflow.application.support.WorkflowAuthorizationSupport;
 import io.attestry.workflow.application.transfer.command.AcceptTransferCommand;
 import io.attestry.workflow.application.transfer.result.AcceptTransferResult;
+import io.attestry.workflow.application.usecase.DelegationLifecycleUseCase;
 import io.attestry.workflow.domain.WorkflowDomainException;
 import io.attestry.workflow.domain.WorkflowErrorCode;
 import io.attestry.workflow.domain.transfer.model.AcceptCredential;
 import io.attestry.workflow.domain.transfer.model.TokenTransfer;
+import io.attestry.workflow.domain.transfer.policy.TransferAcceptPolicy;
 import io.attestry.workflow.domain.transfer.repository.TokenTransferRepository;
 import java.time.Clock;
 import java.time.Instant;
@@ -43,7 +46,9 @@ class TransferAcceptServiceTest {
     @Mock TransferProductReadPort productReadPort;
     @Mock TransferOwnershipUpdatePort ownershipUpdatePort;
     @Mock TransferLedgerOutboxPort outboxPort;
+    @Mock DelegationLifecycleUseCase delegationLifecycleUseCase;
     @Mock WorkflowAuthorizationSupport authorizationSupport;
+    @Mock TransferAcceptPolicy acceptPolicy;
 
     private final TransferHashSupport hashSupport = new TransferHashSupport();
     private final Clock clock = Clock.fixed(Instant.parse("2026-03-01T10:00:00Z"), ZoneOffset.UTC);
@@ -61,7 +66,7 @@ class TransferAcceptServiceTest {
     void setUp() {
         service = new TransferAcceptService(
             transferRepository, productReadPort, ownershipUpdatePort,
-            outboxPort, authorizationSupport, hashSupport, clock
+            outboxPort, delegationLifecycleUseCase, authorizationSupport, hashSupport, acceptPolicy, clock
         );
     }
 
@@ -89,6 +94,7 @@ class TransferAcceptServiceTest {
         assertNotNull(result.completedAt());
         assertEquals("outbox1", result.outboxEventId());
         verify(ownershipUpdatePort).upsertOwner("p1", "consumer1", NOW);
+        verify(delegationLifecycleUseCase).consumeByPassportId("p1");
     }
 
     @Test
@@ -114,6 +120,7 @@ class TransferAcceptServiceTest {
 
         assertEquals("COMPLETED", result.status());
         assertEquals("consumer1", result.toOwnerId());
+        verify(delegationLifecycleUseCase, never()).consumeByPassportId(anyString());
     }
 
     @Test
@@ -132,7 +139,7 @@ class TransferAcceptServiceTest {
         Clock expiredClock = Clock.fixed(Instant.parse("2026-03-01T12:00:00Z"), ZoneOffset.UTC);
         TransferAcceptService expiredService = new TransferAcceptService(
             transferRepository, productReadPort, ownershipUpdatePort,
-            outboxPort, authorizationSupport, hashSupport, expiredClock
+            outboxPort, delegationLifecycleUseCase, authorizationSupport, hashSupport, acceptPolicy, expiredClock
         );
 
         TokenTransfer pending = TokenTransfer.createB2C(
@@ -233,9 +240,12 @@ class TransferAcceptServiceTest {
         when(productReadPort.findPassportState("p1"))
             .thenReturn(Optional.of(new TransferPassportState("p1", "tenant1", "group1", "ACTIVE", "NONE")));
         when(productReadPort.findCurrentOwnerId("p1")).thenReturn(Optional.of("differentOwner"));
+        doThrow(new WorkflowDomainException(WorkflowErrorCode.INVALID_STATE, "Passport ownership changed during transfer"))
+            .when(acceptPolicy).assertAcceptable(any());
 
-        assertThrows(WorkflowDomainException.class, () ->
+        WorkflowDomainException ex = assertThrows(WorkflowDomainException.class, () ->
             service.accept(CONSUMER, "t1", new AcceptTransferCommand("nonce1", null))
         );
+        assertEquals(WorkflowErrorCode.INVALID_STATE, ex.getErrorCode());
     }
 }

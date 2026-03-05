@@ -21,6 +21,21 @@ public class ProductQueryHttp {
         this.queryUseCase = queryUseCase;
     }
 
+    @GetMapping("/passports/{passportId}")
+    public PassportDetailResponse getPassportDetail(
+        @PathVariable("passportId") String passportId
+    ) {
+        ProductQueryUseCase.PassportDetailResponse result = queryUseCase.getPassportDetail(passportId);
+        return new PassportDetailResponse(
+            result.passportId(), result.qrPublicCode(),
+            result.tenantId(), result.groupId(),
+            result.assetId(), result.serialNumber(), result.modelId(), result.modelName(),
+            result.manufacturedAt(), result.productionBatch(), result.factoryCode(),
+            result.assetState(), result.riskFlag(),
+            result.ownerId(), result.ownerUpdatedAt(), result.createdAt()
+        );
+    }
+
     @GetMapping("/passports/{passportId}/state")
     public AssetStateResponse getAssetState(
         @PathVariable("passportId") String passportId
@@ -61,6 +76,26 @@ public class ProductQueryHttp {
         String assetState,
         String riskFlag,
         Instant ownedSince
+    ) {
+    }
+
+    public record PassportDetailResponse(
+        String passportId,
+        String qrPublicCode,
+        String tenantId,
+        String groupId,
+        String assetId,
+        String serialNumber,
+        String modelId,
+        String modelName,
+        Instant manufacturedAt,
+        String productionBatch,
+        String factoryCode,
+        String assetState,
+        String riskFlag,
+        String ownerId,
+        Instant ownerUpdatedAt,
+        Instant createdAt
     ) {
     }
 

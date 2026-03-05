@@ -5,6 +5,8 @@ import jakarta.persistence.Entity;
 import jakarta.persistence.Id;
 import jakarta.persistence.Table;
 import java.time.Instant;
+import org.hibernate.annotations.JdbcTypeCode;
+import org.hibernate.type.SqlTypes;
 
 @Entity
 @Table(name = "ledger_entry")
@@ -38,7 +40,8 @@ public class LedgerEntryJpaEntity {
     @Column(name = "created_at", nullable = false)
     private Instant createdAt;
 
-    @Column(name = "payload_json", nullable = false, columnDefinition = "TEXT")
+    @JdbcTypeCode(SqlTypes.JSON)
+    @Column(name = "payload_json", nullable = false, columnDefinition = "jsonb")
     private String payloadJson;
 
     @Column(name = "payload_canonical", columnDefinition = "TEXT")

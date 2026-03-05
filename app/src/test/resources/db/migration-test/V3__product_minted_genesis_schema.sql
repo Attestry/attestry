@@ -1,1 +1,0 @@
-/Users/min96/IdeaProjects/attestry/app/src/main/resources/db/migration/V3__product_minted_genesis_schema.sql

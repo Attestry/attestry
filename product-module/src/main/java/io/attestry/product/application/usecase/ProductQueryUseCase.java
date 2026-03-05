@@ -13,6 +13,10 @@ public interface ProductQueryUseCase {
 
     List<MyPassportResponse> listMyPassports(String ownerId);
 
+    PassportDetailResponse getPassportDetail(String passportId);
+
+    List<MintedPassportResponse> listMintedPassports(String tenantId, String groupId);
+
     record AssetStateResponse(String assetId, String passportId, String assetState, String riskFlag) {
     }
 
@@ -30,6 +34,41 @@ public interface ProductQueryUseCase {
         String assetState,
         String riskFlag,
         Instant ownedSince
+    ) {
+    }
+
+    record MintedPassportResponse(
+        String passportId,
+        String qrPublicCode,
+        String assetId,
+        String serialNumber,
+        String modelId,
+        String modelName,
+        Instant manufacturedAt,
+        String assetState,
+        String riskFlag,
+        String ownerId,
+        Instant createdAt
+    ) {
+    }
+
+    record PassportDetailResponse(
+        String passportId,
+        String qrPublicCode,
+        String tenantId,
+        String groupId,
+        String assetId,
+        String serialNumber,
+        String modelId,
+        String modelName,
+        Instant manufacturedAt,
+        String productionBatch,
+        String factoryCode,
+        String assetState,
+        String riskFlag,
+        String ownerId,
+        Instant ownerUpdatedAt,
+        Instant createdAt
     ) {
     }
 }
