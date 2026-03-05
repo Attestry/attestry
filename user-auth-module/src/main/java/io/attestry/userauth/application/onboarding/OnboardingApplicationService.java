@@ -260,12 +260,16 @@ public class OnboardingApplicationService implements OnboardingUseCase {
                 .filter(OnboardingEvidenceFile::isReady)
                 .max(java.util.Comparator.comparing(OnboardingEvidenceFile::createdAt))
                 .orElse(null);
-        if (file == null || !objectStoragePort.objectExists(file.objectKey())) {
+        if (file == null) {
             return EvidenceFileView.EMPTY;
         }
 
-        ObjectStoragePort.PresignedDownload download = objectStoragePort.issuePresignedDownload(file.objectKey(), PRESIGN_TTL);
-        return new EvidenceFileView(file.originalFileName(), download.downloadUrl());
+        try {
+            ObjectStoragePort.PresignedDownload download = objectStoragePort.issuePresignedDownload(file.objectKey(), PRESIGN_TTL);
+            return new EvidenceFileView(file.originalFileName(), download.downloadUrl());
+        } catch (Exception ignored) {
+            return EvidenceFileView.EMPTY;
+        }
     }
 
     private record EvidenceFileView(String originalFileName, String downloadUrl) {

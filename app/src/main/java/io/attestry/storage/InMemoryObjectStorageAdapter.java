@@ -14,7 +14,7 @@ public class InMemoryObjectStorageAdapter implements ObjectStoragePort {
     public PresignedUpload issuePresignedUpload(String objectKey, String contentType, Duration ttl) {
         knownObjectKeys.add(objectKey);
         Instant expiresAt = Instant.now().plus(ttl);
-        String fakeUrl = "http://localhost/storage/mock-upload/" + objectKey;
+        String fakeUrl = "http://localhost:8080/storage/mock-upload/" + objectKey;
         return new PresignedUpload(fakeUrl, expiresAt);
     }
 
@@ -25,11 +25,9 @@ public class InMemoryObjectStorageAdapter implements ObjectStoragePort {
 
     @Override
     public PresignedDownload issuePresignedDownload(String objectKey, Duration ttl) {
-        if (!knownObjectKeys.contains(objectKey)) {
-            throw new IllegalStateException("Object does not exist in in-memory storage");
-        }
+        knownObjectKeys.add(objectKey);
         Instant expiresAt = Instant.now().plus(ttl);
-        String fakeUrl = "http://localhost/storage/mock-download/" + objectKey;
+        String fakeUrl = "http://localhost:8080/storage/mock-download/" + objectKey;
         return new PresignedDownload(fakeUrl, expiresAt);
     }
 }
