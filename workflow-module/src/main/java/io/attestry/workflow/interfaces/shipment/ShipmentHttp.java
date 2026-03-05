@@ -110,7 +110,7 @@ public class ShipmentHttp {
     }
 
     @GetMapping("/tenants/{tenantId}/groups/{groupId}/passports/{passportId}/shipments")
-    @PreAuthorize("hasAuthority('SCOPE_BRAND_RELEASE')")
+    @PreAuthorize("hasAuthority('SCOPE_TENANT_READ_ONLY')")
     public List<ShipmentResponse> listShipments(
         @AuthenticationPrincipal AuthPrincipal principal,
         @PathVariable("tenantId") String tenantId,
@@ -123,7 +123,7 @@ public class ShipmentHttp {
     }
 
     @GetMapping("/tenants/{tenantId}/groups/{groupId}/shipments/{shipmentId}/evidences")
-    @PreAuthorize("hasAuthority('SCOPE_BRAND_RELEASE')")
+    @PreAuthorize("hasAuthority('SCOPE_TENANT_READ_ONLY')")
     public List<ShipmentEvidenceResponse> listShipmentEvidences(
         @AuthenticationPrincipal AuthPrincipal principal,
         @PathVariable("tenantId") String tenantId,

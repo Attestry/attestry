@@ -40,7 +40,8 @@ public class PartnerLinkService implements PartnerLinkUseCase {
 
     @Override
     @Transactional
-    public PartnerLinkResult create(AuthPrincipal principal, String sourceTenantId, CreatePartnerLinkCommand command) {
+    public PartnerLinkResult create(AuthPrincipal principal, CreatePartnerLinkCommand command) {
+        String sourceTenantId = requireTenantId(principal);
         authorizationSupport.assertTenantContext(principal, sourceTenantId);
         authorizationSupport.assertLivePermission(principal, sourceTenantId, PermissionCodes.PARTNER_LINK_CREATE, "partner-link:create");
         if (!tenantReadPort.existsActiveTenant(sourceTenantId) || !tenantReadPort.existsActiveTenant(command.targetTenantId())) {
@@ -115,9 +116,20 @@ public class PartnerLinkService implements PartnerLinkUseCase {
 
     @Override
     @Transactional(readOnly = true)
-    public List<PartnerLinkResult> listByTenant(AuthPrincipal principal, String tenantId) {
+    public List<PartnerLinkResult> listByTenant(AuthPrincipal principal, PartnerLinkStatus status) {
+        String tenantId = requireTenantId(principal);
         authorizationSupport.assertTenantContext(principal, tenantId);
-        return repository.findByTenantId(tenantId).stream().map(this::toResult).toList();
+        List<PartnerLink> links = status == null
+            ? repository.findByTenantId(tenantId)
+            : repository.findByTenantIdAndStatus(tenantId, status);
+        return links.stream().map(this::toResult).toList();
+    }
+
+    private String requireTenantId(AuthPrincipal principal) {
+        if (principal.tenantId() == null || principal.tenantId().isBlank()) {
+            throw new WorkflowDomainException(WorkflowErrorCode.INVALID_REQUEST, "Tenant-scoped token is required");
+        }
+        return principal.tenantId();
     }
 
     private PartnerLink getById(String partnerLinkId) {

@@ -1,5 +1,7 @@
 package io.attestry.workflow.domain.shipment.model;
 
+import static io.attestry.workflow.domain.WorkflowValidation.requireText;
+
 import io.attestry.workflow.domain.WorkflowDomainException;
 import io.attestry.workflow.domain.WorkflowErrorCode;
 import java.time.Instant;
@@ -90,9 +92,4 @@ public record Shipment(
         );
     }
 
-    private static void requireText(String value, String field) {
-        if (value == null || value.isBlank()) {
-            throw new WorkflowDomainException(WorkflowErrorCode.INVALID_REQUEST, field + " is required");
-        }
-    }
 }

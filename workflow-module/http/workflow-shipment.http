@@ -3,14 +3,14 @@
 
 @baseUrl = http://localhost:8080
 @contentType = application/json
-@brandAccessToken = eb4ad12f-ecc1-4090-bc31-45bf1b75e334
-@tenantId = 41e042c2-cff2-4cde-bdc2-47247fdb4ff5
-@groupId = f90fbf48-0204-48db-bb5a-20c8da972c2e
-@passportId = REPLACE_PASSPORT_ID
-@evidenceGroupId = null
-@evidenceId = REPLACE_EVIDENCE_ID
-@uploadUrl = REPLACE_UPLOAD_URL
-@shipmentId = REPLACE_SHIPMENT_ID
+@brandAccessToken = 79e7c37d-027b-4016-a9aa-872b1d3a50cb
+@tenantId = 4be926c6-39ce-4622-8ca4-86149abd2894
+@groupId = 4409809d-ba72-4a15-96cf-5cb2ab544f05
+@passportId = 019cbcc2-623d-7add-89db-ebda257267c1
+@evidenceGroupId = 5e117e6f-e4f7-4e69-9cb9-089da6994573
+@evidenceId = 0eb26ce2-642e-4076-97ac-e11eae8a94fa
+@uploadUrl = http://localhost:9000/attestry-onboarding/workflow/shipment/4be926c6-39ce-4622-8ca4-86149abd2894/4409809d-ba72-4a15-96cf-5cb2ab544f05/5e117e6f-e4f7-4e69-9cb9-089da6994573/c80c5bc0-de03-4974-9731-f5f056ad6e1b/release-photo-1.jpg?X-Amz-Algorithm=AWS4-HMAC-SHA256&X-Amz-Credential=minioadmin%2F20260305%2Fus-east-1%2Fs3%2Faws4_request&X-Amz-Date=20260305T084220Z&X-Amz-Expires=900&X-Amz-SignedHeaders=host&X-Amz-Signature=3159d692373db4f61de30828167b111215af261040a7badc640d7fb6fb0f849f
+@shipmentId = 6215358b-d8da-4e50-bee3-52553e8b1311
 
 ### 1) Presign shipment evidence upload
 # @name presignShipmentEvidence

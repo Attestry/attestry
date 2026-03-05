@@ -12,6 +12,7 @@ public interface PartnerLinkRepository {
     Optional<PartnerLink> findById(String partnerLinkId);
 
     List<PartnerLink> findByTenantId(String tenantId);
+    List<PartnerLink> findByTenantIdAndStatus(String tenantId, PartnerLinkStatus status);
 
     boolean existsBySourceAndTargetAndTypeAndStatus(
         String sourceTenantId,

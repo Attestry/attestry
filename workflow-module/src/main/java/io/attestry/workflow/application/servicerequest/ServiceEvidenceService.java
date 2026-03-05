@@ -11,12 +11,9 @@ import io.attestry.workflow.application.shipment.result.ShipmentEvidenceComplete
 import io.attestry.workflow.application.support.EvidenceUploadSupport;
 import io.attestry.workflow.application.support.WorkflowAuthorizationSupport;
 import io.attestry.workflow.application.usecase.ServiceEvidenceUseCase;
-import io.attestry.workflow.domain.WorkflowDomainException;
-import io.attestry.workflow.domain.WorkflowErrorCode;
 import java.time.Clock;
 import java.time.Duration;
 import java.time.Instant;
-import java.util.UUID;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
@@ -57,7 +54,13 @@ public class ServiceEvidenceService implements ServiceEvidenceUseCase {
         authorizationSupport.assertTenantAndGroupContext(principal, tenantId, groupId);
         authorizationSupport.assertLivePermission(principal, tenantId, PermissionCodes.SERVICE_COMPLETE, "service:evidence:presign");
 
-        return doPresign(principal, tenantId, groupId, command);
+        return evidenceUploadSupport.doPresign(
+            shipmentEvidencePort, objectStoragePort,
+            OBJECT_KEY_PREFIX, PRESIGN_TTL,
+            tenantId, groupId, principal.userId(),
+            command.evidenceGroupId(), command.fileName(), command.contentType(),
+            Instant.now(clock)
+        );
     }
 
     @Override
@@ -84,7 +87,13 @@ public class ServiceEvidenceService implements ServiceEvidenceUseCase {
 
         String tenantId = principal.tenantId() != null ? principal.tenantId() : "owner";
         String groupId = principal.groupId() != null ? principal.groupId() : "owner";
-        return doPresign(principal, tenantId, groupId, command);
+        return evidenceUploadSupport.doPresign(
+            shipmentEvidencePort, objectStoragePort,
+            OBJECT_KEY_PREFIX, PRESIGN_TTL,
+            tenantId, groupId, principal.userId(),
+            command.evidenceGroupId(), command.fileName(), command.contentType(),
+            Instant.now(clock)
+        );
     }
 
     @Override
@@ -98,46 +107,11 @@ public class ServiceEvidenceService implements ServiceEvidenceUseCase {
         return doComplete(command);
     }
 
-    private PresignedShipmentEvidenceUploadResult doPresign(
-        AuthPrincipal principal,
-        String tenantId,
-        String groupId,
-        PresignShipmentEvidenceUploadCommand command
-    ) {
-        String evidenceGroupId = command.evidenceGroupId() == null || command.evidenceGroupId().isBlank()
-            ? UUID.randomUUID().toString()
-            : command.evidenceGroupId().trim();
-
-        Instant now = Instant.now(clock);
-        shipmentEvidencePort.createEvidenceGroupIfAbsent(evidenceGroupId, tenantId, groupId, principal.userId(), now);
-
-        String safeFileName = evidenceUploadSupport.normalizeFileName(command.fileName());
-        String contentType = evidenceUploadSupport.normalizeContentType(command.contentType());
-        String objectKey = evidenceUploadSupport.buildObjectKey(OBJECT_KEY_PREFIX, tenantId, groupId, evidenceGroupId, safeFileName);
-        String evidenceId = UUID.randomUUID().toString();
-
-        shipmentEvidencePort.createPendingEvidence(evidenceId, evidenceGroupId, objectKey, safeFileName, contentType, now);
-
-        ObjectStoragePort.PresignedUpload presigned = objectStoragePort.issuePresignedUpload(objectKey, contentType, PRESIGN_TTL);
-        return new PresignedShipmentEvidenceUploadResult(
-            evidenceGroupId, evidenceId, objectKey, presigned.uploadUrl(), presigned.expiresAt()
-        );
-    }
-
     private ShipmentEvidenceCompleteResult doComplete(CompleteShipmentEvidenceUploadCommand command) {
-        ShipmentEvidencePort.ShipmentEvidenceView evidence = shipmentEvidencePort.findEvidenceById(
-            command.evidenceGroupId(), command.evidenceId()
-        ).orElseThrow(() -> new WorkflowDomainException(WorkflowErrorCode.EVIDENCE_NOT_FOUND, "Evidence file not found"));
-
-        evidenceUploadSupport.assertObjectUploaded(objectStoragePort.objectExists(evidence.objectKey()));
-        evidenceUploadSupport.assertPositiveSize(command.sizeBytes());
-
-        String normalizedHash = evidenceUploadSupport.normalizeHash(command.fileHash());
-        shipmentEvidencePort.markEvidenceReady(
+        return evidenceUploadSupport.doComplete(
+            shipmentEvidencePort, objectStoragePort,
             command.evidenceGroupId(), command.evidenceId(),
-            command.sizeBytes(), normalizedHash, Instant.now(clock)
+            command.sizeBytes(), command.fileHash(), Instant.now(clock)
         );
-
-        return new ShipmentEvidenceCompleteResult(command.evidenceGroupId(), command.evidenceId(), "READY");
     }
 }

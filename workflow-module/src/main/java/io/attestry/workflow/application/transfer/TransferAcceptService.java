@@ -2,7 +2,7 @@ package io.attestry.workflow.application.transfer;
 
 import io.attestry.userauth.domain.authorization.model.PermissionCodes;
 import io.attestry.userauth.security.AuthPrincipal;
-import io.attestry.workflow.application.port.TransferLedgerOutboxPort;
+import io.attestry.workflow.application.port.WorkflowLedgerOutboxPort;
 import io.attestry.workflow.application.port.TransferOwnershipUpdatePort;
 import io.attestry.workflow.application.port.TransferProductReadPort;
 import io.attestry.workflow.application.shipment.result.WorkflowLedgerEventEnvelope;
@@ -31,7 +31,7 @@ public class TransferAcceptService implements TransferAcceptUseCase {
     private final TokenTransferRepository transferRepository;
     private final TransferProductReadPort productReadPort;
     private final TransferOwnershipUpdatePort ownershipUpdatePort;
-    private final TransferLedgerOutboxPort outboxPort;
+    private final WorkflowLedgerOutboxPort outboxPort;
     private final DelegationLifecycleUseCase delegationLifecycleUseCase;
     private final WorkflowAuthorizationSupport authorizationSupport;
     private final TransferHashSupport hashSupport;
@@ -42,7 +42,7 @@ public class TransferAcceptService implements TransferAcceptUseCase {
         TokenTransferRepository transferRepository,
         TransferProductReadPort productReadPort,
         TransferOwnershipUpdatePort ownershipUpdatePort,
-        TransferLedgerOutboxPort outboxPort,
+        WorkflowLedgerOutboxPort outboxPort,
         DelegationLifecycleUseCase delegationLifecycleUseCase,
         WorkflowAuthorizationSupport authorizationSupport,
         TransferHashSupport hashSupport,

@@ -2,7 +2,7 @@ package io.attestry.workflow.application.servicerequest;
 
 import io.attestry.userauth.domain.authorization.model.PermissionCodes;
 import io.attestry.userauth.security.AuthPrincipal;
-import io.attestry.workflow.application.port.ServiceLedgerOutboxPort;
+import io.attestry.workflow.application.port.WorkflowLedgerOutboxPort;
 import io.attestry.workflow.application.port.ServicePermissionPort;
 import io.attestry.workflow.application.port.ServiceProductReadPort;
 import io.attestry.workflow.application.port.ShipmentEvidencePort;
@@ -30,7 +30,7 @@ public class ServiceCompleteService implements ServiceCompleteUseCase {
     private final ServiceRequestRepository serviceRequestRepository;
     private final ServiceProductReadPort serviceProductReadPort;
     private final ServicePermissionPort servicePermissionPort;
-    private final ServiceLedgerOutboxPort serviceLedgerOutboxPort;
+    private final WorkflowLedgerOutboxPort serviceLedgerOutboxPort;
     private final ShipmentEvidencePort shipmentEvidencePort;
     private final WorkflowAuthorizationSupport authorizationSupport;
     private final ServiceCompletePolicy completePolicy;
@@ -40,7 +40,7 @@ public class ServiceCompleteService implements ServiceCompleteUseCase {
         ServiceRequestRepository serviceRequestRepository,
         ServiceProductReadPort serviceProductReadPort,
         ServicePermissionPort servicePermissionPort,
-        ServiceLedgerOutboxPort serviceLedgerOutboxPort,
+        WorkflowLedgerOutboxPort serviceLedgerOutboxPort,
         ShipmentEvidencePort shipmentEvidencePort,
         WorkflowAuthorizationSupport authorizationSupport,
         ServiceCompletePolicy completePolicy,

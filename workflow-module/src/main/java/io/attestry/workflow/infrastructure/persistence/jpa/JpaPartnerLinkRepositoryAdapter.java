@@ -38,6 +38,16 @@ public class JpaPartnerLinkRepositoryAdapter implements PartnerLinkRepository {
     }
 
     @Override
+    public List<PartnerLink> findByTenantIdAndStatus(String tenantId, PartnerLinkStatus status) {
+        return repository.findBySourceTenantIdAndStatusOrTargetTenantIdAndStatus(
+            tenantId,
+            status,
+            tenantId,
+            status
+        ).stream().map(this::toDomain).toList();
+    }
+
+    @Override
     public boolean existsBySourceAndTargetAndTypeAndStatus(
         String sourceTenantId,
         String targetTenantId,

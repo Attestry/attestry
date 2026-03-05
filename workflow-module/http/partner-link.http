@@ -6,12 +6,11 @@
 @contentType = application/json
 @accessToken = b0e906a9-9839-4ff5-9a16-2490674ad902
 @targetAccessToken = eb4ad12f-ecc1-4090-bc31-45bf1b75e334
-@sourceTenantId = 683c1f29-b69a-41d2-b3cb-9abe01e616dc
 @targetTenantId = 4be926c6-39ce-4622-8ca4-86149abd2894
 @partnerLinkId = 5bbdd004-23df-4609-8928-87a8ad0d50af
 
-### 1) Create PartnerLink (source tenant context + SCOPE_PARTNER_LINK_CREATE)
-POST {{baseUrl}}/workflows/tenants/{{sourceTenantId}}/partner-links
+### 1) Create PartnerLink (tenant context from token + SCOPE_PARTNER_LINK_CREATE)
+POST {{baseUrl}}/workflows/partner-links
 Authorization: Bearer {{accessToken}}
 Content-Type: {{contentType}}
 
@@ -22,15 +21,19 @@ Content-Type: {{contentType}}
   "proposedExpiresAt": null
 }
 
-### 2) List PartnerLinks by tenant (SCOPE_PARTNER_LINK_READ)
-GET {{baseUrl}}/workflows/tenants/{{sourceTenantId}}/partner-links
+### 2) List PartnerLinks for my tenant (tenant context from token + SCOPE_PARTNER_LINK_READ)
+GET {{baseUrl}}/workflows/partner-links
 Authorization: Bearer {{accessToken}}
 
-### 3) Approve PartnerLink (platform admin scope)
+### 3) List ACTIVE PartnerLinks for my tenant
+GET {{baseUrl}}/workflows/partner-links?status=ACTIVE
+Authorization: Bearer {{accessToken}}
+
+### 4) Approve PartnerLink (platform admin scope)
 POST {{baseUrl}}/workflows/admin/partner-links/{{partnerLinkId}}/approve
 Authorization: Bearer {{targetAccessToken}}
 
-### 4) Reject PartnerLink (platform admin scope)
+### 5) Reject PartnerLink (platform admin scope)
 POST {{baseUrl}}/workflows/admin/partner-links/{{partnerLinkId}}/reject
 Authorization: Bearer {{accessToken}}
 Content-Type: {{contentType}}
@@ -39,15 +42,15 @@ Content-Type: {{contentType}}
   "reason": "policy violation"
 }
 
-### 5) Suspend PartnerLink (source tenant scope)
+### 6) Suspend PartnerLink (source tenant scope)
 POST {{baseUrl}}/workflows/partner-links/{{partnerLinkId}}/suspend
 Authorization: Bearer {{accessToken}}
 
-### 6) Resume PartnerLink (source tenant scope)
+### 7) Resume PartnerLink (source tenant scope)
 POST {{baseUrl}}/workflows/partner-links/{{partnerLinkId}}/resume
 Authorization: Bearer {{accessToken}}
 
-### 7) Terminate PartnerLink (source tenant scope)
+### 8) Terminate PartnerLink (source tenant scope)
 POST {{baseUrl}}/workflows/partner-links/{{partnerLinkId}}/terminate
 Authorization: Bearer {{accessToken}}
 Content-Type: {{contentType}}

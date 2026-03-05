@@ -54,7 +54,7 @@ public class JdbcLedgerOutboxAdapter implements LedgerOutboxPort {
                 ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
             """,
             eventId,
-            "PASSPORT",
+            event.aggregateType(),
             event.passportId(),
             "LEDGER_APPEND",
             payload,

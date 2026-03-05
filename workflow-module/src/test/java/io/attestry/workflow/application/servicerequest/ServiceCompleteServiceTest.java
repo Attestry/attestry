@@ -11,7 +11,7 @@ import static org.mockito.Mockito.when;
 
 import io.attestry.userauth.domain.identity.model.VerificationLevel;
 import io.attestry.userauth.security.AuthPrincipal;
-import io.attestry.workflow.application.port.ServiceLedgerOutboxPort;
+import io.attestry.workflow.application.port.WorkflowLedgerOutboxPort;
 import io.attestry.workflow.application.port.ServicePermissionPort;
 import io.attestry.workflow.application.port.ServiceProductReadPort;
 import io.attestry.workflow.application.port.ServiceProductReadPort.ServicePassportState;
@@ -43,7 +43,7 @@ class ServiceCompleteServiceTest {
     @Mock ServiceRequestRepository serviceRequestRepository;
     @Mock ServiceProductReadPort serviceProductReadPort;
     @Mock ServicePermissionPort servicePermissionPort;
-    @Mock ServiceLedgerOutboxPort serviceLedgerOutboxPort;
+    @Mock WorkflowLedgerOutboxPort serviceLedgerOutboxPort;
     @Mock ShipmentEvidencePort shipmentEvidencePort;
     @Mock WorkflowAuthorizationSupport authorizationSupport;
 

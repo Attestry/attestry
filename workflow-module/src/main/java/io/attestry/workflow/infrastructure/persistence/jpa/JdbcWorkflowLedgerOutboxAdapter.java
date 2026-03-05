@@ -4,7 +4,7 @@ import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import io.attestry.userauth.common.error.DomainException;
 import io.attestry.userauth.common.error.ErrorCode;
-import io.attestry.workflow.application.port.ServiceLedgerOutboxPort;
+import io.attestry.workflow.application.port.WorkflowLedgerOutboxPort;
 import io.attestry.workflow.application.shipment.result.WorkflowLedgerEventEnvelope;
 import java.sql.Timestamp;
 import java.time.Clock;
@@ -14,13 +14,13 @@ import org.springframework.jdbc.core.JdbcTemplate;
 import org.springframework.stereotype.Component;
 
 @Component
-public class JdbcServiceLedgerOutboxAdapter implements ServiceLedgerOutboxPort {
+public class JdbcWorkflowLedgerOutboxAdapter implements WorkflowLedgerOutboxPort {
 
     private final JdbcTemplate jdbcTemplate;
     private final ObjectMapper objectMapper;
     private final Clock clock;
 
-    public JdbcServiceLedgerOutboxAdapter(JdbcTemplate jdbcTemplate, ObjectMapper objectMapper, Clock clock) {
+    public JdbcWorkflowLedgerOutboxAdapter(JdbcTemplate jdbcTemplate, ObjectMapper objectMapper, Clock clock) {
         this.jdbcTemplate = jdbcTemplate;
         this.objectMapper = objectMapper;
         this.clock = clock;
@@ -32,7 +32,7 @@ public class JdbcServiceLedgerOutboxAdapter implements ServiceLedgerOutboxPort {
         try {
             payload = objectMapper.writeValueAsString(event);
         } catch (JsonProcessingException ex) {
-            throw new DomainException(ErrorCode.INVALID_REQUEST, "Failed to serialize service ledger payload");
+            throw new DomainException(ErrorCode.INVALID_REQUEST, "Failed to serialize workflow ledger payload");
         }
 
         String eventId = UUID.randomUUID().toString();

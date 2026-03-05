@@ -8,12 +8,9 @@ import io.attestry.workflow.application.port.ShipmentEvidencePort;
 import io.attestry.workflow.application.shipment.result.PresignedShipmentEvidenceUploadResult;
 import io.attestry.workflow.application.shipment.result.ShipmentEvidenceCompleteResult;
 import io.attestry.workflow.application.support.EvidenceUploadSupport;
-import io.attestry.workflow.domain.WorkflowDomainException;
-import io.attestry.workflow.domain.WorkflowErrorCode;
 import java.time.Clock;
 import java.time.Duration;
 import java.time.Instant;
-import java.util.UUID;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
@@ -45,27 +42,12 @@ public class PurchaseClaimEvidenceService {
         AuthPrincipal principal,
         PresignClaimEvidenceCommand command
     ) {
-        String evidenceGroupId = command.evidenceGroupId() == null || command.evidenceGroupId().isBlank()
-            ? UUID.randomUUID().toString()
-            : command.evidenceGroupId().trim();
-
-        Instant now = Instant.now(clock);
-        shipmentEvidencePort.createEvidenceGroupIfAbsent(
-            evidenceGroupId, command.tenantId(), command.groupId(), principal.userId(), now
-        );
-
-        String safeFileName = evidenceUploadSupport.normalizeFileName(command.fileName());
-        String contentType = evidenceUploadSupport.normalizeContentType(command.contentType());
-        String objectKey = evidenceUploadSupport.buildObjectKey(OBJECT_KEY_PREFIX, command.tenantId(), command.groupId(), evidenceGroupId, safeFileName);
-        String evidenceId = UUID.randomUUID().toString();
-
-        shipmentEvidencePort.createPendingEvidence(
-            evidenceId, evidenceGroupId, objectKey, safeFileName, contentType, now
-        );
-
-        ObjectStoragePort.PresignedUpload presigned = objectStoragePort.issuePresignedUpload(objectKey, contentType, PRESIGN_TTL);
-        return new PresignedShipmentEvidenceUploadResult(
-            evidenceGroupId, evidenceId, objectKey, presigned.uploadUrl(), presigned.expiresAt()
+        return evidenceUploadSupport.doPresign(
+            shipmentEvidencePort, objectStoragePort,
+            OBJECT_KEY_PREFIX, PRESIGN_TTL,
+            command.tenantId(), command.groupId(), principal.userId(),
+            command.evidenceGroupId(), command.fileName(), command.contentType(),
+            Instant.now(clock)
         );
     }
 
@@ -74,19 +56,10 @@ public class PurchaseClaimEvidenceService {
         AuthPrincipal principal,
         CompleteClaimEvidenceCommand command
     ) {
-        ShipmentEvidencePort.ShipmentEvidenceView evidence = shipmentEvidencePort.findEvidenceById(
-            command.evidenceGroupId(), command.evidenceId()
-        ).orElseThrow(() -> new WorkflowDomainException(WorkflowErrorCode.EVIDENCE_NOT_FOUND, "Evidence file not found"));
-
-        evidenceUploadSupport.assertObjectUploaded(objectStoragePort.objectExists(evidence.objectKey()));
-        evidenceUploadSupport.assertPositiveSize(command.sizeBytes());
-
-        String normalizedHash = evidenceUploadSupport.normalizeHash(command.fileHash());
-        shipmentEvidencePort.markEvidenceReady(
+        return evidenceUploadSupport.doComplete(
+            shipmentEvidencePort, objectStoragePort,
             command.evidenceGroupId(), command.evidenceId(),
-            command.sizeBytes(), normalizedHash, Instant.now(clock)
+            command.sizeBytes(), command.fileHash(), Instant.now(clock)
         );
-
-        return new ShipmentEvidenceCompleteResult(command.evidenceGroupId(), command.evidenceId(), "READY");
     }
 }

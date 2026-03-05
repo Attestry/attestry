@@ -4,10 +4,10 @@
 
 @baseUrl = http://localhost:8080
 @contentType = application/json
-@accessToken = REPLACE_ACCESS_TOKEN
-@sourceTenantId = REPLACE_SOURCE_TENANT_ID
-@targetTenantId = REPLACE_TARGET_TENANT_ID
-@partnerLinkId = REPLACE_PARTNER_LINK_ID
+@accessToken = 342e8a41-966b-4ae7-9531-4398b89752bf
+@sourceTenantId = 4be926c6-39ce-4622-8ca4-86149abd2894
+@targetTenantId = 683c1f29-b69a-41d2-b3cb-9abe01e616dc
+@partnerLinkId = 5bbdd004-23df-4609-8928-87a8ad0d50af
 @delegationId = REPLACE_DELEGATION_ID
 
 ### 1) Grant Delegation (SCOPE_DELEGATION_GRANT)
@@ -19,8 +19,8 @@ Content-Type: {{contentType}}
   "partnerLinkId": "{{partnerLinkId}}",
   "targetTenantId": "{{targetTenantId}}",
   "resourceType": "PASSPORT",
-  "resourceId": "passport_123",
-  "permissionCode": "BRAND_RELEASE",
+  "resourceId": "019cbcc2-623d-7add-89db-ebda257267c1",
+  "permissionCode": "RETAIL_TRANSFER_CREATE",
   "expiresAt": null,
   "note": "brand release delegation"
 }

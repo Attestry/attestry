@@ -8,6 +8,12 @@ import org.springframework.data.jpa.repository.JpaRepository;
 
 public interface PartnerLinkJpaRepository extends JpaRepository<PartnerLinkJpaEntity, String> {
     List<PartnerLinkJpaEntity> findBySourceTenantIdOrTargetTenantId(String sourceTenantId, String targetTenantId);
+    List<PartnerLinkJpaEntity> findBySourceTenantIdAndStatusOrTargetTenantIdAndStatus(
+        String sourceTenantId,
+        PartnerLinkStatus sourceStatus,
+        String targetTenantId,
+        PartnerLinkStatus targetStatus
+    );
 
     boolean existsBySourceTenantIdAndTargetTenantIdAndPartnerTypeAndStatus(
         String sourceTenantId,

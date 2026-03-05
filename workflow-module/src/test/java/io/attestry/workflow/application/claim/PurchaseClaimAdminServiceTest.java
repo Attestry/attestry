@@ -21,7 +21,7 @@ import io.attestry.workflow.application.claim.command.ApprovePurchaseClaimComman
 import io.attestry.workflow.application.claim.result.ApprovePurchaseClaimResult;
 import io.attestry.workflow.application.claim.result.RejectPurchaseClaimResult;
 import io.attestry.workflow.application.port.ShipmentEvidencePort;
-import io.attestry.workflow.application.port.ShipmentLedgerOutboxPort;
+import io.attestry.workflow.application.port.WorkflowLedgerOutboxPort;
 import io.attestry.workflow.application.port.TransferOwnershipUpdatePort;
 import io.attestry.workflow.application.shipment.result.WorkflowLedgerEventEnvelope;
 import io.attestry.workflow.application.support.WorkflowAuthorizationSupport;
@@ -47,7 +47,7 @@ class PurchaseClaimAdminServiceTest {
     @Mock PurchaseClaimRepository purchaseClaimRepository;
     @Mock ProductMintUseCase productMintUseCase;
     @Mock TransferOwnershipUpdatePort ownershipUpdatePort;
-    @Mock ShipmentLedgerOutboxPort ledgerOutboxPort;
+    @Mock WorkflowLedgerOutboxPort ledgerOutboxPort;
     @Mock ShipmentEvidencePort shipmentEvidencePort;
     @Mock WorkflowAuthorizationSupport authorizationSupport;
 

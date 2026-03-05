@@ -11,7 +11,7 @@ import io.attestry.workflow.application.claim.result.ApprovePurchaseClaimResult;
 import io.attestry.workflow.application.claim.result.PendingClaimView;
 import io.attestry.workflow.application.claim.result.RejectPurchaseClaimResult;
 import io.attestry.workflow.application.port.ShipmentEvidencePort;
-import io.attestry.workflow.application.port.ShipmentLedgerOutboxPort;
+import io.attestry.workflow.application.port.WorkflowLedgerOutboxPort;
 import io.attestry.workflow.application.port.TransferOwnershipUpdatePort;
 import io.attestry.workflow.application.shipment.result.WorkflowLedgerEventEnvelope;
 import io.attestry.workflow.application.support.WorkflowAuthorizationSupport;
@@ -33,7 +33,7 @@ public class PurchaseClaimAdminService implements PurchaseClaimAdminUseCase {
     private final PurchaseClaimRepository purchaseClaimRepository;
     private final ProductMintUseCase productMintUseCase;
     private final TransferOwnershipUpdatePort ownershipUpdatePort;
-    private final ShipmentLedgerOutboxPort ledgerOutboxPort;
+    private final WorkflowLedgerOutboxPort ledgerOutboxPort;
     private final ShipmentEvidencePort shipmentEvidencePort;
     private final WorkflowAuthorizationSupport authorizationSupport;
     private final Clock clock;
@@ -42,7 +42,7 @@ public class PurchaseClaimAdminService implements PurchaseClaimAdminUseCase {
         PurchaseClaimRepository purchaseClaimRepository,
         ProductMintUseCase productMintUseCase,
         TransferOwnershipUpdatePort ownershipUpdatePort,
-        ShipmentLedgerOutboxPort ledgerOutboxPort,
+        WorkflowLedgerOutboxPort ledgerOutboxPort,
         ShipmentEvidencePort shipmentEvidencePort,
         WorkflowAuthorizationSupport authorizationSupport,
         Clock clock

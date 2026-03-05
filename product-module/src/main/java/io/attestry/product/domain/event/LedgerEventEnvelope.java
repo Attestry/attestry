@@ -8,6 +8,7 @@ import java.util.HashMap;
 import java.util.Map;
 
 public record LedgerEventEnvelope(
+    String aggregateType,
     String passportId,
     String eventCategory,
     String eventAction,
@@ -18,10 +19,10 @@ public record LedgerEventEnvelope(
     String idempotencyKey
 ) {
 
-    //TODO("도메인 이벤트로 리팩토링")
     public static LedgerEventEnvelope minted(ProductPassport passport, Instant occurredAt) {
         ProductAsset asset = passport.getAsset();
         return new LedgerEventEnvelope(
+            "PRODUCT",
             passport.getPassportId(),
             "GENESIS",
             "MINTED",
@@ -45,6 +46,7 @@ public record LedgerEventEnvelope(
 
     public static LedgerEventEnvelope voided(ProductPassport passport, String actorId, Instant occurredAt) {
         return new LedgerEventEnvelope(
+            "PRODUCT",
             passport.getPassportId(),
             "LIFECYCLE",
             "VOIDED",
@@ -73,6 +75,7 @@ public record LedgerEventEnvelope(
         }
 
         return new LedgerEventEnvelope(
+            "PRODUCT",
             passport.getPassportId(),
             "RISK",
             action,
@@ -86,6 +89,7 @@ public record LedgerEventEnvelope(
 
     public static LedgerEventEnvelope riskCleared(ProductPassport passport, String actorId, Instant occurredAt) {
         return new LedgerEventEnvelope(
+            "PRODUCT",
             passport.getPassportId(),
             "RISK",
             "RISK_CLEARED",

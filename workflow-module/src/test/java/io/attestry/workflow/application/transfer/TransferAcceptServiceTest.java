@@ -13,7 +13,7 @@ import static org.mockito.Mockito.when;
 
 import io.attestry.userauth.domain.identity.model.VerificationLevel;
 import io.attestry.userauth.security.AuthPrincipal;
-import io.attestry.workflow.application.port.TransferLedgerOutboxPort;
+import io.attestry.workflow.application.port.WorkflowLedgerOutboxPort;
 import io.attestry.workflow.application.port.TransferOwnershipUpdatePort;
 import io.attestry.workflow.application.port.TransferProductReadPort;
 import io.attestry.workflow.application.port.TransferProductReadPort.TransferPassportState;
@@ -45,7 +45,7 @@ class TransferAcceptServiceTest {
     @Mock TokenTransferRepository transferRepository;
     @Mock TransferProductReadPort productReadPort;
     @Mock TransferOwnershipUpdatePort ownershipUpdatePort;
-    @Mock TransferLedgerOutboxPort outboxPort;
+    @Mock WorkflowLedgerOutboxPort outboxPort;
     @Mock DelegationLifecycleUseCase delegationLifecycleUseCase;
     @Mock WorkflowAuthorizationSupport authorizationSupport;
     @Mock TransferAcceptPolicy acceptPolicy;
