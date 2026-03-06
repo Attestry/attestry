@@ -2,7 +2,7 @@
 
 @baseUrl = http://localhost:8080
 @contentType = application/json
-@accessToken = REPLACE_ACCESS_TOKEN
+@accessToken = 51d955eb-0bf7-4f44-85ed-fe4a7983259e
 @tenantId = REPLACE_TENANT_ID
 @resourceRef = membership:REPLACE_MEMBERSHIP_ID
 

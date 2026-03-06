@@ -2,7 +2,7 @@
 
 @baseUrl = http://localhost:8080
 @contentType = application/json
-@accessToken = 975e835d-5129-4428-a7bb-1a91fc82e9f4
+@accessToken = 51d955eb-0bf7-4f44-85ed-fe4a7983259e
 @membershipId = 905043f9-7f2a-4242-be41-8901260a926d
 @invitationId = db657136-44b1-4950-9161-03e6ad81bd2b
 @roleCode = TENANT_OPERATOR

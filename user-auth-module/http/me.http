@@ -1,7 +1,7 @@
 ### User Auth - Me APIs
 
 @baseUrl = http://localhost:8080
-@accessToken =  82e2567e-8bba-4802-a037-98c9e36aa2fa
+@accessToken =  51d955eb-0bf7-4f44-85ed-fe4a7983259e
 
 ### 1) My account
 GET {{baseUrl}}/me/account

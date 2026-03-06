@@ -24,8 +24,8 @@ POST {{baseUrl}}/auth/login
 Content-Type: {{contentType}}
 
 {
-  "email": "user02@attestry.io",
-  "password": "Password123!",
+  "email": "test@test.com",
+  "password": "Sd14jp021!",
   "tenantId": null
 }
 

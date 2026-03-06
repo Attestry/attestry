@@ -58,6 +58,13 @@ app:
       email: ${BOOTSTRAP_PLATFORM_ADMIN_EMAIL:platform.admin@attestry.local}
       password: ${BOOTSTRAP_PLATFORM_ADMIN_PASSWORD:PlatformAdm1n!2026}
       phone: ${BOOTSTRAP_PLATFORM_ADMIN_PHONE:010-0000-0000}
+  user-auth:
+    invitation:
+      mail:
+        provider: ${INVITATION_MAIL_PROVIDER:LOG}
+        enabled: ${INVITATION_MAIL_ENABLED:true}
+        from: ${INVITATION_MAIL_FROM:no-reply@attestry.local}
+      accept-url-template: ${INVITATION_ACCEPT_URL_TEMPLATE:http://localhost:8080/invitations/%s/accept}
   storage:
     provider: ${STORAGE_PROVIDER:MEMORY}
     bucket: ${STORAGE_BUCKET:attestry-onboarding}

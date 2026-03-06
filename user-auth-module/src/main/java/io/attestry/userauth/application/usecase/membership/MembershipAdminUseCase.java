@@ -20,10 +20,9 @@ public interface MembershipAdminUseCase {
     List<MembershipAdminView> listMemberships(ActorContext actor);
 
     MembershipResult updateMembershipStatus(
-        ActorContext actor,
-        String membershipId,
-        UpdateMembershipStatusCommand command
-    );
+            ActorContext actor,
+            String membershipId,
+            UpdateMembershipStatusCommand command);
 
     MembershipRoleAssignmentsResult listMembershipRoleAssignments(ActorContext actor, String membershipId);
 
@@ -32,28 +31,24 @@ public interface MembershipAdminUseCase {
     TenantAvailableTemplateCodesResult listTenantAvailableTemplateCodes(ActorContext actor);
 
     MembershipRoleAssignmentsResult assignMembershipRole(
-        ActorContext actor,
-        String membershipId,
-        AssignMembershipRoleCommand command
-    );
+            ActorContext actor,
+            String membershipId,
+            AssignMembershipRoleCommand command);
 
     MembershipRoleAssignmentsResult revokeMembershipRole(
-        ActorContext actor,
-        String membershipId,
-        RevokeMembershipRoleCommand command
-    );
+            ActorContext actor,
+            String membershipId,
+            RevokeMembershipRoleCommand command);
 
     MembershipPermissionTemplateResult applyPermissionTemplate(
-        ActorContext actor,
-        String membershipId,
-        ApplyPermissionTemplateCommand command
-    );
+            ActorContext actor,
+            String membershipId,
+            ApplyPermissionTemplateCommand command);
 
     MembershipPermissionTemplateResult revokePermissionTemplate(
-        ActorContext actor,
-        String membershipId,
-        RevokePermissionTemplateCommand command
-    );
+            ActorContext actor,
+            String membershipId,
+            RevokePermissionTemplateCommand command);
 
     record InviteCommand(String email, MembershipRole role) {
     }

@@ -45,18 +45,17 @@ public class MembershipAdminHttp {
     @ResponseStatus(HttpStatus.CREATED)
     @PreAuthorize("hasAuthority('SCOPE_TENANT_INVITATION_CREATE')")
     public InvitationResponse invite(
-        @CurrentActor ActorContext actor,
-        @RequestBody InviteRequest request
-    ) {
+            @CurrentActor ActorContext actor,
+            @RequestBody InviteRequest request) {
         MembershipInvitationResult result = membershipAdminService.invite(
-            actor,
-            new MembershipAdminUseCase.InviteCommand(request.email(), request.role())
-        );
+                actor,
+                new MembershipAdminUseCase.InviteCommand(request.email(), request.role()));
         return InvitationResponse.from(result);
     }
 
     @PostMapping("/invitations/{invitationId}/accept")
-    public MembershipResponse acceptInvitation(@CurrentActor ActorContext actor, @PathVariable("invitationId") String invitationId) {
+    public MembershipResponse acceptInvitation(@CurrentActor ActorContext actor,
+            @PathVariable("invitationId") String invitationId) {
         MembershipResult result = membershipAdminService.acceptInvitation(actor, invitationId);
         return MembershipResponse.from(result);
     }
@@ -65,42 +64,42 @@ public class MembershipAdminHttp {
     @PreAuthorize("hasAnyAuthority('SCOPE_TENANT_READ_ONLY')")
     public List<MembershipResponse> listMemberships(@CurrentActor ActorContext actor) {
         return membershipAdminService.listMemberships(actor)
-            .stream()
-            .map(MembershipResponse::from)
-            .toList();
+                .stream()
+                .map(MembershipResponse::from)
+                .toList();
     }
 
+    // TODO("membership 과 user join해서 특정 멤버십 상세조회 반환값은 userAccount 정보도 포함하도록 변경")
+
+
     @PatchMapping("/memberships/{id}/status")
-    @PreAuthorize("hasAuthority('SCOPE_TENANT_MEMBERSHIP_ENFORCE')")
+    @PreAuthorize("hasAuthority('SCOPE_TENANT_ROLE_ASSIGN')")
     public MembershipResponse updateMembershipStatus(
-        @CurrentActor ActorContext actor,
-        @PathVariable("id") String membershipId,
-        @RequestBody UpdateMembershipStatusRequest request
-    ) {
+            @CurrentActor ActorContext actor,
+            @PathVariable("id") String membershipId,
+            @RequestBody UpdateMembershipStatusRequest request) {
         MembershipResult result = membershipAdminService.updateMembershipStatus(
-            actor,
-            membershipId,
-            new MembershipAdminUseCase.UpdateMembershipStatusCommand(request.status())
-        );
+                actor,
+                membershipId,
+                new MembershipAdminUseCase.UpdateMembershipStatusCommand(request.status()));
         return MembershipResponse.from(result);
     }
 
     @GetMapping("/memberships/{id}/roles")
     @PreAuthorize("hasAuthority('SCOPE_TENANT_ROLE_ASSIGN')")
     public MembershipRoleAssignmentsResponse listMembershipRoles(
-        @CurrentActor ActorContext actor,
-        @PathVariable("id") String membershipId
-    ) {
-        MembershipRoleAssignmentsResult result = membershipAdminService.listMembershipRoleAssignments(actor, membershipId);
+            @CurrentActor ActorContext actor,
+            @PathVariable("id") String membershipId) {
+        MembershipRoleAssignmentsResult result = membershipAdminService.listMembershipRoleAssignments(actor,
+                membershipId);
         return MembershipRoleAssignmentsResponse.from(result);
     }
 
     @GetMapping("/memberships/{id}/roles/available")
     @PreAuthorize("hasAuthority('SCOPE_TENANT_ROLE_ASSIGN')")
     public MembershipAssignableRolesResponse listAssignableRoleCodes(
-        @CurrentActor ActorContext actor,
-        @PathVariable("id") String membershipId
-    ) {
+            @CurrentActor ActorContext actor,
+            @PathVariable("id") String membershipId) {
         MembershipAssignableRolesResult result = membershipAdminService.listAssignableRoleCodes(actor, membershipId);
         return MembershipAssignableRolesResponse.from(result);
     }
@@ -108,8 +107,7 @@ public class MembershipAdminHttp {
     @GetMapping("/permission-templates/available")
     @PreAuthorize("hasAuthority('SCOPE_TENANT_ROLE_ASSIGN')")
     public TenantAvailableTemplateCodesResponse listTenantAvailableTemplateCodes(
-        @CurrentActor ActorContext actor
-    ) {
+            @CurrentActor ActorContext actor) {
         TenantAvailableTemplateCodesResult result = membershipAdminService.listTenantAvailableTemplateCodes(actor);
         return TenantAvailableTemplateCodesResponse.from(result);
     }
@@ -117,62 +115,61 @@ public class MembershipAdminHttp {
     @PostMapping("/memberships/{id}/roles/{roleCode}")
     @PreAuthorize("hasAuthority('SCOPE_TENANT_ROLE_ASSIGN')")
     public MembershipRoleAssignmentsResponse assignMembershipRole(
-        @CurrentActor ActorContext actor,
-        @PathVariable("id") String membershipId,
-        @PathVariable("roleCode") String roleCode
-    ) {
+            @CurrentActor ActorContext actor,
+            @PathVariable("id") String membershipId,
+            @PathVariable("roleCode") String roleCode) {
         MembershipRoleAssignmentsResult result = membershipAdminService.assignMembershipRole(
-            actor,
-            membershipId,
-            new MembershipAdminUseCase.AssignMembershipRoleCommand(roleCode)
-        );
+                actor,
+                membershipId,
+                new MembershipAdminUseCase.AssignMembershipRoleCommand(roleCode));
         return MembershipRoleAssignmentsResponse.from(result);
     }
 
     @DeleteMapping("/memberships/{id}/roles/{roleCode}")
     @PreAuthorize("hasAuthority('SCOPE_TENANT_ROLE_ASSIGN')")
     public MembershipRoleAssignmentsResponse revokeMembershipRole(
-        @CurrentActor ActorContext actor,
-        @PathVariable("id") String membershipId,
-        @PathVariable("roleCode") String roleCode
-    ) {
+            @CurrentActor ActorContext actor,
+            @PathVariable("id") String membershipId,
+            @PathVariable("roleCode") String roleCode) {
         MembershipRoleAssignmentsResult result = membershipAdminService.revokeMembershipRole(
-            actor,
-            membershipId,
-            new MembershipAdminUseCase.RevokeMembershipRoleCommand(roleCode)
-        );
+                actor,
+                membershipId,
+                new MembershipAdminUseCase.RevokeMembershipRoleCommand(roleCode));
         return MembershipRoleAssignmentsResponse.from(result);
     }
 
     @PostMapping("/memberships/{id}/permission-templates/{templateCode}/apply")
     @PreAuthorize("hasAuthority('SCOPE_TENANT_ROLE_ASSIGN')")
     public MembershipPermissionTemplateResponse applyPermissionTemplate(
-        @CurrentActor ActorContext actor,
-        @PathVariable("id") String membershipId,
-        @PathVariable("templateCode") String templateCode,
-        @RequestBody(required = false) MutatePermissionTemplateRequest request
-    ) {
+            @CurrentActor ActorContext actor,
+            @PathVariable("id") String membershipId,
+            @PathVariable("templateCode") String templateCode,
+            @RequestBody(required = false) MutatePermissionTemplateRequest request) {
         MembershipPermissionTemplateResult result = membershipAdminService.applyPermissionTemplate(
-            actor,
-            membershipId,
-            new MembershipAdminUseCase.ApplyPermissionTemplateCommand(templateCode, request == null ? null : request.reason())
-        );
+                actor,
+                membershipId,
+                new MembershipAdminUseCase.ApplyPermissionTemplateCommand(templateCode,
+                        request == null ? null : request.reason()));
         return MembershipPermissionTemplateResponse.from(result);
     }
 
     @PostMapping("/memberships/{id}/permission-templates/{templateCode}/revoke")
     @PreAuthorize("hasAuthority('SCOPE_TENANT_ROLE_ASSIGN')")
     public MembershipPermissionTemplateResponse revokePermissionTemplate(
-        @CurrentActor ActorContext actor,
-        @PathVariable("id") String membershipId,
-        @PathVariable("templateCode") String templateCode,
-        @RequestBody(required = false) MutatePermissionTemplateRequest request
-    ) {
+            @CurrentActor ActorContext actor,
+            @PathVariable("id") String membershipId,
+            @PathVariable("templateCode") String templateCode,
+            @RequestBody(required = false) MutatePermissionTemplateRequest request) {
         MembershipPermissionTemplateResult result = membershipAdminService.revokePermissionTemplate(
-            actor,
-            membershipId,
-            new MembershipAdminUseCase.RevokePermissionTemplateCommand(templateCode, request == null ? null : request.reason())
-        );
+                actor,
+                membershipId,
+                new MembershipAdminUseCase.RevokePermissionTemplateCommand(templateCode,
+                        request == null ? null : request.reason()));
         return MembershipPermissionTemplateResponse.from(result);
     }
+
+    // TODO: 초대 관리 API 추가
+//  - 별도 API: GET /admin/invitations?status=PENDING
+//  - 필요하면 PENDING/ACCEPTED/REVOKED 필터
+//  - 응답에 invitationId, email, role, status, invitedAt, invitedBy, acceptLink(옵션) 포함
 }

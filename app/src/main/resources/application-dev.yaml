@@ -2,6 +2,17 @@ spring:
   config:
     activate:
       on-profile: dev
+  mail:
+    host: ${MAIL_HOST:smtp.example.com}
+    port: ${MAIL_PORT:587}
+    username: ${MAIL_USERNAME:}
+    password: ${MAIL_PASSWORD:}
+    properties:
+      mail:
+        smtp:
+          auth: ${MAIL_SMTP_AUTH:true}
+          starttls:
+            enable: ${MAIL_SMTP_STARTTLS_ENABLE:true}
   data:
     redis:
       host: ${REDIS_HOST:localhost}
@@ -16,6 +27,13 @@ app:
   auth:
     token:
       provider: REDIS
+  user-auth:
+    invitation:
+      mail:
+        provider: SMTP
+        enabled: ${INVITATION_MAIL_ENABLED:true}
+        from: ${INVITATION_MAIL_FROM:no-reply@dev.attestry.local}
+      accept-url-template: ${INVITATION_ACCEPT_URL_TEMPLATE:https://dev.attestry.local/invitations/%s/accept}
   storage:
     provider: S3
     bucket: ${S3_BUCKET:attestry-onboarding}

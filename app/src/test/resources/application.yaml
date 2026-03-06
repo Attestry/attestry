@@ -18,5 +18,10 @@ app:
   storage:
     provider: MEMORY
     bucket: test-onboarding
+  user-auth:
+    invitation:
+      mail:
+        provider: LOG
+        enabled: false
   kafka:
     enabled: false
