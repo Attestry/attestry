@@ -27,20 +27,18 @@ public class JpaMembershipRepositoryAdapter implements MembershipRepositoryPort 
 
     @Override
     @Transactional(readOnly = true)
-    public Optional<Membership> findByUserIdAndContext(String userId, String tenantId, String groupId) {
-        return repository.findByUserIdAndTenantIdAndGroupId(userId, tenantId, groupId).map(this::toDomain);
+    public Optional<Membership> findByUserIdAndTenantId(String userId, String tenantId) {
+        return repository.findByUserIdAndTenantId(userId, tenantId).map(this::toDomain);
     }
 
     private Membership toDomain(MembershipJpaEntity entity) {
         return Membership.reconstitute(
             entity.getMembershipId(),
             entity.getUserId(),
-            entity.getGroupId(),
             entity.getTenantId(),
-            entity.getGroupType(),
+            entity.getTenantType(),
             entity.getRole(),
             entity.getStatus(),
-            entity.getGroupStatus(),
             entity.getTenantStatus(),
             Set.of()
         );

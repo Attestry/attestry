@@ -6,9 +6,7 @@ import io.attestry.userauth.domain.authorization.model.RoleCodes;
 import io.attestry.userauth.domain.authorization.policy.SystemPermissionTemplateCatalog;
 import io.attestry.userauth.domain.membership.model.Membership;
 import io.attestry.userauth.domain.membership.model.MembershipRole;
-import io.attestry.userauth.domain.organization.model.Group;
-import io.attestry.userauth.domain.organization.model.GroupStatus;
-import io.attestry.userauth.domain.organization.model.GroupType;
+import io.attestry.userauth.domain.organization.model.TenantType;
 import io.attestry.userauth.domain.organization.model.Tenant;
 import io.attestry.userauth.domain.organization.model.TenantStatus;
 import io.attestry.userauth.domain.organization.repository.TenantRepository;
@@ -37,55 +35,75 @@ public class OnboardingProvisioningService {
     }
 
     public ProvisioningResult provision(
-        GroupType type,
+        TenantType type,
         String applicantUserId,
         String orgName,
         String country,
         String actorUserId
     ) {
-        Tenant tenant = Tenant.create(orgName, country);
-        Group group = tenant.addGroup(type);
+        Tenant tenant = Tenant.create(orgName, country, type);
         tenantRepository.save(tenant);
 
         Membership membership = Membership.create(
-            applicantUserId, group.groupId(), tenant.tenantId(),
+            applicantUserId, tenant.tenantId(),
             type, MembershipRole.ADMIN,
-            GroupStatus.ACTIVE, TenantStatus.ACTIVE
+            TenantStatus.ACTIVE
         );
         membershipProvisioningRepository.save(membership);
         membershipProvisioningRepository.assignRole(membership.membershipId(), RoleCodes.TENANT_OWNER, actorUserId);
+        Instant now = Instant.now(clock);
 
         templateAdminRepository.bindTemplateToTenantRole(
             tenant.tenantId(),
             RoleCodes.TENANT_OWNER,
             SystemPermissionTemplateCatalog.TEMPLATE_TENANT_OWNER_CORE,
             actorUserId,
-            Instant.now(clock)
+            now
         );
         templateAdminRepository.bindTemplateToTenantRole(
             tenant.tenantId(),
             RoleCodes.TENANT_OWNER,
             SystemPermissionTemplateCatalog.TEMPLATE_TENANT_READ_ONLY,
             actorUserId,
-            Instant.now(clock)
+            now
         );
         templateAdminRepository.bindTemplateToTenantRole(
             tenant.tenantId(),
             RoleCodes.TENANT_OPERATOR,
             SystemPermissionTemplateCatalog.TEMPLATE_TENANT_READ_ONLY,
             actorUserId,
-            Instant.now(clock)
+            now
         );
+        bindDefaultOperatorWorkTemplate(tenant.tenantId(), type, actorUserId, now);
         templateAdminRepository.bindTemplateToTenantRole(
             tenant.tenantId(),
             RoleCodes.TENANT_STAFF,
             SystemPermissionTemplateCatalog.TEMPLATE_TENANT_READ_ONLY,
             actorUserId,
-            Instant.now(clock)
+            now
         );
 
-        return new ProvisioningResult(tenant.tenantId(), group.groupId(), membership.membershipId());
+        return new ProvisioningResult(tenant.tenantId(), membership.membershipId());
     }
 
-    public record ProvisioningResult(String tenantId, String groupId, String membershipId) {}
+    private void bindDefaultOperatorWorkTemplate(String tenantId, TenantType type, String actorUserId, Instant now) {
+        String templateCode = switch (type) {
+            case BRAND -> SystemPermissionTemplateCatalog.TEMPLATE_BRAND_WORK;
+            case RETAIL -> SystemPermissionTemplateCatalog.TEMPLATE_RETAIL_WORK;
+            case SERVICE -> SystemPermissionTemplateCatalog.TEMPLATE_SERVICE_WORK;
+            default -> null;
+        };
+        if (templateCode == null) {
+            return;
+        }
+        templateAdminRepository.bindTemplateToTenantRole(
+            tenantId,
+            RoleCodes.TENANT_OPERATOR,
+            templateCode,
+            actorUserId,
+            now
+        );
+    }
+
+    public record ProvisioningResult(String tenantId, String membershipId) {}
 }

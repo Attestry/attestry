@@ -15,8 +15,7 @@ import io.attestry.userauth.domain.authorization.model.RoleCodes;
 import io.attestry.userauth.domain.membership.model.Membership;
 import io.attestry.userauth.domain.membership.model.MembershipRole;
 import io.attestry.userauth.domain.membership.model.MembershipStatus;
-import io.attestry.userauth.domain.organization.model.GroupStatus;
-import io.attestry.userauth.domain.organization.model.GroupType;
+import io.attestry.userauth.domain.organization.model.TenantType;
 import io.attestry.userauth.domain.organization.model.TenantStatus;
 import io.attestry.userauth.domain.identity.model.VerificationLevel;
 import java.time.Instant;
@@ -72,13 +71,13 @@ class EvaluateAuthorizationServiceTest {
     }
 
     @Test
-    void liveRecheckShouldUseTenantMembershipWhenGroupIsMissing() {
+    void liveRecheckShouldUseTenantMembership() {
         EvaluateAuthorizationService liveService = new EvaluateAuthorizationService(
             new SingleMembershipRepository(
                 Membership.reconstitute(
-                    "membership-1", "user-1", "group-1", "tenant-a",
-                    GroupType.BRAND, MembershipRole.ADMIN, MembershipStatus.ACTIVE,
-                    GroupStatus.ACTIVE, TenantStatus.ACTIVE, java.util.Set.of()
+                    "membership-1", "user-1", "tenant-a",
+                    TenantType.BRAND, MembershipRole.ADMIN, MembershipStatus.ACTIVE,
+                    TenantStatus.ACTIVE, java.util.Set.of()
                 )
             ),
             new MembershipPermissionQueryPort() {
@@ -103,7 +102,6 @@ class EvaluateAuthorizationServiceTest {
             "token-1",
             "user-1",
             "tenant-a",
-            null,
             VerificationLevel.NONE,
             Set.of(),
             Instant.parse("2026-02-25T00:30:00Z")
@@ -122,7 +120,6 @@ class EvaluateAuthorizationServiceTest {
             "token-1",
             "user-1",
             tenantId,
-            "group-1",
             VerificationLevel.NONE,
             scopes,
             Instant.parse("2026-02-25T00:30:00Z")
@@ -136,7 +133,7 @@ class EvaluateAuthorizationServiceTest {
         }
 
         @Override
-        public Optional<Membership> findByUserIdAndContext(String userId, String tenantId, String groupId) {
+        public Optional<Membership> findByUserIdAndTenantId(String userId, String tenantId) {
             return Optional.empty();
         }
     }
@@ -158,10 +155,9 @@ class EvaluateAuthorizationServiceTest {
         }
 
         @Override
-        public Optional<Membership> findByUserIdAndContext(String userId, String tenantId, String groupId) {
+        public Optional<Membership> findByUserIdAndTenantId(String userId, String tenantId) {
             if (membership.userId().equals(userId)
-                && membership.tenantId().equals(tenantId)
-                && membership.groupId().equals(groupId)) {
+                && membership.tenantId().equals(tenantId)) {
                 return Optional.of(membership);
             }
             return Optional.empty();

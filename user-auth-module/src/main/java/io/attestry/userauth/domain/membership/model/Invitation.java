@@ -10,7 +10,6 @@ public class Invitation {
 
     private final String invitationId;
     private final String tenantId;
-    private final String groupId;
     private final Email inviteeEmail;
     private final MembershipRole role;
     private InvitationStatus status;
@@ -19,12 +18,11 @@ public class Invitation {
     private String acceptedBy;
     private Instant acceptedAt;
 
-    private Invitation(String invitationId, String tenantId, String groupId,
+    private Invitation(String invitationId, String tenantId,
                        Email inviteeEmail, MembershipRole role, InvitationStatus status,
                        String invitedBy, Instant invitedAt, String acceptedBy, Instant acceptedAt) {
         this.invitationId = invitationId;
         this.tenantId = tenantId;
-        this.groupId = groupId;
         this.inviteeEmail = inviteeEmail;
         this.role = role;
         this.status = status;
@@ -34,12 +32,11 @@ public class Invitation {
         this.acceptedAt = acceptedAt;
     }
 
-    public static Invitation issue(String tenantId, String groupId, String email,
+    public static Invitation issue(String tenantId, String email,
                                     MembershipRole role, String inviterUserId, Instant now) {
         return new Invitation(
             UUID.randomUUID().toString(),
             tenantId,
-            groupId,
             Email.of(email),
             role,
             InvitationStatus.PENDING,
@@ -50,10 +47,10 @@ public class Invitation {
         );
     }
 
-    public static Invitation reconstitute(String invitationId, String tenantId, String groupId,
+    public static Invitation reconstitute(String invitationId, String tenantId,
                                            Email inviteeEmail, MembershipRole role, InvitationStatus status,
                                            String invitedBy, Instant invitedAt, String acceptedBy, Instant acceptedAt) {
-        return new Invitation(invitationId, tenantId, groupId, inviteeEmail, role, status,
+        return new Invitation(invitationId, tenantId, inviteeEmail, role, status,
             invitedBy, invitedAt, acceptedBy, acceptedAt);
     }
 
@@ -61,7 +58,7 @@ public class Invitation {
         if (status != InvitationStatus.PENDING) {
             throw new DomainException(ErrorCode.INVALID_APPLICATION_STATE, "Invitation is not pending");
         }
-        //TODO("소셜로그인 허용할때 정책 적용 / 또는 회사 계정으로만 가입되게?")
+        //TODO("acceptEmail 소셜로그인 허용할때 정책 적용 / 또는 회사 계정으로만 가입되게?")
         this.status = InvitationStatus.ACCEPTED;
         this.acceptedBy = accepterUserId;
         this.acceptedAt = now;
@@ -77,7 +74,6 @@ public class Invitation {
     // Getters
     public String invitationId() { return invitationId; }
     public String tenantId() { return tenantId; }
-    public String groupId() { return groupId; }
     public Email inviteeEmail() { return inviteeEmail; }
     public MembershipRole role() { return role; }
     public InvitationStatus status() { return status; }

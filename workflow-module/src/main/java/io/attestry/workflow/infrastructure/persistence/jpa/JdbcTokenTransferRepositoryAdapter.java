@@ -29,11 +29,11 @@ public class JdbcTokenTransferRepositoryAdapter implements TokenTransferReposito
             """
                 INSERT INTO token_transfers (
                     transfer_id, passport_id, transfer_type, status, accept_method,
-                    from_owner_id, to_owner_id, tenant_id, group_id,
+                    from_owner_id, to_owner_id, tenant_id,
                     qr_nonce, code_hash, code_salt, attempt_count,
                     expires_at, created_at, created_by_user_id,
                     completed_at, cancelled_at, cancelled_by_user_id
-                ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+                ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
                 ON CONFLICT (transfer_id) DO UPDATE SET
                     status = EXCLUDED.status,
                     to_owner_id = EXCLUDED.to_owner_id,
@@ -50,7 +50,6 @@ public class JdbcTokenTransferRepositoryAdapter implements TokenTransferReposito
             transfer.fromOwnerId(),
             transfer.toOwnerId(),
             transfer.tenantId(),
-            transfer.groupId(),
             transfer.qrNonce(),
             transfer.codeHash(),
             transfer.codeSalt(),
@@ -106,7 +105,6 @@ public class JdbcTokenTransferRepositoryAdapter implements TokenTransferReposito
             rs.getString("from_owner_id"),
             rs.getString("to_owner_id"),
             rs.getString("tenant_id"),
-            rs.getString("group_id"),
             rs.getString("qr_nonce"),
             rs.getString("code_hash"),
             rs.getString("code_salt"),

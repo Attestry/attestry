@@ -20,9 +20,6 @@ public class ProductPassportJpaEntity {
     @Column(name = "tenant_id", nullable = false, length = 36)
     private String tenantId;
 
-    @Column(name = "group_id", nullable = false, length = 36)
-    private String groupId;
-
     @Column(name = "qr_public_code", nullable = false, unique = true, length = 120)
     private String qrPublicCode;
 
@@ -36,14 +33,12 @@ public class ProductPassportJpaEntity {
         String passportId,
         String assetId,
         String tenantId,
-        String groupId,
         String qrPublicCode,
         Instant createdAt
     ) {
         this.passportId = passportId;
         this.assetId = assetId;
         this.tenantId = tenantId;
-        this.groupId = groupId;
         this.qrPublicCode = qrPublicCode;
         this.createdAt = createdAt;
     }
@@ -51,7 +46,6 @@ public class ProductPassportJpaEntity {
     public String getPassportId() { return passportId; }
     public String getAssetId() { return assetId; }
     public String getTenantId() { return tenantId; }
-    public String getGroupId() { return groupId; }
     public String getQrPublicCode() { return qrPublicCode; }
     public Instant getCreatedAt() { return createdAt; }
 }

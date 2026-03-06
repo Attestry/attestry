@@ -6,7 +6,7 @@ public interface ProductVoidUseCase {
 
     VoidResult voidAsset(ActorContext actor, VoidCommand command);
 
-    record VoidCommand(String tenantId, String groupId, String passportId, String reason, String note) {
+    record VoidCommand(String tenantId, String passportId, String reason, String note) {
     }
 
     record VoidResult(String assetId, String assetState, String outboxEventId) {

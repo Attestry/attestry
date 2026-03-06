@@ -66,7 +66,7 @@ public class ServiceRequestHttp {
         GrantServiceConsentResult result = serviceConsentUseCase.grantConsent(
             principal,
             passportId,
-            new GrantServiceConsentCommand(request.providerGroupId())
+            new GrantServiceConsentCommand(request.providerTenantId())
         );
         return GrantServiceConsentResponse.from(result);
     }
@@ -81,26 +81,24 @@ public class ServiceRequestHttp {
         RevokeServiceConsentResult result = serviceConsentUseCase.revokeConsent(
             principal,
             passportId,
-            request.providerGroupId()
+            request.providerTenantId()
         );
         return RevokeServiceConsentResponse.from(result);
     }
 
     // --- Submit endpoint (PROVIDER) ---
 
-    @PostMapping("/tenants/{tenantId}/groups/{groupId}/service-requests")
+    @PostMapping("/tenants/{tenantId}/service-requests")
     @ResponseStatus(HttpStatus.CREATED)
     @PreAuthorize("hasAuthority('SCOPE_SERVICE_COMPLETE')")
     public SubmitServiceRequestResponse submit(
         @AuthenticationPrincipal AuthPrincipal principal,
         @PathVariable("tenantId") String tenantId,
-        @PathVariable("groupId") String groupId,
         @RequestBody SubmitServiceRequestRequest request
     ) {
         SubmitServiceRequestResult result = serviceSubmitUseCase.submit(
             principal,
             tenantId,
-            groupId,
             new SubmitServiceRequestCommand(
                 request.passportId(),
                 request.serviceType(),
@@ -113,19 +111,17 @@ public class ServiceRequestHttp {
 
     // --- Complete endpoint (PROVIDER) ---
 
-    @PostMapping("/tenants/{tenantId}/groups/{groupId}/service-requests/{serviceRequestId}/complete")
+    @PostMapping("/tenants/{tenantId}/service-requests/{serviceRequestId}/complete")
     @PreAuthorize("hasAuthority('SCOPE_SERVICE_COMPLETE')")
     public CompleteServiceRequestResponse complete(
         @AuthenticationPrincipal AuthPrincipal principal,
         @PathVariable("tenantId") String tenantId,
-        @PathVariable("groupId") String groupId,
         @PathVariable("serviceRequestId") String serviceRequestId,
         @RequestBody CompleteServiceRequestRequest request
     ) {
         CompleteServiceRequestResult result = serviceCompleteUseCase.complete(
             principal,
             tenantId,
-            groupId,
             serviceRequestId,
             new CompleteServiceRequestCommand(
                 request.afterEvidenceGroupId(),
@@ -192,19 +188,17 @@ public class ServiceRequestHttp {
 
     // --- Evidence endpoints (PROVIDER) ---
 
-    @PostMapping("/tenants/{tenantId}/groups/{groupId}/service-requests/evidences/presign")
+    @PostMapping("/tenants/{tenantId}/service-requests/evidences/presign")
     @ResponseStatus(HttpStatus.CREATED)
     @PreAuthorize("hasAuthority('SCOPE_SERVICE_COMPLETE')")
     public PresignEvidenceResponse presignProviderEvidence(
         @AuthenticationPrincipal AuthPrincipal principal,
         @PathVariable("tenantId") String tenantId,
-        @PathVariable("groupId") String groupId,
         @RequestBody PresignEvidenceRequest request
     ) {
         PresignedShipmentEvidenceUploadResult result = serviceEvidenceUseCase.presignEvidenceUpload(
             principal,
             tenantId,
-            groupId,
             new PresignShipmentEvidenceUploadCommand(
                 request.evidenceGroupId(),
                 request.fileName(),
@@ -214,18 +208,16 @@ public class ServiceRequestHttp {
         return PresignEvidenceResponse.from(result);
     }
 
-    @PostMapping("/tenants/{tenantId}/groups/{groupId}/service-requests/evidences/complete")
+    @PostMapping("/tenants/{tenantId}/service-requests/evidences/complete")
     @PreAuthorize("hasAuthority('SCOPE_SERVICE_COMPLETE')")
     public CompleteEvidenceResponse completeProviderEvidence(
         @AuthenticationPrincipal AuthPrincipal principal,
         @PathVariable("tenantId") String tenantId,
-        @PathVariable("groupId") String groupId,
         @RequestBody CompleteEvidenceRequest request
     ) {
         ShipmentEvidenceCompleteResult result = serviceEvidenceUseCase.completeEvidenceUpload(
             principal,
             tenantId,
-            groupId,
             new CompleteShipmentEvidenceUploadCommand(
                 request.evidenceGroupId(),
                 request.evidenceId(),
@@ -238,13 +230,13 @@ public class ServiceRequestHttp {
 
     // --- Request/Response records ---
 
-    public record GrantServiceConsentRequest(String providerGroupId) {
+    public record GrantServiceConsentRequest(String providerTenantId) {
     }
 
     public record GrantServiceConsentResponse(
         String permissionId,
         String passportId,
-        String providerGroupId,
+        String providerTenantId,
         String status,
         Instant grantedAt
     ) {
@@ -252,25 +244,25 @@ public class ServiceRequestHttp {
             return new GrantServiceConsentResponse(
                 result.permissionId(),
                 result.passportId(),
-                result.providerGroupId(),
+                result.providerTenantId(),
                 result.status(),
                 result.grantedAt()
             );
         }
     }
 
-    public record RevokeServiceConsentRequest(String providerGroupId) {
+    public record RevokeServiceConsentRequest(String providerTenantId) {
     }
 
     public record RevokeServiceConsentResponse(
         String passportId,
-        String providerGroupId,
+        String providerTenantId,
         String status
     ) {
         static RevokeServiceConsentResponse from(RevokeServiceConsentResult result) {
             return new RevokeServiceConsentResponse(
                 result.passportId(),
-                result.providerGroupId(),
+                result.providerTenantId(),
                 result.status()
             );
         }

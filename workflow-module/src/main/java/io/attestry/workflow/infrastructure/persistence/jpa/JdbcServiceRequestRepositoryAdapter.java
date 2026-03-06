@@ -26,13 +26,13 @@ public class JdbcServiceRequestRepositoryAdapter implements ServiceRequestReposi
             """
                 INSERT INTO workflow_service_requests (
                     service_request_id, passport_id, service_type,
-                    owner_user_id, provider_tenant_id, provider_group_id,
+                    owner_user_id, provider_tenant_id,
                     status, description,
                     before_evidence_group_id, after_evidence_group_id,
                     permission_id, submitted_by_user_id,
                     submitted_at, completed_at, completed_by_user_id,
                     cancelled_at, cancel_reason, created_at
-                ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+                ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
                 ON CONFLICT (service_request_id) DO UPDATE
                 SET status = EXCLUDED.status,
                     after_evidence_group_id = EXCLUDED.after_evidence_group_id,
@@ -46,7 +46,6 @@ public class JdbcServiceRequestRepositoryAdapter implements ServiceRequestReposi
             request.serviceType(),
             request.ownerUserId(),
             request.providerTenantId(),
-            request.providerGroupId(),
             request.status().name(),
             request.description(),
             request.beforeEvidenceGroupId(),
@@ -97,7 +96,6 @@ public class JdbcServiceRequestRepositoryAdapter implements ServiceRequestReposi
             rs.getString("service_type"),
             rs.getString("owner_user_id"),
             rs.getString("provider_tenant_id"),
-            rs.getString("provider_group_id"),
             ServiceRequestStatus.valueOf(rs.getString("status")),
             rs.getString("description"),
             rs.getString("before_evidence_group_id"),

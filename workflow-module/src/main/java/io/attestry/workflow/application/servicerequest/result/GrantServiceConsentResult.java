@@ -5,7 +5,7 @@ import java.time.Instant;
 public record GrantServiceConsentResult(
     String permissionId,
     String passportId,
-    String providerGroupId,
+    String providerTenantId,
     String status,
     Instant grantedAt
 ) {

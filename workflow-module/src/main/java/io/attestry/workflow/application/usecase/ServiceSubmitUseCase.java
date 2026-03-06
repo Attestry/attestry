@@ -6,5 +6,5 @@ import io.attestry.workflow.application.servicerequest.result.SubmitServiceReque
 
 public interface ServiceSubmitUseCase {
 
-    SubmitServiceRequestResult submit(AuthPrincipal principal, String tenantId, String groupId, SubmitServiceRequestCommand command);
+    SubmitServiceRequestResult submit(AuthPrincipal principal, String tenantId, SubmitServiceRequestCommand command);
 }

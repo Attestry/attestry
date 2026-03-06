@@ -48,8 +48,8 @@ public class JpaPassportRepositoryAdapter implements PassportRepository {
     }
 
     @Override
-    public boolean existsByGroupAndSerial(String groupId, String serialNumber) {
-        return assetJpaRepository.existsByGroupIdAndSerialNumber(groupId, serialNumber);
+    public boolean existsByTenantAndSerial(String tenantId, String serialNumber) {
+        return assetJpaRepository.existsByTenantIdAndSerialNumber(tenantId, serialNumber);
     }
 
     // --- Mapping ---
@@ -78,7 +78,6 @@ public class JpaPassportRepositoryAdapter implements PassportRepository {
         return ProductPassport.reconstitute(
             pe.getPassportId(),
             pe.getTenantId(),
-            pe.getGroupId(),
             pe.getQrPublicCode(),
             asset,
             pe.getCreatedAt()
@@ -90,7 +89,6 @@ public class JpaPassportRepositoryAdapter implements PassportRepository {
         return new ProductAssetJpaEntity(
             asset.getAssetId(),
             passport.getTenantId(),
-            passport.getGroupId(),
             asset.getSerialNumber(),
             asset.getModelId(),
             asset.getModelName(),
@@ -117,7 +115,6 @@ public class JpaPassportRepositoryAdapter implements PassportRepository {
             passport.getPassportId(),
             passport.getAsset().getAssetId(),
             passport.getTenantId(),
-            passport.getGroupId(),
             passport.getQrPublicCode(),
             passport.getCreatedAt()
         );

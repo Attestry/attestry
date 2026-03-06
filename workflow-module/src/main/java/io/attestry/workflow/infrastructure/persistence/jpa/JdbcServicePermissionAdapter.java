@@ -25,7 +25,7 @@ public class JdbcServicePermissionAdapter implements ServicePermissionPort {
     @Override
     public String grantServiceRepairPermission(
         String passportId,
-        String providerGroupId,
+        String providerTenantId,
         String linkedServiceRequestId,
         String grantedByUserId,
         Instant now
@@ -34,7 +34,7 @@ public class JdbcServicePermissionAdapter implements ServicePermissionPort {
         jdbcTemplate.update(
             """
                 INSERT INTO passport_permissions (
-                    permission_id, passport_id, seller_group_id,
+                    permission_id, passport_id, seller_tenant_id,
                     scope, status,
                     linked_service_request_id, granted_by_user_id,
                     created_at
@@ -42,7 +42,7 @@ public class JdbcServicePermissionAdapter implements ServicePermissionPort {
             """,
             permissionId,
             passportId,
-            providerGroupId,
+            providerTenantId,
             SCOPE_SERVICE_REPAIR,
             STATUS_ACTIVE,
             linkedServiceRequestId,
@@ -67,18 +67,18 @@ public class JdbcServicePermissionAdapter implements ServicePermissionPort {
     }
 
     @Override
-    public boolean hasActiveServiceRepairPermission(String passportId, String providerGroupId) {
+    public boolean hasActiveServiceRepairPermission(String passportId, String providerTenantId) {
         Integer count = jdbcTemplate.queryForObject(
             """
                 SELECT COUNT(1) FROM passport_permissions
                 WHERE passport_id = ?
-                  AND seller_group_id = ?
+                  AND seller_tenant_id = ?
                   AND scope = ?
                   AND status = ?
             """,
             Integer.class,
             passportId,
-            providerGroupId,
+            providerTenantId,
             SCOPE_SERVICE_REPAIR,
             STATUS_ACTIVE
         );
@@ -88,7 +88,7 @@ public class JdbcServicePermissionAdapter implements ServicePermissionPort {
     @Override
     public String grantServiceRepairConsent(
         String passportId,
-        String providerGroupId,
+        String providerTenantId,
         String grantedByUserId,
         Instant now
     ) {
@@ -96,42 +96,42 @@ public class JdbcServicePermissionAdapter implements ServicePermissionPort {
         jdbcTemplate.update(
             """
                 INSERT INTO passport_permissions (
-                    permission_id, passport_id, seller_group_id,
+                    permission_id, passport_id, seller_tenant_id,
                     scope, status,
                     granted_by_user_id, created_at
                 ) VALUES (?, ?, ?, ?, ?, ?, ?)
-                ON CONFLICT (passport_id, seller_group_id)
+                ON CONFLICT (passport_id, seller_tenant_id)
                     WHERE scope = 'SERVICE_REPAIR' AND status = 'ACTIVE'
                 DO UPDATE SET granted_by_user_id = EXCLUDED.granted_by_user_id,
                               created_at = EXCLUDED.created_at
             """,
             permissionId,
             passportId,
-            providerGroupId,
+            providerTenantId,
             SCOPE_SERVICE_REPAIR,
             STATUS_ACTIVE,
             grantedByUserId,
             Timestamp.from(now)
         );
         // Return the actual permission_id (could be existing on conflict)
-        return findActivePermissionId(passportId, providerGroupId).orElse(permissionId);
+        return findActivePermissionId(passportId, providerTenantId).orElse(permissionId);
     }
 
     @Override
-    public void revokeConsentByPassportAndGroup(String passportId, String providerGroupId) {
+    public void revokeConsentByPassportAndTenant(String passportId, String providerTenantId) {
         jdbcTemplate.update(
             """
                 UPDATE passport_permissions
                 SET status = ?
                 WHERE passport_id = ?
-                  AND seller_group_id = ?
+                  AND seller_tenant_id = ?
                   AND scope = ?
                   AND status = ?
                   AND linked_service_request_id IS NULL
             """,
             STATUS_REVOKED,
             passportId,
-            providerGroupId,
+            providerTenantId,
             SCOPE_SERVICE_REPAIR,
             STATUS_ACTIVE
         );
@@ -152,18 +152,18 @@ public class JdbcServicePermissionAdapter implements ServicePermissionPort {
     }
 
     @Override
-    public Optional<String> findActivePermissionId(String passportId, String providerGroupId) {
+    public Optional<String> findActivePermissionId(String passportId, String providerTenantId) {
         List<String> ids = jdbcTemplate.queryForList(
             """
                 SELECT permission_id FROM passport_permissions
                 WHERE passport_id = ?
-                  AND seller_group_id = ?
+                  AND seller_tenant_id = ?
                   AND scope = ?
                   AND status = ?
             """,
             String.class,
             passportId,
-            providerGroupId,
+            providerTenantId,
             SCOPE_SERVICE_REPAIR,
             STATUS_ACTIVE
         );

@@ -9,9 +9,7 @@ public final class PermissionCodes {
     public static final String TENANT_CREATE_APPROVE = "TENANT_CREATE_APPROVE";
     public static final String TENANT_SUSPEND = "TENANT_SUSPEND";
     public static final String GLOBAL_AUDIT_READ = "GLOBAL_AUDIT_READ";
-    public static final String TENANT_GROUP_SUSPEND = "TENANT_GROUP_SUSPEND";
-    public static final String TENANT_GROUP_RESUME = "TENANT_GROUP_RESUME";
-    public static final String TENANT_INVITATION_CREATE = "TENANT_INVITATION_CREATE";
+public static final String TENANT_INVITATION_CREATE = "TENANT_INVITATION_CREATE";
     public static final String TENANT_INVITATION_REVOKE = "TENANT_INVITATION_REVOKE";
     public static final String TENANT_INVITATION_VIEW = "TENANT_INVITATION_VIEW";
     public static final String TENANT_MEMBERSHIP_VIEW = "TENANT_MEMBERSHIP_VIEW";

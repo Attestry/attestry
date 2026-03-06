@@ -8,7 +8,6 @@ public class ProductPassport {
 
     private final String passportId;
     private final String tenantId;
-    private final String groupId;
     private final String qrPublicCode;
     private final ProductAsset asset;
     private final Instant createdAt;
@@ -16,14 +15,12 @@ public class ProductPassport {
     private ProductPassport(
         String passportId,
         String tenantId,
-        String groupId,
         String qrPublicCode,
         ProductAsset asset,
         Instant createdAt
     ) {
         this.passportId = passportId;
         this.tenantId = tenantId;
-        this.groupId = groupId;
         this.qrPublicCode = qrPublicCode;
         this.asset = asset;
         this.createdAt = createdAt;
@@ -45,7 +42,6 @@ public class ProductPassport {
         return new ProductPassport(
             requireText(passportId, "passportId"),
             input.tenantId(),
-            input.groupId(),
             requireText(qrPublicCode, "qrPublicCode"),
             asset,
             now
@@ -55,12 +51,11 @@ public class ProductPassport {
     public static ProductPassport reconstitute(
         String passportId,
         String tenantId,
-        String groupId,
         String qrPublicCode,
         ProductAsset asset,
         Instant createdAt
     ) {
-        return new ProductPassport(passportId, tenantId, groupId, qrPublicCode, asset, createdAt);
+        return new ProductPassport(passportId, tenantId, qrPublicCode, asset, createdAt);
     }
 
     // --- Delegate behaviors to asset ---
@@ -85,7 +80,6 @@ public class ProductPassport {
 
     public String getPassportId() { return passportId; }
     public String getTenantId() { return tenantId; }
-    public String getGroupId() { return groupId; }
     public String getQrPublicCode() { return qrPublicCode; }
     public ProductAsset getAsset() { return asset; }
     public Instant getCreatedAt() { return createdAt; }

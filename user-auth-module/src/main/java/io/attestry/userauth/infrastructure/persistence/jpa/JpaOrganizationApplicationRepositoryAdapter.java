@@ -1,9 +1,10 @@
 package io.attestry.userauth.infrastructure.persistence.jpa;
 
 import io.attestry.userauth.application.port.OrganizationApplicationRepositoryPort;
+import io.attestry.userauth.domain.onboarding.model.ApplicationStatus;
 import io.attestry.userauth.domain.onboarding.model.OrganizationApplication;
 import io.attestry.userauth.domain.onboarding.repository.OrganizationApplicationRepository;
-import io.attestry.userauth.domain.organization.model.GroupType;
+import io.attestry.userauth.domain.organization.model.TenantType;
 import io.attestry.userauth.infrastructure.persistence.jpa.entity.OrganizationApplicationJpaEntity;
 import io.attestry.userauth.infrastructure.persistence.jpa.repository.OrganizationApplicationJpaRepository;
 import java.util.List;
@@ -44,7 +45,7 @@ public class JpaOrganizationApplicationRepositoryAdapter
     }
 
     @Override
-    public List<OrganizationApplication> findByType(GroupType type) {
+    public List<OrganizationApplication> findByType(TenantType type) {
         return repository.findByType(type).stream().map(this::toDomain).toList();
     }
 
@@ -54,38 +55,44 @@ public class JpaOrganizationApplicationRepositoryAdapter
     }
 
     @Override
-    public List<OrganizationApplication> findByTenantAndType(String tenantId, GroupType type) {
+    public List<OrganizationApplication> findByTenantAndType(String tenantId, TenantType type) {
         return repository.findByTenantIdAndType(tenantId, type).stream().map(this::toDomain).toList();
     }
 
     @Override
-    public boolean existsBrandByOrgName(String orgName) {
-        return repository.existsByTypeAndTenantIdIsNullAndOrgNameIgnoreCase(GroupType.BRAND, orgName);
+    public boolean existsBrandByOrgNameAndCountry(String orgName, String country) {
+        return repository.existsByTypeAndTenantIdIsNullAndOrgNameIgnoreCaseAndCountryIgnoreCaseAndStatusNot(
+                TenantType.BRAND, orgName, country, ApplicationStatus.REJECTED);
     }
 
     @Override
-    public boolean existsRetailByTenantAndOrgName(String tenantId, String orgName) {
-        return repository.existsByTypeAndTenantIdAndOrgNameIgnoreCase(GroupType.RETAIL, tenantId, orgName);
+    public boolean existsRetailByTenantAndOrgNameAndCountry(String tenantId, String orgName, String country) {
+        return repository.existsByTypeAndTenantIdAndOrgNameIgnoreCaseAndCountryIgnoreCaseAndStatusNot(
+                TenantType.RETAIL, tenantId, orgName, country, ApplicationStatus.REJECTED);
     }
 
     @Override
-    public boolean existsServiceByTenantAndOrgName(String tenantId, String orgName) {
-        return repository.existsByTypeAndTenantIdAndOrgNameIgnoreCase(GroupType.SERVICE, tenantId, orgName);
+    public boolean existsServiceByTenantAndOrgNameAndCountry(String tenantId, String orgName, String country) {
+        return repository.existsByTypeAndTenantIdAndOrgNameIgnoreCaseAndCountryIgnoreCaseAndStatusNot(
+                TenantType.SERVICE, tenantId, orgName, country, ApplicationStatus.REJECTED);
     }
 
     @Override
     public boolean existsBrandByBizRegNo(String bizRegNo) {
-        return repository.existsByTypeAndTenantIdIsNullAndBizRegNoIgnoreCase(GroupType.BRAND, bizRegNo);
+        return repository.existsByTypeAndTenantIdIsNullAndBizRegNoIgnoreCaseAndStatusNot(
+                TenantType.BRAND, bizRegNo, ApplicationStatus.REJECTED);
     }
 
     @Override
     public boolean existsRetailByTenantAndBizRegNo(String tenantId, String bizRegNo) {
-        return repository.existsByTypeAndTenantIdAndBizRegNoIgnoreCase(GroupType.RETAIL, tenantId, bizRegNo);
+        return repository.existsByTypeAndTenantIdAndBizRegNoIgnoreCaseAndStatusNot(
+                TenantType.RETAIL, tenantId, bizRegNo, ApplicationStatus.REJECTED);
     }
 
     @Override
     public boolean existsServiceByTenantAndBizRegNo(String tenantId, String bizRegNo) {
-        return repository.existsByTypeAndTenantIdAndBizRegNoIgnoreCase(GroupType.SERVICE, tenantId, bizRegNo);
+        return repository.existsByTypeAndTenantIdAndBizRegNoIgnoreCaseAndStatusNot(
+                TenantType.SERVICE, tenantId, bizRegNo, ApplicationStatus.REJECTED);
     }
 
     private OrganizationApplication toDomain(OrganizationApplicationJpaEntity entity) {

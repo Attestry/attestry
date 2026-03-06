@@ -1,6 +1,6 @@
 package io.attestry.userauth.domain.organization.model;
 
-public enum GroupType {
+public enum TenantType {
     BRAND,
     RETAIL,
     SERVICE,

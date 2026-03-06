@@ -57,7 +57,7 @@ class DelegationServiceBatchTest {
     private static final String PARTNER_LINK_ID = "pl-1";
     private static final Instant EXPIRES = Instant.parse("2026-04-01T00:00:00Z");
     private static final AuthPrincipal PRINCIPAL = new AuthPrincipal(
-        "token1", "admin1", SOURCE_TENANT, "group1",
+        "token1", "admin1", SOURCE_TENANT,
         VerificationLevel.PHONE_VERIFIED, Set.of("SCOPE_DELEGATION_GRANT"),
         Instant.parse("2026-03-02T00:00:00Z")
     );
@@ -151,7 +151,7 @@ class DelegationServiceBatchTest {
     void batchGrant_voidedPassport_fails() {
         setupCommonMocks();
         when(passportAuthorityQueryPort.findPassportAuthority("voided"))
-            .thenReturn(Optional.of(new PassportAuthorityView("voided", SOURCE_TENANT, "g1", "VOIDED", "NONE")));
+            .thenReturn(Optional.of(new PassportAuthorityView("voided", SOURCE_TENANT, "VOIDED", "NONE")));
         when(delegationRepository.existsActive(
             SOURCE_TENANT, TARGET_TENANT, "PASSPORT", "voided", "RETAIL_TRANSFER_CREATE"
         )).thenReturn(false);
@@ -192,7 +192,7 @@ class DelegationServiceBatchTest {
 
     private void stubPassport(String passportId) {
         when(passportAuthorityQueryPort.findPassportAuthority(passportId))
-            .thenReturn(Optional.of(new PassportAuthorityView(passportId, SOURCE_TENANT, "g1", "ACTIVE", "NONE")));
+            .thenReturn(Optional.of(new PassportAuthorityView(passportId, SOURCE_TENANT, "ACTIVE", "NONE")));
     }
 
     private void stubNoDuplicate(String passportId) {

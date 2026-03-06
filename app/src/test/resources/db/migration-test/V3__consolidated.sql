@@ -1,5 +1,5 @@
 -- =============================================================================
--- H2-compatible consolidated migration: V2 ~ V16
+-- H2-compatible consolidated migration: V2 ~ V16 (group layer removed)
 -- =============================================================================
 
 -- >>> V2: rename workflow tenant columns
@@ -13,7 +13,6 @@ ALTER TABLE delegations RENAME COLUMN partner_tenant_id TO target_tenant_id;
 CREATE TABLE IF NOT EXISTS product_assets (
     asset_id VARCHAR(36) PRIMARY KEY,
     tenant_id VARCHAR(36) NOT NULL,
-    group_id VARCHAR(36) NOT NULL,
     serial_number VARCHAR(120) NOT NULL,
     model_id VARCHAR(120),
     model_name VARCHAR(255) NOT NULL,
@@ -33,28 +32,22 @@ CREATE TABLE IF NOT EXISTS product_assets (
     risk_reported_by VARCHAR(36),
     police_report_no VARCHAR(100),
     CONSTRAINT fk_product_assets_tenant FOREIGN KEY (tenant_id) REFERENCES tenants (tenant_id),
-    CONSTRAINT fk_product_assets_group FOREIGN KEY (group_id) REFERENCES tenant_groups (group_id),
     CONSTRAINT fk_product_assets_owner FOREIGN KEY (ownership_user_id) REFERENCES user_accounts (user_id),
-    CONSTRAINT uq_product_assets_group_serial UNIQUE (group_id, serial_number)
+    CONSTRAINT uq_product_assets_tenant_serial UNIQUE (tenant_id, serial_number)
 );
-
-CREATE INDEX IF NOT EXISTS idx_product_assets_tenant_group
-    ON product_assets (tenant_id, group_id);
 
 CREATE TABLE IF NOT EXISTS product_passports (
     passport_id VARCHAR(36) PRIMARY KEY,
     asset_id VARCHAR(36) NOT NULL UNIQUE,
     tenant_id VARCHAR(36) NOT NULL,
-    group_id VARCHAR(36) NOT NULL,
     qr_public_code VARCHAR(120) NOT NULL UNIQUE,
     created_at TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP,
     CONSTRAINT fk_product_passports_asset FOREIGN KEY (asset_id) REFERENCES product_assets (asset_id),
-    CONSTRAINT fk_product_passports_tenant FOREIGN KEY (tenant_id) REFERENCES tenants (tenant_id),
-    CONSTRAINT fk_product_passports_group FOREIGN KEY (group_id) REFERENCES tenant_groups (group_id)
+    CONSTRAINT fk_product_passports_tenant FOREIGN KEY (tenant_id) REFERENCES tenants (tenant_id)
 );
 
-CREATE INDEX IF NOT EXISTS idx_product_passports_tenant_group
-    ON product_passports (tenant_id, group_id);
+CREATE INDEX IF NOT EXISTS idx_product_passports_tenant
+    ON product_passports (tenant_id);
 
 -- >>> V4: brand release policy shift
 INSERT INTO permissions (permission_id, code, name, description, resource_type, action, enabled)
@@ -139,7 +132,7 @@ CREATE TABLE IF NOT EXISTS passport_ownership (
 CREATE TABLE IF NOT EXISTS passport_permissions (
     permission_id VARCHAR(36) PRIMARY KEY,
     passport_id VARCHAR(36) NOT NULL,
-    seller_group_id VARCHAR(36) NOT NULL,
+    seller_tenant_id VARCHAR(36) NOT NULL,
     scope VARCHAR(50) NOT NULL DEFAULT 'RETAIL_SALE',
     status VARCHAR(20) NOT NULL DEFAULT 'ACTIVE',
     expires_at TIMESTAMP,
@@ -160,8 +153,8 @@ CREATE TABLE IF NOT EXISTS passport_permissions (
 CREATE UNIQUE INDEX IF NOT EXISTS uq_passport_permissions_source_delegation
     ON passport_permissions (source_delegation_id);
 
-CREATE INDEX IF NOT EXISTS idx_passport_permissions_projection_lookup
-    ON passport_permissions (passport_id, seller_group_id, status, expires_at);
+CREATE INDEX IF NOT EXISTS idx_passport_permissions_active_seller
+    ON passport_permissions (passport_id, seller_tenant_id, status, expires_at);
 
 CREATE INDEX IF NOT EXISTS idx_pp_linked_svc
     ON passport_permissions (linked_service_request_id);
@@ -181,7 +174,6 @@ CREATE INDEX IF NOT EXISTS idx_permission_templates_tenant
 CREATE TABLE IF NOT EXISTS workflow_shipment_evidence_groups (
     evidence_group_id VARCHAR(36) PRIMARY KEY,
     tenant_id VARCHAR(36),
-    group_id VARCHAR(36),
     owner_user_id VARCHAR(36),
     created_at TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP
 );
@@ -204,20 +196,18 @@ CREATE TABLE IF NOT EXISTS workflow_shipment_evidences (
 CREATE TABLE IF NOT EXISTS workflow_shipments (
     shipment_id VARCHAR(36) PRIMARY KEY,
     tenant_id VARCHAR(36) NOT NULL,
-    group_id VARCHAR(36) NOT NULL,
     passport_id VARCHAR(36) NOT NULL,
     shipment_round INT NOT NULL,
     status VARCHAR(20) NOT NULL,
     released_at TIMESTAMP NOT NULL,
     released_by_user_id VARCHAR(36) NOT NULL,
-    released_by_group_id VARCHAR(36) NOT NULL,
+    released_by_tenant_id VARCHAR(36) NOT NULL,
     evidence_group_id VARCHAR(36) NOT NULL,
     returned_at TIMESTAMP,
     returned_by_user_id VARCHAR(36),
     return_evidence_group_id VARCHAR(36),
     created_at TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP,
     CONSTRAINT fk_workflow_shipments_tenant FOREIGN KEY (tenant_id) REFERENCES tenants (tenant_id),
-    CONSTRAINT fk_workflow_shipments_group FOREIGN KEY (group_id) REFERENCES tenant_groups (group_id),
     CONSTRAINT fk_workflow_shipments_passport FOREIGN KEY (passport_id) REFERENCES product_passports (passport_id),
     CONSTRAINT fk_workflow_shipments_released_user FOREIGN KEY (released_by_user_id) REFERENCES user_accounts (user_id),
     CONSTRAINT fk_workflow_shipments_evidence_group FOREIGN KEY (evidence_group_id) REFERENCES workflow_shipment_evidence_groups (evidence_group_id),
@@ -225,9 +215,9 @@ CREATE TABLE IF NOT EXISTS workflow_shipments (
 );
 
 CREATE INDEX IF NOT EXISTS idx_workflow_shipments_passport ON workflow_shipments (passport_id);
-CREATE INDEX IF NOT EXISTS idx_workflow_shipments_tenant_group ON workflow_shipments (tenant_id, group_id);
+CREATE INDEX IF NOT EXISTS idx_workflow_shipments_tenant ON workflow_shipments (tenant_id);
 CREATE INDEX IF NOT EXISTS idx_workflow_shipment_evidences_group ON workflow_shipment_evidences (evidence_group_id);
-CREATE INDEX IF NOT EXISTS idx_workflow_shipment_evidence_groups_scope ON workflow_shipment_evidence_groups (tenant_id, group_id);
+CREATE INDEX IF NOT EXISTS idx_workflow_shipment_evidence_groups_scope ON workflow_shipment_evidence_groups (tenant_id);
 CREATE INDEX IF NOT EXISTS idx_workflow_shipment_evidences_status ON workflow_shipment_evidences (evidence_group_id, status);
 
 -- >>> V10: ledger entry append only (H2: skip PL/pgSQL trigger, only add column)
@@ -243,7 +233,6 @@ CREATE TABLE IF NOT EXISTS token_transfers (
     from_owner_id VARCHAR(36),
     to_owner_id VARCHAR(36),
     tenant_id VARCHAR(36),
-    group_id VARCHAR(36),
     qr_nonce VARCHAR(64),
     code_hash VARCHAR(64),
     code_salt VARCHAR(36),
@@ -269,7 +258,6 @@ CREATE INDEX IF NOT EXISTS idx_passport_ownership_owner_id
 CREATE TABLE IF NOT EXISTS purchase_claim_requests (
     claim_id            VARCHAR(64) PRIMARY KEY,
     tenant_id           VARCHAR(64) NOT NULL,
-    group_id            VARCHAR(64) NOT NULL,
     claimant_user_id    VARCHAR(64) NOT NULL,
     serial_number       VARCHAR(255) NOT NULL,
     model_name          VARCHAR(255) NOT NULL,
@@ -286,7 +274,7 @@ CREATE TABLE IF NOT EXISTS purchase_claim_requests (
 );
 
 CREATE INDEX IF NOT EXISTS idx_pcr_claimant ON purchase_claim_requests (claimant_user_id);
-CREATE INDEX IF NOT EXISTS idx_pcr_tenant_group_status ON purchase_claim_requests (tenant_id, group_id, status);
+CREATE INDEX IF NOT EXISTS idx_pcr_tenant_status ON purchase_claim_requests (tenant_id, status);
 
 -- >>> V14: service request schema
 CREATE TABLE IF NOT EXISTS workflow_service_requests (
@@ -295,7 +283,6 @@ CREATE TABLE IF NOT EXISTS workflow_service_requests (
     service_type         VARCHAR(50) NOT NULL,
     owner_user_id        VARCHAR(36) NOT NULL,
     provider_tenant_id   VARCHAR(36) NOT NULL,
-    provider_group_id    VARCHAR(36) NOT NULL,
     status               VARCHAR(20) NOT NULL DEFAULT 'SUBMITTED',
     description          TEXT,
     before_evidence_group_id VARCHAR(36),

@@ -45,7 +45,7 @@ class ServiceConsentServiceTest {
     private ServiceConsentService service;
 
     private static final AuthPrincipal OWNER = new AuthPrincipal(
-        "token1", "owner1", null, null, VerificationLevel.PHONE_VERIFIED, Set.of("SCOPE_OWNER_SERVICE_CREATE"), Instant.parse("2026-03-02T00:00:00Z")
+        "token1", "owner1", null, VerificationLevel.PHONE_VERIFIED, Set.of("SCOPE_OWNER_SERVICE_CREATE"), Instant.parse("2026-03-02T00:00:00Z")
     );
 
     @BeforeEach
@@ -59,7 +59,7 @@ class ServiceConsentServiceTest {
     void grantConsent_success() {
         doNothing().when(authorizationSupport).assertPermissionOnly(any(), anyString(), anyString());
         when(serviceProductReadPort.findPassportState("p1"))
-            .thenReturn(Optional.of(new ServicePassportState("p1", "t1", "g1", "ACTIVE", "NONE")));
+            .thenReturn(Optional.of(new ServicePassportState("p1", "t1", "ACTIVE", "NONE")));
         when(serviceProductReadPort.findCurrentOwnerId("p1")).thenReturn(Optional.of("owner1"));
         when(servicePermissionPort.grantServiceRepairConsent(anyString(), anyString(), anyString(), any(Instant.class)))
             .thenReturn("perm1");
@@ -70,7 +70,7 @@ class ServiceConsentServiceTest {
 
         assertEquals("perm1", result.permissionId());
         assertEquals("p1", result.passportId());
-        assertEquals("provG1", result.providerGroupId());
+        assertEquals("provG1", result.providerTenantId());
         assertEquals("ACTIVE", result.status());
         assertNotNull(result.grantedAt());
     }
@@ -79,7 +79,7 @@ class ServiceConsentServiceTest {
     void grantConsent_assetNotActive_throws() {
         doNothing().when(authorizationSupport).assertPermissionOnly(any(), anyString(), anyString());
         when(serviceProductReadPort.findPassportState("p1"))
-            .thenReturn(Optional.of(new ServicePassportState("p1", "t1", "g1", "VOIDED", "NONE")));
+            .thenReturn(Optional.of(new ServicePassportState("p1", "t1", "VOIDED", "NONE")));
         when(serviceProductReadPort.findCurrentOwnerId("p1")).thenReturn(Optional.of("owner1"));
 
         WorkflowDomainException ex = assertThrows(WorkflowDomainException.class, () ->
@@ -92,7 +92,7 @@ class ServiceConsentServiceTest {
     void grantConsent_riskFlagged_throws() {
         doNothing().when(authorizationSupport).assertPermissionOnly(any(), anyString(), anyString());
         when(serviceProductReadPort.findPassportState("p1"))
-            .thenReturn(Optional.of(new ServicePassportState("p1", "t1", "g1", "ACTIVE", "FLAGGED")));
+            .thenReturn(Optional.of(new ServicePassportState("p1", "t1", "ACTIVE", "FLAGGED")));
         when(serviceProductReadPort.findCurrentOwnerId("p1")).thenReturn(Optional.of("owner1"));
 
         WorkflowDomainException ex = assertThrows(WorkflowDomainException.class, () ->
@@ -105,7 +105,7 @@ class ServiceConsentServiceTest {
     void grantConsent_ownerMismatch_throws() {
         doNothing().when(authorizationSupport).assertPermissionOnly(any(), anyString(), anyString());
         when(serviceProductReadPort.findPassportState("p1"))
-            .thenReturn(Optional.of(new ServicePassportState("p1", "t1", "g1", "ACTIVE", "NONE")));
+            .thenReturn(Optional.of(new ServicePassportState("p1", "t1", "ACTIVE", "NONE")));
         when(serviceProductReadPort.findCurrentOwnerId("p1")).thenReturn(Optional.of("differentOwner"));
 
         WorkflowDomainException ex = assertThrows(WorkflowDomainException.class, () ->
@@ -122,9 +122,9 @@ class ServiceConsentServiceTest {
         RevokeServiceConsentResult result = service.revokeConsent(OWNER, "p1", "provG1");
 
         assertEquals("p1", result.passportId());
-        assertEquals("provG1", result.providerGroupId());
+        assertEquals("provG1", result.providerTenantId());
         assertEquals("REVOKED", result.status());
-        verify(servicePermissionPort).revokeConsentByPassportAndGroup("p1", "provG1");
+        verify(servicePermissionPort).revokeConsentByPassportAndTenant("p1", "provG1");
     }
 
     @Test

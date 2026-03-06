@@ -9,13 +9,12 @@ import java.time.Instant;
 public record Shipment(
     String shipmentId,
     String tenantId,
-    String groupId,
     String passportId,
     int shipmentRound,
     ShipmentStatus status,
     Instant releasedAt,
     String releasedByUserId,
-    String releasedByGroupId,
+    String releasedByTenantId,
     String evidenceGroupId,
     Instant returnedAt,
     String returnedByUserId,
@@ -26,21 +25,19 @@ public record Shipment(
     public static Shipment release(
         String shipmentId,
         String tenantId,
-        String groupId,
         String passportId,
         int shipmentRound,
         Instant releasedAt,
         String releasedByUserId,
-        String releasedByGroupId,
+        String releasedByTenantId,
         String evidenceGroupId,
         Instant createdAt
     ) {
         requireText(shipmentId, "shipmentId");
         requireText(tenantId, "tenantId");
-        requireText(groupId, "groupId");
         requireText(passportId, "passportId");
         requireText(releasedByUserId, "releasedByUserId");
-        requireText(releasedByGroupId, "releasedByGroupId");
+        requireText(releasedByTenantId, "releasedByTenantId");
         requireText(evidenceGroupId, "evidenceGroupId");
         if (shipmentRound <= 0) {
             throw new WorkflowDomainException(WorkflowErrorCode.INVALID_REQUEST, "shipmentRound must be positive");
@@ -51,13 +48,12 @@ public record Shipment(
         return new Shipment(
             shipmentId,
             tenantId,
-            groupId,
             passportId,
             shipmentRound,
             ShipmentStatus.RELEASED,
             releasedAt,
             releasedByUserId,
-            releasedByGroupId,
+            releasedByTenantId,
             evidenceGroupId,
             null,
             null,
@@ -77,13 +73,12 @@ public record Shipment(
         return new Shipment(
             shipmentId,
             tenantId,
-            groupId,
             passportId,
             shipmentRound,
             ShipmentStatus.RETURNED,
             releasedAt,
             releasedByUserId,
-            releasedByGroupId,
+            releasedByTenantId,
             evidenceGroupId,
             returnedAt,
             returnedByUserId,

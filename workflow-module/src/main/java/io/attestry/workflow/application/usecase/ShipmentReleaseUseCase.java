@@ -11,7 +11,6 @@ public interface ShipmentReleaseUseCase {
     ReleaseShipmentResult release(
         AuthPrincipal principal,
         String tenantId,
-        String groupId,
         String passportId,
         ReleaseShipmentCommand command
     );
@@ -19,7 +18,6 @@ public interface ShipmentReleaseUseCase {
     ReturnShipmentResult returnShipment(
         AuthPrincipal principal,
         String tenantId,
-        String groupId,
         String shipmentId,
         ReturnShipmentCommand command
     );

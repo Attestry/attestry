@@ -1,7 +1,7 @@
 package io.attestry.userauth.application.port;
 
 import io.attestry.userauth.domain.onboarding.model.OrganizationApplication;
-import io.attestry.userauth.domain.organization.model.GroupType;
+import io.attestry.userauth.domain.organization.model.TenantType;
 import java.util.List;
 import java.util.Optional;
 
@@ -14,15 +14,15 @@ public interface OrganizationApplicationRepositoryPort {
 
     List<OrganizationApplication> findAll();
 
-    List<OrganizationApplication> findByType(GroupType type);
+    List<OrganizationApplication> findByType(TenantType type);
 
     List<OrganizationApplication> findByApplicantUserId(String applicantUserId);
 
-    List<OrganizationApplication> findByTenantAndType(String tenantId, GroupType type);
+    List<OrganizationApplication> findByTenantAndType(String tenantId, TenantType type);
 
-    boolean existsBrandByOrgName(String orgName);
+    boolean existsBrandByOrgNameAndCountry(String orgName, String country);
 
-    boolean existsRetailByTenantAndOrgName(String tenantId, String orgName);
+    boolean existsRetailByTenantAndOrgNameAndCountry(String tenantId, String orgName, String country);
 
     boolean existsBrandByBizRegNo(String bizRegNo);
 

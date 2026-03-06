@@ -2,11 +2,11 @@
 
 @baseUrl = http://localhost:8080
 @contentType = application/json
-@accessToken = 08af2265-0af9-4e26-b902-b091068a3097
+@accessToken = cea0c053-87f7-4128-9eec-69424470bfdd
 @applicationId = 7958e5c5-66c5-4b81-997a-05ecbb12b159
-@evidenceBundleId = d95336f6-fd17-4820-9eef-57655feab8c6
-@evidenceFileId = 7189b4cb-1572-4ad0-acb2-553f71814b20
-@uploadUrl = http://localhost:9000/attestry-onboarding/onboarding/4e342964-c313-4dc4-8169-add5ed34adfc/d95336f6-fd17-4820-9eef-57655feab8c6/a82f9c1d-d301-41fd-9854-62dcb3407805/biz-proof-1.pdf?X-Amz-Algorithm=AWS4-HMAC-SHA256&X-Amz-Credential=minioadmin%2F20260305%2Fus-east-1%2Fs3%2Faws4_request&X-Amz-Date=20260305T060017Z&X-Amz-Expires=900&X-Amz-SignedHeaders=host&X-Amz-Signature=9529fd903f73c47692b34c1a7883a74c2a2dc5b1b2a819198c6bdf0a95bf0e15
+@evidenceBundleId = 2f5e8328-b5e9-4034-8f90-f9be78c1de0a
+@evidenceFileId = e0b70bea-9c43-4bba-a260-40838fb7fa36
+@uploadUrl = http://localhost:9000/attestry-onboarding/onboarding/b377e007-a19b-4412-b6b6-9167c6737d72/2f5e8328-b5e9-4034-8f90-f9be78c1de0a/d91e6691-426c-4e3c-8a93-0469b38cffe4/biz-proof-1.pdf?X-Amz-Algorithm=AWS4-HMAC-SHA256&X-Amz-Credential=minioadmin%2F20260305%2Fus-east-1%2Fs3%2Faws4_request&X-Amz-Date=20260305T203823Z&X-Amz-Expires=900&X-Amz-SignedHeaders=host&X-Amz-Signature=3d02ddda11f71f275158fa2a3ebb829d53891f9bfb5266d7188ec6119650bead
 
 ### 1) Presign evidence upload
 # @name presignEvidence
@@ -49,8 +49,8 @@ Authorization: Bearer {{accessToken}}
 Content-Type: {{contentType}}
 
 {
-  "type": "RETAIL",
-  "orgName": "무신사",
+  "type": "BRAND",
+  "orgName": "My Brand Inc.",
   "country": "KR",
   "bizRegNo": "123-45-67890",
   "evidenceBundleId": "{{evidenceBundleId}}"

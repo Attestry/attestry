@@ -9,5 +9,5 @@ public interface PassportRepository {
 
     ProductPassport save(ProductPassport passport);
 
-    boolean existsByGroupAndSerial(String groupId, String serialNumber);
+    boolean existsByTenantAndSerial(String tenantId, String serialNumber);
 }

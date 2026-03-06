@@ -18,7 +18,7 @@ public class JdbcMyPassportQueryAdapter implements MyPassportQueryPort {
     public List<MyPassportView> findByOwnerId(String ownerId) {
         return jdbcTemplate.query(
             """
-                SELECT pp.passport_id, pp.qr_public_code, pp.tenant_id, pp.group_id,
+                SELECT pp.passport_id, pp.qr_public_code, pp.tenant_id,
                        pa.asset_id, pa.serial_number, pa.model_name,
                        pa.asset_state, pa.risk_flag,
                        po.updated_at
@@ -32,7 +32,6 @@ public class JdbcMyPassportQueryAdapter implements MyPassportQueryPort {
                 rs.getString("passport_id"),
                 rs.getString("qr_public_code"),
                 rs.getString("tenant_id"),
-                rs.getString("group_id"),
                 rs.getString("asset_id"),
                 rs.getString("serial_number"),
                 rs.getString("model_name"),

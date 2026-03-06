@@ -9,7 +9,6 @@ public interface ProductMintUseCase {
 
     record MintProductCommand(
         String tenantId,
-        String groupId,
         String serialNumber,
         String modelId,
         String modelName,

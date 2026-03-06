@@ -36,63 +36,53 @@ public class OnboardingHttp {
     @PostMapping("/onboarding/evidences/presign")
     @ResponseStatus(HttpStatus.CREATED)
     public PresignedEvidenceUploadResponse presignEvidenceUpload(
-        @CurrentActor ActorContext actor,
-        @RequestBody PresignEvidenceUploadRequest request
-    ) {
+            @CurrentActor ActorContext actor,
+            @RequestBody PresignEvidenceUploadRequest request) {
         return PresignedEvidenceUploadResponse.from(
-            onboardingService.presignEvidenceUpload(
-                actor,
-                new PresignEvidenceUploadCommand(request.evidenceBundleId(), request.fileName(), request.contentType())
-            )
-        );
+                onboardingService.presignEvidenceUpload(
+                        actor,
+                        new PresignEvidenceUploadCommand(request.evidenceBundleId(), request.fileName(),
+                                request.contentType())));
     }
 
     @PostMapping("/onboarding/evidences/complete")
     public EvidenceBundleResponse completeEvidenceUpload(
-        @CurrentActor ActorContext actor,
-        @RequestBody CompleteEvidenceUploadRequest request
-    ) {
+            @CurrentActor ActorContext actor,
+            @RequestBody CompleteEvidenceUploadRequest request) {
         return EvidenceBundleResponse.from(
-            onboardingService.completeEvidenceUpload(
-                actor,
-                new CompleteEvidenceUploadCommand(request.evidenceBundleId(), request.evidenceFileId(), request.sizeBytes())
-            )
-        );
+                onboardingService.completeEvidenceUpload(
+                        actor,
+                        new CompleteEvidenceUploadCommand(request.evidenceBundleId(), request.evidenceFileId(),
+                                request.sizeBytes())));
     }
 
     @PostMapping("/onboarding/applications")
     @ResponseStatus(HttpStatus.CREATED)
     public ApplicationResponse createApplication(
-        @CurrentActor ActorContext actor,
-        @RequestBody CreateApplicationRequest request
-    ) {
+            @CurrentActor ActorContext actor,
+            @RequestBody CreateApplicationRequest request) {
         ApplicationResult result = onboardingService.createApplication(
-            actor,
-            new CreateApplicationCommand(
-                request.type(),
-                request.orgName(),
-                request.country(),
-                request.bizRegNo(),
-                request.evidenceBundleId()
-            )
-        );
+                actor,
+                new CreateApplicationCommand(
+                        request.type(),
+                        request.orgName(),
+                        request.country(),
+                        request.bizRegNo(),
+                        request.evidenceBundleId()));
         return ApplicationResponse.from(result);
     }
 
-    //TODO("my-page 에 넣어야 되나?")
     @GetMapping("/onboarding/applications")
     public List<ApplicationResponse> listMyApplications(@CurrentActor ActorContext actor) {
         return onboardingService.listMyApplications(actor).stream()
-            .map(ApplicationResponse::from)
-            .toList();
+                .map(ApplicationResponse::from)
+                .toList();
     }
 
-    //TODO("my-page 에 넣어야 되나?")
     @GetMapping("/onboarding/applications/{applicationId}")
     public ApplicationResponse getMyApplication(
-        @CurrentActor ActorContext actor,
-        @PathVariable(name = "applicationId") String applicationId
-    ) {
+            @CurrentActor ActorContext actor,
+            @PathVariable(name = "applicationId") String applicationId) {
         return ApplicationResponse.from(onboardingService.getMyApplication(actor, applicationId));
     }
 }

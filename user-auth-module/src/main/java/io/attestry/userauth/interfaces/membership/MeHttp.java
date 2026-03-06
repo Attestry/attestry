@@ -46,4 +46,11 @@ public class MeHttp {
     public List<MembershipView> memberships(@AuthenticationPrincipal AuthPrincipal principal) {
         return membershipQueryService.getMemberships(principal.userId());
     }
+
+    //TODO("DELETE /me/account 추가 ")
+//  2. 내부에서 UserStatus -> SUSPENDED(소프트 삭제)
+//  3. 현재 액세스 토큰 revoke
+//  4. 이후 로그인 차단(checkActiveStatus 이미 있음)
+//  5. 필요하면 membership도 함께 비활성 처리
+
 }

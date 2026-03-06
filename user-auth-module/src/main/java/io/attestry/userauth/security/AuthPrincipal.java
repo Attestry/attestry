@@ -10,7 +10,6 @@ public record AuthPrincipal(
     String tokenId,
     String userId,
     String tenantId,
-    String groupId,
     VerificationLevel verificationLevel,
     Set<String> scopes,
     Instant expiresAt
@@ -18,7 +17,6 @@ public record AuthPrincipal(
     public static AuthPrincipal issue(
         String userId,
         String tenantId,
-        String groupId,
         VerificationLevel verificationLevel,
         Set<String> scopes,
         Instant now,
@@ -28,7 +26,6 @@ public record AuthPrincipal(
             UUID.randomUUID().toString(),
             userId,
             tenantId,
-            groupId,
             verificationLevel,
             scopes,
             now.plus(ttl)

@@ -7,7 +7,6 @@
 @consumerAccessToken = REPLACE_CONSUMER_ACCESS_TOKEN
 @adminAccessToken = REPLACE_ADMIN_ACCESS_TOKEN
 @tenantId = REPLACE_TENANT_ID
-@groupId = REPLACE_GROUP_ID
 @evidenceGroupId = null
 @evidenceId = REPLACE_EVIDENCE_ID
 @uploadUrl = REPLACE_UPLOAD_URL
@@ -25,7 +24,6 @@ Content-Type: {{contentType}}
 
 {
   "tenantId": "{{tenantId}}",
-  "groupId": "{{groupId}}",
   "evidenceGroupId": {{evidenceGroupId}},
   "fileName": "receipt-photo.jpg",
   "contentType": "image/jpeg"
@@ -50,7 +48,6 @@ Content-Type: {{contentType}}
 
 {
   "tenantId": "{{tenantId}}",
-  "groupId": "{{groupId}}",
   "evidenceGroupId": "{{evidenceGroupId}}",
   "evidenceId": "{{evidenceId}}",
   "sizeBytes": 102400,
@@ -65,7 +62,6 @@ Content-Type: {{contentType}}
 
 {
   "tenantId": "{{tenantId}}",
-  "groupId": "{{groupId}}",
   "serialNumber": "SN-001",
   "modelName": "Model X",
   "evidenceGroupId": "{{evidenceGroupId}}",
@@ -85,11 +81,11 @@ Authorization: Bearer {{consumerAccessToken}}
 ## ──────────────────────────────────────
 
 ### 6) List pending claims (관리자)
-GET {{baseUrl}}/workflows/tenants/{{tenantId}}/groups/{{groupId}}/purchase-claims
+GET {{baseUrl}}/workflows/tenants/{{tenantId}}/purchase-claims
 Authorization: Bearer {{adminAccessToken}}
 
 ### 7) Approve claim (관리자 → 자동 MINT + 소유권 할당)
-POST {{baseUrl}}/workflows/tenants/{{tenantId}}/groups/{{groupId}}/purchase-claims/{{claimId}}/approve
+POST {{baseUrl}}/workflows/tenants/{{tenantId}}/purchase-claims/{{claimId}}/approve
 Authorization: Bearer {{adminAccessToken}}
 Content-Type: {{contentType}}
 
@@ -100,7 +96,7 @@ Content-Type: {{contentType}}
 }
 
 ### 8) Reject claim (관리자)
-POST {{baseUrl}}/workflows/tenants/{{tenantId}}/groups/{{groupId}}/purchase-claims/{{claimId}}/reject
+POST {{baseUrl}}/workflows/tenants/{{tenantId}}/purchase-claims/{{claimId}}/reject
 Authorization: Bearer {{adminAccessToken}}
 Content-Type: {{contentType}}
 

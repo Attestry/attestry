@@ -48,16 +48,15 @@ public class ServiceEvidenceService implements ServiceEvidenceUseCase {
     public PresignedShipmentEvidenceUploadResult presignEvidenceUpload(
         AuthPrincipal principal,
         String tenantId,
-        String groupId,
         PresignShipmentEvidenceUploadCommand command
     ) {
-        authorizationSupport.assertTenantAndGroupContext(principal, tenantId, groupId);
+        authorizationSupport.assertTenantContext(principal, tenantId);
         authorizationSupport.assertLivePermission(principal, tenantId, PermissionCodes.SERVICE_COMPLETE, "service:evidence:presign");
 
         return evidenceUploadSupport.doPresign(
             shipmentEvidencePort, objectStoragePort,
             OBJECT_KEY_PREFIX, PRESIGN_TTL,
-            tenantId, groupId, principal.userId(),
+            tenantId, principal.userId(),
             command.evidenceGroupId(), command.fileName(), command.contentType(),
             Instant.now(clock)
         );
@@ -68,10 +67,9 @@ public class ServiceEvidenceService implements ServiceEvidenceUseCase {
     public ShipmentEvidenceCompleteResult completeEvidenceUpload(
         AuthPrincipal principal,
         String tenantId,
-        String groupId,
         CompleteShipmentEvidenceUploadCommand command
     ) {
-        authorizationSupport.assertTenantAndGroupContext(principal, tenantId, groupId);
+        authorizationSupport.assertTenantContext(principal, tenantId);
         authorizationSupport.assertLivePermission(principal, tenantId, PermissionCodes.SERVICE_COMPLETE, "service:evidence:complete");
 
         return doComplete(command);
@@ -86,11 +84,10 @@ public class ServiceEvidenceService implements ServiceEvidenceUseCase {
         authorizationSupport.assertPermissionOnly(principal, PermissionCodes.OWNER_SERVICE_CREATE, "service:owner-evidence:presign");
 
         String tenantId = principal.tenantId() != null ? principal.tenantId() : "owner";
-        String groupId = principal.groupId() != null ? principal.groupId() : "owner";
         return evidenceUploadSupport.doPresign(
             shipmentEvidencePort, objectStoragePort,
             OBJECT_KEY_PREFIX, PRESIGN_TTL,
-            tenantId, groupId, principal.userId(),
+            tenantId, principal.userId(),
             command.evidenceGroupId(), command.fileName(), command.contentType(),
             Instant.now(clock)
         );

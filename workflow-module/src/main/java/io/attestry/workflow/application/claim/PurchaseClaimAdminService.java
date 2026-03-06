@@ -58,11 +58,11 @@ public class PurchaseClaimAdminService implements PurchaseClaimAdminUseCase {
 
     @Override
     @Transactional(readOnly = true)
-    public List<PendingClaimView> listPendingClaims(AuthPrincipal principal, String tenantId, String groupId) {
-        authorizationSupport.assertTenantAndGroupContext(principal, tenantId, groupId);
+    public List<PendingClaimView> listPendingClaims(AuthPrincipal principal, String tenantId) {
+        authorizationSupport.assertTenantContext(principal, tenantId);
         authorizationSupport.assertLivePermission(principal, tenantId, PermissionCodes.PURCHASE_CLAIM_APPROVE, "purchase-claim:list");
 
-        return purchaseClaimRepository.findByTenantIdAndGroupIdAndStatus(tenantId, groupId, PurchaseClaimStatus.SUBMITTED)
+        return purchaseClaimRepository.findByTenantIdAndStatus(tenantId, PurchaseClaimStatus.SUBMITTED)
             .stream()
             .map(c -> new PendingClaimView(
                 c.claimId(), c.claimantUserId(),
@@ -78,20 +78,19 @@ public class PurchaseClaimAdminService implements PurchaseClaimAdminUseCase {
     public ApprovePurchaseClaimResult approve(
         AuthPrincipal principal,
         String tenantId,
-        String groupId,
         String claimId,
         ApprovePurchaseClaimCommand command
     ) {
-        authorizationSupport.assertTenantAndGroupContext(principal, tenantId, groupId);
+        authorizationSupport.assertTenantContext(principal, tenantId);
         authorizationSupport.assertLivePermission(principal, tenantId, PermissionCodes.PURCHASE_CLAIM_APPROVE, "purchase-claim:approve:" + claimId);
 
-        PurchaseClaim claim = findAndValidate(claimId, tenantId, groupId);
+        PurchaseClaim claim = findAndValidate(claimId, tenantId);
 
         MintedProductResult mintResult = productMintUseCase.mint(
             ActorContext.from(principal),
             new MintProductCommand(
-                tenantId, groupId,
-                claim.serialNumber(), null, claim.modelName(),
+                tenantId,
+                claim.serialNumber(), claim.modelName(), null,
                 command.manufacturedAt(), command.productionBatch(), command.factoryCode(),
                 null
             )
@@ -120,14 +119,13 @@ public class PurchaseClaimAdminService implements PurchaseClaimAdminUseCase {
     public RejectPurchaseClaimResult reject(
         AuthPrincipal principal,
         String tenantId,
-        String groupId,
         String claimId,
         String reason
     ) {
-        authorizationSupport.assertTenantAndGroupContext(principal, tenantId, groupId);
+        authorizationSupport.assertTenantContext(principal, tenantId);
         authorizationSupport.assertLivePermission(principal, tenantId, PermissionCodes.PURCHASE_CLAIM_APPROVE, "purchase-claim:reject:" + claimId);
 
-        PurchaseClaim claim = findAndValidate(claimId, tenantId, groupId);
+        PurchaseClaim claim = findAndValidate(claimId, tenantId);
 
         Instant now = Instant.now(clock);
         PurchaseClaim rejected = claim.reject(principal.userId(), reason, now);
@@ -136,12 +134,12 @@ public class PurchaseClaimAdminService implements PurchaseClaimAdminUseCase {
         return new RejectPurchaseClaimResult(rejected.claimId(), rejected.status().name(), rejected.rejectionReason());
     }
 
-    private PurchaseClaim findAndValidate(String claimId, String tenantId, String groupId) {
+    private PurchaseClaim findAndValidate(String claimId, String tenantId) {
         PurchaseClaim claim = purchaseClaimRepository.findById(claimId)
             .orElseThrow(() -> new WorkflowDomainException(WorkflowErrorCode.CLAIM_NOT_FOUND, "Purchase claim not found"));
 
-        if (!tenantId.equals(claim.tenantId()) || !groupId.equals(claim.groupId())) {
-            throw new WorkflowDomainException(WorkflowErrorCode.TENANT_ISOLATION_VIOLATION, "Claim does not belong to tenant/group");
+        if (!tenantId.equals(claim.tenantId())) {
+            throw new WorkflowDomainException(WorkflowErrorCode.TENANT_ISOLATION_VIOLATION, "Claim does not belong to tenant");
         }
 
         if (claim.status() != PurchaseClaimStatus.SUBMITTED) {

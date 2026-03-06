@@ -66,18 +66,17 @@ public class ShipmentReleaseService implements ShipmentReleaseUseCase {
     public ReleaseShipmentResult release(
         AuthPrincipal principal,
         String tenantId,
-        String groupId,
         String passportId,
         ReleaseShipmentCommand command
     ) {
-        authorizationSupport.assertTenantAndGroupContext(principal, tenantId, groupId);
+        authorizationSupport.assertTenantContext(principal, tenantId);
         authorizationSupport.assertLivePermission(principal, tenantId, PermissionCodes.BRAND_RELEASE, "shipment:release:" + passportId);
 
         ShipmentProductReadPort.PassportState state = shipmentProductReadPort.findPassportState(passportId)
             .orElseThrow(() -> new WorkflowDomainException(WorkflowErrorCode.INVALID_REQUEST, "Passport not found"));
         ShipmentReleaseContext context = new ShipmentReleaseContext(
-            tenantId, groupId,
-            state.tenantId(), state.groupId(),
+            tenantId,
+            state.tenantId(),
             state.assetState(), state.riskFlag(),
             shipmentRepository.existsActiveReleasedByPassportId(passportId)
         );
@@ -85,7 +84,7 @@ public class ShipmentReleaseService implements ShipmentReleaseUseCase {
 
         requireText(command.evidenceGroupId(), "evidenceGroupId");
         String evidenceGroupId = command.evidenceGroupId().trim();
-        evidenceUploadSupport.assertEvidenceGroupScope(shipmentEvidencePort, evidenceGroupId, tenantId, groupId);
+        evidenceUploadSupport.assertEvidenceGroupScope(shipmentEvidencePort, evidenceGroupId, tenantId);
         List<String> evidenceHashes = shipmentEvidencePort.findReadyEvidenceHashes(evidenceGroupId);
         if (evidenceHashes.isEmpty()) {
             throw new WorkflowDomainException(WorkflowErrorCode.INVALID_REQUEST, "At least one READY evidence is required");
@@ -95,12 +94,11 @@ public class ShipmentReleaseService implements ShipmentReleaseUseCase {
         Shipment shipment = Shipment.release(
             UUID.randomUUID().toString(),
             tenantId,
-            groupId,
             passportId,
             shipmentRepository.nextShipmentRound(passportId),
             now,
             principal.userId(),
-            principal.groupId(),
+            principal.tenantId(),
             evidenceGroupId,
             now
         );
@@ -112,7 +110,6 @@ public class ShipmentReleaseService implements ShipmentReleaseUseCase {
         return new ReleaseShipmentResult(
             saved.shipmentId(),
             saved.tenantId(),
-            saved.groupId(),
             saved.passportId(),
             saved.shipmentRound(),
             saved.status().name(),
@@ -127,16 +124,15 @@ public class ShipmentReleaseService implements ShipmentReleaseUseCase {
     public ReturnShipmentResult returnShipment(
         AuthPrincipal principal,
         String tenantId,
-        String groupId,
         String shipmentId,
         ReturnShipmentCommand command
     ) {
-        authorizationSupport.assertTenantAndGroupContext(principal, tenantId, groupId);
+        authorizationSupport.assertTenantContext(principal, tenantId);
         authorizationSupport.assertLivePermission(principal, tenantId, PermissionCodes.BRAND_RELEASE, "shipment:return:" + shipmentId);
         Shipment current = shipmentRepository.findByShipmentId(shipmentId)
             .orElseThrow(() -> new WorkflowDomainException(WorkflowErrorCode.INVALID_REQUEST, "Shipment not found"));
-        if (!tenantId.equals(current.tenantId()) || !groupId.equals(current.groupId())) {
-            throw new WorkflowDomainException(WorkflowErrorCode.TENANT_ISOLATION_VIOLATION, "Cross-tenant/group shipment access denied");
+        if (!tenantId.equals(current.tenantId())) {
+            throw new WorkflowDomainException(WorkflowErrorCode.TENANT_ISOLATION_VIOLATION, "Cross-tenant shipment access denied");
         }
         if (current.status() != ShipmentStatus.RELEASED) {
             throw new WorkflowDomainException(WorkflowErrorCode.INVALID_STATE, "Only RELEASED shipment can be returned");
@@ -146,7 +142,7 @@ public class ShipmentReleaseService implements ShipmentReleaseUseCase {
         List<String> returnEvidenceHashes = List.of();
         if (command.returnEvidenceGroupId() != null && !command.returnEvidenceGroupId().isBlank()) {
             returnEvidenceGroupId = command.returnEvidenceGroupId().trim();
-            evidenceUploadSupport.assertEvidenceGroupScope(shipmentEvidencePort, returnEvidenceGroupId, tenantId, groupId);
+            evidenceUploadSupport.assertEvidenceGroupScope(shipmentEvidencePort, returnEvidenceGroupId, tenantId);
             returnEvidenceHashes = shipmentEvidencePort.findReadyEvidenceHashes(returnEvidenceGroupId);
             if (returnEvidenceHashes.isEmpty()) {
                 throw new WorkflowDomainException(WorkflowErrorCode.INVALID_REQUEST, "returnEvidenceGroupId has no READY evidences");
@@ -162,7 +158,6 @@ public class ShipmentReleaseService implements ShipmentReleaseUseCase {
         return new ReturnShipmentResult(
             saved.shipmentId(),
             saved.tenantId(),
-            saved.groupId(),
             saved.passportId(),
             saved.shipmentRound(),
             saved.status().name(),

@@ -48,16 +48,15 @@ public class ShipmentEvidenceService implements ShipmentEvidenceUseCase {
     public PresignedShipmentEvidenceUploadResult presignEvidenceUpload(
         AuthPrincipal principal,
         String tenantId,
-        String groupId,
         PresignShipmentEvidenceUploadCommand command
     ) {
-        authorizationSupport.assertTenantAndGroupContext(principal, tenantId, groupId);
+        authorizationSupport.assertTenantContext(principal, tenantId);
         authorizationSupport.assertLivePermission(principal, tenantId, PermissionCodes.BRAND_RELEASE, "shipment:evidence:presign");
 
         return evidenceUploadSupport.doPresign(
             shipmentEvidencePort, objectStoragePort,
             OBJECT_KEY_PREFIX, PRESIGN_TTL,
-            tenantId, groupId, principal.userId(),
+            tenantId, principal.userId(),
             command.evidenceGroupId(), command.fileName(), command.contentType(),
             Instant.now(clock)
         );
@@ -68,12 +67,11 @@ public class ShipmentEvidenceService implements ShipmentEvidenceUseCase {
     public ShipmentEvidenceCompleteResult completeEvidenceUpload(
         AuthPrincipal principal,
         String tenantId,
-        String groupId,
         CompleteShipmentEvidenceUploadCommand command
     ) {
-        authorizationSupport.assertTenantAndGroupContext(principal, tenantId, groupId);
+        authorizationSupport.assertTenantContext(principal, tenantId);
         authorizationSupport.assertLivePermission(principal, tenantId, PermissionCodes.BRAND_RELEASE, "shipment:evidence:complete");
-        evidenceUploadSupport.assertEvidenceGroupScope(shipmentEvidencePort, command.evidenceGroupId(), tenantId, groupId);
+        evidenceUploadSupport.assertEvidenceGroupScope(shipmentEvidencePort, command.evidenceGroupId(), tenantId);
 
         return evidenceUploadSupport.doComplete(
             shipmentEvidencePort, objectStoragePort,

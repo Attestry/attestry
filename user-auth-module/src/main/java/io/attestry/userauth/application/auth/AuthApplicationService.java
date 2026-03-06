@@ -74,13 +74,12 @@ public class AuthApplicationService implements AuthUseCase {
         account.assertPasswordMatches(command.password(), passwordHasher::matches);
         account.checkActiveStatus();
 
-        LoginContext loginContext = resolveLoginContext(account.userId(), command.tenantId(), command.groupId());
+        LoginContext loginContext = resolveLoginContext(account.userId(), command.tenantId());
 
         Instant now = Instant.now(clock);
         AuthPrincipal principal = AuthPrincipal.issue(
             account.userId(),
             loginContext.tenantId(),
-            loginContext.groupId(),
             account.verificationLevel(),
             loginContext.scopes(),
             now,
@@ -93,8 +92,7 @@ public class AuthApplicationService implements AuthUseCase {
             "Bearer",
             principal.expiresAt(),
             account.userId(),
-            loginContext.tenantId(),
-            loginContext.groupId()
+            loginContext.tenantId()
         );
     }
 
@@ -109,16 +107,16 @@ public class AuthApplicationService implements AuthUseCase {
             .orElseThrow(() -> new DomainException(ErrorCode.ACCESS_TOKEN_INVALID, "Invalid access token"));
     }
 
-    private Membership resolveActiveMembership(String userId, String tenantId, String groupId) {
-        Optional<Membership> requestedMembership = (tenantId != null && groupId != null)
-            ? membershipRepository.findByUserIdAndContext(userId, tenantId, groupId)
+    private Membership resolveActiveMembership(String userId, String tenantId) {
+        Optional<Membership> requestedMembership = (tenantId != null)
+            ? membershipRepository.findByUserIdAndTenantId(userId, tenantId)
             : Optional.empty();
         List<Membership> memberships = membershipRepository.findByUserId(userId);
-        return MembershipSelectionPolicy.resolve(tenantId, groupId, requestedMembership, memberships);
+        return MembershipSelectionPolicy.resolve(tenantId, requestedMembership, memberships);
     }
 
-    private LoginContext resolveLoginContext(String userId, String tenantId, String groupId) {
-        Membership activeMembership = resolveActiveMembership(userId, tenantId, groupId);
+    private LoginContext resolveLoginContext(String userId, String tenantId) {
+        Membership activeMembership = resolveActiveMembership(userId, tenantId);
         Set<String> scopes = resolveOwnerPermissions();
 
         if (activeMembership == null) {

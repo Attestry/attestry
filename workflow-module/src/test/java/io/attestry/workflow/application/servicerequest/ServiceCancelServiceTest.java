@@ -42,7 +42,7 @@ class ServiceCancelServiceTest {
 
     private static final Instant SUBMITTED_AT = Instant.parse("2026-03-01T09:00:00Z");
     private static final AuthPrincipal OWNER = new AuthPrincipal(
-        "token1", "owner1", null, null, VerificationLevel.PHONE_VERIFIED, Set.of("SCOPE_OWNER_SERVICE_CREATE"), Instant.parse("2026-03-02T00:00:00Z")
+        "token1", "owner1", null, VerificationLevel.PHONE_VERIFIED, Set.of("SCOPE_OWNER_SERVICE_CREATE"), Instant.parse("2026-03-02T00:00:00Z")
     );
 
     @BeforeEach
@@ -56,7 +56,7 @@ class ServiceCancelServiceTest {
     void cancel_success() {
         ServiceRequest submitted = ServiceRequest.submit(
             "sr1", "p1", "REPAIR", "owner1",
-            "provT1", "provG1", "desc", null, "perm1", "provider1", SUBMITTED_AT, SUBMITTED_AT
+            "provT1", "desc", null, "perm1", "provider1", SUBMITTED_AT, SUBMITTED_AT
         );
 
         doNothing().when(authorizationSupport).assertPermissionOnly(any(), anyString(), anyString());
@@ -75,7 +75,7 @@ class ServiceCancelServiceTest {
     void cancel_ownerMismatch_throws() {
         ServiceRequest submitted = ServiceRequest.submit(
             "sr1", "p1", "REPAIR", "differentOwner",
-            "provT1", "provG1", "desc", null, null, "provider1", SUBMITTED_AT, SUBMITTED_AT
+            "provT1", "desc", null, null, "provider1", SUBMITTED_AT, SUBMITTED_AT
         );
 
         doNothing().when(authorizationSupport).assertPermissionOnly(any(), anyString(), anyString());
@@ -91,7 +91,7 @@ class ServiceCancelServiceTest {
     void cancel_notSubmitted_throws() {
         ServiceRequest submitted = ServiceRequest.submit(
             "sr1", "p1", "REPAIR", "owner1",
-            "provT1", "provG1", "desc", null, null, "provider1", SUBMITTED_AT, SUBMITTED_AT
+            "provT1", "desc", null, null, "provider1", SUBMITTED_AT, SUBMITTED_AT
         );
         ServiceRequest completed = submitted.complete("provider1", "afterEg", Instant.parse("2026-03-01T10:00:00Z"));
 

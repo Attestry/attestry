@@ -7,7 +7,7 @@ public interface ServicePermissionPort {
 
     String grantServiceRepairPermission(
         String passportId,
-        String providerGroupId,
+        String providerTenantId,
         String linkedServiceRequestId,
         String grantedByUserId,
         Instant now
@@ -15,13 +15,13 @@ public interface ServicePermissionPort {
 
     void revokeByServiceRequestId(String linkedServiceRequestId);
 
-    boolean hasActiveServiceRepairPermission(String passportId, String providerGroupId);
+    boolean hasActiveServiceRepairPermission(String passportId, String providerTenantId);
 
-    String grantServiceRepairConsent(String passportId, String providerGroupId, String grantedByUserId, Instant now);
+    String grantServiceRepairConsent(String passportId, String providerTenantId, String grantedByUserId, Instant now);
 
-    void revokeConsentByPassportAndGroup(String passportId, String providerGroupId);
+    void revokeConsentByPassportAndTenant(String passportId, String providerTenantId);
 
     void linkServiceRequest(String permissionId, String serviceRequestId);
 
-    Optional<String> findActivePermissionId(String passportId, String providerGroupId);
+    Optional<String> findActivePermissionId(String passportId, String providerTenantId);
 }

@@ -4,7 +4,6 @@ import io.attestry.userauth.application.port.MembershipProvisioningRepositoryPor
 import io.attestry.userauth.common.error.DomainException;
 import io.attestry.userauth.common.error.ErrorCode;
 import io.attestry.userauth.domain.membership.model.Membership;
-import io.attestry.userauth.domain.membership.model.RoleAssignment;
 import io.attestry.userauth.domain.membership.policy.DefaultMembershipRolePolicy;
 import io.attestry.userauth.infrastructure.persistence.jpa.entity.MembershipRoleAssignmentJpaEntity;
 import io.attestry.userauth.infrastructure.persistence.jpa.entity.MembershipJpaEntity;
@@ -12,7 +11,6 @@ import io.attestry.userauth.infrastructure.persistence.jpa.repository.Membership
 import io.attestry.userauth.infrastructure.persistence.jpa.repository.MembershipJpaRepository;
 import io.attestry.userauth.infrastructure.persistence.jpa.repository.RoleJpaRepository;
 import java.time.Instant;
-import java.util.Set;
 import java.util.UUID;
 import org.springframework.stereotype.Repository;
 
@@ -38,17 +36,15 @@ public class JpaMembershipProvisioningRepositoryAdapter implements MembershipPro
         MembershipJpaEntity saved = repository.save(new MembershipJpaEntity(
             membership.membershipId(),
             membership.userId(),
-            membership.groupId(),
             membership.tenantId(),
             membership.groupType(),
             membership.role(),
             membership.status(),
-            membership.groupStatus(),
             membership.tenantStatus()
         ));
 
         if (membershipRoleAssignmentRepository.findByMembershipId(saved.getMembershipId()).isEmpty()) {
-            String defaultRoleCode = DefaultMembershipRolePolicy.resolveGlobalRoleCode(saved.getRole(), saved.getGroupType());
+            String defaultRoleCode = DefaultMembershipRolePolicy.resolveGlobalRoleCode(saved.getRole(), saved.getTenantType());
             membershipRoleAssignmentRepository.save(new MembershipRoleAssignmentJpaEntity(
                 UUID.randomUUID().toString(),
                 saved.getMembershipId(),

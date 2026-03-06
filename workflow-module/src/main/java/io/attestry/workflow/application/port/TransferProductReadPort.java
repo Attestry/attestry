@@ -8,12 +8,11 @@ public interface TransferProductReadPort {
 
     Optional<String> findCurrentOwnerId(String passportId);
 
-    boolean hasRetailPermission(String passportId, String sellerGroupId);
+    boolean hasRetailPermission(String passportId, String sellerTenantId);
 
     record TransferPassportState(
         String passportId,
         String tenantId,
-        String groupId,
         String assetState,
         String riskFlag
     ) {

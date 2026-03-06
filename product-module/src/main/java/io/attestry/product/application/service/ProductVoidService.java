@@ -47,7 +47,7 @@ public class ProductVoidService implements ProductVoidUseCase, VoidCommandPort {
     @Override
     @Transactional
     public VoidResult voidAsset(ActorContext actor, VoidCommand command) {
-        brandAccessValidationPort.assertActiveBrandMembership(actor.userId(), command.tenantId(), command.groupId());
+        brandAccessValidationPort.assertActiveBrandMembership(actor.userId(), command.tenantId());
         assertBrandVoidScope(actor, command.tenantId(), command.passportId());
 
         VoidReason reason = parseVoidReason(command.reason());

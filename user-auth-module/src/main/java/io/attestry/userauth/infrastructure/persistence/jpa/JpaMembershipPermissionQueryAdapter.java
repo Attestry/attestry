@@ -15,8 +15,6 @@ public class JpaMembershipPermissionQueryAdapter implements MembershipPermission
         this.jdbcTemplate = jdbcTemplate;
     }
 
-
-    // TODO("jpa로 리팩토링")
     @Override
     public Set<String> findPermissionCodesByMembershipId(String membershipId) {
         return new LinkedHashSet<>(jdbcTemplate.queryForList(

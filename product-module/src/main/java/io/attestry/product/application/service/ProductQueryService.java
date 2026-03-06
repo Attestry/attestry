@@ -62,8 +62,8 @@ public class ProductQueryService implements ProductQueryUseCase, ProductQueryPor
     }
 
     @Override
-    public boolean hasActivePermission(String passportId, String sellerGroupId) {
-        return permissionRepository.existsActiveByPassportAndSellerGroup(passportId, sellerGroupId);
+    public boolean hasActivePermission(String passportId, String sellerTenantId) {
+        return permissionRepository.existsActiveByPassportAndSellerTenant(passportId, sellerTenantId);
     }
 
     @Override
@@ -76,7 +76,6 @@ public class ProductQueryService implements ProductQueryUseCase, ProductQueryPor
             passport.getPassportId(),
             passport.getQrPublicCode(),
             passport.getTenantId(),
-            passport.getGroupId(),
             asset.getAssetId(),
             asset.getSerialNumber(),
             asset.getModelId(),
@@ -96,7 +95,7 @@ public class ProductQueryService implements ProductQueryUseCase, ProductQueryPor
     public List<MyPassportResponse> listMyPassports(String ownerId) {
         return myPassportQueryPort.findByOwnerId(ownerId).stream()
             .map(v -> new MyPassportResponse(
-                v.passportId(), v.qrPublicCode(), v.tenantId(), v.groupId(),
+                v.passportId(), v.qrPublicCode(), v.tenantId(),
                 v.assetId(), v.serialNumber(), v.modelName(),
                 v.assetState(), v.riskFlag(), v.ownedSince()
             ))
@@ -104,8 +103,8 @@ public class ProductQueryService implements ProductQueryUseCase, ProductQueryPor
     }
 
     @Override
-    public List<MintedPassportResponse> listMintedPassports(String tenantId, String groupId) {
-        return groupPassportQueryPort.findByTenantAndGroup(tenantId, groupId).stream()
+    public List<MintedPassportResponse> listMintedPassports(String tenantId) {
+        return groupPassportQueryPort.findByTenant(tenantId).stream()
             .map(v -> new MintedPassportResponse(
                 v.passportId(), v.qrPublicCode(),
                 v.assetId(), v.serialNumber(), v.modelId(), v.modelName(),

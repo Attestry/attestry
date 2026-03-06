@@ -12,9 +12,9 @@ public interface PassportPermissionUseCase {
 
     void suspendPermission(ActorContext actor, String permissionId);
 
-    record GrantCommand(String passportId, String sellerGroupId, PermissionScope scope, Instant expiresAt) {
+    record GrantCommand(String passportId, String sellerTenantId, PermissionScope scope, Instant expiresAt) {
     }
 
-    record GrantResult(String permissionId, String passportId, String sellerGroupId, String scope) {
+    record GrantResult(String permissionId, String passportId, String sellerTenantId, String scope) {
     }
 }

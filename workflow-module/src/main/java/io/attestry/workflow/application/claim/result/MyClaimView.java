@@ -5,7 +5,6 @@ import java.time.Instant;
 public record MyClaimView(
     String claimId,
     String tenantId,
-    String groupId,
     String serialNumber,
     String modelName,
     String status,

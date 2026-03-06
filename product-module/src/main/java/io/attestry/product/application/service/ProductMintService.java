@@ -57,7 +57,6 @@ public class ProductMintService implements ProductMintUseCase {
     public MintedProductResult mint(ActorContext actor, MintProductCommand command) {
         MintProductInput input = MintProductInput.of(
             command.tenantId(),
-            command.groupId(),
             command.serialNumber(),
             command.modelId(),
             command.modelName(),
@@ -67,13 +66,13 @@ public class ProductMintService implements ProductMintUseCase {
             command.componentRootHash()
         );
 
-        brandAccessValidationPort.assertActiveBrandMembership(actor.userId(), input.tenantId(), input.groupId());
-        assertBrandMintScope(actor, input.tenantId(), input.groupId(), input.serialNumber());
+        brandAccessValidationPort.assertActiveBrandMembership(actor.userId(), input.tenantId());
+        assertBrandMintScope(actor, input.tenantId(), input.serialNumber());
 
-        if (passportRepository.existsByGroupAndSerial(input.groupId(), input.serialNumber())) {
+        if (passportRepository.existsByTenantAndSerial(input.tenantId(), input.serialNumber())) {
             throw new ProductDomainException(
                 ProductErrorCode.GENESIS_ALREADY_EXISTS,
-                "MINTED genesis already exists for group/serial"
+                "MINTED genesis already exists for tenant/serial"
             );
         }
 
@@ -90,7 +89,7 @@ public class ProductMintService implements ProductMintUseCase {
         try {
             passport = passportRepository.save(passport);
         } catch (DataIntegrityViolationException ex) {
-            throw new ProductDomainException(ProductErrorCode.DUPLICATE_SERIAL_NUMBER, "Duplicate serial number in group");
+            throw new ProductDomainException(ProductErrorCode.DUPLICATE_SERIAL_NUMBER, "Duplicate serial number in tenant");
         }
 
         String outboxEventId;
@@ -110,13 +109,13 @@ public class ProductMintService implements ProductMintUseCase {
         );
     }
 
-    private void assertBrandMintScope(ActorContext actor, String tenantId, String groupId, String serialNumber) {
+    private void assertBrandMintScope(ActorContext actor, String tenantId, String serialNumber) {
         AuthzEvaluateResult decision = evaluateAuthorizationUseCase.evaluate(
             actor,
             new AuthzEvaluateCommand(
                 tenantId,
                 PermissionCodes.BRAND_MINT,
-                "mint:" + groupId + ":" + serialNumber,
+                "mint:" + tenantId + ":" + serialNumber,
                 PolicyDecisionMode.LIVE_RECHECK
             )
         );

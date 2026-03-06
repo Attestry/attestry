@@ -33,7 +33,6 @@ class TokenTransferTest {
         assertEquals("owner1", transfer.fromOwnerId());
         assertNull(transfer.toOwnerId());
         assertNull(transfer.tenantId());
-        assertNull(transfer.groupId());
         assertEquals("nonce1", transfer.qrNonce());
         assertEquals(0, transfer.attemptCount());
     }
@@ -41,14 +40,13 @@ class TokenTransferTest {
     @Test
     void createB2C_setsFieldsCorrectly() {
         TokenTransfer transfer = TokenTransfer.createB2C(
-            "t1", "p1", "tenant1", "group1", CODE_CREDENTIAL, EXPIRES, NOW, "user1"
+            "t1", "p1", "tenant1", CODE_CREDENTIAL, EXPIRES, NOW, "user1"
         );
 
         assertEquals(TransferType.B2C, transfer.transferType());
         assertEquals(TransferStatus.PENDING, transfer.status());
         assertNull(transfer.fromOwnerId());
         assertEquals("tenant1", transfer.tenantId());
-        assertEquals("group1", transfer.groupId());
         assertEquals("hash1", transfer.codeHash());
         assertEquals("salt1", transfer.codeSalt());
     }
@@ -66,7 +64,7 @@ class TokenTransferTest {
     void createB2C_requiresTenantId() {
         assertThrows(WorkflowDomainException.class, () ->
             TokenTransfer.createB2C(
-                "t1", "p1", null, "group1", QR_CREDENTIAL, EXPIRES, NOW, "user1"
+                "t1", "p1", null, QR_CREDENTIAL, EXPIRES, NOW, "user1"
             )
         );
     }

@@ -2,14 +2,14 @@ package io.attestry.userauth.domain.onboarding.model;
 
 import io.attestry.userauth.common.error.DomainException;
 import io.attestry.userauth.common.error.ErrorCode;
-import io.attestry.userauth.domain.organization.model.GroupType;
+import io.attestry.userauth.domain.organization.model.TenantType;
 import java.time.Instant;
 import java.util.UUID;
 
 public class OrganizationApplication {
 
     private final String applicationId;
-    private final GroupType type;
+    private final TenantType type;
     private final String applicantUserId;
     private String tenantId;
     private final String orgName;
@@ -21,7 +21,7 @@ public class OrganizationApplication {
     private java.time.Instant reviewedAt;
     private String rejectReason;
 
-    private OrganizationApplication(String applicationId, GroupType type, String applicantUserId,
+    private OrganizationApplication(String applicationId, TenantType type, String applicantUserId,
             String tenantId, String orgName, String country, String bizRegNo,
             String evidenceBundleId, ApplicationStatus status,
             String reviewedByAdminId, java.time.Instant reviewedAt, String rejectReason) {
@@ -48,7 +48,7 @@ public class OrganizationApplication {
         validateEvidenceBundleId(evidenceBundleId);
         return new OrganizationApplication(
                 UUID.randomUUID().toString(),
-                GroupType.BRAND,
+                TenantType.BRAND,
                 applicantUserId,
                 null,
                 orgName,
@@ -70,7 +70,7 @@ public class OrganizationApplication {
         validateEvidenceBundleId(evidenceBundleId);
         return new OrganizationApplication(
                 UUID.randomUUID().toString(),
-                GroupType.SERVICE,
+                TenantType.SERVICE,
                 applicantUserId,
                 null,
                 orgName,
@@ -92,7 +92,7 @@ public class OrganizationApplication {
         validateEvidenceBundleId(evidenceBundleId);
         return new OrganizationApplication(
                 UUID.randomUUID().toString(),
-                GroupType.RETAIL,
+                TenantType.RETAIL,
                 applicantUserId,
                 null,
                 orgName,
@@ -106,7 +106,7 @@ public class OrganizationApplication {
     }
 
     public static OrganizationApplication reconstitute(
-            String applicationId, GroupType type, String applicantUserId,
+            String applicationId, TenantType type, String applicantUserId,
             String tenantId, String orgName, String country, String bizRegNo,
             String evidenceBundleId, ApplicationStatus status,
             String reviewedByAdminId, java.time.Instant reviewedAt, String rejectReason) {
@@ -148,7 +148,7 @@ public class OrganizationApplication {
         return applicationId;
     }
 
-    public GroupType type() {
+    public TenantType type() {
         return type;
     }
 

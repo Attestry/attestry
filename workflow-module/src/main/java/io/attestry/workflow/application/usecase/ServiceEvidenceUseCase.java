@@ -11,14 +11,12 @@ public interface ServiceEvidenceUseCase {
     PresignedShipmentEvidenceUploadResult presignEvidenceUpload(
         AuthPrincipal principal,
         String tenantId,
-        String groupId,
         PresignShipmentEvidenceUploadCommand command
     );
 
     ShipmentEvidenceCompleteResult completeEvidenceUpload(
         AuthPrincipal principal,
         String tenantId,
-        String groupId,
         CompleteShipmentEvidenceUploadCommand command
     );
 

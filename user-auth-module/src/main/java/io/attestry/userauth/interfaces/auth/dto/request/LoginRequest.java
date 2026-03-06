@@ -16,7 +16,6 @@ public record LoginRequest(
     )
     String password,
 
-    String tenantId,
-    String groupId
+    String tenantId
 ) {
 }

@@ -54,18 +54,8 @@ public class EvaluateAuthorizationService implements EvaluateAuthorizationUseCas
         if (actor.tenantId() == null) {
             return scopes;
         }
-        Membership membership;
-        if (actor.groupId() == null) {
-            membership = membershipRepository.findByUserId(actor.userId()).stream()
-                .filter(Membership::isActive)
-                .filter(candidate -> actor.tenantId().equals(candidate.tenantId()))
-                .findFirst()
-                .orElse(null);
-        } else {
-            membership = membershipRepository
-                .findByUserIdAndContext(actor.userId(), actor.tenantId(), actor.groupId())
-                .orElse(null);
-        }
+        Membership membership = membershipRepository.findByUserIdAndTenantId(actor.userId(), actor.tenantId())
+            .orElse(null);
         if (membership == null || !membership.isActive()) {
             return scopes;
         }

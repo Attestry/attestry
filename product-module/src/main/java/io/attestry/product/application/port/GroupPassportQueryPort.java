@@ -5,7 +5,7 @@ import java.util.List;
 
 public interface GroupPassportQueryPort {
 
-    List<GroupPassportView> findByTenantAndGroup(String tenantId, String groupId);
+    List<GroupPassportView> findByTenant(String tenantId);
 
     record GroupPassportView(
         String passportId,

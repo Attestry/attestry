@@ -6,7 +6,6 @@ import java.time.Instant;
 
 public record MintProductInput(
     String tenantId,
-    String groupId,
     String serialNumber,
     String modelId,
     String modelName,
@@ -18,7 +17,6 @@ public record MintProductInput(
 
     public static MintProductInput of(
         String tenantId,
-        String groupId,
         String serialNumber,
         String modelId,
         String modelName,
@@ -36,7 +34,6 @@ public record MintProductInput(
         }
         return new MintProductInput(
             requireText(tenantId, "tenantId"),
-            requireText(groupId, "groupId"),
             requireText(serialNumber, "serialNumber"),
             normalizeBlank(modelId),
             requireText(modelName, "modelName"),

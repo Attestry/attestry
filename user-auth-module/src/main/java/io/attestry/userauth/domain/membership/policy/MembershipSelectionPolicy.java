@@ -13,11 +13,10 @@ public final class MembershipSelectionPolicy {
 
     public static Membership resolve(
         String requestedTenantId,
-        String requestedGroupId,
         Optional<Membership> requestedMembership,
         List<Membership> memberships
     ) {
-        if (requestedTenantId != null && requestedGroupId != null) {
+        if (requestedTenantId != null) {
             Membership membership = requestedMembership
                 .orElseThrow(() -> new DomainException(ErrorCode.MEMBERSHIP_NOT_FOUND, "Membership not found"));
             if (!membership.isActive()) {

@@ -7,10 +7,9 @@
 @contentType = application/json
 @brandAccessToken = 79bcd28c-5205-4bd8-9fb1-05ed1913e579
 @tenantId = 4be926c6-39ce-4622-8ca4-86149abd2894
-@groupId = 4409809d-ba72-4a15-96cf-5cb2ab544f05
 
 ### 1) Minted (Genesis)
-POST {{baseUrl}}/products/tenants/{{tenantId}}/groups/{{groupId}}/minted
+POST {{baseUrl}}/products/tenants/{{tenantId}}/minted
 Authorization: Bearer {{brandAccessToken}}
 Content-Type: {{contentType}}
 
@@ -25,5 +24,5 @@ Content-Type: {{contentType}}
 }
 
 ### 2) List Minted Passports
-GET {{baseUrl}}/products/tenants/{{tenantId}}/groups/{{groupId}}/minted
+GET {{baseUrl}}/products/tenants/{{tenantId}}/minted
 Authorization: Bearer {{brandAccessToken}}

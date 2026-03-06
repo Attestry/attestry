@@ -14,6 +14,7 @@ import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.PathVariable;
 import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.RequestBody;
+import jakarta.validation.Valid;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.bind.annotation.ResponseStatus;
@@ -35,24 +36,28 @@ public class OnboardingAdminHttp {
         return onboardingService.listApplications(type).stream().map(ApplicationResponse::from).toList();
     }
 
+    @GetMapping("/admin/onboarding/applications/{applicationId}")
+    @PreAuthorize("hasAuthority('SCOPE_TENANT_CREATE_APPROVE')")
+    public ApplicationResponse getApplication(@PathVariable(name = "applicationId") String applicationId) {
+        return ApplicationResponse.from(onboardingService.getApplication(applicationId));
+    }
+
     @PostMapping("/admin/onboarding/applications/{applicationId}/approve")
     @PreAuthorize("hasAuthority('SCOPE_TENANT_CREATE_APPROVE')")
     public ApproveResponse approveApplication(
-        @CurrentActor ActorContext actor,
-        @PathVariable(name = "applicationId") String applicationId
-    ) {
+            @CurrentActor ActorContext actor,
+            @PathVariable(name = "applicationId") String applicationId) {
         ApproveApplicationResult result = onboardingService.approveApplication(actor, applicationId);
-        return new ApproveResponse(result.tenantId(), result.groupId(), result.membershipId());
+        return new ApproveResponse(result.tenantId(), result.membershipId());
     }
 
     @PostMapping("/admin/onboarding/applications/{applicationId}/reject")
     @ResponseStatus(HttpStatus.NO_CONTENT)
     @PreAuthorize("hasAuthority('SCOPE_TENANT_CREATE_APPROVE')")
     public void rejectApplication(
-        @CurrentActor ActorContext actor,
-        @PathVariable(name = "applicationId") String applicationId,
-        @RequestBody RejectApplicationRequest request
-    ) {
+            @CurrentActor ActorContext actor,
+            @PathVariable(name = "applicationId") String applicationId,
+            @Valid @RequestBody RejectApplicationRequest request) {
         onboardingService.rejectApplication(actor, applicationId, request.reason());
     }
 

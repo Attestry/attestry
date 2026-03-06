@@ -24,8 +24,6 @@ public final class SystemPermissionTemplateCatalog {
                 "Tenant Owner Core Template",
                 "Core tenant owner permissions",
                 List.of(
-                    PermissionCodes.TENANT_GROUP_SUSPEND,
-                    PermissionCodes.TENANT_GROUP_RESUME,
                     PermissionCodes.TENANT_INVITATION_CREATE,
                     PermissionCodes.TENANT_INVITATION_REVOKE,
                     PermissionCodes.TENANT_INVITATION_VIEW,

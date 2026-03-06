@@ -9,7 +9,6 @@ public interface PassportAuthorityQueryPort {
     record PassportAuthorityView(
         String passportId,
         String tenantId,
-        String groupId,
         String assetState,
         String riskFlag
     ) {

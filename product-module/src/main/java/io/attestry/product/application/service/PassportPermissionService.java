@@ -54,7 +54,7 @@ public class PassportPermissionService implements PassportPermissionUseCase {
         PassportPermission permission = PassportPermission.grant(
             uuidV7Generator.nextId(),
             command.passportId(),
-            command.sellerGroupId(),
+            command.sellerTenantId(),
             command.scope(),
             command.expiresAt(),
             now
@@ -64,7 +64,7 @@ public class PassportPermissionService implements PassportPermissionUseCase {
         return new GrantResult(
             permission.getPermissionId(),
             permission.getPassportId(),
-            permission.getSellerGroupId(),
+            permission.getSellerTenantId(),
             permission.getScope().name()
         );
     }

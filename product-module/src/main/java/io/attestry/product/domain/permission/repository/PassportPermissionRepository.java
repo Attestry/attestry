@@ -12,5 +12,5 @@ public interface PassportPermissionRepository {
 
     PassportPermission save(PassportPermission permission);
 
-    boolean existsActiveByPassportAndSellerGroup(String passportId, String sellerGroupId);
+    boolean existsActiveByPassportAndSellerTenant(String passportId, String sellerTenantId);
 }

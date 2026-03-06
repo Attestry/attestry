@@ -7,7 +7,7 @@ public interface ProductQueryPort {
 
     AssetStateView queryAssetState(String passportId);
 
-    boolean hasActivePermission(String passportId, String sellerGroupId);
+    boolean hasActivePermission(String passportId, String sellerTenantId);
 
     String getCurrentOwnerId(String passportId);
 

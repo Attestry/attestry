@@ -22,7 +22,6 @@ public class JpaInvitationRepositoryAdapter implements InvitationRepository {
         InvitationJpaEntity saved = repository.save(new InvitationJpaEntity(
             invitation.invitationId(),
             invitation.tenantId(),
-            invitation.groupId(),
             invitation.inviteeEmail().value(),
             invitation.role(),
             invitation.status(),
@@ -43,7 +42,6 @@ public class JpaInvitationRepositoryAdapter implements InvitationRepository {
         return Invitation.reconstitute(
             entity.getInvitationId(),
             entity.getTenantId(),
-            entity.getGroupId(),
             Email.of(entity.getInviteeEmail()),
             entity.getRole(),
             entity.getStatus(),

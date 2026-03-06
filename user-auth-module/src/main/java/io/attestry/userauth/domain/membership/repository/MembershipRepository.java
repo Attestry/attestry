@@ -1,7 +1,6 @@
 package io.attestry.userauth.domain.membership.repository;
 
 import io.attestry.userauth.domain.membership.model.Membership;
-import io.attestry.userauth.domain.organization.model.GroupStatus;
 import java.util.List;
 import java.util.Optional;
 
@@ -12,11 +11,7 @@ public interface MembershipRepository {
 
     List<Membership> findByUserId(String userId);
 
-    Optional<Membership> findByUserIdAndContext(String userId, String tenantId, String groupId);
+    Optional<Membership> findByUserIdAndTenantId(String userId, String tenantId);
 
     List<Membership> findByTenantId(String tenantId);
-
-    List<Membership> findByGroupId(String groupId);
-
-    void updateGroupStatusOnMemberships(String groupId, GroupStatus status);
 }

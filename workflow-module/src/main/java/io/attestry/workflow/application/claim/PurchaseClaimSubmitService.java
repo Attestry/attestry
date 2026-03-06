@@ -57,7 +57,6 @@ public class PurchaseClaimSubmitService implements PurchaseClaimSubmitUseCase {
         PurchaseClaim claim = PurchaseClaim.submit(
             UUID.randomUUID().toString(),
             command.tenantId(),
-            command.groupId(),
             principal.userId(),
             command.serialNumber(),
             command.modelName(),
@@ -75,7 +74,7 @@ public class PurchaseClaimSubmitService implements PurchaseClaimSubmitUseCase {
     public List<MyClaimView> listMyClaims(AuthPrincipal principal) {
         return purchaseClaimRepository.findByClaimantUserId(principal.userId()).stream()
             .map(c -> new MyClaimView(
-                c.claimId(), c.tenantId(), c.groupId(),
+                c.claimId(), c.tenantId(),
                 c.serialNumber(), c.modelName(),
                 c.status().name(), c.submittedAt(),
                 c.rejectionReason(), c.passportId(), c.assetId()

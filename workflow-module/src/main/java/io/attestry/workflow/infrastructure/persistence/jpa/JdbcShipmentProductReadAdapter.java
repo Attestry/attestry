@@ -19,7 +19,7 @@ public class JdbcShipmentProductReadAdapter implements ShipmentProductReadPort {
     public Optional<PassportState> findPassportState(String passportId) {
         List<PassportState> rows = jdbcTemplate.query(
             """
-                SELECT pp.passport_id, pp.tenant_id, pp.group_id, pa.asset_state, pa.risk_flag
+                SELECT pp.passport_id, pp.tenant_id, pa.asset_state, pa.risk_flag
                 FROM product_passports pp
                 JOIN product_assets pa ON pa.asset_id = pp.asset_id
                 WHERE pp.passport_id = ?
@@ -27,7 +27,6 @@ public class JdbcShipmentProductReadAdapter implements ShipmentProductReadPort {
             (rs, rowNum) -> new PassportState(
                 rs.getString("passport_id"),
                 rs.getString("tenant_id"),
-                rs.getString("group_id"),
                 rs.getString("asset_state"),
                 rs.getString("risk_flag")
             ),

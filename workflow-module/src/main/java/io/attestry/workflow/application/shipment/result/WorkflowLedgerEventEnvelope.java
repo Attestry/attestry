@@ -35,7 +35,6 @@ public record WorkflowLedgerEventEnvelope(
                 "shipmentId", shipment.shipmentId(),
                 "shipmentRound", shipment.shipmentRound(),
                 "tenantId", shipment.tenantId(),
-                "groupId", shipment.groupId(),
                 "evidenceGroupId", shipment.evidenceGroupId(),
                 "evidenceHashes", evidenceHashes
             ),
@@ -56,7 +55,6 @@ public record WorkflowLedgerEventEnvelope(
                 "shipmentId", shipment.shipmentId(),
                 "shipmentRound", shipment.shipmentRound(),
                 "tenantId", shipment.tenantId(),
-                "groupId", shipment.groupId(),
                 "returnEvidenceGroupId", shipment.returnEvidenceGroupId() == null ? "" : shipment.returnEvidenceGroupId(),
                 "returnEvidenceHashes", evidenceHashes,
                 "reason", reason == null ? "" : reason
@@ -78,8 +76,7 @@ public record WorkflowLedgerEventEnvelope(
                 "transferId", transfer.transferId(),
                 "transferType", transfer.transferType().name(),
                 "toOwnerId", transfer.toOwnerId(),
-                "tenantId", transfer.tenantId() == null ? "" : transfer.tenantId(),
-                "groupId", transfer.groupId() == null ? "" : transfer.groupId()
+                "tenantId", transfer.tenantId() == null ? "" : transfer.tenantId()
             ),
             "transfer-claimed-" + transfer.transferId()
         );
@@ -116,7 +113,6 @@ public record WorkflowLedgerEventEnvelope(
             Map.of(
                 "claimId", claim.claimId(),
                 "tenantId", claim.tenantId(),
-                "groupId", claim.groupId(),
                 "serialNumber", claim.serialNumber(),
                 "modelName", claim.modelName(),
                 "evidenceGroupId", claim.evidenceGroupId(),

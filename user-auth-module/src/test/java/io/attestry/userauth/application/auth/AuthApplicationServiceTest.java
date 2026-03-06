@@ -18,8 +18,7 @@ import io.attestry.userauth.common.error.ErrorCode;
 import io.attestry.userauth.security.AuthPrincipal;
 import io.attestry.userauth.domain.authorization.model.PermissionCodes;
 import io.attestry.userauth.domain.authorization.model.RoleCodes;
-import io.attestry.userauth.domain.organization.model.GroupStatus;
-import io.attestry.userauth.domain.organization.model.GroupType;
+import io.attestry.userauth.domain.organization.model.TenantType;
 import io.attestry.userauth.domain.membership.model.Membership;
 import io.attestry.userauth.domain.membership.model.MembershipRole;
 import io.attestry.userauth.domain.membership.model.MembershipStatus;
@@ -90,20 +89,19 @@ class AuthApplicationServiceTest {
     void loginShouldIssueTokenWithMembershipContextAndScopes() {
         userRepo.seed("u1", "admin@brand.com", "hashed:pw", UserStatus.ACTIVE, VerificationLevel.NONE);
         membershipRepo.seed(Membership.reconstitute(
-            "m1", "u1", "g1", "t1",
-            GroupType.BRAND, MembershipRole.ADMIN, MembershipStatus.ACTIVE,
-            GroupStatus.ACTIVE, TenantStatus.ACTIVE, Set.of()
+            "m1", "u1", "t1",
+            TenantType.BRAND, MembershipRole.ADMIN, MembershipStatus.ACTIVE,
+            TenantStatus.ACTIVE, Set.of()
         ));
         permissionQueryPort.seed("m1", Set.of(
             PermissionCodes.TENANT_MEMBERSHIP_VIEW,
             PermissionCodes.BRAND_MINT
         ));
 
-        AuthTokenResult result = service.login(new LoginCommand("admin@brand.com", "pw", "t1", "g1"));
+        AuthTokenResult result = service.login(new LoginCommand("admin@brand.com", "pw", "t1"));
         AuthPrincipal principal = tokenPort.parse(result.accessToken()).orElseThrow();
 
         assertEquals("t1", result.tenantId());
-        assertEquals("g1", result.groupId());
         assertTrue(principal.scopes().contains(PermissionCodes.OWNER_TRANSFER_CREATE));
         assertTrue(principal.scopes().contains(PermissionCodes.TENANT_MEMBERSHIP_VIEW));
         assertTrue(principal.scopes().contains(PermissionCodes.BRAND_MINT));
@@ -113,11 +111,10 @@ class AuthApplicationServiceTest {
     void loginWithoutMembershipShouldStillIssueOwnerScopes() {
         userRepo.seed("u2", "owner@x.com", "hashed:pw", UserStatus.ACTIVE, VerificationLevel.NONE);
 
-        AuthTokenResult result = service.login(new LoginCommand("owner@x.com", "pw", null, null));
+        AuthTokenResult result = service.login(new LoginCommand("owner@x.com", "pw", null));
         AuthPrincipal principal = tokenPort.parse(result.accessToken()).orElseThrow();
 
         assertEquals(null, result.tenantId());
-        assertEquals(null, result.groupId());
         assertEquals(Set.of(
             PermissionCodes.OWNER_TRANSFER_CREATE,
             PermissionCodes.OWNER_TRANSFER_ACCEPT,
@@ -129,7 +126,7 @@ class AuthApplicationServiceTest {
     @Test
     void loginShouldFailWhenUserNotFound() {
         DomainException ex = assertThrows(DomainException.class,
-            () -> service.login(new LoginCommand("missing@x.com", "pw", null, null)));
+            () -> service.login(new LoginCommand("missing@x.com", "pw", null)));
 
         assertEquals(ErrorCode.USER_NOT_FOUND, ex.getErrorCode());
     }
@@ -139,7 +136,7 @@ class AuthApplicationServiceTest {
         userRepo.seed("u1", "a@b.com", "hashed:pw", UserStatus.ACTIVE, VerificationLevel.NONE);
 
         DomainException ex = assertThrows(DomainException.class,
-            () -> service.login(new LoginCommand("a@b.com", "wrong", null, null)));
+            () -> service.login(new LoginCommand("a@b.com", "wrong", null)));
 
         assertEquals(ErrorCode.INVALID_CREDENTIALS, ex.getErrorCode());
     }
@@ -149,7 +146,7 @@ class AuthApplicationServiceTest {
         userRepo.seed("u1", "a@b.com", "hashed:pw", UserStatus.SUSPENDED, VerificationLevel.NONE);
 
         DomainException ex = assertThrows(DomainException.class,
-            () -> service.login(new LoginCommand("a@b.com", "pw", null, null)));
+            () -> service.login(new LoginCommand("a@b.com", "pw", null)));
 
         assertEquals(ErrorCode.USER_SUSPENDED, ex.getErrorCode());
     }
@@ -158,13 +155,13 @@ class AuthApplicationServiceTest {
     void loginShouldFailWhenRequestedMembershipNotFound() {
         userRepo.seed("u1", "a@b.com", "hashed:pw", UserStatus.ACTIVE, VerificationLevel.NONE);
         membershipRepo.seed(Membership.reconstitute(
-            "m1", "u1", "g1", "t1",
-            GroupType.RETAIL, MembershipRole.OPERATOR, MembershipStatus.ACTIVE,
-            GroupStatus.ACTIVE, TenantStatus.ACTIVE, Set.of()
+            "m1", "u1", "t1",
+            TenantType.RETAIL, MembershipRole.OPERATOR, MembershipStatus.ACTIVE,
+            TenantStatus.ACTIVE, Set.of()
         ));
 
         DomainException ex = assertThrows(DomainException.class,
-            () -> service.login(new LoginCommand("a@b.com", "pw", "t2", "g2")));
+            () -> service.login(new LoginCommand("a@b.com", "pw", "t2")));
 
         assertEquals(ErrorCode.MEMBERSHIP_NOT_FOUND, ex.getErrorCode());
     }
@@ -173,13 +170,13 @@ class AuthApplicationServiceTest {
     void loginShouldFailWhenRequestedMembershipInactive() {
         userRepo.seed("u1", "a@b.com", "hashed:pw", UserStatus.ACTIVE, VerificationLevel.NONE);
         membershipRepo.seed(Membership.reconstitute(
-            "m1", "u1", "g1", "t1",
-            GroupType.RETAIL, MembershipRole.OPERATOR, MembershipStatus.SUSPENDED,
-            GroupStatus.ACTIVE, TenantStatus.ACTIVE, Set.of()
+            "m1", "u1", "t1",
+            TenantType.RETAIL, MembershipRole.OPERATOR, MembershipStatus.SUSPENDED,
+            TenantStatus.ACTIVE, Set.of()
         ));
 
         DomainException ex = assertThrows(DomainException.class,
-            () -> service.login(new LoginCommand("a@b.com", "pw", "t1", "g1")));
+            () -> service.login(new LoginCommand("a@b.com", "pw", "t1")));
 
         assertEquals(ErrorCode.MEMBERSHIP_NOT_FOUND, ex.getErrorCode());
     }
@@ -187,7 +184,7 @@ class AuthApplicationServiceTest {
     @Test
     void logoutShouldRevokeToken() {
         userRepo.seed("u1", "a@b.com", "hashed:pw", UserStatus.ACTIVE, VerificationLevel.NONE);
-        AuthTokenResult result = service.login(new LoginCommand("a@b.com", "pw", null, null));
+        AuthTokenResult result = service.login(new LoginCommand("a@b.com", "pw", null));
 
         service.logout(result.accessToken());
 
@@ -197,7 +194,7 @@ class AuthApplicationServiceTest {
     @Test
     void authenticateShouldReturnPrincipal() {
         userRepo.seed("u1", "a@b.com", "hashed:pw", UserStatus.ACTIVE, VerificationLevel.NONE);
-        AuthTokenResult result = service.login(new LoginCommand("a@b.com", "pw", null, null));
+        AuthTokenResult result = service.login(new LoginCommand("a@b.com", "pw", null));
 
         AuthPrincipal principal = service.authenticate(result.accessToken());
 
@@ -279,11 +276,10 @@ class AuthApplicationServiceTest {
         }
 
         @Override
-        public Optional<Membership> findByUserIdAndContext(String userId, String tenantId, String groupId) {
+        public Optional<Membership> findByUserIdAndTenantId(String userId, String tenantId) {
             return memberships.stream()
                 .filter(m -> m.userId().equals(userId))
                 .filter(m -> m.tenantId().equals(tenantId))
-                .filter(m -> m.groupId().equals(groupId))
                 .findFirst();
         }
 

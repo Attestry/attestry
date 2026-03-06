@@ -56,10 +56,9 @@ public class ServiceSubmitService implements ServiceSubmitUseCase {
     public SubmitServiceRequestResult submit(
         AuthPrincipal principal,
         String tenantId,
-        String groupId,
         SubmitServiceRequestCommand command
     ) {
-        authorizationSupport.assertTenantAndGroupContext(principal, tenantId, groupId);
+        authorizationSupport.assertTenantContext(principal, tenantId);
         authorizationSupport.assertLivePermission(principal, tenantId, PermissionCodes.SERVICE_COMPLETE, "service:submit:" + command.passportId());
 
         String passportId = command.passportId();
@@ -70,7 +69,7 @@ public class ServiceSubmitService implements ServiceSubmitUseCase {
         String ownerUserId = serviceProductReadPort.findCurrentOwnerId(passportId)
             .orElseThrow(() -> new WorkflowDomainException(WorkflowErrorCode.INVALID_REQUEST, "Passport owner not found"));
 
-        boolean hasPermission = servicePermissionPort.hasActiveServiceRepairPermission(passportId, groupId);
+        boolean hasPermission = servicePermissionPort.hasActiveServiceRepairPermission(passportId, tenantId);
 
         ServiceSubmitContext context = new ServiceSubmitContext(
             state.assetState(),
@@ -80,7 +79,7 @@ public class ServiceSubmitService implements ServiceSubmitUseCase {
         );
         submitPolicy.assertSubmittable(context);
 
-        String permissionId = servicePermissionPort.findActivePermissionId(passportId, groupId)
+        String permissionId = servicePermissionPort.findActivePermissionId(passportId, tenantId)
             .orElseThrow(() -> new WorkflowDomainException(WorkflowErrorCode.FORBIDDEN_SCOPE, "No active consent permission found"));
 
         String beforeEvidenceGroupId = command.beforeEvidenceGroupId();
@@ -100,7 +99,6 @@ public class ServiceSubmitService implements ServiceSubmitUseCase {
             command.serviceType(),
             ownerUserId,
             tenantId,
-            groupId,
             command.description(),
             beforeEvidenceGroupId,
             permissionId,

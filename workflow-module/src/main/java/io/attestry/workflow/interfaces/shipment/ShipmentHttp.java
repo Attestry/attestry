@@ -45,19 +45,17 @@ public class ShipmentHttp {
         this.shipmentQueryUseCase = shipmentQueryUseCase;
     }
 
-    @PostMapping("/tenants/{tenantId}/groups/{groupId}/shipments/evidences/presign")
+    @PostMapping("/tenants/{tenantId}/shipments/evidences/presign")
     @ResponseStatus(HttpStatus.CREATED)
     @PreAuthorize("hasAuthority('SCOPE_BRAND_RELEASE')")
     public PresignedShipmentEvidenceUploadResponse presignEvidenceUpload(
         @AuthenticationPrincipal AuthPrincipal principal,
         @PathVariable("tenantId") String tenantId,
-        @PathVariable("groupId") String groupId,
         @RequestBody PresignShipmentEvidenceUploadRequest request
     ) {
         PresignedShipmentEvidenceUploadResult result = shipmentEvidenceUseCase.presignEvidenceUpload(
             principal,
             tenantId,
-            groupId,
             new PresignShipmentEvidenceUploadCommand(
                 request.evidenceGroupId(),
                 request.fileName(),
@@ -67,18 +65,16 @@ public class ShipmentHttp {
         return PresignedShipmentEvidenceUploadResponse.from(result);
     }
 
-    @PostMapping("/tenants/{tenantId}/groups/{groupId}/shipments/evidences/complete")
+    @PostMapping("/tenants/{tenantId}/shipments/evidences/complete")
     @PreAuthorize("hasAuthority('SCOPE_BRAND_RELEASE')")
     public ShipmentEvidenceCompleteResponse completeEvidenceUpload(
         @AuthenticationPrincipal AuthPrincipal principal,
         @PathVariable("tenantId") String tenantId,
-        @PathVariable("groupId") String groupId,
         @RequestBody CompleteShipmentEvidenceUploadRequest request
     ) {
         ShipmentEvidenceCompleteResult result = shipmentEvidenceUseCase.completeEvidenceUpload(
             principal,
             tenantId,
-            groupId,
             new CompleteShipmentEvidenceUploadCommand(
                 request.evidenceGroupId(),
                 request.evidenceId(),
@@ -89,66 +85,60 @@ public class ShipmentHttp {
         return ShipmentEvidenceCompleteResponse.from(result);
     }
 
-    @PostMapping("/tenants/{tenantId}/groups/{groupId}/passports/{passportId}/shipments/release")
+    @PostMapping("/tenants/{tenantId}/passports/{passportId}/shipments/release")
     @ResponseStatus(HttpStatus.CREATED)
     @PreAuthorize("hasAuthority('SCOPE_BRAND_RELEASE')")
     public ReleaseShipmentResponse release(
         @AuthenticationPrincipal AuthPrincipal principal,
         @PathVariable("tenantId") String tenantId,
-        @PathVariable("groupId") String groupId,
         @PathVariable("passportId") String passportId,
         @RequestBody ReleaseShipmentRequest request
     ) {
         ReleaseShipmentResult result = shipmentReleaseUseCase.release(
             principal,
             tenantId,
-            groupId,
             passportId,
             new ReleaseShipmentCommand(request.evidenceGroupId())
         );
         return ReleaseShipmentResponse.from(result);
     }
 
-    @GetMapping("/tenants/{tenantId}/groups/{groupId}/passports/{passportId}/shipments")
+    @GetMapping("/tenants/{tenantId}/passports/{passportId}/shipments")
     @PreAuthorize("hasAuthority('SCOPE_TENANT_READ_ONLY')")
     public List<ShipmentResponse> listShipments(
         @AuthenticationPrincipal AuthPrincipal principal,
         @PathVariable("tenantId") String tenantId,
-        @PathVariable("groupId") String groupId,
         @PathVariable("passportId") String passportId
     ) {
-        return shipmentQueryUseCase.listByPassport(principal, tenantId, groupId, passportId).stream()
+        return shipmentQueryUseCase.listByPassport(principal, tenantId, passportId).stream()
             .map(ShipmentResponse::from)
             .toList();
     }
 
-    @GetMapping("/tenants/{tenantId}/groups/{groupId}/shipments/{shipmentId}/evidences")
+    @GetMapping("/tenants/{tenantId}/shipments/{shipmentId}/evidences")
     @PreAuthorize("hasAuthority('SCOPE_TENANT_READ_ONLY')")
     public List<ShipmentEvidenceResponse> listShipmentEvidences(
         @AuthenticationPrincipal AuthPrincipal principal,
         @PathVariable("tenantId") String tenantId,
-        @PathVariable("groupId") String groupId,
         @PathVariable("shipmentId") String shipmentId
     ) {
-        return shipmentQueryUseCase.listEvidenceByShipmentId(principal, tenantId, groupId, shipmentId).stream()
+        return shipmentQueryUseCase.listEvidenceByShipmentId(principal, tenantId, shipmentId).stream()
             .map(ShipmentEvidenceResponse::from)
             .toList();
     }
 
-    @PostMapping("/tenants/{tenantId}/groups/{groupId}/shipments/{shipmentId}/return")
+    @PostMapping("/tenants/{tenantId}/shipments/{shipmentId}/return")
     @ResponseStatus(HttpStatus.CREATED)
     @PreAuthorize("hasAuthority('SCOPE_BRAND_RELEASE')")
     public ReturnShipmentResponse returnShipment(
         @AuthenticationPrincipal AuthPrincipal principal,
         @PathVariable("tenantId") String tenantId,
-        @PathVariable("groupId") String groupId,
         @PathVariable("shipmentId") String shipmentId,
         @RequestBody(required = false) ReturnShipmentRequest request
     ) {
         ReturnShipmentResult result = shipmentReleaseUseCase.returnShipment(
             principal,
             tenantId,
-            groupId,
             shipmentId,
             new ReturnShipmentCommand(
                 request == null ? null : request.returnEvidenceGroupId(),
@@ -210,7 +200,6 @@ public class ShipmentHttp {
     public record ReleaseShipmentResponse(
         String shipmentId,
         String tenantId,
-        String groupId,
         String passportId,
         int shipmentRound,
         String status,
@@ -222,7 +211,6 @@ public class ShipmentHttp {
             return new ReleaseShipmentResponse(
                 result.shipmentId(),
                 result.tenantId(),
-                result.groupId(),
                 result.passportId(),
                 result.shipmentRound(),
                 result.status(),
@@ -236,13 +224,11 @@ public class ShipmentHttp {
     public record ShipmentResponse(
         String shipmentId,
         String tenantId,
-        String groupId,
         String passportId,
         int shipmentRound,
         String status,
         Instant releasedAt,
         String releasedByUserId,
-        String releasedByGroupId,
         String evidenceGroupId,
         Instant returnedAt,
         String returnedByUserId,
@@ -253,13 +239,11 @@ public class ShipmentHttp {
             return new ShipmentResponse(
                 result.shipmentId(),
                 result.tenantId(),
-                result.groupId(),
                 result.passportId(),
                 result.shipmentRound(),
                 result.status(),
                 result.releasedAt(),
                 result.releasedByUserId(),
-                result.releasedByGroupId(),
                 result.evidenceGroupId(),
                 result.returnedAt(),
                 result.returnedByUserId(),
@@ -278,7 +262,6 @@ public class ShipmentHttp {
     public record ReturnShipmentResponse(
         String shipmentId,
         String tenantId,
-        String groupId,
         String passportId,
         int shipmentRound,
         String status,
@@ -291,7 +274,6 @@ public class ShipmentHttp {
             return new ReturnShipmentResponse(
                 result.shipmentId(),
                 result.tenantId(),
-                result.groupId(),
                 result.passportId(),
                 result.shipmentRound(),
                 result.status(),

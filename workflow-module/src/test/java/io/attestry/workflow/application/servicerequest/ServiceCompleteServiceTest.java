@@ -54,7 +54,7 @@ class ServiceCompleteServiceTest {
 
     private static final Instant SUBMITTED_AT = Instant.parse("2026-03-01T09:00:00Z");
     private static final AuthPrincipal PROVIDER = new AuthPrincipal(
-        "token1", "provider1", "provT1", "provG1", VerificationLevel.PHONE_VERIFIED, Set.of("SCOPE_SERVICE_COMPLETE"), Instant.parse("2026-03-02T00:00:00Z")
+        "token1", "provider1", "provT1", VerificationLevel.PHONE_VERIFIED, Set.of("SCOPE_SERVICE_COMPLETE"), Instant.parse("2026-03-02T00:00:00Z")
     );
 
     @BeforeEach
@@ -69,22 +69,22 @@ class ServiceCompleteServiceTest {
     void complete_success() {
         ServiceRequest submitted = ServiceRequest.submit(
             "sr1", "p1", "REPAIR", "owner1",
-            "provT1", "provG1", "desc", "beforeEg", "perm1", "provider1", SUBMITTED_AT, SUBMITTED_AT
+            "provT1", "desc", "beforeEg", "perm1", "provider1", SUBMITTED_AT, SUBMITTED_AT
         );
 
-        doNothing().when(authorizationSupport).assertTenantAndGroupContext(any(), anyString(), anyString());
+        doNothing().when(authorizationSupport).assertTenantContext(any(), anyString());
         doNothing().when(authorizationSupport).assertLivePermission(any(), anyString(), anyString(), anyString());
         when(serviceRequestRepository.findById("sr1")).thenReturn(Optional.of(submitted));
         when(serviceProductReadPort.findPassportState("p1"))
-            .thenReturn(Optional.of(new ServicePassportState("p1", "t1", "g1", "ACTIVE", "NONE")));
-        when(servicePermissionPort.hasActiveServiceRepairPermission("p1", "provG1")).thenReturn(true);
+            .thenReturn(Optional.of(new ServicePassportState("p1", "t1", "ACTIVE", "NONE")));
+        when(servicePermissionPort.hasActiveServiceRepairPermission("p1", "provT1")).thenReturn(true);
         when(shipmentEvidencePort.findReadyEvidenceHashes("afterEg")).thenReturn(List.of("hash1"));
         when(shipmentEvidencePort.findReadyEvidenceHashes("beforeEg")).thenReturn(List.of("beforeHash"));
         when(serviceRequestRepository.save(any(ServiceRequest.class))).thenAnswer(inv -> inv.getArgument(0));
         when(serviceLedgerOutboxPort.enqueue(any(WorkflowLedgerEventEnvelope.class))).thenReturn("outbox1");
 
         CompleteServiceRequestResult result = service.complete(
-            PROVIDER, "provT1", "provG1", "sr1",
+            PROVIDER, "provT1", "sr1",
             new CompleteServiceRequestCommand("afterEg", "Repaired successfully")
         );
 
@@ -97,12 +97,12 @@ class ServiceCompleteServiceTest {
 
     @Test
     void complete_notFound_throws() {
-        doNothing().when(authorizationSupport).assertTenantAndGroupContext(any(), anyString(), anyString());
+        doNothing().when(authorizationSupport).assertTenantContext(any(), anyString());
         doNothing().when(authorizationSupport).assertLivePermission(any(), anyString(), anyString(), anyString());
         when(serviceRequestRepository.findById("missing")).thenReturn(Optional.empty());
 
         WorkflowDomainException ex = assertThrows(WorkflowDomainException.class, () ->
-            service.complete(PROVIDER, "provT1", "provG1", "missing", new CompleteServiceRequestCommand(null, null))
+            service.complete(PROVIDER, "provT1", "missing", new CompleteServiceRequestCommand(null, null))
         );
         assertEquals(WorkflowErrorCode.SERVICE_REQUEST_NOT_FOUND, ex.getErrorCode());
     }
@@ -111,15 +111,15 @@ class ServiceCompleteServiceTest {
     void complete_wrongTenant_throws() {
         ServiceRequest submitted = ServiceRequest.submit(
             "sr1", "p1", "REPAIR", "owner1",
-            "otherTenant", "otherGroup", "desc", null, null, "provider1", SUBMITTED_AT, SUBMITTED_AT
+            "otherTenant", "desc", null, null, "provider1", SUBMITTED_AT, SUBMITTED_AT
         );
 
-        doNothing().when(authorizationSupport).assertTenantAndGroupContext(any(), anyString(), anyString());
+        doNothing().when(authorizationSupport).assertTenantContext(any(), anyString());
         doNothing().when(authorizationSupport).assertLivePermission(any(), anyString(), anyString(), anyString());
         when(serviceRequestRepository.findById("sr1")).thenReturn(Optional.of(submitted));
 
         WorkflowDomainException ex = assertThrows(WorkflowDomainException.class, () ->
-            service.complete(PROVIDER, "provT1", "provG1", "sr1", new CompleteServiceRequestCommand(null, null))
+            service.complete(PROVIDER, "provT1", "sr1", new CompleteServiceRequestCommand(null, null))
         );
         assertEquals(WorkflowErrorCode.TENANT_ISOLATION_VIOLATION, ex.getErrorCode());
     }
@@ -128,18 +128,18 @@ class ServiceCompleteServiceTest {
     void complete_noPermission_throws() {
         ServiceRequest submitted = ServiceRequest.submit(
             "sr1", "p1", "REPAIR", "owner1",
-            "provT1", "provG1", "desc", null, null, "provider1", SUBMITTED_AT, SUBMITTED_AT
+            "provT1", "desc", null, null, "provider1", SUBMITTED_AT, SUBMITTED_AT
         );
 
-        doNothing().when(authorizationSupport).assertTenantAndGroupContext(any(), anyString(), anyString());
+        doNothing().when(authorizationSupport).assertTenantContext(any(), anyString());
         doNothing().when(authorizationSupport).assertLivePermission(any(), anyString(), anyString(), anyString());
         when(serviceRequestRepository.findById("sr1")).thenReturn(Optional.of(submitted));
         when(serviceProductReadPort.findPassportState("p1"))
-            .thenReturn(Optional.of(new ServicePassportState("p1", "t1", "g1", "ACTIVE", "NONE")));
-        when(servicePermissionPort.hasActiveServiceRepairPermission("p1", "provG1")).thenReturn(false);
+            .thenReturn(Optional.of(new ServicePassportState("p1", "t1", "ACTIVE", "NONE")));
+        when(servicePermissionPort.hasActiveServiceRepairPermission("p1", "provT1")).thenReturn(false);
 
         WorkflowDomainException ex = assertThrows(WorkflowDomainException.class, () ->
-            service.complete(PROVIDER, "provT1", "provG1", "sr1", new CompleteServiceRequestCommand(null, null))
+            service.complete(PROVIDER, "provT1", "sr1", new CompleteServiceRequestCommand(null, null))
         );
         assertEquals(WorkflowErrorCode.FORBIDDEN_SCOPE, ex.getErrorCode());
     }

@@ -9,7 +9,6 @@ public interface ServiceCompleteUseCase {
     CompleteServiceRequestResult complete(
         AuthPrincipal principal,
         String tenantId,
-        String groupId,
         String serviceRequestId,
         CompleteServiceRequestCommand command
     );

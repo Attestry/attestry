@@ -20,7 +20,7 @@ import io.attestry.userauth.domain.onboarding.model.OnboardingEvidenceBundle;
 import io.attestry.userauth.domain.onboarding.model.OnboardingEvidenceFile;
 import io.attestry.userauth.domain.onboarding.model.OrganizationApplication;
 import io.attestry.userauth.domain.onboarding.policy.OrganizationUniquenessPolicy;
-import io.attestry.userauth.domain.organization.model.GroupType;
+import io.attestry.userauth.domain.organization.model.TenantType;
 import java.time.Clock;
 import java.time.Duration;
 import java.time.Instant;
@@ -60,11 +60,11 @@ public class OnboardingApplicationService implements OnboardingUseCase {
     @Override
     @Transactional
     public ApplicationResult createApplication(ActorContext actor, CreateApplicationCommand command) {
-        GroupType type = parseRequestedType(command.type());
+        TenantType type = parseRequestedType(command.type());
         requireReadyEvidenceOwnedByPrincipal(actor.userId(), command.evidenceBundleId());
         OrganizationApplication application = switch (type) {
             case BRAND -> {
-                uniquenessPolicy.assertUniqueBrand(command.orgName(), command.bizRegNo());
+                uniquenessPolicy.assertUniqueBrand(command.orgName(), command.country(), command.bizRegNo());
                 yield OrganizationApplication.createBrand(
                         actor.userId(),
                         command.orgName(),
@@ -73,7 +73,7 @@ public class OnboardingApplicationService implements OnboardingUseCase {
                         command.evidenceBundleId());
             }
             case RETAIL -> {
-                uniquenessPolicy.assertUniqueRetail(command.orgName(), command.bizRegNo());
+                uniquenessPolicy.assertUniqueRetail(command.orgName(), command.country(), command.bizRegNo());
                 yield OrganizationApplication.createRetail(
                         actor.userId(),
                         command.orgName(),
@@ -82,7 +82,7 @@ public class OnboardingApplicationService implements OnboardingUseCase {
                         command.evidenceBundleId());
             }
             case SERVICE -> {
-                uniquenessPolicy.assertUniqueService(command.orgName(), command.bizRegNo());
+                uniquenessPolicy.assertUniqueService(command.orgName(), command.country(), command.bizRegNo());
                 yield OrganizationApplication.createService(
                         actor.userId(),
                         command.orgName(),
@@ -99,7 +99,7 @@ public class OnboardingApplicationService implements OnboardingUseCase {
     @Override
     @Transactional(readOnly = true)
     public List<ApplicationView> listApplications(String type) {
-        GroupType parsedType = parseOptionalRequestedType(type);
+        TenantType parsedType = parseOptionalRequestedType(type);
         List<OrganizationApplication> applications = parsedType == null
                 ? applicationRepository.findAll()
                 : applicationRepository.findByType(parsedType);
@@ -125,6 +125,15 @@ public class OnboardingApplicationService implements OnboardingUseCase {
         return toApplicationView(application);
     }
 
+    @Override
+    @Transactional(readOnly = true)
+    public ApplicationView getApplication(String applicationId) {
+        OrganizationApplication application = applicationRepository
+                .findById(applicationId)
+                .orElseThrow(() -> new DomainException(ErrorCode.APPLICATION_NOT_FOUND, "Application not found"));
+        return toApplicationView(application);
+    }
+
     // TODO("이메일 발송로직")
     @Override
     @Transactional
@@ -138,7 +147,7 @@ public class OnboardingApplicationService implements OnboardingUseCase {
         app.approve(actor.userId(), result.tenantId(), Instant.now(clock));
         applicationRepository.save(app);
 
-        return new ApproveApplicationResult(result.tenantId(), result.groupId(), result.membershipId());
+        return new ApproveApplicationResult(result.tenantId(), result.membershipId());
     }
 
     @Override
@@ -265,7 +274,8 @@ public class OnboardingApplicationService implements OnboardingUseCase {
         }
 
         try {
-            ObjectStoragePort.PresignedDownload download = objectStoragePort.issuePresignedDownload(file.objectKey(), PRESIGN_TTL);
+            ObjectStoragePort.PresignedDownload download = objectStoragePort.issuePresignedDownload(file.objectKey(),
+                    PRESIGN_TTL);
             return new EvidenceFileView(file.originalFileName(), download.downloadUrl());
         } catch (Exception ignored) {
             return EvidenceFileView.EMPTY;
@@ -298,13 +308,13 @@ public class OnboardingApplicationService implements OnboardingUseCase {
         }
     }
 
-    private GroupType parseRequestedType(String value) {
+    private TenantType parseRequestedType(String value) {
         if (value == null || value.isBlank()) {
             throw new DomainException(ErrorCode.INVALID_REQUEST, "type is required");
         }
         try {
-            GroupType type = GroupType.valueOf(value.trim().toUpperCase(Locale.ROOT));
-            if (type == GroupType.BRAND || type == GroupType.RETAIL || type == GroupType.SERVICE) {
+            TenantType type = TenantType.valueOf(value.trim().toUpperCase(Locale.ROOT));
+            if (type == TenantType.BRAND || type == TenantType.RETAIL || type == TenantType.SERVICE) {
                 return type;
             }
         } catch (IllegalArgumentException ignored) {
@@ -313,7 +323,7 @@ public class OnboardingApplicationService implements OnboardingUseCase {
         throw new DomainException(ErrorCode.INVALID_REQUEST, "type must be BRAND, RETAIL, or SERVICE");
     }
 
-    private GroupType parseOptionalRequestedType(String value) {
+    private TenantType parseOptionalRequestedType(String value) {
         if (value == null || value.isBlank()) {
             return null;
         }

@@ -27,7 +27,7 @@ public record LedgerEventEnvelope(
             "GENESIS",
             "MINTED",
             "BRAND",
-            passport.getGroupId(),
+            passport.getTenantId(),
             occurredAt,
             Map.of(
                 "assetId", asset.getAssetId(),

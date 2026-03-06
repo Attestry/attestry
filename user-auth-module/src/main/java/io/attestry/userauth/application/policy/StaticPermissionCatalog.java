@@ -33,8 +33,6 @@ public class StaticPermissionCatalog implements PermissionCatalog {
         add(map, PermissionCodes.TENANT_CREATE_APPROVE, "Tenant Create Approve", "Approve tenant onboarding", "tenant", "approve");
         add(map, PermissionCodes.TENANT_SUSPEND, "Tenant Suspend", "Suspend tenant", "tenant", "suspend");
         add(map, PermissionCodes.GLOBAL_AUDIT_READ, "Global Audit Read", "Read global audit logs", "audit", "read");
-        add(map, PermissionCodes.TENANT_GROUP_SUSPEND, "Tenant Group Suspend", "Suspend tenant group", "group", "suspend");
-        add(map, PermissionCodes.TENANT_GROUP_RESUME, "Tenant Group Resume", "Resume tenant group", "group", "resume");
         add(map, PermissionCodes.TENANT_INVITATION_CREATE, "Tenant Invitation Create", "Create tenant invitation", "invitation", "create");
         add(map, PermissionCodes.TENANT_INVITATION_REVOKE, "Tenant Invitation Revoke", "Revoke tenant invitation", "invitation", "revoke");
         add(map, PermissionCodes.TENANT_INVITATION_VIEW, "Tenant Invitation View", "View tenant invitation", "invitation", "view");

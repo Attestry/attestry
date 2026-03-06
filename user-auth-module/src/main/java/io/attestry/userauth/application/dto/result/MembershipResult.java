@@ -5,7 +5,7 @@ import java.util.List;
 public record MembershipResult(
     String membershipId,
     String tenantId,
-    String groupId,
+    String userEmail,
     List<String> roleCodes,
     String status
 ) {

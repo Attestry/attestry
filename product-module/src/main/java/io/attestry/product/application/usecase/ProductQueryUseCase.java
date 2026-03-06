@@ -9,13 +9,13 @@ public interface ProductQueryUseCase {
 
     OwnerResponse getCurrentOwner(String passportId);
 
-    boolean hasActivePermission(String passportId, String sellerGroupId);
+    boolean hasActivePermission(String passportId, String sellerTenantId);
 
     List<MyPassportResponse> listMyPassports(String ownerId);
 
     PassportDetailResponse getPassportDetail(String passportId);
 
-    List<MintedPassportResponse> listMintedPassports(String tenantId, String groupId);
+    List<MintedPassportResponse> listMintedPassports(String tenantId);
 
     record AssetStateResponse(String assetId, String passportId, String assetState, String riskFlag) {
     }
@@ -27,7 +27,6 @@ public interface ProductQueryUseCase {
         String passportId,
         String qrPublicCode,
         String tenantId,
-        String groupId,
         String assetId,
         String serialNumber,
         String modelName,
@@ -56,7 +55,6 @@ public interface ProductQueryUseCase {
         String passportId,
         String qrPublicCode,
         String tenantId,
-        String groupId,
         String assetId,
         String serialNumber,
         String modelId,

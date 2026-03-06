@@ -14,10 +14,11 @@ public class OrganizationUniquenessPolicy {
         this.repository = repository;
     }
 
-    public void assertUniqueBrand(String orgName, String bizRegNo) {
+    public void assertUniqueBrand(String orgName, String country, String bizRegNo) {
         String normalizedOrgName = normalize(orgName);
-        if (repository.existsBrandByOrgName(normalizedOrgName)) {
-            throw new DomainException(ErrorCode.DUPLICATE_ORGANIZATION_NAME, "Brand name already exists");
+        String normalizedCountry = normalize(country);
+        if (repository.existsBrandByOrgNameAndCountry(normalizedOrgName, normalizedCountry)) {
+            throw new DomainException(ErrorCode.DUPLICATE_ORGANIZATION_NAME, "Brand name already exists in this country");
         }
         String normalizedBizRegNo = normalizeOrNull(bizRegNo);
         if (normalizedBizRegNo != null && repository.existsBrandByBizRegNo(normalizedBizRegNo)) {
@@ -25,11 +26,12 @@ public class OrganizationUniquenessPolicy {
         }
     }
 
-    public void assertUniqueRetail(String orgName, String bizRegNo) {
+    public void assertUniqueRetail(String orgName, String country, String bizRegNo) {
         String normalizedOrgName = normalize(orgName);
-        if (repository.existsBrandByOrgName(normalizedOrgName)
-                || repository.existsRetailByTenantAndOrgName(null, normalizedOrgName)) {
-            throw new DomainException(ErrorCode.DUPLICATE_ORGANIZATION_NAME, "Retail name already exists");
+        String normalizedCountry = normalize(country);
+        if (repository.existsBrandByOrgNameAndCountry(normalizedOrgName, normalizedCountry)
+                || repository.existsRetailByTenantAndOrgNameAndCountry(null, normalizedOrgName, normalizedCountry)) {
+            throw new DomainException(ErrorCode.DUPLICATE_ORGANIZATION_NAME, "Retail name already exists in this country");
         }
         String normalizedBizRegNo = normalizeOrNull(bizRegNo);
         if (normalizedBizRegNo != null
@@ -39,12 +41,13 @@ public class OrganizationUniquenessPolicy {
         }
     }
 
-    public void assertUniqueService(String orgName, String bizRegNo) {
+    public void assertUniqueService(String orgName, String country, String bizRegNo) {
         String normalizedOrgName = normalize(orgName);
-        if (repository.existsBrandByOrgName(normalizedOrgName)
-                || repository.existsRetailByTenantAndOrgName(null, normalizedOrgName)
-                || repository.existsServiceByTenantAndOrgName(null, normalizedOrgName)) {
-            throw new DomainException(ErrorCode.DUPLICATE_ORGANIZATION_NAME, "Service name already exists");
+        String normalizedCountry = normalize(country);
+        if (repository.existsBrandByOrgNameAndCountry(normalizedOrgName, normalizedCountry)
+                || repository.existsRetailByTenantAndOrgNameAndCountry(null, normalizedOrgName, normalizedCountry)
+                || repository.existsServiceByTenantAndOrgNameAndCountry(null, normalizedOrgName, normalizedCountry)) {
+            throw new DomainException(ErrorCode.DUPLICATE_ORGANIZATION_NAME, "Service name already exists in this country");
         }
         String normalizedBizRegNo = normalizeOrNull(bizRegNo);
         if (normalizedBizRegNo != null

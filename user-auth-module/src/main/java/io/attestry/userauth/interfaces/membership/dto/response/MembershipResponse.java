@@ -7,7 +7,7 @@ import java.util.List;
 public record MembershipResponse(
         String membershipId,
         String tenantId,
-        String groupId,
+        String userEmail,
         List<String> roleCodes,
         String status
 ) {
@@ -15,7 +15,7 @@ public record MembershipResponse(
         return new MembershipResponse(
                 membership.membershipId(),
                 membership.tenantId(),
-                membership.groupId(),
+                membership.userEmail(),
                 membership.roleCodes(),
                 membership.status()
         );
@@ -24,7 +24,7 @@ public record MembershipResponse(
         return new MembershipResponse(
                 membership.membershipId(),
                 membership.tenantId(),
-                membership.groupId(),
+                membership.userEmail(),
                 membership.roleCodes(),
                 membership.status()
         );

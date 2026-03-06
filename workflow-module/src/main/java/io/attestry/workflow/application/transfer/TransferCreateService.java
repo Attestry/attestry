@@ -56,7 +56,7 @@ public class TransferCreateService implements TransferCreateUseCase {
     ) {
         authorizationSupport.assertPermissionOnly(principal, PermissionCodes.OWNER_TRANSFER_CREATE, "transfer:create:" + passportId);
 
-        TransferCreateContext context = resolveContext(principal.userId(), null, null, passportId);
+        TransferCreateContext context = resolveContext(principal.userId(), null, passportId);
         createPolicy.assertC2CCreatable(context);
 
         Instant now = Instant.now(clock);
@@ -81,26 +81,26 @@ public class TransferCreateService implements TransferCreateUseCase {
         authorizationSupport.assertTenantContext(principal, tenantId);
         authorizationSupport.assertLivePermission(principal, tenantId, PermissionCodes.RETAIL_TRANSFER_CREATE, "transfer:create:" + passportId);
 
-        TransferCreateContext context = resolveContext(principal.userId(), tenantId, principal.groupId(), passportId);
+        TransferCreateContext context = resolveContext(principal.userId(), tenantId, passportId);
         createPolicy.assertB2CCreatable(context);
 
         Instant now = Instant.now(clock);
         AcceptCredential credential = credentialFactory.create(command.acceptMethod(), command.password());
 
         TokenTransfer transfer = TokenTransfer.createB2C(
-            UUID.randomUUID().toString(), passportId, tenantId, principal.groupId(),
+            UUID.randomUUID().toString(), passportId, tenantId,
             credential, command.expiresAt(), now, principal.userId()
         );
         TokenTransfer saved = transferRepository.save(transfer);
         return toResult(saved);
     }
 
-    private TransferCreateContext resolveContext(String actorUserId, String requestTenantId, String requestGroupId, String passportId) {
+    private TransferCreateContext resolveContext(String actorUserId, String requestTenantId, String passportId) {
         TransferPassportState state = productReadPort.findPassportState(passportId).orElse(null);
         String currentOwnerId = productReadPort.findCurrentOwnerId(passportId).orElse(null);
         boolean pendingExists = transferRepository.existsActivePendingByPassportId(passportId);
-        boolean hasRetail = requestGroupId != null
-            && productReadPort.hasRetailPermission(passportId, requestGroupId);
+        boolean hasRetail = requestTenantId != null
+            && productReadPort.hasRetailPermission(passportId, requestTenantId);
 
         return new TransferCreateContext(
             actorUserId,

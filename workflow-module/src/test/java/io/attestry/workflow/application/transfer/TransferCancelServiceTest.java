@@ -50,7 +50,7 @@ class TransferCancelServiceTest {
     @Test
     void cancel_c2c_byCreator_success() {
         AuthPrincipal creator = new AuthPrincipal(
-            "token1", "owner1", "tenant1", "group1", VerificationLevel.PHONE_VERIFIED, Set.of(), Instant.parse("2026-03-02T00:00:00Z")
+            "token1", "owner1", "tenant1", VerificationLevel.PHONE_VERIFIED, Set.of(), Instant.parse("2026-03-02T00:00:00Z")
         );
         TokenTransfer pending = TokenTransfer.createC2C(
             "t1", "p1", "owner1",
@@ -71,7 +71,7 @@ class TransferCancelServiceTest {
     @Test
     void cancel_c2c_byNonCreator_throws() {
         AuthPrincipal other = new AuthPrincipal(
-            "token2", "otherUser", "tenant1", "group1", VerificationLevel.PHONE_VERIFIED, Set.of(), Instant.parse("2026-03-02T00:00:00Z")
+            "token2", "otherUser", "tenant1", VerificationLevel.PHONE_VERIFIED, Set.of(), Instant.parse("2026-03-02T00:00:00Z")
         );
         TokenTransfer pending = TokenTransfer.createC2C(
             "t1", "p1", "owner1",
@@ -90,10 +90,10 @@ class TransferCancelServiceTest {
     @Test
     void cancel_b2c_withTenantAuth_success() {
         AuthPrincipal retailPrincipal = new AuthPrincipal(
-            "token3", "retailUser", "tenant1", "group1", VerificationLevel.PHONE_VERIFIED, Set.of(), Instant.parse("2026-03-02T00:00:00Z")
+            "token3", "retailUser", "tenant1", VerificationLevel.PHONE_VERIFIED, Set.of(), Instant.parse("2026-03-02T00:00:00Z")
         );
         TokenTransfer pending = TokenTransfer.createB2C(
-            "t1", "p1", "tenant1", "group1",
+            "t1", "p1", "tenant1",
             AcceptCredential.ofQr("nonce1"),
             EXPIRES, CREATED, "retailUser"
         );
@@ -112,7 +112,7 @@ class TransferCancelServiceTest {
     @Test
     void cancel_notFound_throws() {
         AuthPrincipal principal = new AuthPrincipal(
-            "token1", "user1", "tenant1", "group1", VerificationLevel.PHONE_VERIFIED, Set.of(), Instant.parse("2026-03-02T00:00:00Z")
+            "token1", "user1", "tenant1", VerificationLevel.PHONE_VERIFIED, Set.of(), Instant.parse("2026-03-02T00:00:00Z")
         );
 
         when(transferRepository.findById("missing")).thenReturn(Optional.empty());
@@ -126,7 +126,7 @@ class TransferCancelServiceTest {
     @Test
     void cancel_alreadyCompleted_throws() {
         AuthPrincipal creator = new AuthPrincipal(
-            "token1", "owner1", "tenant1", "group1", VerificationLevel.PHONE_VERIFIED, Set.of(), Instant.parse("2026-03-02T00:00:00Z")
+            "token1", "owner1", "tenant1", VerificationLevel.PHONE_VERIFIED, Set.of(), Instant.parse("2026-03-02T00:00:00Z")
         );
         TokenTransfer completed = TokenTransfer.createC2C(
             "t1", "p1", "owner1",

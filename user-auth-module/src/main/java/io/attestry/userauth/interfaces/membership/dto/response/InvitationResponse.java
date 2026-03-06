@@ -5,7 +5,6 @@ import io.attestry.userauth.application.dto.result.MembershipInvitationResult;
 public record InvitationResponse(
         String invitationId,
         String tenantId,
-        String groupId,
         String inviteeEmail,
         String role,
         String status
@@ -14,7 +13,6 @@ public record InvitationResponse(
         return new InvitationResponse(
                 invitation.invitationId(),
                 invitation.tenantId(),
-                invitation.groupId(),
                 invitation.inviteeEmail(),
                 invitation.role(),
                 invitation.status()

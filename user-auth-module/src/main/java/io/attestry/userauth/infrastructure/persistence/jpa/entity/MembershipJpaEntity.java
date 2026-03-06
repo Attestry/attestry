@@ -1,7 +1,6 @@
 package io.attestry.userauth.infrastructure.persistence.jpa.entity;
 
-import io.attestry.userauth.domain.organization.model.GroupStatus;
-import io.attestry.userauth.domain.organization.model.GroupType;
+import io.attestry.userauth.domain.organization.model.TenantType;
 import io.attestry.userauth.domain.membership.model.MembershipRole;
 import io.attestry.userauth.domain.membership.model.MembershipStatus;
 import io.attestry.userauth.domain.organization.model.TenantStatus;
@@ -24,15 +23,12 @@ public class MembershipJpaEntity {
     @Column(name = "user_id", nullable = false, length = 36)
     private String userId;
 
-    @Column(name = "group_id", nullable = false, length = 36)
-    private String groupId;
-
     @Column(name = "tenant_id", nullable = false, length = 36)
     private String tenantId;
 
     @Enumerated(EnumType.STRING)
     @Column(name = "group_type", nullable = false)
-    private GroupType groupType;
+    private TenantType groupType;
 
     // Deprecated: membership.role removed from DB schema (v2 cleanup).
     // Keep transient field for temporary domain/backward-compatibility usage.
@@ -44,10 +40,6 @@ public class MembershipJpaEntity {
     private MembershipStatus status;
 
     @Enumerated(EnumType.STRING)
-    @Column(name = "group_status", nullable = false)
-    private GroupStatus groupStatus;
-
-    @Enumerated(EnumType.STRING)
     @Column(name = "tenant_status", nullable = false)
     private TenantStatus tenantStatus;
 
@@ -57,22 +49,18 @@ public class MembershipJpaEntity {
     public MembershipJpaEntity(
         String membershipId,
         String userId,
-        String groupId,
         String tenantId,
-        GroupType groupType,
+        TenantType groupType,
         MembershipRole role,
         MembershipStatus status,
-        GroupStatus groupStatus,
         TenantStatus tenantStatus
     ) {
         this.membershipId = membershipId;
         this.userId = userId;
-        this.groupId = groupId;
         this.tenantId = tenantId;
         this.groupType = groupType;
         this.role = role;
         this.status = status;
-        this.groupStatus = groupStatus;
         this.tenantStatus = tenantStatus;
     }
 
@@ -84,15 +72,11 @@ public class MembershipJpaEntity {
         return userId;
     }
 
-    public String getGroupId() {
-        return groupId;
-    }
-
     public String getTenantId() {
         return tenantId;
     }
 
-    public GroupType getGroupType() {
+    public TenantType getTenantType() {
         return groupType;
     }
 
@@ -102,10 +86,6 @@ public class MembershipJpaEntity {
 
     public MembershipStatus getStatus() {
         return status;
-    }
-
-    public GroupStatus getGroupStatus() {
-        return groupStatus;
     }
 
     public TenantStatus getTenantStatus() {

@@ -15,11 +15,10 @@ public class ShipmentReleasePolicy {
     }
 
     private void assertPassportBelongsToScope(ShipmentReleaseContext context) {
-        if (!context.tenantId().equals(context.passportTenantId())
-            || !context.groupId().equals(context.passportGroupId())) {
+        if (!context.tenantId().equals(context.passportTenantId())) {
             throw new WorkflowDomainException(
                 WorkflowErrorCode.TENANT_ISOLATION_VIOLATION,
-                "Passport does not belong to tenant/group"
+                "Passport does not belong to tenant"
             );
         }
     }
@@ -53,9 +52,7 @@ public class ShipmentReleasePolicy {
 
     public record ShipmentReleaseContext(
         String tenantId,
-        String groupId,
         String passportTenantId,
-        String passportGroupId,
         String assetState,
         String riskFlag,
         boolean activeReleasedExists

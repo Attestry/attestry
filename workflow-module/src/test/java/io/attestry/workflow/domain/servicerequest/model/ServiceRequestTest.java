@@ -18,7 +18,7 @@ class ServiceRequestTest {
     void submit_setsFieldsCorrectly() {
         ServiceRequest request = ServiceRequest.submit(
             "sr1", "p1", "REPAIR", "owner1",
-            "tenant1", "group1", "Fix screen",
+            "tenant1", "Fix screen",
             "eg1", "perm1", "provider1", NOW, NOW
         );
 
@@ -27,7 +27,6 @@ class ServiceRequestTest {
         assertEquals("REPAIR", request.serviceType());
         assertEquals("owner1", request.ownerUserId());
         assertEquals("tenant1", request.providerTenantId());
-        assertEquals("group1", request.providerGroupId());
         assertEquals(ServiceRequestStatus.SUBMITTED, request.status());
         assertEquals("Fix screen", request.description());
         assertEquals("eg1", request.beforeEvidenceGroupId());
@@ -42,7 +41,7 @@ class ServiceRequestTest {
     @Test
     void submit_requiresServiceRequestId() {
         WorkflowDomainException ex = assertThrows(WorkflowDomainException.class, () ->
-            ServiceRequest.submit(null, "p1", "REPAIR", "owner1", "t1", "g1", null, null, null, "provider1", NOW, NOW)
+            ServiceRequest.submit(null, "p1", "REPAIR", "owner1", "t1", null, null, null, "provider1", NOW, NOW)
         );
         assertEquals(WorkflowErrorCode.INVALID_REQUEST, ex.getErrorCode());
     }
@@ -50,7 +49,7 @@ class ServiceRequestTest {
     @Test
     void submit_requiresSubmittedByUserId() {
         WorkflowDomainException ex = assertThrows(WorkflowDomainException.class, () ->
-            ServiceRequest.submit("sr1", "p1", "REPAIR", "owner1", "t1", "g1", null, null, null, null, NOW, NOW)
+            ServiceRequest.submit("sr1", "p1", "REPAIR", "owner1", "t1", null, null, null, null, NOW, NOW)
         );
         assertEquals(WorkflowErrorCode.INVALID_REQUEST, ex.getErrorCode());
     }
@@ -59,7 +58,7 @@ class ServiceRequestTest {
     void complete_fromSubmitted_succeeds() {
         ServiceRequest request = ServiceRequest.submit(
             "sr1", "p1", "REPAIR", "owner1",
-            "tenant1", "group1", "desc", "eg1", "perm1", "provider1", NOW, NOW
+            "tenant1", "desc", "eg1", "perm1", "provider1", NOW, NOW
         );
 
         Instant completedAt = Instant.parse("2026-03-01T12:00:00Z");
@@ -77,7 +76,7 @@ class ServiceRequestTest {
     void complete_whenNotSubmitted_throws() {
         ServiceRequest request = ServiceRequest.submit(
             "sr1", "p1", "REPAIR", "owner1",
-            "tenant1", "group1", "desc", null, null, "provider1", NOW, NOW
+            "tenant1", "desc", null, null, "provider1", NOW, NOW
         );
         ServiceRequest cancelled = request.cancel("reason", NOW);
 
@@ -91,7 +90,7 @@ class ServiceRequestTest {
     void cancel_fromSubmitted_succeeds() {
         ServiceRequest request = ServiceRequest.submit(
             "sr1", "p1", "REPAIR", "owner1",
-            "tenant1", "group1", "desc", null, null, "provider1", NOW, NOW
+            "tenant1", "desc", null, null, "provider1", NOW, NOW
         );
 
         Instant cancelledAt = Instant.parse("2026-03-01T11:00:00Z");
@@ -108,7 +107,7 @@ class ServiceRequestTest {
     void cancel_whenNotSubmitted_throws() {
         ServiceRequest request = ServiceRequest.submit(
             "sr1", "p1", "REPAIR", "owner1",
-            "tenant1", "group1", "desc", null, null, "provider1", NOW, NOW
+            "tenant1", "desc", null, null, "provider1", NOW, NOW
         );
         ServiceRequest completed = request.complete("provider1", "afterEg1", NOW);
 

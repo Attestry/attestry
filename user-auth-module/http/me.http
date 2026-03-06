@@ -1,8 +1,23 @@
 ### User Auth - Me APIs
 
 @baseUrl = http://localhost:8080
-@accessToken = 342e8a41-966b-4ae7-9531-4398b89752bf
+@accessToken =  82e2567e-8bba-4802-a037-98c9e36aa2fa
 
-### 1) My memberships
+### 1) My account
+GET {{baseUrl}}/me/account
+Authorization: Bearer {{accessToken}}
+
+### 2) Update my account
+PATCH {{baseUrl}}/me/account
+Authorization: Bearer {{accessToken}}
+Content-Type: application/json
+
+{
+  "phone": "",
+  "currentPassword": "",
+  "newPassword": ""
+}
+
+### 3) My memberships
 GET {{baseUrl}}/me/memberships
 Authorization: Bearer {{accessToken}}

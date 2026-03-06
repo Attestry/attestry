@@ -4,7 +4,6 @@ import java.time.Instant;
 public record ReturnShipmentResult(
     String shipmentId,
     String tenantId,
-    String groupId,
     String passportId,
     int shipmentRound,
     String status,

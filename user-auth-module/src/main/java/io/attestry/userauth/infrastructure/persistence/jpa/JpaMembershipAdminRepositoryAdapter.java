@@ -12,13 +12,13 @@ import io.attestry.userauth.domain.membership.model.MembershipStatus;
 import io.attestry.userauth.domain.membership.model.RoleAssignment;
 import io.attestry.userauth.domain.membership.policy.DefaultMembershipRolePolicy;
 import io.attestry.userauth.domain.membership.repository.MembershipRepository;
-import io.attestry.userauth.domain.organization.model.GroupStatus;
 import io.attestry.userauth.domain.organization.model.TenantStatus;
+import io.attestry.userauth.domain.organization.model.Tenant;
+import io.attestry.userauth.domain.organization.repository.TenantRepository;
 import io.attestry.userauth.domain.identity.model.Email;
 import io.attestry.userauth.infrastructure.persistence.jpa.entity.InvitationJpaEntity;
 import io.attestry.userauth.infrastructure.persistence.jpa.entity.MembershipJpaEntity;
 import io.attestry.userauth.infrastructure.persistence.jpa.entity.MembershipRoleAssignmentJpaEntity;
-import io.attestry.userauth.infrastructure.persistence.jpa.repository.GroupJpaRepository;
 import io.attestry.userauth.infrastructure.persistence.jpa.repository.InvitationJpaRepository;
 import io.attestry.userauth.infrastructure.persistence.jpa.repository.MembershipJpaRepository;
 import io.attestry.userauth.infrastructure.persistence.jpa.repository.MembershipRoleAssignmentJpaRepository;
@@ -46,7 +46,7 @@ public class JpaMembershipAdminRepositoryAdapter
     private final MembershipRoleAssignmentJpaRepository membershipRoleAssignmentRepository;
     private final RoleJpaRepository roleRepository;
     private final UserAccountJpaRepository userAccountRepository;
-    private final GroupJpaRepository groupRepository;
+    private final TenantRepository tenantRepository;
     private final JdbcTemplate jdbcTemplate;
 
     public JpaMembershipAdminRepositoryAdapter(
@@ -55,7 +55,7 @@ public class JpaMembershipAdminRepositoryAdapter
         MembershipRoleAssignmentJpaRepository membershipRoleAssignmentRepository,
         RoleJpaRepository roleRepository,
         UserAccountJpaRepository userAccountRepository,
-        GroupJpaRepository groupRepository,
+        TenantRepository tenantRepository,
         JdbcTemplate jdbcTemplate
     ) {
         this.invitationRepository = invitationRepository;
@@ -63,7 +63,7 @@ public class JpaMembershipAdminRepositoryAdapter
         this.membershipRoleAssignmentRepository = membershipRoleAssignmentRepository;
         this.roleRepository = roleRepository;
         this.userAccountRepository = userAccountRepository;
-        this.groupRepository = groupRepository;
+        this.tenantRepository = tenantRepository;
         this.jdbcTemplate = jdbcTemplate;
     }
 
@@ -74,39 +74,10 @@ public class JpaMembershipAdminRepositoryAdapter
     }
 
     @Override
-    public Optional<GroupView> findGroupById(String groupId) {
-        return groupRepository.findById(groupId)
-            .map(group -> new GroupView(group.getGroupId(), group.getTenantId(), group.getType(), group.getStatus()));
-    }
-
-    @Override
-    public void updateGroupStatusOnMemberships(String groupId, GroupStatus status) {
-        List<MembershipJpaEntity> memberships = membershipRepository.findByGroupId(groupId);
-        if (memberships.isEmpty()) {
-            return;
-        }
-        List<MembershipJpaEntity> updated = memberships.stream()
-            .map(current -> new MembershipJpaEntity(
-                current.getMembershipId(),
-                current.getUserId(),
-                current.getGroupId(),
-                current.getTenantId(),
-                current.getGroupType(),
-                current.getRole(),
-                current.getStatus(),
-                status,
-                current.getTenantStatus()
-            ))
-            .toList();
-        membershipRepository.saveAll(updated);
-    }
-
-    @Override
     public Invitation saveInvitation(Invitation invitation) {
         InvitationJpaEntity saved = invitationRepository.save(new InvitationJpaEntity(
             invitation.invitationId(),
             invitation.tenantId(),
-            invitation.groupId(),
             invitation.inviteeEmail().value(),
             invitation.role(),
             invitation.status(),
@@ -124,24 +95,19 @@ public class JpaMembershipAdminRepositoryAdapter
     }
 
     @Override
-    public Membership createMembership(String userId, String groupId, String tenantId, MembershipRole role) {
-        GroupView group = findGroupById(groupId)
-            .orElseThrow(() -> new DomainException(ErrorCode.GROUP_NOT_FOUND, "Group not found"));
-        if (!tenantId.equals(group.tenantId())) {
-            throw new DomainException(ErrorCode.TENANT_ISOLATION_VIOLATION, "Cross-tenant membership creation denied");
-        }
+    public Membership createMembership(String userId, String tenantId, MembershipRole role) {
+        Tenant tenant = tenantRepository.findById(tenantId)
+            .orElseThrow(() -> new DomainException(ErrorCode.TENANT_NOT_FOUND, "Tenant not found"));
         MembershipJpaEntity saved = membershipRepository.save(new MembershipJpaEntity(
             UUID.randomUUID().toString(),
             userId,
-            groupId,
             tenantId,
-            group.type(),
+            tenant.type(),
             role,
             MembershipStatus.ACTIVE,
-            group.status(),
             TenantStatus.ACTIVE
         ));
-        String defaultRoleCode = DefaultMembershipRolePolicy.resolveGlobalRoleCode(saved.getRole(), saved.getGroupType());
+        String defaultRoleCode = DefaultMembershipRolePolicy.resolveGlobalRoleCode(saved.getRole(), saved.getTenantType());
         String roleId = resolveGlobalRoleIdByCode(defaultRoleCode);
         Instant now = Instant.now();
         membershipRoleAssignmentRepository.save(new MembershipRoleAssignmentJpaEntity(
@@ -172,12 +138,10 @@ public class JpaMembershipAdminRepositoryAdapter
         MembershipJpaEntity saved = membershipRepository.save(new MembershipJpaEntity(
             current.getMembershipId(),
             current.getUserId(),
-            current.getGroupId(),
             current.getTenantId(),
-            current.getGroupType(),
+            current.getTenantType(),
             role,
             status,
-            current.getGroupStatus(),
             current.getTenantStatus()
         ));
         return toMembershipDomainWithRoles(saved);
@@ -369,12 +333,10 @@ public class JpaMembershipAdminRepositoryAdapter
         MembershipJpaEntity saved = membershipRepository.save(new MembershipJpaEntity(
             membership.membershipId(),
             membership.userId(),
-            membership.groupId(),
             membership.tenantId(),
             membership.groupType(),
             membership.role(),
             membership.status(),
-            membership.groupStatus(),
             membership.tenantStatus()
         ));
         syncRoleAssignments(membership);
@@ -387,18 +349,13 @@ public class JpaMembershipAdminRepositoryAdapter
     }
 
     @Override
-    public Optional<Membership> findByUserIdAndContext(String userId, String tenantId, String groupId) {
-        return membershipRepository.findByUserIdAndTenantIdAndGroupId(userId, tenantId, groupId).map(this::toMembershipDomainWithRoles);
+    public Optional<Membership> findByUserIdAndTenantId(String userId, String tenantId) {
+        return membershipRepository.findByUserIdAndTenantId(userId, tenantId).map(this::toMembershipDomainWithRoles);
     }
 
     @Override
     public List<Membership> findByTenantId(String tenantId) {
         return findMembershipsByTenantId(tenantId);
-    }
-
-    @Override
-    public List<Membership> findByGroupId(String groupId) {
-        return membershipRepository.findByGroupId(groupId).stream().map(this::toMembershipDomainWithRoles).toList();
     }
 
     private void syncRoleAssignments(Membership membership) {
@@ -471,12 +428,10 @@ public class JpaMembershipAdminRepositoryAdapter
         return Membership.reconstitute(
             entity.getMembershipId(),
             entity.getUserId(),
-            entity.getGroupId(),
             entity.getTenantId(),
-            entity.getGroupType(),
+            entity.getTenantType(),
             entity.getRole(),
             entity.getStatus(),
-            entity.getGroupStatus(),
             entity.getTenantStatus(),
             roleAssignments
         );
@@ -486,7 +441,6 @@ public class JpaMembershipAdminRepositoryAdapter
         return Invitation.reconstitute(
             entity.getInvitationId(),
             entity.getTenantId(),
-            entity.getGroupId(),
             Email.of(entity.getInviteeEmail()),
             entity.getRole(),
             entity.getStatus(),

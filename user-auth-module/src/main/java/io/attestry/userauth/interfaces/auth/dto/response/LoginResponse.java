@@ -5,7 +5,6 @@ public record LoginResponse(
         String tokenType,
         java.time.Instant expiresAt,
         String userId,
-        String tenantId,
-        String groupId
+        String tenantId
 ) {
 }

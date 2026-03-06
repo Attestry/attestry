@@ -4,8 +4,7 @@ import io.attestry.userauth.common.error.DomainException;
 import io.attestry.userauth.common.error.ErrorCode;
 import io.attestry.userauth.domain.membership.event.RoleAssignmentAuditedEvent;
 import io.attestry.userauth.domain.membership.service.RoleAssignmentDomainService;
-import io.attestry.userauth.domain.organization.model.GroupStatus;
-import io.attestry.userauth.domain.organization.model.GroupType;
+import io.attestry.userauth.domain.organization.model.TenantType;
 import io.attestry.userauth.domain.organization.model.TenantStatus;
 import java.time.Instant;
 import java.util.ArrayList;
@@ -20,59 +19,54 @@ public class Membership {
 
     private final String membershipId;
     private final String userId;
-    private final String groupId;
     private final String tenantId;
-    private final GroupType groupType;
+    private final TenantType groupType;
     private MembershipRole role;
     private MembershipStatus status;
-    private GroupStatus groupStatus;
     private TenantStatus tenantStatus;
     private final Set<RoleAssignment> roleAssignments;
     private final List<Object> domainEvents = new ArrayList<>();
 
     private Membership(
-        String membershipId, String userId, String groupId, String tenantId,
-        GroupType groupType, MembershipRole role, MembershipStatus status,
-        GroupStatus groupStatus, TenantStatus tenantStatus,
+        String membershipId, String userId, String tenantId,
+        TenantType groupType, MembershipRole role, MembershipStatus status,
+        TenantStatus tenantStatus,
         Set<RoleAssignment> roleAssignments
     ) {
         this.membershipId = membershipId;
         this.userId = userId;
-        this.groupId = groupId;
         this.tenantId = tenantId;
         this.groupType = groupType;
         this.role = role;
         this.status = status;
-        this.groupStatus = groupStatus;
         this.tenantStatus = tenantStatus;
         this.roleAssignments = new HashSet<>(roleAssignments);
     }
 
     public static Membership create(
-        String userId, String groupId, String tenantId,
-        GroupType groupType, MembershipRole role,
-        GroupStatus groupStatus, TenantStatus tenantStatus
+        String userId, String tenantId,
+        TenantType groupType, MembershipRole role,
+        TenantStatus tenantStatus
     ) {
         return new Membership(
-            UUID.randomUUID().toString(), userId, groupId, tenantId,
+            UUID.randomUUID().toString(), userId, tenantId,
             groupType, role, MembershipStatus.ACTIVE,
-            groupStatus, tenantStatus, Set.of()
+            tenantStatus, Set.of()
         );
     }
 
     public static Membership reconstitute(
-        String membershipId, String userId, String groupId, String tenantId,
-        GroupType groupType, MembershipRole role, MembershipStatus status,
-        GroupStatus groupStatus, TenantStatus tenantStatus,
+        String membershipId, String userId, String tenantId,
+        TenantType groupType, MembershipRole role, MembershipStatus status,
+        TenantStatus tenantStatus,
         Set<RoleAssignment> roleAssignments
     ) {
-        return new Membership(membershipId, userId, groupId, tenantId,
-            groupType, role, status, groupStatus, tenantStatus, roleAssignments);
+        return new Membership(membershipId, userId, tenantId,
+            groupType, role, status, tenantStatus, roleAssignments);
     }
 
     public boolean isActive() {
         return status == MembershipStatus.ACTIVE
-            && groupStatus == GroupStatus.ACTIVE
             && tenantStatus == TenantStatus.ACTIVE;
     }
 
@@ -109,10 +103,6 @@ public class Membership {
         return roleAssignments.stream()
             .map(RoleAssignment::roleCode)
             .collect(Collectors.toUnmodifiableSet());
-    }
-
-    public void syncGroupStatus(GroupStatus newStatus) {
-        this.groupStatus = newStatus;
     }
 
     public void updateStatus(MembershipStatus newStatus) {
@@ -166,12 +156,10 @@ public class Membership {
     // Getters
     public String membershipId() { return membershipId; }
     public String userId() { return userId; }
-    public String groupId() { return groupId; }
     public String tenantId() { return tenantId; }
-    public GroupType groupType() { return groupType; }
+    public TenantType groupType() { return groupType; }
     public MembershipRole role() { return role; }
     public MembershipStatus status() { return status; }
-    public GroupStatus groupStatus() { return groupStatus; }
     public TenantStatus tenantStatus() { return tenantStatus; }
     public Set<RoleAssignment> roleAssignments() { return Collections.unmodifiableSet(roleAssignments); }
 }

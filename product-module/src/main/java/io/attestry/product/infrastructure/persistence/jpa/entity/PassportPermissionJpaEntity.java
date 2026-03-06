@@ -17,8 +17,8 @@ public class PassportPermissionJpaEntity {
     @Column(name = "passport_id", nullable = false, length = 36)
     private String passportId;
 
-    @Column(name = "seller_group_id", nullable = false, length = 36)
-    private String sellerGroupId;
+    @Column(name = "seller_tenant_id", nullable = false, length = 36)
+    private String sellerTenantId;
 
     @Column(name = "scope", nullable = false, length = 50)
     private String scope;
@@ -38,7 +38,7 @@ public class PassportPermissionJpaEntity {
     public PassportPermissionJpaEntity(
         String permissionId,
         String passportId,
-        String sellerGroupId,
+        String sellerTenantId,
         String scope,
         String status,
         Instant expiresAt,
@@ -46,7 +46,7 @@ public class PassportPermissionJpaEntity {
     ) {
         this.permissionId = permissionId;
         this.passportId = passportId;
-        this.sellerGroupId = sellerGroupId;
+        this.sellerTenantId = sellerTenantId;
         this.scope = scope;
         this.status = status;
         this.expiresAt = expiresAt;
@@ -55,7 +55,7 @@ public class PassportPermissionJpaEntity {
 
     public String getPermissionId() { return permissionId; }
     public String getPassportId() { return passportId; }
-    public String getSellerGroupId() { return sellerGroupId; }
+    public String getSellerTenantId() { return sellerTenantId; }
     public String getScope() { return scope; }
     public String getStatus() { return status; }
     public Instant getExpiresAt() { return expiresAt; }

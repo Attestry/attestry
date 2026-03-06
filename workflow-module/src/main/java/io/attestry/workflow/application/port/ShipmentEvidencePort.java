@@ -6,7 +6,7 @@ import java.util.Optional;
 
 public interface ShipmentEvidencePort {
 
-    void createEvidenceGroupIfAbsent(String evidenceGroupId, String tenantId, String groupId, String ownerUserId, Instant now);
+    void createEvidenceGroupIfAbsent(String evidenceGroupId, String tenantId, String ownerUserId, Instant now);
 
     void createPendingEvidence(
         String evidenceId,
@@ -45,7 +45,6 @@ public interface ShipmentEvidencePort {
     record EvidenceGroupScopeView(
         String evidenceGroupId,
         String tenantId,
-        String groupId,
         String ownerUserId
     ) {
     }

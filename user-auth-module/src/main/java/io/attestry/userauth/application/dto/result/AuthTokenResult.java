@@ -7,7 +7,6 @@ public record AuthTokenResult(
     String tokenType,
     Instant expiresAt,
     String userId,
-    String tenantId,
-    String groupId
+    String tenantId
 ) {
 }

@@ -2,7 +2,6 @@ package io.attestry.userauth.application.usecase.membership;
 
 import io.attestry.userauth.application.dto.command.ActorContext;
 import io.attestry.userauth.application.dto.result.MembershipInvitationResult;
-import io.attestry.userauth.application.dto.result.GroupAdminResult;
 import io.attestry.userauth.application.dto.result.MembershipPermissionTemplateResult;
 import io.attestry.userauth.application.dto.result.MembershipAssignableRolesResult;
 import io.attestry.userauth.application.dto.result.MembershipResult;
@@ -14,58 +13,49 @@ import io.attestry.userauth.domain.membership.model.MembershipStatus;
 import java.util.List;
 
 public interface MembershipAdminUseCase {
-    MembershipInvitationResult invite(ActorContext actor, String tenantId, InviteCommand command);
+    MembershipInvitationResult invite(ActorContext actor, InviteCommand command);
 
     MembershipResult acceptInvitation(ActorContext actor, String invitationId);
 
-    List<MembershipAdminView> listMemberships(ActorContext actor, String tenantId);
+    List<MembershipAdminView> listMemberships(ActorContext actor);
 
     MembershipResult updateMembershipStatus(
         ActorContext actor,
-        String tenantId,
         String membershipId,
         UpdateMembershipStatusCommand command
     );
 
-    MembershipRoleAssignmentsResult listMembershipRoleAssignments(ActorContext actor, String tenantId, String membershipId);
+    MembershipRoleAssignmentsResult listMembershipRoleAssignments(ActorContext actor, String membershipId);
 
-    MembershipAssignableRolesResult listAssignableRoleCodes(ActorContext actor, String tenantId, String membershipId);
+    MembershipAssignableRolesResult listAssignableRoleCodes(ActorContext actor, String membershipId);
 
-    TenantAvailableTemplateCodesResult listTenantAvailableTemplateCodes(ActorContext actor, String tenantId);
+    TenantAvailableTemplateCodesResult listTenantAvailableTemplateCodes(ActorContext actor);
 
     MembershipRoleAssignmentsResult assignMembershipRole(
         ActorContext actor,
-        String tenantId,
         String membershipId,
         AssignMembershipRoleCommand command
     );
 
     MembershipRoleAssignmentsResult revokeMembershipRole(
         ActorContext actor,
-        String tenantId,
         String membershipId,
         RevokeMembershipRoleCommand command
     );
 
     MembershipPermissionTemplateResult applyPermissionTemplate(
         ActorContext actor,
-        String tenantId,
         String membershipId,
         ApplyPermissionTemplateCommand command
     );
 
     MembershipPermissionTemplateResult revokePermissionTemplate(
         ActorContext actor,
-        String tenantId,
         String membershipId,
         RevokePermissionTemplateCommand command
     );
 
-    GroupAdminResult suspendGroup(ActorContext actor, String tenantId, String groupId);
-
-    GroupAdminResult unsuspendGroup(ActorContext actor, String tenantId, String groupId);
-
-    record InviteCommand(String email, String groupId, MembershipRole role) {
+    record InviteCommand(String email, MembershipRole role) {
     }
 
     record UpdateMembershipStatusCommand(MembershipStatus status) {

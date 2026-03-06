@@ -10,14 +10,12 @@ public interface ShipmentQueryUseCase {
     List<ShipmentViewResult> listByPassport(
         AuthPrincipal principal,
         String tenantId,
-        String groupId,
         String passportId
     );
 
     List<ShipmentEvidenceViewResult> listEvidenceByShipmentId(
         AuthPrincipal principal,
         String tenantId,
-        String groupId,
         String shipmentId
     );
 }

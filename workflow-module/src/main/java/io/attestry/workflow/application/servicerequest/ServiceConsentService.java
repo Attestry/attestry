@@ -67,7 +67,7 @@ public class ServiceConsentService implements ServiceConsentUseCase {
         Instant now = Instant.now(clock);
         String permissionId = servicePermissionPort.grantServiceRepairConsent(
             passportId,
-            command.providerGroupId(),
+            command.providerTenantId(),
             principal.userId(),
             now
         );
@@ -75,7 +75,7 @@ public class ServiceConsentService implements ServiceConsentUseCase {
         return new GrantServiceConsentResult(
             permissionId,
             passportId,
-            command.providerGroupId(),
+            command.providerTenantId(),
             "ACTIVE",
             now
         );
@@ -86,7 +86,7 @@ public class ServiceConsentService implements ServiceConsentUseCase {
     public RevokeServiceConsentResult revokeConsent(
         AuthPrincipal principal,
         String passportId,
-        String providerGroupId
+        String providerTenantId
     ) {
         authorizationSupport.assertPermissionOnly(principal, PermissionCodes.OWNER_SERVICE_CREATE, "service:consent-revoke:" + passportId);
 
@@ -97,8 +97,8 @@ public class ServiceConsentService implements ServiceConsentUseCase {
             throw new WorkflowDomainException(WorkflowErrorCode.FORBIDDEN_SCOPE, "Only the passport owner can revoke consent");
         }
 
-        servicePermissionPort.revokeConsentByPassportAndGroup(passportId, providerGroupId);
+        servicePermissionPort.revokeConsentByPassportAndTenant(passportId, providerTenantId);
 
-        return new RevokeServiceConsentResult(passportId, providerGroupId, "REVOKED");
+        return new RevokeServiceConsentResult(passportId, providerTenantId, "REVOKED");
     }
 }

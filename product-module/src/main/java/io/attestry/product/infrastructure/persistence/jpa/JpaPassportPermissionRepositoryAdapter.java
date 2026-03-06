@@ -39,15 +39,15 @@ public class JpaPassportPermissionRepositoryAdapter implements PassportPermissio
     }
 
     @Override
-    public boolean existsActiveByPassportAndSellerGroup(String passportId, String sellerGroupId) {
-        return jpaRepository.existsActiveByPassportIdAndSellerGroupId(passportId, sellerGroupId);
+    public boolean existsActiveByPassportAndSellerTenant(String passportId, String sellerTenantId) {
+        return jpaRepository.existsActiveByPassportIdAndSellerTenantId(passportId, sellerTenantId);
     }
 
     private PassportPermissionJpaEntity toEntity(PassportPermission permission) {
         return new PassportPermissionJpaEntity(
             permission.getPermissionId(),
             permission.getPassportId(),
-            permission.getSellerGroupId(),
+            permission.getSellerTenantId(),
             permission.getScope().name(),
             permission.getStatus().name(),
             permission.getExpiresAt(),
@@ -59,7 +59,7 @@ public class JpaPassportPermissionRepositoryAdapter implements PassportPermissio
         return PassportPermission.reconstitute(
             entity.getPermissionId(),
             entity.getPassportId(),
-            entity.getSellerGroupId(),
+            entity.getSellerTenantId(),
             PermissionScope.valueOf(entity.getScope()),
             PermissionStatus.valueOf(entity.getStatus()),
             entity.getExpiresAt(),

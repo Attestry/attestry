@@ -3,7 +3,6 @@ package io.attestry.userauth.application.membership;
 import io.attestry.userauth.application.dto.result.MembershipInvitationResult;
 import io.attestry.userauth.application.dto.result.MembershipAssignableRolesResult;
 import io.attestry.userauth.application.dto.result.MembershipResult;
-import io.attestry.userauth.application.dto.result.GroupAdminResult;
 import io.attestry.userauth.application.dto.result.MembershipPermissionTemplateResult;
 import io.attestry.userauth.application.dto.result.MembershipRoleAssignmentsResult;
 import io.attestry.userauth.application.dto.result.TenantAvailableTemplateCodesResult;
@@ -23,13 +22,8 @@ import io.attestry.userauth.common.error.ErrorCode;
 import io.attestry.userauth.domain.authorization.model.PermissionCodes;
 import io.attestry.userauth.domain.membership.model.Invitation;
 import io.attestry.userauth.domain.membership.model.Membership;
-import io.attestry.userauth.domain.organization.model.GroupType;
-import io.attestry.userauth.domain.organization.model.Group;
-import io.attestry.userauth.domain.organization.model.Tenant;
-import io.attestry.userauth.domain.organization.repository.TenantRepository;
 import io.attestry.userauth.domain.identity.model.UserAccount;
 import io.attestry.userauth.domain.membership.service.RoleAssignmentDomainService;
-import io.attestry.userauth.domain.authorization.policy.TenantIsolationPolicy;
 import io.attestry.userauth.domain.authorization.service.TemplateApplicationDomainService;
 import io.attestry.userauth.domain.membership.event.TemplatePermissionMutatedEvent;
 import java.time.Clock;
@@ -46,7 +40,6 @@ public class MembershipAdminService implements MembershipAdminUseCase {
 
     private final MembershipAdminRepositoryPort membershipAdminRepository;
     private final MembershipRepository membershipRepository;
-    private final TenantRepository tenantRepository;
     private final UserAccountRepositoryPort userAccountRepository;
     private final TemplateAdminRepositoryPort templateAdminRepository;
     private final EvaluateAuthorizationUseCase evaluateAuthorizationUseCase;
@@ -58,7 +51,6 @@ public class MembershipAdminService implements MembershipAdminUseCase {
     public MembershipAdminService(
         MembershipAdminRepositoryPort membershipAdminRepository,
         MembershipRepository membershipRepository,
-        TenantRepository tenantRepository,
         UserAccountRepositoryPort userAccountRepository,
         TemplateAdminRepositoryPort templateAdminRepository,
         EvaluateAuthorizationUseCase evaluateAuthorizationUseCase,
@@ -69,7 +61,6 @@ public class MembershipAdminService implements MembershipAdminUseCase {
     ) {
         this.membershipAdminRepository = membershipAdminRepository;
         this.membershipRepository = membershipRepository;
-        this.tenantRepository = tenantRepository;
         this.userAccountRepository = userAccountRepository;
         this.templateAdminRepository = templateAdminRepository;
         this.evaluateAuthorizationUseCase = evaluateAuthorizationUseCase;
@@ -82,18 +73,11 @@ public class MembershipAdminService implements MembershipAdminUseCase {
     // TODO("이메일 발송로직")
     @Override
     @Transactional
-    public MembershipInvitationResult invite(ActorContext actor, String tenantId, InviteCommand command) {
-        assertTenantIsolation(actor, tenantId);
-        MembershipAdminRepositoryPort.GroupView group = membershipAdminRepository.findGroupById(command.groupId())
-            .orElseThrow(() -> new DomainException(ErrorCode.MEMBERSHIP_NOT_FOUND, "Group not found"));
-
-        if (!tenantId.equals(group.tenantId())) {
-            throw new DomainException(ErrorCode.TENANT_ISOLATION_VIOLATION, "Cross-tenant group access denied");
-        }
+    public MembershipInvitationResult invite(ActorContext actor, InviteCommand command) {
+        String tenantId = actor.tenantId();
 
         Invitation invitation = Invitation.issue(
             tenantId,
-            command.groupId(),
             command.email(),
             command.role(),
             actor.userId(),
@@ -111,9 +95,13 @@ public class MembershipAdminService implements MembershipAdminUseCase {
         UserAccount userAccount = userAccountRepository.findByUserId(actor.userId())
             .orElseThrow(() -> new DomainException(ErrorCode.USER_NOT_FOUND, "User not found"));
 
+        membershipRepository.findByUserIdAndTenantId(actor.userId(), invitation.tenantId())
+            .ifPresent(existing -> {
+                throw new DomainException(ErrorCode.DUPLICATE_MEMBERSHIP, "Membership already exists for this tenant");
+            });
+
         Membership membership = membershipAdminRepository.createMembership(
             actor.userId(),
-            invitation.groupId(),
             invitation.tenantId(),
             invitation.role()
         );
@@ -125,8 +113,8 @@ public class MembershipAdminService implements MembershipAdminUseCase {
 
     @Override
     @Transactional(readOnly = true)
-    public List<MembershipAdminView> listMemberships(ActorContext actor, String tenantId) {
-        assertTenantIsolation(actor, tenantId);
+    public List<MembershipAdminView> listMemberships(ActorContext actor) {
+        String tenantId = actor.tenantId();
         return membershipAdminRepository.findMembershipsByTenantId(tenantId).stream()
             .map(this::toMembershipView)
             .toList();
@@ -134,8 +122,8 @@ public class MembershipAdminService implements MembershipAdminUseCase {
 
     @Override
     @Transactional(readOnly = true)
-    public MembershipRoleAssignmentsResult listMembershipRoleAssignments(ActorContext actor, String tenantId, String membershipId) {
-        assertTenantIsolation(actor, tenantId);
+    public MembershipRoleAssignmentsResult listMembershipRoleAssignments(ActorContext actor, String membershipId) {
+        String tenantId = actor.tenantId();
         Membership target = membershipAdminRepository.findMembershipById(membershipId)
             .orElseThrow(() -> new DomainException(ErrorCode.MEMBERSHIP_NOT_FOUND, "Membership not found"));
         if (!tenantId.equals(target.tenantId())) {
@@ -146,8 +134,8 @@ public class MembershipAdminService implements MembershipAdminUseCase {
 
     @Override
     @Transactional(readOnly = true)
-    public MembershipAssignableRolesResult listAssignableRoleCodes(ActorContext actor, String tenantId, String membershipId) {
-        assertTenantIsolation(actor, tenantId);
+    public MembershipAssignableRolesResult listAssignableRoleCodes(ActorContext actor, String membershipId) {
+        String tenantId = actor.tenantId();
         Membership target = membershipAdminRepository.findMembershipById(membershipId)
             .orElseThrow(() -> new DomainException(ErrorCode.MEMBERSHIP_NOT_FOUND, "Membership not found"));
         if (!tenantId.equals(target.tenantId())) {
@@ -174,8 +162,8 @@ public class MembershipAdminService implements MembershipAdminUseCase {
 
     @Override
     @Transactional(readOnly = true)
-    public TenantAvailableTemplateCodesResult listTenantAvailableTemplateCodes(ActorContext actor, String tenantId) {
-        assertTenantIsolation(actor, tenantId);
+    public TenantAvailableTemplateCodesResult listTenantAvailableTemplateCodes(ActorContext actor) {
+        String tenantId = actor.tenantId();
         resolveActiveActorMembership(actor.userId(), tenantId);
         List<String> templateCodes = templateAdminRepository.findTenantRoleTemplateBindings(tenantId).stream()
             .filter(TemplateAdminRepositoryPort.TenantRoleTemplateBindingView::enabled)
@@ -190,55 +178,50 @@ public class MembershipAdminService implements MembershipAdminUseCase {
     @Transactional
     public MembershipRoleAssignmentsResult assignMembershipRole(
         ActorContext actor,
-        String tenantId,
         String membershipId,
         AssignMembershipRoleCommand command
     ) {
-        return mutateMembershipRoleAssignment(actor, tenantId, membershipId, command.roleCode(), true);
+        return mutateMembershipRoleAssignment(actor, membershipId, command.roleCode(), true);
     }
 
     @Override
     @Transactional
     public MembershipRoleAssignmentsResult revokeMembershipRole(
         ActorContext actor,
-        String tenantId,
         String membershipId,
         RevokeMembershipRoleCommand command
     ) {
-        return mutateMembershipRoleAssignment(actor, tenantId, membershipId, command.roleCode(), false);
+        return mutateMembershipRoleAssignment(actor, membershipId, command.roleCode(), false);
     }
 
     @Override
     @Transactional
     public MembershipPermissionTemplateResult applyPermissionTemplate(
         ActorContext actor,
-        String tenantId,
         String membershipId,
         ApplyPermissionTemplateCommand command
     ) {
-        return mutatePermissionTemplate(actor, tenantId, membershipId, command.templateCode(), command.reason(), true);
+        return mutatePermissionTemplate(actor, membershipId, command.templateCode(), command.reason(), true);
     }
 
     @Override
     @Transactional
     public MembershipPermissionTemplateResult revokePermissionTemplate(
         ActorContext actor,
-        String tenantId,
         String membershipId,
         RevokePermissionTemplateCommand command
     ) {
-        return mutatePermissionTemplate(actor, tenantId, membershipId, command.templateCode(), command.reason(), false);
+        return mutatePermissionTemplate(actor, membershipId, command.templateCode(), command.reason(), false);
     }
 
     @Override
     @Transactional
     public MembershipResult updateMembershipStatus(
         ActorContext actor,
-        String tenantId,
         String membershipId,
         UpdateMembershipStatusCommand command
     ) {
-        assertTenantIsolation(actor, tenantId);
+        String tenantId = actor.tenantId();
         Membership current = membershipAdminRepository.findMembershipById(membershipId)
             .orElseThrow(() -> new DomainException(ErrorCode.MEMBERSHIP_NOT_FOUND, "Membership not found"));
 
@@ -275,52 +258,6 @@ public class MembershipAdminService implements MembershipAdminUseCase {
         return toMembershipResult(updated);
     }
 
-    @Override
-    @Transactional
-    public GroupAdminResult suspendGroup(ActorContext actor, String tenantId, String groupId) {
-        assertTenantIsolation(actor, tenantId);
-        assertLivePermission(actor, tenantId, PermissionCodes.TENANT_GROUP_SUSPEND, "group:" + groupId);
-
-        Tenant tenant = tenantRepository.findById(tenantId)
-            .orElseThrow(() -> new DomainException(ErrorCode.GROUP_NOT_FOUND, "Tenant not found"));
-
-        tenant.suspendGroup(groupId);
-        tenantRepository.save(tenant);
-        tenant.harvestEvents().forEach(eventPublisher::publishEvent);
-
-        Group group = findGroupInTenant(tenant, groupId);
-        return toGroupResult(group);
-    }
-
-    @Override
-    @Transactional
-    public GroupAdminResult unsuspendGroup(ActorContext actor, String tenantId, String groupId) {
-        assertTenantIsolation(actor, tenantId);
-
-        Tenant tenant = tenantRepository.findById(tenantId)
-            .orElseThrow(() -> new DomainException(ErrorCode.GROUP_NOT_FOUND, "Tenant not found"));
-
-        tenant.unsuspendGroup(groupId);
-        tenantRepository.save(tenant);
-        tenant.harvestEvents().forEach(eventPublisher::publishEvent);
-
-        Group group = findGroupInTenant(tenant, groupId);
-        return toGroupResult(group);
-    }
-
-    private Group findGroupInTenant(Tenant tenant, String groupId) {
-        return tenant.groups().stream()
-            .filter(g -> g.groupId().equals(groupId))
-            .findFirst()
-            .orElseThrow(() -> new DomainException(ErrorCode.GROUP_NOT_FOUND, "Group not found in tenant"));
-    }
-
-    private void assertTenantIsolation(ActorContext actor, String tenantId) {
-        if (!TenantIsolationPolicy.isIsolated(actor.tenantId(), tenantId)) {
-            throw new DomainException(ErrorCode.TENANT_ISOLATION_VIOLATION, "Cross-tenant access denied");
-        }
-    }
-
     private void assertLivePermission(ActorContext actor, String tenantId, String action, String resourceRef) {
         AuthzEvaluateResult decision = evaluateAuthorizationUseCase.evaluate(
             actor,
@@ -341,12 +278,11 @@ public class MembershipAdminService implements MembershipAdminUseCase {
 
     private MembershipRoleAssignmentsResult mutateMembershipRoleAssignment(
         ActorContext actor,
-        String tenantId,
         String membershipId,
         String roleCode,
         boolean assign
     ) {
-        assertTenantIsolation(actor, tenantId);
+        String tenantId = actor.tenantId();
         Membership target = membershipAdminRepository.findMembershipById(membershipId)
             .orElseThrow(() -> new DomainException(ErrorCode.MEMBERSHIP_NOT_FOUND, "Membership not found"));
         if (!tenantId.equals(target.tenantId())) {
@@ -376,13 +312,12 @@ public class MembershipAdminService implements MembershipAdminUseCase {
 
     private MembershipPermissionTemplateResult mutatePermissionTemplate(
         ActorContext actor,
-        String tenantId,
         String membershipId,
         String templateCode,
         String reason,
         boolean apply
     ) {
-        assertTenantIsolation(actor, tenantId);
+        String tenantId = actor.tenantId();
         Membership target = membershipAdminRepository.findMembershipById(membershipId)
             .orElseThrow(() -> new DomainException(ErrorCode.MEMBERSHIP_NOT_FOUND, "Membership not found"));
         if (!tenantId.equals(target.tenantId())) {
@@ -504,7 +439,6 @@ public class MembershipAdminService implements MembershipAdminUseCase {
         return new MembershipInvitationResult(
             invitation.invitationId(),
             invitation.tenantId(),
-            invitation.groupId(),
             invitation.inviteeEmail().value(),
             invitation.role().name(),
             invitation.status().name()
@@ -512,32 +446,30 @@ public class MembershipAdminService implements MembershipAdminUseCase {
     }
 
     private MembershipResult toMembershipResult(Membership membership) {
+        String email = resolveUserEmail(membership.userId());
         return new MembershipResult(
             membership.membershipId(),
             membership.tenantId(),
-            membership.groupId(),
+            email,
             membership.currentRoleCodes().stream().sorted().toList(),
             membership.status().name()
         );
     }
 
     private MembershipAdminView toMembershipView(Membership membership) {
+        String email = resolveUserEmail(membership.userId());
         return new MembershipAdminView(
             membership.membershipId(),
             membership.tenantId(),
-            membership.groupId(),
+            email,
             membership.currentRoleCodes().stream().sorted().toList(),
             membership.status().name()
         );
     }
 
-    private GroupAdminResult toGroupResult(Group group) {
-        return new GroupAdminResult(
-            group.groupId(),
-            group.tenantId(),
-            group.type().name(),
-            group.status().name()
-        );
+    private String resolveUserEmail(String userId) {
+        return userAccountRepository.findByUserId(userId)
+            .map(user -> user.email().value())
+            .orElse(null);
     }
-
 }

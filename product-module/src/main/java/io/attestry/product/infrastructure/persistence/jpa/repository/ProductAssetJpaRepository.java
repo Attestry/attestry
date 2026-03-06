@@ -5,5 +5,5 @@ import org.springframework.data.jpa.repository.JpaRepository;
 
 public interface ProductAssetJpaRepository extends JpaRepository<ProductAssetJpaEntity, String> {
 
-    boolean existsByGroupIdAndSerialNumber(String groupId, String serialNumber);
+    boolean existsByTenantIdAndSerialNumber(String tenantId, String serialNumber);
 }

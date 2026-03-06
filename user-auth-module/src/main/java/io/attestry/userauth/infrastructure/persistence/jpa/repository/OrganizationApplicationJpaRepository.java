@@ -1,12 +1,13 @@
 package io.attestry.userauth.infrastructure.persistence.jpa.repository;
 
+import io.attestry.userauth.domain.onboarding.model.ApplicationStatus;
 import io.attestry.userauth.infrastructure.persistence.jpa.entity.OrganizationApplicationJpaEntity;
-import io.attestry.userauth.domain.organization.model.GroupType;
+import io.attestry.userauth.domain.organization.model.TenantType;
 import java.util.List;
 import org.springframework.data.jpa.repository.JpaRepository;
 
 public interface OrganizationApplicationJpaRepository extends JpaRepository<OrganizationApplicationJpaEntity, String> {
-    List<OrganizationApplicationJpaEntity> findByType(GroupType type);
+    List<OrganizationApplicationJpaEntity> findByType(TenantType type);
 
     List<OrganizationApplicationJpaEntity> findByApplicantUserId(String applicantUserId);
 
@@ -14,13 +15,13 @@ public interface OrganizationApplicationJpaRepository extends JpaRepository<Orga
 
     List<OrganizationApplicationJpaEntity> findByTenantId(String tenantId);
 
-    List<OrganizationApplicationJpaEntity> findByTenantIdAndType(String tenantId, GroupType type);
+    List<OrganizationApplicationJpaEntity> findByTenantIdAndType(String tenantId, TenantType type);
 
-    boolean existsByTypeAndTenantIdIsNullAndOrgNameIgnoreCase(GroupType type, String orgName);
+    boolean existsByTypeAndTenantIdIsNullAndOrgNameIgnoreCaseAndCountryIgnoreCaseAndStatusNot(TenantType type, String orgName, String country, ApplicationStatus status);
 
-    boolean existsByTypeAndTenantIdAndOrgNameIgnoreCase(GroupType type, String tenantId, String orgName);
+    boolean existsByTypeAndTenantIdAndOrgNameIgnoreCaseAndCountryIgnoreCaseAndStatusNot(TenantType type, String tenantId, String orgName, String country, ApplicationStatus status);
 
-    boolean existsByTypeAndTenantIdIsNullAndBizRegNoIgnoreCase(GroupType type, String bizRegNo);
+    boolean existsByTypeAndTenantIdIsNullAndBizRegNoIgnoreCaseAndStatusNot(TenantType type, String bizRegNo, ApplicationStatus status);
 
-    boolean existsByTypeAndTenantIdAndBizRegNoIgnoreCase(GroupType type, String tenantId, String bizRegNo);
+    boolean existsByTypeAndTenantIdAndBizRegNoIgnoreCaseAndStatusNot(TenantType type, String tenantId, String bizRegNo, ApplicationStatus status);
 }

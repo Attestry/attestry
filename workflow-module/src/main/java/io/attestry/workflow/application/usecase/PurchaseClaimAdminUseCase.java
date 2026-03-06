@@ -9,12 +9,11 @@ import java.util.List;
 
 public interface PurchaseClaimAdminUseCase {
 
-    List<PendingClaimView> listPendingClaims(AuthPrincipal principal, String tenantId, String groupId);
+    List<PendingClaimView> listPendingClaims(AuthPrincipal principal, String tenantId);
 
     ApprovePurchaseClaimResult approve(
         AuthPrincipal principal,
         String tenantId,
-        String groupId,
         String claimId,
         ApprovePurchaseClaimCommand command
     );
@@ -22,7 +21,6 @@ public interface PurchaseClaimAdminUseCase {
     RejectPurchaseClaimResult reject(
         AuthPrincipal principal,
         String tenantId,
-        String groupId,
         String claimId,
         String reason
     );

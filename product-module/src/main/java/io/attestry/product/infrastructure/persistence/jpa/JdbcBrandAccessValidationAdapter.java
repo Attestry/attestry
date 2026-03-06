@@ -16,25 +16,21 @@ public class JdbcBrandAccessValidationAdapter implements BrandAccessValidationPo
     }
 
     @Override
-    public void assertActiveBrandMembership(String actorUserId, String tenantId, String groupId) {
+    public void assertActiveBrandMembership(String actorUserId, String tenantId) {
         Integer membershipCount = jdbcTemplate.queryForObject(
             """
                 SELECT COUNT(1)
                 FROM memberships m
-                JOIN tenant_groups g ON g.group_id = m.group_id
                 JOIN tenants t ON t.tenant_id = m.tenant_id
                 WHERE m.user_id = ?
                   AND m.tenant_id = ?
-                  AND m.group_id = ?
                   AND m.status = 'ACTIVE'
-                  AND g.status = 'ACTIVE'
-                  AND g.type = 'BRAND'
                   AND t.status = 'ACTIVE'
+                  AND t.type = 'BRAND'
             """,
             Integer.class,
             actorUserId,
-            tenantId,
-            groupId
+            tenantId
         );
         if (membershipCount == null || membershipCount == 0) {
             throw new ProductDomainException(ProductErrorCode.MINT_CONTEXT_NOT_FOUND, "Active BRAND membership context is required");

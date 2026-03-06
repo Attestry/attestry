@@ -88,7 +88,7 @@ public class JdbcDelegationPermissionProjectionAdapter implements DelegationPerm
                 INSERT INTO passport_permissions (
                     permission_id,
                     passport_id,
-                    seller_group_id,
+                    seller_tenant_id,
                     scope,
                     status,
                     expires_at,
@@ -103,7 +103,7 @@ public class JdbcDelegationPermissionProjectionAdapter implements DelegationPerm
                 ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
                 ON CONFLICT (source_delegation_id) DO UPDATE
                 SET passport_id = EXCLUDED.passport_id,
-                    seller_group_id = EXCLUDED.seller_group_id,
+                    seller_tenant_id = EXCLUDED.seller_tenant_id,
                     scope = EXCLUDED.scope,
                     status = EXCLUDED.status,
                     expires_at = EXCLUDED.expires_at,

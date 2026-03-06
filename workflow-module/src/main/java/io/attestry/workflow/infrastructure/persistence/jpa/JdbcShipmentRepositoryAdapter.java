@@ -45,20 +45,18 @@ public class JdbcShipmentRepositoryAdapter implements ShipmentRepository {
         jdbcTemplate.update(
             """
                 INSERT INTO workflow_shipments (
-                    shipment_id, tenant_id, group_id, passport_id, shipment_round, status,
-                    released_at, released_by_user_id, released_by_group_id,
+                    shipment_id, tenant_id, passport_id, shipment_round, status,
+                    released_at, released_by_user_id,
                     evidence_group_id, created_at
-                ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+                ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)
             """,
             shipment.shipmentId(),
             shipment.tenantId(),
-            shipment.groupId(),
             shipment.passportId(),
             shipment.shipmentRound(),
             shipment.status().name(),
             Timestamp.from(shipment.releasedAt()),
             shipment.releasedByUserId(),
-            shipment.releasedByGroupId(),
             shipment.evidenceGroupId(),
             Timestamp.from(shipment.createdAt())
         );
@@ -127,13 +125,12 @@ public class JdbcShipmentRepositoryAdapter implements ShipmentRepository {
         return new Shipment(
             rs.getString("shipment_id"),
             rs.getString("tenant_id"),
-            rs.getString("group_id"),
             rs.getString("passport_id"),
             rs.getInt("shipment_round"),
             ShipmentStatus.valueOf(rs.getString("status")),
             rs.getTimestamp("released_at").toInstant(),
             rs.getString("released_by_user_id"),
-            rs.getString("released_by_group_id"),
+            rs.getString("released_by_tenant_id"),
             rs.getString("evidence_group_id"),
             returnedAt == null ? null : returnedAt.toInstant(),
             rs.getString("returned_by_user_id"),

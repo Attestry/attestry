@@ -20,7 +20,7 @@ import org.springframework.web.bind.annotation.ResponseStatus;
 import org.springframework.web.bind.annotation.RestController;
 
 @RestController
-@RequestMapping("/workflows/tenants/{tenantId}/groups/{groupId}/purchase-claims")
+@RequestMapping("/workflows/tenants/{tenantId}/purchase-claims")
 public class PurchaseClaimAdminHttp {
 
     private final PurchaseClaimAdminUseCase purchaseClaimAdminUseCase;
@@ -33,10 +33,9 @@ public class PurchaseClaimAdminHttp {
     @PreAuthorize("hasAuthority('SCOPE_PLATFORM_ADMIN')")
     public List<PendingClaimResponse> listPendingClaims(
         @AuthenticationPrincipal AuthPrincipal principal,
-        @PathVariable("tenantId") String tenantId,
-        @PathVariable("groupId") String groupId
+        @PathVariable("tenantId") String tenantId
     ) {
-        return purchaseClaimAdminUseCase.listPendingClaims(principal, tenantId, groupId).stream()
+        return purchaseClaimAdminUseCase.listPendingClaims(principal, tenantId).stream()
             .map(PendingClaimResponse::from)
             .toList();
     }
@@ -47,12 +46,11 @@ public class PurchaseClaimAdminHttp {
     public ApproveClaimResponse approve(
         @AuthenticationPrincipal AuthPrincipal principal,
         @PathVariable("tenantId") String tenantId,
-        @PathVariable("groupId") String groupId,
         @PathVariable("claimId") String claimId,
         @RequestBody ApproveClaimRequest request
     ) {
         ApprovePurchaseClaimResult result = purchaseClaimAdminUseCase.approve(
-            principal, tenantId, groupId, claimId,
+            principal, tenantId, claimId,
             new ApprovePurchaseClaimCommand(request.manufacturedAt(), request.productionBatch(), request.factoryCode())
         );
         return ApproveClaimResponse.from(result);
@@ -64,12 +62,11 @@ public class PurchaseClaimAdminHttp {
     public RejectClaimResponse reject(
         @AuthenticationPrincipal AuthPrincipal principal,
         @PathVariable("tenantId") String tenantId,
-        @PathVariable("groupId") String groupId,
         @PathVariable("claimId") String claimId,
         @RequestBody RejectClaimRequest request
     ) {
         RejectPurchaseClaimResult result = purchaseClaimAdminUseCase.reject(
-            principal, tenantId, groupId, claimId, request.reason()
+            principal, tenantId, claimId, request.reason()
         );
         return RejectClaimResponse.from(result);
     }

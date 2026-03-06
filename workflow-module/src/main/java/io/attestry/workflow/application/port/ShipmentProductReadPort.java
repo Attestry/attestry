@@ -9,7 +9,6 @@ public interface ShipmentProductReadPort {
     record PassportState(
         String passportId,
         String tenantId,
-        String groupId,
         String assetState,
         String riskFlag
     ) {

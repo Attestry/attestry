@@ -45,7 +45,7 @@ public class PurchaseClaimEvidenceService {
         return evidenceUploadSupport.doPresign(
             shipmentEvidencePort, objectStoragePort,
             OBJECT_KEY_PREFIX, PRESIGN_TTL,
-            command.tenantId(), command.groupId(), principal.userId(),
+            command.tenantId(), principal.userId(),
             command.evidenceGroupId(), command.fileName(), command.contentType(),
             Instant.now(clock)
         );

@@ -11,7 +11,6 @@ public interface ServiceProductReadPort {
     record ServicePassportState(
         String passportId,
         String tenantId,
-        String groupId,
         String assetState,
         String riskFlag
     ) {

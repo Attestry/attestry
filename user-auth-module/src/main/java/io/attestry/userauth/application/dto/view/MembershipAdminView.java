@@ -5,7 +5,7 @@ import java.util.List;
 public record MembershipAdminView(
     String membershipId,
     String tenantId,
-    String groupId,
+    String userEmail,
     List<String> roleCodes,
     String status
 ) {

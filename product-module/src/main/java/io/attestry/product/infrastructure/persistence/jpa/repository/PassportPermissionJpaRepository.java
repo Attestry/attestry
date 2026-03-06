@@ -11,10 +11,10 @@ public interface PassportPermissionJpaRepository extends JpaRepository<PassportP
     List<PassportPermissionJpaEntity> findByPassportId(String passportId);
 
     @Query("SELECT COUNT(p) > 0 FROM PassportPermissionJpaEntity p " +
-           "WHERE p.passportId = :passportId AND p.sellerGroupId = :sellerGroupId AND p.status = 'ACTIVE' " +
+           "WHERE p.passportId = :passportId AND p.sellerTenantId = :sellerTenantId AND p.status = 'ACTIVE' " +
            "AND (p.expiresAt IS NULL OR p.expiresAt > CURRENT_TIMESTAMP)")
-    boolean existsActiveByPassportIdAndSellerGroupId(
+    boolean existsActiveByPassportIdAndSellerTenantId(
         @Param("passportId") String passportId,
-        @Param("sellerGroupId") String sellerGroupId
+        @Param("sellerTenantId") String sellerTenantId
     );
 }

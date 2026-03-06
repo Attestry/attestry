@@ -28,7 +28,7 @@ public class ProductQueryHttp {
         ProductQueryUseCase.PassportDetailResponse result = queryUseCase.getPassportDetail(passportId);
         return new PassportDetailResponse(
             result.passportId(), result.qrPublicCode(),
-            result.tenantId(), result.groupId(),
+            result.tenantId(),
             result.assetId(), result.serialNumber(), result.modelId(), result.modelName(),
             result.manufacturedAt(), result.productionBatch(), result.factoryCode(),
             result.assetState(), result.riskFlag(),
@@ -58,7 +58,7 @@ public class ProductQueryHttp {
         return queryUseCase.listMyPassports(actor.userId()).stream()
             .map(r -> new MyPassportResponse(
                 r.passportId(), r.qrPublicCode(),
-                r.tenantId(), r.groupId(),
+                r.tenantId(),
                 r.assetId(), r.serialNumber(), r.modelName(),
                 r.assetState(), r.riskFlag(), r.ownedSince()
             ))
@@ -69,7 +69,6 @@ public class ProductQueryHttp {
         String passportId,
         String qrPublicCode,
         String tenantId,
-        String groupId,
         String assetId,
         String serialNumber,
         String modelName,
@@ -83,7 +82,6 @@ public class ProductQueryHttp {
         String passportId,
         String qrPublicCode,
         String tenantId,
-        String groupId,
         String assetId,
         String serialNumber,
         String modelId,

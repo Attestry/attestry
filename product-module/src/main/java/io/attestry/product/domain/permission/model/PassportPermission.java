@@ -6,7 +6,7 @@ public class PassportPermission {
 
     private final String permissionId;
     private final String passportId;
-    private final String sellerGroupId;
+    private final String sellerTenantId;
     private final PermissionScope scope;
     private PermissionStatus status;
     private final Instant expiresAt;
@@ -15,7 +15,7 @@ public class PassportPermission {
     private PassportPermission(
         String permissionId,
         String passportId,
-        String sellerGroupId,
+        String sellerTenantId,
         PermissionScope scope,
         PermissionStatus status,
         Instant expiresAt,
@@ -23,7 +23,7 @@ public class PassportPermission {
     ) {
         this.permissionId = permissionId;
         this.passportId = passportId;
-        this.sellerGroupId = sellerGroupId;
+        this.sellerTenantId = sellerTenantId;
         this.scope = scope;
         this.status = status;
         this.expiresAt = expiresAt;
@@ -33,13 +33,13 @@ public class PassportPermission {
     public static PassportPermission grant(
         String permissionId,
         String passportId,
-        String sellerGroupId,
+        String sellerTenantId,
         PermissionScope scope,
         Instant expiresAt,
         Instant now
     ) {
         return new PassportPermission(
-            permissionId, passportId, sellerGroupId,
+            permissionId, passportId, sellerTenantId,
             scope, PermissionStatus.ACTIVE, expiresAt, now
         );
     }
@@ -47,14 +47,14 @@ public class PassportPermission {
     public static PassportPermission reconstitute(
         String permissionId,
         String passportId,
-        String sellerGroupId,
+        String sellerTenantId,
         PermissionScope scope,
         PermissionStatus status,
         Instant expiresAt,
         Instant createdAt
     ) {
         return new PassportPermission(
-            permissionId, passportId, sellerGroupId,
+            permissionId, passportId, sellerTenantId,
             scope, status, expiresAt, createdAt
         );
     }
@@ -70,7 +70,7 @@ public class PassportPermission {
 
     public String getPermissionId() { return permissionId; }
     public String getPassportId() { return passportId; }
-    public String getSellerGroupId() { return sellerGroupId; }
+    public String getSellerTenantId() { return sellerTenantId; }
     public PermissionScope getScope() { return scope; }
     public PermissionStatus getStatus() { return status; }
     public Instant getExpiresAt() { return expiresAt; }

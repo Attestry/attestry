@@ -25,15 +25,6 @@ public class WorkflowAuthorizationSupport {
         }
     }
 
-    public void assertTenantAndGroupContext(AuthPrincipal principal, String tenantId, String groupId) {
-        if (principal.tenantId() == null || !principal.tenantId().equals(tenantId)) {
-            throw new WorkflowDomainException(WorkflowErrorCode.TENANT_ISOLATION_VIOLATION, "Cross-tenant access denied");
-        }
-        if (principal.groupId() == null || !principal.groupId().equals(groupId)) {
-            throw new WorkflowDomainException(WorkflowErrorCode.TENANT_ISOLATION_VIOLATION, "Cross-group access denied");
-        }
-    }
-
     public void assertPermissionOnly(AuthPrincipal principal, String action, String resourceRef) {
         assertLivePermission(principal, principal.tenantId(), action, resourceRef);
     }

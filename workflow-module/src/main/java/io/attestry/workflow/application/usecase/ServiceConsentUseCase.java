@@ -9,5 +9,5 @@ public interface ServiceConsentUseCase {
 
     GrantServiceConsentResult grantConsent(AuthPrincipal principal, String passportId, GrantServiceConsentCommand command);
 
-    RevokeServiceConsentResult revokeConsent(AuthPrincipal principal, String passportId, String providerGroupId);
+    RevokeServiceConsentResult revokeConsent(AuthPrincipal principal, String passportId, String providerTenantId);
 }

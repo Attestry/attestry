@@ -7,7 +7,6 @@ import java.time.Instant;
 public record PurchaseClaim(
     String claimId,
     String tenantId,
-    String groupId,
     String claimantUserId,
     String serialNumber,
     String modelName,
@@ -25,7 +24,6 @@ public record PurchaseClaim(
     public static PurchaseClaim submit(
         String claimId,
         String tenantId,
-        String groupId,
         String claimantUserId,
         String serialNumber,
         String modelName,
@@ -38,9 +36,6 @@ public record PurchaseClaim(
         }
         if (tenantId == null || tenantId.isBlank()) {
             throw new WorkflowDomainException(WorkflowErrorCode.INVALID_REQUEST, "tenantId is required");
-        }
-        if (groupId == null || groupId.isBlank()) {
-            throw new WorkflowDomainException(WorkflowErrorCode.INVALID_REQUEST, "groupId is required");
         }
         if (claimantUserId == null || claimantUserId.isBlank()) {
             throw new WorkflowDomainException(WorkflowErrorCode.INVALID_REQUEST, "claimantUserId is required");
@@ -56,7 +51,7 @@ public record PurchaseClaim(
         }
 
         return new PurchaseClaim(
-            claimId, tenantId, groupId, claimantUserId,
+            claimId, tenantId, claimantUserId,
             serialNumber, modelName, evidenceGroupId, note,
             PurchaseClaimStatus.SUBMITTED, now,
             null, null, null,
@@ -69,7 +64,7 @@ public record PurchaseClaim(
             throw new WorkflowDomainException(WorkflowErrorCode.CLAIM_INVALID_STATE, "Only SUBMITTED claims can be approved");
         }
         return new PurchaseClaim(
-            claimId, tenantId, groupId, claimantUserId,
+            claimId, tenantId, claimantUserId,
             serialNumber, modelName, evidenceGroupId, note,
             PurchaseClaimStatus.APPROVED, submittedAt,
             reviewerUserId, now, null,
@@ -82,7 +77,7 @@ public record PurchaseClaim(
             throw new WorkflowDomainException(WorkflowErrorCode.CLAIM_INVALID_STATE, "Only SUBMITTED claims can be rejected");
         }
         return new PurchaseClaim(
-            claimId, tenantId, groupId, claimantUserId,
+            claimId, tenantId, claimantUserId,
             serialNumber, modelName, evidenceGroupId, note,
             PurchaseClaimStatus.REJECTED, submittedAt,
             reviewerUserId, now, reason,

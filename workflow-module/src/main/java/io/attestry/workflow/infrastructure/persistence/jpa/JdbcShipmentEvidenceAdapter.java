@@ -25,7 +25,6 @@ public class JdbcShipmentEvidenceAdapter implements ShipmentEvidencePort {
     public void createEvidenceGroupIfAbsent(
         String evidenceGroupId,
         String tenantId,
-        String groupId,
         String ownerUserId,
         Instant now
     ) {
@@ -40,12 +39,11 @@ public class JdbcShipmentEvidenceAdapter implements ShipmentEvidencePort {
         jdbcTemplate.update(
             """
                 INSERT INTO workflow_shipment_evidence_groups (
-                    evidence_group_id, tenant_id, group_id, owner_user_id, created_at
-                ) VALUES (?, ?, ?, ?, ?)
+                    evidence_group_id, tenant_id, owner_user_id, created_at
+                ) VALUES (?, ?, ?, ?)
             """,
             evidenceGroupId,
             tenantId,
-            groupId,
             ownerUserId,
             Timestamp.from(now)
         );
@@ -123,14 +121,13 @@ public class JdbcShipmentEvidenceAdapter implements ShipmentEvidencePort {
     public Optional<EvidenceGroupScopeView> findEvidenceGroupScope(String evidenceGroupId) {
         List<EvidenceGroupScopeView> rows = jdbcTemplate.query(
             """
-                SELECT evidence_group_id, tenant_id, group_id, owner_user_id
+                SELECT evidence_group_id, tenant_id, owner_user_id
                 FROM workflow_shipment_evidence_groups
                 WHERE evidence_group_id = ?
             """,
             (rs, rowNum) -> new EvidenceGroupScopeView(
                 rs.getString("evidence_group_id"),
                 rs.getString("tenant_id"),
-                rs.getString("group_id"),
                 rs.getString("owner_user_id")
             ),
             evidenceGroupId

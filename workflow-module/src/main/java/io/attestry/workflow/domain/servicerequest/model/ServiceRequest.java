@@ -13,7 +13,6 @@ public record ServiceRequest(
     String serviceType,
     String ownerUserId,
     String providerTenantId,
-    String providerGroupId,
     ServiceRequestStatus status,
     String description,
     String beforeEvidenceGroupId,
@@ -34,7 +33,6 @@ public record ServiceRequest(
         String serviceType,
         String ownerUserId,
         String providerTenantId,
-        String providerGroupId,
         String description,
         String beforeEvidenceGroupId,
         String permissionId,
@@ -47,7 +45,6 @@ public record ServiceRequest(
         requireText(serviceType, "serviceType");
         requireText(ownerUserId, "ownerUserId");
         requireText(providerTenantId, "providerTenantId");
-        requireText(providerGroupId, "providerGroupId");
         requireText(submittedByUserId, "submittedByUserId");
         requireNonNull(submittedAt, "submittedAt");
         requireNonNull(createdAt, "createdAt");
@@ -58,7 +55,6 @@ public record ServiceRequest(
             serviceType,
             ownerUserId,
             providerTenantId,
-            providerGroupId,
             ServiceRequestStatus.SUBMITTED,
             description,
             beforeEvidenceGroupId,
@@ -87,7 +83,6 @@ public record ServiceRequest(
             serviceType,
             ownerUserId,
             providerTenantId,
-            providerGroupId,
             ServiceRequestStatus.COMPLETED,
             description,
             beforeEvidenceGroupId,
@@ -115,7 +110,6 @@ public record ServiceRequest(
             serviceType,
             ownerUserId,
             providerTenantId,
-            providerGroupId,
             ServiceRequestStatus.CANCELLED,
             description,
             beforeEvidenceGroupId,

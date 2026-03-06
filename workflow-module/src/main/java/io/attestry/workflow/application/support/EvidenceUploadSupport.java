@@ -40,8 +40,8 @@ public class EvidenceUploadSupport {
         return contentType.trim();
     }
 
-    public String buildObjectKey(String pathPrefix, String tenantId, String groupId, String evidenceGroupId, String fileName) {
-        return pathPrefix + tenantId + "/" + groupId + "/" + evidenceGroupId + "/" + UUID.randomUUID() + "/" + fileName;
+    public String buildObjectKey(String pathPrefix, String tenantId, String evidenceGroupId, String fileName) {
+        return pathPrefix + tenantId + "/" + evidenceGroupId + "/" + UUID.randomUUID() + "/" + fileName;
     }
 
     public void assertObjectUploaded(boolean objectExists) {
@@ -60,7 +60,7 @@ public class EvidenceUploadSupport {
         ShipmentEvidencePort shipmentEvidencePort,
         ObjectStoragePort objectStoragePort,
         String objectKeyPrefix, Duration presignTtl,
-        String tenantId, String groupId, String userId,
+        String tenantId, String userId,
         String evidenceGroupIdInput, String fileName, String contentType,
         Instant now
     ) {
@@ -70,14 +70,14 @@ public class EvidenceUploadSupport {
             : evidenceGroupIdInput.trim();
 
         if (isNewGroup) {
-            shipmentEvidencePort.createEvidenceGroupIfAbsent(evidenceGroupId, tenantId, groupId, userId, now);
+            shipmentEvidencePort.createEvidenceGroupIfAbsent(evidenceGroupId, tenantId, userId, now);
         } else {
-            assertEvidenceGroupScope(shipmentEvidencePort, evidenceGroupId, tenantId, groupId);
+            assertEvidenceGroupScope(shipmentEvidencePort, evidenceGroupId, tenantId);
         }
 
         String safeFileName = normalizeFileName(fileName);
         String normalizedContentType = normalizeContentType(contentType);
-        String objectKey = buildObjectKey(objectKeyPrefix, tenantId, groupId, evidenceGroupId, safeFileName);
+        String objectKey = buildObjectKey(objectKeyPrefix, tenantId, evidenceGroupId, safeFileName);
         String evidenceId = UUID.randomUUID().toString();
 
         shipmentEvidencePort.createPendingEvidence(evidenceId, evidenceGroupId, objectKey, safeFileName, normalizedContentType, now);
@@ -109,16 +109,16 @@ public class EvidenceUploadSupport {
 
     public void assertEvidenceGroupScope(
         ShipmentEvidencePort shipmentEvidencePort,
-        String evidenceGroupId, String tenantId, String groupId
+        String evidenceGroupId, String tenantId
     ) {
         ShipmentEvidencePort.EvidenceGroupScopeView scope = shipmentEvidencePort
             .findEvidenceGroupScope(evidenceGroupId)
             .orElseThrow(() -> new WorkflowDomainException(
                 WorkflowErrorCode.EVIDENCE_NOT_FOUND, "Evidence group not found"));
-        if (!tenantId.equals(scope.tenantId()) || !groupId.equals(scope.groupId())) {
+        if (!tenantId.equals(scope.tenantId())) {
             throw new WorkflowDomainException(
                 WorkflowErrorCode.TENANT_ISOLATION_VIOLATION,
-                "Cross-tenant/group evidence group access denied");
+                "Cross-tenant evidence group access denied");
         }
     }
 }

@@ -21,9 +21,6 @@ public class InvitationJpaEntity {
     @Column(name = "tenant_id", nullable = false, length = 36)
     private String tenantId;
 
-    @Column(name = "group_id", nullable = false, length = 36)
-    private String groupId;
-
     @Column(name = "invitee_email", nullable = false)
     private String inviteeEmail;
 
@@ -53,7 +50,6 @@ public class InvitationJpaEntity {
     public InvitationJpaEntity(
         String invitationId,
         String tenantId,
-        String groupId,
         String inviteeEmail,
         MembershipRole role,
         InvitationStatus status,
@@ -64,7 +60,6 @@ public class InvitationJpaEntity {
     ) {
         this.invitationId = invitationId;
         this.tenantId = tenantId;
-        this.groupId = groupId;
         this.inviteeEmail = inviteeEmail;
         this.role = role;
         this.status = status;
@@ -80,10 +75,6 @@ public class InvitationJpaEntity {
 
     public String getTenantId() {
         return tenantId;
-    }
-
-    public String getGroupId() {
-        return groupId;
     }
 
     public String getInviteeEmail() {

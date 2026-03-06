@@ -61,11 +61,10 @@ public class ServiceCompleteService implements ServiceCompleteUseCase {
     public CompleteServiceRequestResult complete(
         AuthPrincipal principal,
         String tenantId,
-        String groupId,
         String serviceRequestId,
         CompleteServiceRequestCommand command
     ) {
-        authorizationSupport.assertTenantAndGroupContext(principal, tenantId, groupId);
+        authorizationSupport.assertTenantContext(principal, tenantId);
         authorizationSupport.assertLivePermission(principal, tenantId, PermissionCodes.SERVICE_COMPLETE, "service:complete:" + serviceRequestId);
 
         ServiceRequest request = serviceRequestRepository.findById(serviceRequestId)
@@ -74,14 +73,14 @@ public class ServiceCompleteService implements ServiceCompleteUseCase {
         if (request.status() != ServiceRequestStatus.SUBMITTED) {
             throw new WorkflowDomainException(WorkflowErrorCode.SERVICE_REQUEST_INVALID_STATE, "Only SUBMITTED service request can be completed");
         }
-        if (!tenantId.equals(request.providerTenantId()) || !groupId.equals(request.providerGroupId())) {
-            throw new WorkflowDomainException(WorkflowErrorCode.TENANT_ISOLATION_VIOLATION, "Cross-tenant/group service request access denied");
+        if (!tenantId.equals(request.providerTenantId())) {
+            throw new WorkflowDomainException(WorkflowErrorCode.TENANT_ISOLATION_VIOLATION, "Cross-tenant service request access denied");
         }
 
         ServiceProductReadPort.ServicePassportState state = serviceProductReadPort.findPassportState(request.passportId())
             .orElseThrow(() -> new WorkflowDomainException(WorkflowErrorCode.INVALID_REQUEST, "Passport not found"));
 
-        boolean hasPermission = servicePermissionPort.hasActiveServiceRepairPermission(request.passportId(), groupId);
+        boolean hasPermission = servicePermissionPort.hasActiveServiceRepairPermission(request.passportId(), tenantId);
 
         ServiceCompleteContext context = new ServiceCompleteContext(
             state.assetState(),

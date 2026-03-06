@@ -7,8 +7,8 @@ import io.attestry.userauth.application.dto.view.MembershipView;
 import io.attestry.userauth.application.port.MembershipPermissionQueryPort;
 import io.attestry.userauth.application.port.MembershipRepositoryPort;
 import io.attestry.userauth.domain.authorization.model.PermissionCodes;
-import io.attestry.userauth.domain.organization.model.GroupStatus;
-import io.attestry.userauth.domain.organization.model.GroupType;
+import io.attestry.userauth.domain.organization.model.TenantType;
+import io.attestry.userauth.domain.organization.repository.TenantRepository;
 import io.attestry.userauth.domain.membership.model.Membership;
 import io.attestry.userauth.domain.membership.model.MembershipRole;
 import io.attestry.userauth.domain.membership.model.MembershipStatus;
@@ -26,14 +26,14 @@ class MembershipQueryServiceTest {
             @Override
             public List<Membership> findByUserId(String userId) {
                 return List.of(Membership.reconstitute(
-                    "m1", userId, "g1", "t1",
-                    GroupType.RETAIL, MembershipRole.OPERATOR, MembershipStatus.ACTIVE,
-                    GroupStatus.ACTIVE, TenantStatus.ACTIVE, Set.of()
+                    "m1", userId, "t1",
+                    TenantType.RETAIL, MembershipRole.OPERATOR, MembershipStatus.ACTIVE,
+                    TenantStatus.ACTIVE, Set.of()
                 ));
             }
 
             @Override
-            public Optional<Membership> findByUserIdAndContext(String userId, String tenantId, String groupId) {
+            public Optional<Membership> findByUserIdAndTenantId(String userId, String tenantId) {
                 return Optional.empty();
             }
         };
@@ -55,7 +55,19 @@ class MembershipQueryServiceTest {
             }
         };
 
-        MembershipQueryService service = new MembershipQueryService(repository, permissionQueryPort);
+        TenantRepository tenantRepository = new TenantRepository() {
+            @Override
+            public io.attestry.userauth.domain.organization.model.Tenant save(io.attestry.userauth.domain.organization.model.Tenant tenant) {
+                return tenant;
+            }
+
+            @Override
+            public Optional<io.attestry.userauth.domain.organization.model.Tenant> findById(String tenantId) {
+                return Optional.empty();
+            }
+        };
+
+        MembershipQueryService service = new MembershipQueryService(repository, permissionQueryPort, tenantRepository);
         List<MembershipView> views = service.getMemberships("u1");
 
         assertEquals(1, views.size());

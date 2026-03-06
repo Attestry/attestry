@@ -49,10 +49,10 @@ class TransferCreateServiceTest {
 
     private static final Instant EXPIRES = Instant.parse("2026-03-01T11:00:00Z");
     private static final AuthPrincipal OWNER_PRINCIPAL = new AuthPrincipal(
-        "token1", "user1", "tenant1", "group1", VerificationLevel.PHONE_VERIFIED, Set.of("SCOPE_OWNER_TRANSFER_CREATE"), Instant.parse("2026-03-02T00:00:00Z")
+        "token1", "user1", "tenant1", VerificationLevel.PHONE_VERIFIED, Set.of("SCOPE_OWNER_TRANSFER_CREATE"), Instant.parse("2026-03-02T00:00:00Z")
     );
     private static final AuthPrincipal RETAIL_PRINCIPAL = new AuthPrincipal(
-        "token2", "retailUser", "tenant1", "group1", VerificationLevel.PHONE_VERIFIED, Set.of("SCOPE_RETAIL_TRANSFER_CREATE"), Instant.parse("2026-03-02T00:00:00Z")
+        "token2", "retailUser", "tenant1", VerificationLevel.PHONE_VERIFIED, Set.of("SCOPE_RETAIL_TRANSFER_CREATE"), Instant.parse("2026-03-02T00:00:00Z")
     );
 
     @BeforeEach
@@ -67,7 +67,7 @@ class TransferCreateServiceTest {
     void createC2C_qr_success() {
         doNothing().when(authorizationSupport).assertPermissionOnly(any(), anyString(), anyString());
         when(productReadPort.findPassportState("p1"))
-            .thenReturn(Optional.of(new TransferPassportState("p1", "tenant1", "group1", "ACTIVE", "NONE")));
+            .thenReturn(Optional.of(new TransferPassportState("p1", "tenant1", "ACTIVE", "NONE")));
         when(productReadPort.findCurrentOwnerId("p1")).thenReturn(Optional.of("user1"));
         when(transferRepository.existsActivePendingByPassportId("p1")).thenReturn(false);
         when(transferRepository.save(any(TokenTransfer.class))).thenAnswer(inv -> inv.getArgument(0));
@@ -89,7 +89,7 @@ class TransferCreateServiceTest {
     void createC2C_code_success() {
         doNothing().when(authorizationSupport).assertPermissionOnly(any(), anyString(), anyString());
         when(productReadPort.findPassportState("p1"))
-            .thenReturn(Optional.of(new TransferPassportState("p1", "tenant1", "group1", "ACTIVE", "NONE")));
+            .thenReturn(Optional.of(new TransferPassportState("p1", "tenant1", "ACTIVE", "NONE")));
         when(productReadPort.findCurrentOwnerId("p1")).thenReturn(Optional.of("user1"));
         when(transferRepository.existsActivePendingByPassportId("p1")).thenReturn(false);
         when(transferRepository.save(any(TokenTransfer.class))).thenAnswer(inv -> inv.getArgument(0));
@@ -107,7 +107,7 @@ class TransferCreateServiceTest {
     void createC2C_notOwner_throws() {
         doNothing().when(authorizationSupport).assertPermissionOnly(any(), anyString(), anyString());
         when(productReadPort.findPassportState("p1"))
-            .thenReturn(Optional.of(new TransferPassportState("p1", "tenant1", "group1", "ACTIVE", "NONE")));
+            .thenReturn(Optional.of(new TransferPassportState("p1", "tenant1", "ACTIVE", "NONE")));
         when(productReadPort.findCurrentOwnerId("p1")).thenReturn(Optional.of("otherUser"));
         when(transferRepository.existsActivePendingByPassportId("p1")).thenReturn(false);
 
@@ -120,7 +120,7 @@ class TransferCreateServiceTest {
     void createC2C_alreadyPending_throws() {
         doNothing().when(authorizationSupport).assertPermissionOnly(any(), anyString(), anyString());
         when(productReadPort.findPassportState("p1"))
-            .thenReturn(Optional.of(new TransferPassportState("p1", "tenant1", "group1", "ACTIVE", "NONE")));
+            .thenReturn(Optional.of(new TransferPassportState("p1", "tenant1", "ACTIVE", "NONE")));
         when(productReadPort.findCurrentOwnerId("p1")).thenReturn(Optional.of("user1"));
         when(transferRepository.existsActivePendingByPassportId("p1")).thenReturn(true);
 
@@ -134,7 +134,7 @@ class TransferCreateServiceTest {
     void createC2C_riskFlagged_throws() {
         doNothing().when(authorizationSupport).assertPermissionOnly(any(), anyString(), anyString());
         when(productReadPort.findPassportState("p1"))
-            .thenReturn(Optional.of(new TransferPassportState("p1", "tenant1", "group1", "ACTIVE", "HIGH")));
+            .thenReturn(Optional.of(new TransferPassportState("p1", "tenant1", "ACTIVE", "HIGH")));
         when(productReadPort.findCurrentOwnerId("p1")).thenReturn(Optional.empty());
         when(transferRepository.existsActivePendingByPassportId("p1")).thenReturn(false);
 
@@ -148,9 +148,9 @@ class TransferCreateServiceTest {
         doNothing().when(authorizationSupport).assertTenantContext(any(), anyString());
         doNothing().when(authorizationSupport).assertLivePermission(any(), anyString(), anyString(), anyString());
         when(productReadPort.findPassportState("p1"))
-            .thenReturn(Optional.of(new TransferPassportState("p1", "tenant1", "group1", "ACTIVE", "NONE")));
+            .thenReturn(Optional.of(new TransferPassportState("p1", "tenant1", "ACTIVE", "NONE")));
         when(productReadPort.findCurrentOwnerId("p1")).thenReturn(Optional.empty());
-        when(productReadPort.hasRetailPermission("p1", "group1")).thenReturn(true);
+        when(productReadPort.hasRetailPermission("p1", "tenant1")).thenReturn(true);
         when(transferRepository.existsActivePendingByPassportId("p1")).thenReturn(false);
         when(transferRepository.save(any(TokenTransfer.class))).thenAnswer(inv -> inv.getArgument(0));
 
@@ -169,7 +169,7 @@ class TransferCreateServiceTest {
         doNothing().when(authorizationSupport).assertTenantContext(any(), anyString());
         doNothing().when(authorizationSupport).assertLivePermission(any(), anyString(), anyString(), anyString());
         when(productReadPort.findPassportState("p1"))
-            .thenReturn(Optional.of(new TransferPassportState("p1", "tenant1", "group1", "ACTIVE", "NONE")));
+            .thenReturn(Optional.of(new TransferPassportState("p1", "tenant1", "ACTIVE", "NONE")));
         when(productReadPort.findCurrentOwnerId("p1")).thenReturn(Optional.of("existingOwner"));
         when(transferRepository.existsActivePendingByPassportId("p1")).thenReturn(false);
 
@@ -183,9 +183,9 @@ class TransferCreateServiceTest {
         doNothing().when(authorizationSupport).assertTenantContext(any(), anyString());
         doNothing().when(authorizationSupport).assertLivePermission(any(), anyString(), anyString(), anyString());
         when(productReadPort.findPassportState("p1"))
-            .thenReturn(Optional.of(new TransferPassportState("p1", "tenant1", "group1", "ACTIVE", "NONE")));
+            .thenReturn(Optional.of(new TransferPassportState("p1", "tenant1", "ACTIVE", "NONE")));
         when(productReadPort.findCurrentOwnerId("p1")).thenReturn(Optional.empty());
-        when(productReadPort.hasRetailPermission("p1", "group1")).thenReturn(false);
+        when(productReadPort.hasRetailPermission("p1", "tenant1")).thenReturn(false);
         when(transferRepository.existsActivePendingByPassportId("p1")).thenReturn(false);
 
         assertThrows(WorkflowDomainException.class, () ->

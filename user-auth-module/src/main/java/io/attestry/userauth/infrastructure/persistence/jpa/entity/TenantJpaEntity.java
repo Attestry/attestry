@@ -1,5 +1,6 @@
 package io.attestry.userauth.infrastructure.persistence.jpa.entity;
 
+import io.attestry.userauth.domain.organization.model.TenantType;
 import io.attestry.userauth.domain.organization.model.TenantStatus;
 import jakarta.persistence.Column;
 import jakarta.persistence.Entity;
@@ -23,16 +24,21 @@ public class TenantJpaEntity {
     private String region;
 
     @Enumerated(EnumType.STRING)
+    @Column(name = "type", nullable = false)
+    private TenantType type;
+
+    @Enumerated(EnumType.STRING)
     @Column(name = "status", nullable = false)
     private TenantStatus status;
 
     protected TenantJpaEntity() {
     }
 
-    public TenantJpaEntity(String tenantId, String name, String region, TenantStatus status) {
+    public TenantJpaEntity(String tenantId, String name, String region, TenantType type, TenantStatus status) {
         this.tenantId = tenantId;
         this.name = name;
         this.region = region;
+        this.type = type;
         this.status = status;
     }
 
@@ -46,6 +52,10 @@ public class TenantJpaEntity {
 
     public String getRegion() {
         return region;
+    }
+
+    public TenantType getType() {
+        return type;
     }
 
     public TenantStatus getStatus() {

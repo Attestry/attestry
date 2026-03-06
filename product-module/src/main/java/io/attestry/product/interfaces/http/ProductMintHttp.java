@@ -28,20 +28,18 @@ public class ProductMintHttp {
         this.queryUseCase = queryUseCase;
     }
 
-    @PostMapping("/tenants/{tenantId}/groups/{groupId}/minted")
+    @PostMapping("/tenants/{tenantId}/minted")
     @ResponseStatus(HttpStatus.CREATED)
     @PreAuthorize("hasAuthority('SCOPE_BRAND_MINT')")
     public MintedProductResponse mint(
         @CurrentActor ActorContext actor,
         @PathVariable("tenantId") String tenantId,
-        @PathVariable("groupId") String groupId,
         @RequestBody MintedProductRequest request
     ) {
         ProductMintUseCase.MintedProductResult result = mintUseCase.mint(
             actor,
             new ProductMintUseCase.MintProductCommand(
                 tenantId,
-                groupId,
                 request.serialNumber(),
                 request.modelId(),
                 request.modelName(),
@@ -54,13 +52,12 @@ public class ProductMintHttp {
         return MintedProductResponse.from(result);
     }
 
-    @GetMapping("/tenants/{tenantId}/groups/{groupId}/minted")
+    @GetMapping("/tenants/{tenantId}/minted")
     @PreAuthorize("hasAuthority('SCOPE_TENANT_READ_ONLY')")
     public List<MintedPassportListResponse> listMinted(
-        @PathVariable("tenantId") String tenantId,
-        @PathVariable("groupId") String groupId
+        @PathVariable("tenantId") String tenantId
     ) {
-        return queryUseCase.listMintedPassports(tenantId, groupId).stream()
+        return queryUseCase.listMintedPassports(tenantId).stream()
             .map(r -> new MintedPassportListResponse(
                 r.passportId(), r.qrPublicCode(),
                 r.assetId(), r.serialNumber(), r.modelId(), r.modelName(),

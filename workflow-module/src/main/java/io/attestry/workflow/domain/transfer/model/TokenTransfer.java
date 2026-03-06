@@ -16,7 +16,6 @@ public record TokenTransfer(
     String fromOwnerId,
     String toOwnerId,
     String tenantId,
-    String groupId,
     String qrNonce,
     String codeHash,
     String codeSalt,
@@ -50,7 +49,7 @@ public record TokenTransfer(
 
         return new TokenTransfer(
             transferId, passportId, TransferType.C2C, TransferStatus.PENDING, credential.method(),
-            fromOwnerId, null, null, null,
+            fromOwnerId, null, null,
             credential.qrNonce(), credential.codeHash(), credential.codeSalt(),
             0, expiresAt, createdAt, createdByUserId,
             null, null, null
@@ -61,7 +60,6 @@ public record TokenTransfer(
         String transferId,
         String passportId,
         String tenantId,
-        String groupId,
         AcceptCredential credential,
         Instant expiresAt,
         Instant createdAt,
@@ -70,7 +68,6 @@ public record TokenTransfer(
         requireText(transferId, "transferId");
         requireText(passportId, "passportId");
         requireText(tenantId, "tenantId");
-        requireText(groupId, "groupId");
         requireText(createdByUserId, "createdByUserId");
         requireNonNull(credential, "credential");
         requireNonNull(expiresAt, "expiresAt");
@@ -78,7 +75,7 @@ public record TokenTransfer(
 
         return new TokenTransfer(
             transferId, passportId, TransferType.B2C, TransferStatus.PENDING, credential.method(),
-            null, null, tenantId, groupId,
+            null, null, tenantId,
             credential.qrNonce(), credential.codeHash(), credential.codeSalt(),
             0, expiresAt, createdAt, createdByUserId,
             null, null, null
@@ -98,7 +95,7 @@ public record TokenTransfer(
         }
         return new TokenTransfer(
             transferId, passportId, transferType, TransferStatus.COMPLETED, acceptMethod,
-            fromOwnerId, toOwnerId, tenantId, groupId,
+            fromOwnerId, toOwnerId, tenantId,
             qrNonce, codeHash, codeSalt,
             attemptCount, expiresAt, createdAt, createdByUserId,
             now, null, null
@@ -113,7 +110,7 @@ public record TokenTransfer(
         }
         return new TokenTransfer(
             transferId, passportId, transferType, TransferStatus.CANCELLED, acceptMethod,
-            fromOwnerId, toOwnerId, tenantId, groupId,
+            fromOwnerId, toOwnerId, tenantId,
             qrNonce, codeHash, codeSalt,
             attemptCount, expiresAt, createdAt, createdByUserId,
             null, now, cancelledByUserId
@@ -128,7 +125,7 @@ public record TokenTransfer(
         }
         return new TokenTransfer(
             transferId, passportId, transferType, TransferStatus.EXPIRED, acceptMethod,
-            fromOwnerId, toOwnerId, tenantId, groupId,
+            fromOwnerId, toOwnerId, tenantId,
             qrNonce, codeHash, codeSalt,
             attemptCount, expiresAt, createdAt, createdByUserId,
             null, now, null
@@ -138,7 +135,7 @@ public record TokenTransfer(
     public TokenTransfer incrementAttempt() {
         return new TokenTransfer(
             transferId, passportId, transferType, status, acceptMethod,
-            fromOwnerId, toOwnerId, tenantId, groupId,
+            fromOwnerId, toOwnerId, tenantId,
             qrNonce, codeHash, codeSalt,
             attemptCount + 1, expiresAt, createdAt, createdByUserId,
             completedAt, cancelledAt, cancelledByUserId

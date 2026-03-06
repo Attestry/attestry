@@ -9,7 +9,6 @@ public record ActorContext(
     String tokenId,
     String userId,
     String tenantId,
-    String groupId,
     VerificationLevel verificationLevel,
     Set<String> scopes,
     Instant expiresAt
@@ -19,7 +18,6 @@ public record ActorContext(
             principal.tokenId(),
             principal.userId(),
             principal.tenantId(),
-            principal.groupId(),
             principal.verificationLevel(),
             principal.scopes(),
             principal.expiresAt()

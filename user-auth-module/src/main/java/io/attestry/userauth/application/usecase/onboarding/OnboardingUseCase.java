@@ -18,6 +18,8 @@ public interface OnboardingUseCase {
 
     ApplicationView getMyApplication(ActorContext actor, String applicationId);
 
+    ApplicationView getApplication(String applicationId);
+
     List<ApplicationView> listApplications(String type);
 
     ApproveApplicationResult approveApplication(ActorContext actor, String applicationId);

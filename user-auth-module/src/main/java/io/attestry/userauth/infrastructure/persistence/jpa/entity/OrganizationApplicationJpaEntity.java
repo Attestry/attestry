@@ -1,7 +1,7 @@
 package io.attestry.userauth.infrastructure.persistence.jpa.entity;
 
 import io.attestry.userauth.domain.onboarding.model.ApplicationStatus;
-import io.attestry.userauth.domain.organization.model.GroupType;
+import io.attestry.userauth.domain.organization.model.TenantType;
 import jakarta.persistence.Column;
 import jakarta.persistence.Entity;
 import jakarta.persistence.EnumType;
@@ -21,7 +21,7 @@ public class OrganizationApplicationJpaEntity {
 
     @Enumerated(EnumType.STRING)
     @Column(name = "type", nullable = false)
-    private GroupType type;
+    private TenantType type;
 
     @Column(name = "applicant_user_id", nullable = false, length = 36)
     private String applicantUserId;
@@ -63,7 +63,7 @@ public class OrganizationApplicationJpaEntity {
 
     public OrganizationApplicationJpaEntity(
         String applicationId,
-        GroupType type,
+        TenantType type,
         String applicantUserId,
         String tenantId,
         String orgName,
@@ -95,7 +95,7 @@ public class OrganizationApplicationJpaEntity {
         return applicationId;
     }
 
-    public GroupType getType() {
+    public TenantType getType() {
         return type;
     }
 

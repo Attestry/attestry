@@ -11,7 +11,6 @@ public interface MyPassportQueryPort {
         String passportId,
         String qrPublicCode,
         String tenantId,
-        String groupId,
         String assetId,
         String serialNumber,
         String modelName,

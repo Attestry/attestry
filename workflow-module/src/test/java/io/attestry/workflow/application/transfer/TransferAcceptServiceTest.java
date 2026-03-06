@@ -59,7 +59,7 @@ class TransferAcceptServiceTest {
     private static final Instant EXPIRES = Instant.parse("2026-03-01T11:00:00Z");
     private static final Instant CREATED = Instant.parse("2026-03-01T09:00:00Z");
     private static final AuthPrincipal CONSUMER = new AuthPrincipal(
-        "token1", "consumer1", null, null, VerificationLevel.PHONE_VERIFIED, Set.of("SCOPE_OWNER_TRANSFER_ACCEPT"), Instant.parse("2026-03-02T00:00:00Z")
+        "token1", "consumer1", null, VerificationLevel.PHONE_VERIFIED, Set.of("SCOPE_OWNER_TRANSFER_ACCEPT"), Instant.parse("2026-03-02T00:00:00Z")
     );
 
     @BeforeEach
@@ -74,7 +74,7 @@ class TransferAcceptServiceTest {
     void accept_qr_b2c_success() {
         String nonce = "nonce-abc";
         TokenTransfer pending = TokenTransfer.createB2C(
-            "t1", "p1", "tenant1", "group1",
+            "t1", "p1", "tenant1",
             AcceptCredential.ofQr(nonce),
             EXPIRES, CREATED, "retailUser"
         );
@@ -82,7 +82,7 @@ class TransferAcceptServiceTest {
         doNothing().when(authorizationSupport).assertPermissionOnly(any(), anyString(), anyString());
         when(transferRepository.findById("t1")).thenReturn(Optional.of(pending));
         when(productReadPort.findPassportState("p1"))
-            .thenReturn(Optional.of(new TransferPassportState("p1", "tenant1", "group1", "ACTIVE", "NONE")));
+            .thenReturn(Optional.of(new TransferPassportState("p1", "tenant1", "ACTIVE", "NONE")));
         when(transferRepository.save(any(TokenTransfer.class))).thenAnswer(inv -> inv.getArgument(0));
         doNothing().when(ownershipUpdatePort).upsertOwner(anyString(), anyString(), any(Instant.class));
         when(outboxPort.enqueue(any(WorkflowLedgerEventEnvelope.class))).thenReturn("outbox1");
@@ -110,7 +110,7 @@ class TransferAcceptServiceTest {
         doNothing().when(authorizationSupport).assertPermissionOnly(any(), anyString(), anyString());
         when(transferRepository.findById("t1")).thenReturn(Optional.of(pending));
         when(productReadPort.findPassportState("p1"))
-            .thenReturn(Optional.of(new TransferPassportState("p1", "tenant1", "group1", "ACTIVE", "NONE")));
+            .thenReturn(Optional.of(new TransferPassportState("p1", "tenant1", "ACTIVE", "NONE")));
         when(productReadPort.findCurrentOwnerId("p1")).thenReturn(Optional.of("owner1"));
         when(transferRepository.save(any(TokenTransfer.class))).thenAnswer(inv -> inv.getArgument(0));
         doNothing().when(ownershipUpdatePort).upsertOwner(anyString(), anyString(), any(Instant.class));
@@ -143,7 +143,7 @@ class TransferAcceptServiceTest {
         );
 
         TokenTransfer pending = TokenTransfer.createB2C(
-            "t1", "p1", "tenant1", "group1",
+            "t1", "p1", "tenant1",
             AcceptCredential.ofQr("nonce1"),
             EXPIRES, CREATED, "retailUser"
         );
@@ -160,7 +160,7 @@ class TransferAcceptServiceTest {
     @Test
     void accept_wrongQrNonce_throws() {
         TokenTransfer pending = TokenTransfer.createB2C(
-            "t1", "p1", "tenant1", "group1",
+            "t1", "p1", "tenant1",
             AcceptCredential.ofQr("nonce-correct"),
             EXPIRES, CREATED, "retailUser"
         );
@@ -168,7 +168,7 @@ class TransferAcceptServiceTest {
         doNothing().when(authorizationSupport).assertPermissionOnly(any(), anyString(), anyString());
         when(transferRepository.findById("t1")).thenReturn(Optional.of(pending));
         when(productReadPort.findPassportState("p1"))
-            .thenReturn(Optional.of(new TransferPassportState("p1", "tenant1", "group1", "ACTIVE", "NONE")));
+            .thenReturn(Optional.of(new TransferPassportState("p1", "tenant1", "ACTIVE", "NONE")));
 
         WorkflowDomainException ex = assertThrows(WorkflowDomainException.class, () ->
             service.accept(CONSUMER, "t1", new AcceptTransferCommand("wrong-nonce", null))
@@ -189,7 +189,7 @@ class TransferAcceptServiceTest {
         doNothing().when(authorizationSupport).assertPermissionOnly(any(), anyString(), anyString());
         when(transferRepository.findById("t1")).thenReturn(Optional.of(pending));
         when(productReadPort.findPassportState("p1"))
-            .thenReturn(Optional.of(new TransferPassportState("p1", "tenant1", "group1", "ACTIVE", "NONE")));
+            .thenReturn(Optional.of(new TransferPassportState("p1", "tenant1", "ACTIVE", "NONE")));
         when(productReadPort.findCurrentOwnerId("p1")).thenReturn(Optional.of("owner1"));
         when(transferRepository.save(any(TokenTransfer.class))).thenAnswer(inv -> inv.getArgument(0));
 
@@ -217,7 +217,7 @@ class TransferAcceptServiceTest {
         doNothing().when(authorizationSupport).assertPermissionOnly(any(), anyString(), anyString());
         when(transferRepository.findById("t1")).thenReturn(Optional.of(pending));
         when(productReadPort.findPassportState("p1"))
-            .thenReturn(Optional.of(new TransferPassportState("p1", "tenant1", "group1", "ACTIVE", "NONE")));
+            .thenReturn(Optional.of(new TransferPassportState("p1", "tenant1", "ACTIVE", "NONE")));
         when(productReadPort.findCurrentOwnerId("p1")).thenReturn(Optional.of("owner1"));
         when(transferRepository.save(any(TokenTransfer.class))).thenAnswer(inv -> inv.getArgument(0));
 
@@ -238,7 +238,7 @@ class TransferAcceptServiceTest {
         doNothing().when(authorizationSupport).assertPermissionOnly(any(), anyString(), anyString());
         when(transferRepository.findById("t1")).thenReturn(Optional.of(pending));
         when(productReadPort.findPassportState("p1"))
-            .thenReturn(Optional.of(new TransferPassportState("p1", "tenant1", "group1", "ACTIVE", "NONE")));
+            .thenReturn(Optional.of(new TransferPassportState("p1", "tenant1", "ACTIVE", "NONE")));
         when(productReadPort.findCurrentOwnerId("p1")).thenReturn(Optional.of("differentOwner"));
         doThrow(new WorkflowDomainException(WorkflowErrorCode.INVALID_STATE, "Passport ownership changed during transfer"))
             .when(acceptPolicy).assertAcceptable(any());

@@ -36,12 +36,12 @@ public class PassportPermissionHttp {
             actor,
             new PassportPermissionUseCase.GrantCommand(
                 passportId,
-                request.sellerGroupId(),
+                request.sellerTenantId(),
                 request.scope(),
                 request.expiresAt()
             )
         );
-        return new GrantResponse(result.permissionId(), result.passportId(), result.sellerGroupId(), result.scope());
+        return new GrantResponse(result.permissionId(), result.passportId(), result.sellerTenantId(), result.scope());
     }
 
     @DeleteMapping("/passports/{passportId}/permissions/{permissionId}")
@@ -64,9 +64,9 @@ public class PassportPermissionHttp {
         permissionUseCase.suspendPermission(actor, permissionId);
     }
 
-    public record GrantRequest(String sellerGroupId, PermissionScope scope, Instant expiresAt) {
+    public record GrantRequest(String sellerTenantId, PermissionScope scope, Instant expiresAt) {
     }
 
-    public record GrantResponse(String permissionId, String passportId, String sellerGroupId, String scope) {
+    public record GrantResponse(String permissionId, String passportId, String sellerTenantId, String scope) {
     }
 }

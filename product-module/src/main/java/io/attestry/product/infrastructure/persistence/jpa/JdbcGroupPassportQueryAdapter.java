@@ -16,7 +16,7 @@ public class JdbcGroupPassportQueryAdapter implements GroupPassportQueryPort {
     }
 
     @Override
-    public List<GroupPassportView> findByTenantAndGroup(String tenantId, String groupId) {
+    public List<GroupPassportView> findByTenant(String tenantId) {
         return jdbcTemplate.query(
             """
                 SELECT pp.passport_id, pp.qr_public_code,
@@ -27,7 +27,7 @@ public class JdbcGroupPassportQueryAdapter implements GroupPassportQueryPort {
                 FROM product_passports pp
                 JOIN product_assets pa ON pa.asset_id = pp.asset_id
                 LEFT JOIN passport_ownership po ON po.passport_id = pp.passport_id
-                WHERE pp.tenant_id = ? AND pp.group_id = ?
+                WHERE pp.tenant_id = ?
                 ORDER BY pp.created_at DESC
                 """,
             (rs, rowNum) -> {
@@ -46,7 +46,7 @@ public class JdbcGroupPassportQueryAdapter implements GroupPassportQueryPort {
                     rs.getTimestamp("created_at").toInstant()
                 );
             },
-            tenantId, groupId
+            tenantId
         );
     }
 }

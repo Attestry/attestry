@@ -17,9 +17,6 @@ public class ProductAssetJpaEntity {
     @Column(name = "tenant_id", nullable = false, length = 36)
     private String tenantId;
 
-    @Column(name = "group_id", nullable = false, length = 36)
-    private String groupId;
-
     @Column(name = "serial_number", nullable = false, length = 120)
     private String serialNumber;
 
@@ -80,7 +77,6 @@ public class ProductAssetJpaEntity {
     public ProductAssetJpaEntity(
         String assetId,
         String tenantId,
-        String groupId,
         String serialNumber,
         String modelId,
         String modelName,
@@ -102,7 +98,6 @@ public class ProductAssetJpaEntity {
     ) {
         this.assetId = assetId;
         this.tenantId = tenantId;
-        this.groupId = groupId;
         this.serialNumber = serialNumber;
         this.modelId = modelId;
         this.modelName = modelName;
@@ -125,7 +120,6 @@ public class ProductAssetJpaEntity {
 
     public String getAssetId() { return assetId; }
     public String getTenantId() { return tenantId; }
-    public String getGroupId() { return groupId; }
     public String getSerialNumber() { return serialNumber; }
     public String getModelId() { return modelId; }
     public String getModelName() { return modelName; }

@@ -25,7 +25,6 @@
 
 ### 수동 입력 fallback 값
 @tenantId = REPLACE_TENANT_ID
-@groupId = REPLACE_GROUP_ID
 @membershipId = REPLACE_MEMBERSHIP_ID
 @invitationId = REPLACE_INVITATION_ID
 @applicationId = REPLACE_APPLICATION_ID
@@ -63,15 +62,14 @@ Content-Type: {{contentType}}
 {
   "email": "{{platformEmail}}",
   "password": "{{platformPassword}}",
-  "tenantId": null,
-  "groupId": null
+  "tenantId": null
 }
 
 > {%
   client.global.set("platformAccessToken", response.body.accessToken);
 %}
 
-### A-4) Owner login (온보딩 승인 후 tenant/group 포함 재로그인 권장)
+### A-4) Owner login (온보딩 승인 후 tenant 포함 재로그인 권장)
 # @name ownerLogin
 POST {{baseUrl}}/auth/login
 Content-Type: {{contentType}}
@@ -79,8 +77,7 @@ Content-Type: {{contentType}}
 {
   "email": "{{ownerEmail}}",
   "password": "{{ownerPassword}}",
-  "tenantId": null,
-  "groupId": null
+  "tenantId": null
 }
 
 > {%
@@ -152,7 +149,6 @@ Authorization: Bearer {{platformAccessToken}}
 
 > {%
   client.global.set("tenantId", response.body.tenantId);
-  client.global.set("groupId", response.body.groupId);
   client.global.set("ownerMembershipId", response.body.membershipId);
 %}
 
@@ -164,8 +160,7 @@ Content-Type: {{contentType}}
 {
   "email": "{{ownerEmail}}",
   "password": "{{ownerPassword}}",
-  "tenantId": "{{tenantId}}",
-  "groupId": "{{groupId}}"
+  "tenantId": "{{tenantId}}"
 }
 
 > {%
@@ -190,7 +185,6 @@ Content-Type: {{contentType}}
 
 {
   "email": "{{operatorEmail}}",
-  "groupId": "{{groupId}}",
   "role": "STAFF"
 }
 
@@ -206,8 +200,7 @@ Content-Type: {{contentType}}
 {
   "email": "{{operatorEmail}}",
   "password": "{{operatorPassword}}",
-  "tenantId": null,
-  "groupId": null
+  "tenantId": null
 }
 
 > {%

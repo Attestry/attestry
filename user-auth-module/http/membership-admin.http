@@ -2,39 +2,36 @@
 
 @baseUrl = http://localhost:8080
 @contentType = application/json
-@accessToken = 5bd57e1e-f900-421d-a4f3-0e005c4f7346
-@tenantId = 4be926c6-39ce-4622-8ca4-86149abd2894
-@groupId = 4409809d-ba72-4a15-96cf-5cb2ab544f05
+@accessToken = 975e835d-5129-4428-a7bb-1a91fc82e9f4
 @membershipId = 905043f9-7f2a-4242-be41-8901260a926d
-@invitationId = 2fe03ecf-eca9-48f7-b0c4-7e01d5d2815f
+@invitationId = db657136-44b1-4950-9161-03e6ad81bd2b
 @roleCode = TENANT_OPERATOR
 @templateCode = TEMPLATE_BRAND_WORK
-@invitation-accessToken = 7a15cf5c-dec9-4724-9cb7-6c2da121b8d1
+@invitation-accessToken = 82e2567e-8bba-4802-a037-98c9e36aa2fa
 
 ### 1) Invite member
 ### Required scope: SCOPE_TENANT_INVITATION_CREATE
-POST {{baseUrl}}/tenants/{{tenantId}}/admin/invitations
+POST {{baseUrl}}/admin/invitations
 Authorization: Bearer {{accessToken}}
 Content-Type: {{contentType}}
 
 {
   "email": "operator1@attestry.io",
-  "groupId": "{{groupId}}",
   "role": "STAFF"
 }
 
 ### 2) Accept invitation
-POST {{baseUrl}}/invitations/{{invitationId}}/accept
+POST {{baseUrl}}/admin/invitations/{{invitationId}}/accept
 Authorization: Bearer {{invitation-accessToken}}
 
 ### 3) List memberships
-### Required scope: SCOPE_TENANT_MEMBERSHIP_VIEW
-GET {{baseUrl}}/tenants/{{tenantId}}/admin/memberships
+### Required scope: SCOPE_TENANT_READ_ONLY
+GET {{baseUrl}}/admin/memberships
 Authorization: Bearer {{accessToken}}
 
 ### 4) Update membership status
 ### Required scope: SCOPE_TENANT_MEMBERSHIP_ENFORCE
-PATCH {{baseUrl}}/tenants/{{tenantId}}/admin/memberships/{{membershipId}}/status
+PATCH {{baseUrl}}/admin/memberships/{{membershipId}}/status
 Authorization: Bearer {{accessToken}}
 Content-Type: {{contentType}}
 
@@ -44,32 +41,32 @@ Content-Type: {{contentType}}
 
 ### 5) List membership roles
 ### Required scope: SCOPE_TENANT_ROLE_ASSIGN
-GET {{baseUrl}}/tenants/{{tenantId}}/admin/memberships/{{membershipId}}/roles
+GET {{baseUrl}}/admin/memberships/{{membershipId}}/roles
 Authorization: Bearer {{accessToken}}
 
 ### 6) List assignable roles for membership
 ### Required scope: SCOPE_TENANT_ROLE_ASSIGN
-GET {{baseUrl}}/tenants/{{tenantId}}/admin/memberships/{{membershipId}}/roles/available
+GET {{baseUrl}}/admin/memberships/{{membershipId}}/roles/available
 Authorization: Bearer {{accessToken}}
 
 ### 7) List tenant available permission templates
 ### Required scope: SCOPE_TENANT_ROLE_ASSIGN
-GET {{baseUrl}}/tenants/{{tenantId}}/admin/permission-templates/available
+GET {{baseUrl}}/admin/permission-templates/available
 Authorization: Bearer {{accessToken}}
 
 ### 8) Assign role
 ### Required scope: SCOPE_TENANT_ROLE_ASSIGN
-POST {{baseUrl}}/tenants/{{tenantId}}/admin/memberships/{{membershipId}}/roles/TENANT_OPERATOR
+POST {{baseUrl}}/admin/memberships/{{membershipId}}/roles/TENANT_OPERATOR
 Authorization: Bearer {{accessToken}}
 
 ### 9) Revoke role
 ### Required scope: SCOPE_TENANT_ROLE_ASSIGN
-DELETE {{baseUrl}}/tenants/{{tenantId}}/admin/memberships/{{membershipId}}/roles/{{roleCode}}
+DELETE {{baseUrl}}/admin/memberships/{{membershipId}}/roles/{{roleCode}}
 Authorization: Bearer {{accessToken}}
 
 ### 10) Apply permission template to membership
 ### Required scope: SCOPE_TENANT_ROLE_ASSIGN
-POST {{baseUrl}}/tenants/{{tenantId}}/admin/memberships/{{membershipId}}/permission-templates/{{templateCode}}/apply
+POST {{baseUrl}}/admin/memberships/{{membershipId}}/permission-templates/{{templateCode}}/apply
 Authorization: Bearer {{accessToken}}
 Content-Type: {{contentType}}
 
@@ -79,7 +76,7 @@ Content-Type: {{contentType}}
 
 ### 11) Revoke permission template from membership
 ### Required scope: SCOPE_TENANT_ROLE_ASSIGN
-POST {{baseUrl}}/tenants/{{tenantId}}/admin/memberships/{{membershipId}}/permission-templates/{{templateCode}}/revoke
+POST {{baseUrl}}/admin/memberships/{{membershipId}}/permission-templates/{{templateCode}}/revoke
 Authorization: Bearer {{accessToken}}
 Content-Type: {{contentType}}
 

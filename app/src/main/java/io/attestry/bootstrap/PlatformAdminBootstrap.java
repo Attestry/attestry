@@ -22,7 +22,6 @@ public class PlatformAdminBootstrap implements ApplicationRunner {
 
     private static final String DEFAULT_USER_ID = "00000000-0000-0000-0000-000000000101";
     private static final String DEFAULT_TENANT_ID = "00000000-0000-0000-0000-000000000201";
-    private static final String DEFAULT_GROUP_ID = "00000000-0000-0000-0000-000000000301";
     private static final String DEFAULT_MEMBERSHIP_ID = "00000000-0000-0000-0000-000000000401";
     private static final String DEFAULT_ASSIGNMENT_ID = "00000000-0000-0000-0000-000000000501";
     private static final String PLATFORM_SUPER_ADMIN_ROLE_ID = "role-platform-super-admin";
@@ -64,7 +63,6 @@ public class PlatformAdminBootstrap implements ApplicationRunner {
         String userId = ensureUser(normalizedEmail);
 
         ensureTenant();
-        ensureGroup();
         String membershipId = ensureMembership(userId);
         ensureAssignment(userId, membershipId);
 
@@ -99,35 +97,12 @@ public class PlatformAdminBootstrap implements ApplicationRunner {
         }
         jdbcTemplate.update(
             """
-            INSERT INTO tenants (tenant_id, name, region, status)
-            VALUES (?, ?, ?, 'ACTIVE')
+            INSERT INTO tenants (tenant_id, name, region, type, status)
+            VALUES (?, ?, ?, 'INTERNAL', 'ACTIVE')
             """,
             DEFAULT_TENANT_ID,
             "Platform Admin Tenant",
             "KR"
-        );
-    }
-
-    private void ensureGroup() {
-        if (exists("SELECT 1 FROM tenant_groups WHERE group_id = ?", DEFAULT_GROUP_ID)) {
-            jdbcTemplate.update(
-                """
-                UPDATE tenant_groups
-                SET type = 'INTERNAL', status = 'ACTIVE', tenant_id = ?
-                WHERE group_id = ?
-                """,
-                DEFAULT_TENANT_ID,
-                DEFAULT_GROUP_ID
-            );
-            return;
-        }
-        jdbcTemplate.update(
-            """
-            INSERT INTO tenant_groups (group_id, tenant_id, type, status)
-            VALUES (?, ?, 'INTERNAL', 'ACTIVE')
-            """,
-            DEFAULT_GROUP_ID,
-            DEFAULT_TENANT_ID
         );
     }
 
@@ -136,11 +111,10 @@ public class PlatformAdminBootstrap implements ApplicationRunner {
             """
             SELECT membership_id
             FROM memberships
-            WHERE user_id = ? AND tenant_id = ? AND group_id = ?
+            WHERE user_id = ? AND tenant_id = ?
             """,
             userId,
-            DEFAULT_TENANT_ID,
-            DEFAULT_GROUP_ID
+            DEFAULT_TENANT_ID
         );
         if (existingMembershipId != null) {
             jdbcTemplate.update(
@@ -148,7 +122,6 @@ public class PlatformAdminBootstrap implements ApplicationRunner {
                 UPDATE memberships
                 SET group_type = 'INTERNAL',
                     status = 'ACTIVE',
-                    group_status = 'ACTIVE',
                     tenant_status = 'ACTIVE'
                 WHERE membership_id = ?
                 """,
@@ -165,14 +138,13 @@ public class PlatformAdminBootstrap implements ApplicationRunner {
         jdbcTemplate.update(
             """
             INSERT INTO memberships (
-                membership_id, user_id, group_id, tenant_id, group_type,
-                status, group_status, tenant_status
+                membership_id, user_id, tenant_id, group_type,
+                status, tenant_status
             )
-            VALUES (?, ?, ?, ?, 'INTERNAL', 'ACTIVE', 'ACTIVE', 'ACTIVE')
+            VALUES (?, ?, ?, 'INTERNAL', 'ACTIVE', 'ACTIVE')
             """,
             membershipId,
             userId,
-            DEFAULT_GROUP_ID,
             DEFAULT_TENANT_ID
         );
         return membershipId;

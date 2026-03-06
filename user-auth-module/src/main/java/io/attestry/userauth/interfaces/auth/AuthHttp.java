@@ -47,7 +47,7 @@ public class AuthHttp {
     public LoginResponse login(@Valid @RequestBody LoginRequest request) {
 
         AuthTokenResult result = authApplicationService.login(
-            new LoginCommand(request.email(), request.password(), request.tenantId(), request.groupId())
+            new LoginCommand(request.email(), request.password(), request.tenantId())
         );
 
         return new LoginResponse(
@@ -55,8 +55,7 @@ public class AuthHttp {
             result.tokenType(),
             result.expiresAt(),
             result.userId(),
-            result.tenantId(),
-            result.groupId()
+            result.tenantId()
         );
     }
 

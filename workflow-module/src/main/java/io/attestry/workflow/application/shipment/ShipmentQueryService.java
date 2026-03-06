@@ -38,13 +38,12 @@ public class ShipmentQueryService implements ShipmentQueryUseCase {
     public List<ShipmentViewResult> listByPassport(
         AuthPrincipal principal,
         String tenantId,
-        String groupId,
         String passportId
     ) {
-        authorizationSupport.assertTenantAndGroupContext(principal, tenantId, groupId);
+        authorizationSupport.assertTenantContext(principal, tenantId);
         authorizationSupport.assertLivePermission(principal, tenantId, PermissionCodes.BRAND_RELEASE, "shipment:list:" + passportId);
         return shipmentRepository.findByPassportId(passportId).stream()
-            .filter(shipment -> tenantId.equals(shipment.tenantId()) && groupId.equals(shipment.groupId()))
+            .filter(shipment -> tenantId.equals(shipment.tenantId()))
             .map(this::toShipmentView)
             .toList();
     }
@@ -54,14 +53,13 @@ public class ShipmentQueryService implements ShipmentQueryUseCase {
     public List<ShipmentEvidenceViewResult> listEvidenceByShipmentId(
         AuthPrincipal principal,
         String tenantId,
-        String groupId,
         String shipmentId
     ) {
-        authorizationSupport.assertTenantAndGroupContext(principal, tenantId, groupId);
+        authorizationSupport.assertTenantContext(principal, tenantId);
         Shipment shipment = shipmentRepository.findByShipmentId(shipmentId)
             .orElseThrow(() -> new WorkflowDomainException(WorkflowErrorCode.INVALID_REQUEST, "Shipment not found"));
-        if (!tenantId.equals(shipment.tenantId()) || !groupId.equals(shipment.groupId())) {
-            throw new WorkflowDomainException(WorkflowErrorCode.TENANT_ISOLATION_VIOLATION, "Cross-tenant/group shipment access denied");
+        if (!tenantId.equals(shipment.tenantId())) {
+            throw new WorkflowDomainException(WorkflowErrorCode.TENANT_ISOLATION_VIOLATION, "Cross-tenant shipment access denied");
         }
         authorizationSupport.assertLivePermission(principal, tenantId, PermissionCodes.BRAND_RELEASE, "shipment:evidence:" + shipment.shipmentId());
         List<ShipmentEvidencePort.ShipmentEvidenceView> evidences = new ArrayList<>(
@@ -79,13 +77,12 @@ public class ShipmentQueryService implements ShipmentQueryUseCase {
         return new ShipmentViewResult(
             shipment.shipmentId(),
             shipment.tenantId(),
-            shipment.groupId(),
             shipment.passportId(),
             shipment.shipmentRound(),
             shipment.status().name(),
             shipment.releasedAt(),
             shipment.releasedByUserId(),
-            shipment.releasedByGroupId(),
+            shipment.releasedByTenantId(),
             shipment.evidenceGroupId(),
             shipment.returnedAt(),
             shipment.returnedByUserId(),

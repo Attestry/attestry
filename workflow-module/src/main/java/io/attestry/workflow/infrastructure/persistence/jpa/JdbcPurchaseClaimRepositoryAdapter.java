@@ -25,12 +25,12 @@ public class JdbcPurchaseClaimRepositoryAdapter implements PurchaseClaimReposito
         jdbcTemplate.update(
             """
                 INSERT INTO purchase_claim_requests (
-                    claim_id, tenant_id, group_id, claimant_user_id,
+                    claim_id, tenant_id, claimant_user_id,
                     serial_number, model_name, evidence_group_id, note,
                     status, submitted_at,
                     reviewed_by_user_id, reviewed_at, rejection_reason,
                     passport_id, asset_id, created_at
-                ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+                ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
                 ON CONFLICT (claim_id) DO UPDATE SET
                     status = EXCLUDED.status,
                     reviewed_by_user_id = EXCLUDED.reviewed_by_user_id,
@@ -41,7 +41,6 @@ public class JdbcPurchaseClaimRepositoryAdapter implements PurchaseClaimReposito
             """,
             claim.claimId(),
             claim.tenantId(),
-            claim.groupId(),
             claim.claimantUserId(),
             claim.serialNumber(),
             claim.modelName(),
@@ -79,11 +78,11 @@ public class JdbcPurchaseClaimRepositoryAdapter implements PurchaseClaimReposito
     }
 
     @Override
-    public List<PurchaseClaim> findByTenantIdAndGroupIdAndStatus(String tenantId, String groupId, PurchaseClaimStatus status) {
+    public List<PurchaseClaim> findByTenantIdAndStatus(String tenantId, PurchaseClaimStatus status) {
         return jdbcTemplate.query(
-            "SELECT * FROM purchase_claim_requests WHERE tenant_id = ? AND group_id = ? AND status = ? ORDER BY submitted_at ASC",
+            "SELECT * FROM purchase_claim_requests WHERE tenant_id = ? AND status = ? ORDER BY submitted_at ASC",
             (rs, rowNum) -> mapClaim(rs),
-            tenantId, groupId, status.name()
+            tenantId, status.name()
         );
     }
 
@@ -92,7 +91,6 @@ public class JdbcPurchaseClaimRepositoryAdapter implements PurchaseClaimReposito
         return new PurchaseClaim(
             rs.getString("claim_id"),
             rs.getString("tenant_id"),
-            rs.getString("group_id"),
             rs.getString("claimant_user_id"),
             rs.getString("serial_number"),
             rs.getString("model_name"),

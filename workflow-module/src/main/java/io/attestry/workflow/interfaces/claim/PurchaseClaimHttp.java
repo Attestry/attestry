@@ -41,7 +41,7 @@ public class PurchaseClaimHttp {
         PresignedShipmentEvidenceUploadResult result = purchaseClaimSubmitUseCase.presignEvidence(
             principal,
             new PresignClaimEvidenceCommand(
-                request.tenantId(), request.groupId(),
+                request.tenantId(),
                 request.evidenceGroupId(), request.fileName(), request.contentType()
             )
         );
@@ -57,7 +57,7 @@ public class PurchaseClaimHttp {
         ShipmentEvidenceCompleteResult result = purchaseClaimSubmitUseCase.completeEvidence(
             principal,
             new CompleteClaimEvidenceCommand(
-                request.tenantId(), request.groupId(),
+                request.tenantId(),
                 request.evidenceGroupId(), request.evidenceId(),
                 request.sizeBytes(), request.fileHash()
             )
@@ -75,7 +75,7 @@ public class PurchaseClaimHttp {
         SubmitPurchaseClaimResult result = purchaseClaimSubmitUseCase.submit(
             principal,
             new SubmitPurchaseClaimCommand(
-                request.tenantId(), request.groupId(),
+                request.tenantId(),
                 request.serialNumber(), request.modelName(),
                 request.evidenceGroupId(), request.note()
             )
@@ -92,20 +92,20 @@ public class PurchaseClaimHttp {
     }
 
     public record PresignEvidenceRequest(
-        String tenantId, String groupId,
+        String tenantId,
         String evidenceGroupId, String fileName, String contentType
     ) {
     }
 
     public record CompleteEvidenceRequest(
-        String tenantId, String groupId,
+        String tenantId,
         String evidenceGroupId, String evidenceId,
         long sizeBytes, String fileHash
     ) {
     }
 
     public record SubmitClaimRequest(
-        String tenantId, String groupId,
+        String tenantId,
         String serialNumber, String modelName,
         String evidenceGroupId, String note
     ) {
@@ -136,14 +136,14 @@ public class PurchaseClaimHttp {
     }
 
     public record MyClaimResponse(
-        String claimId, String tenantId, String groupId,
+        String claimId, String tenantId,
         String serialNumber, String modelName,
         String status, Instant submittedAt,
         String rejectionReason, String passportId, String assetId
     ) {
         static MyClaimResponse from(MyClaimView view) {
             return new MyClaimResponse(
-                view.claimId(), view.tenantId(), view.groupId(),
+                view.claimId(), view.tenantId(),
                 view.serialNumber(), view.modelName(),
                 view.status(), view.submittedAt(),
                 view.rejectionReason(), view.passportId(), view.assetId()

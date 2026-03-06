@@ -38,7 +38,7 @@ class PurchaseClaimSubmitServiceTest {
     private PurchaseClaimSubmitService service;
 
     private static final AuthPrincipal CONSUMER = new AuthPrincipal(
-        "token1", "consumer1", null, null,
+        "token1", "consumer1", null,
         VerificationLevel.PHONE_VERIFIED, Set.of(), Instant.parse("2026-03-02T00:00:00Z")
     );
 
@@ -58,7 +58,7 @@ class PurchaseClaimSubmitServiceTest {
 
         SubmitPurchaseClaimResult result = service.submit(
             CONSUMER,
-            new SubmitPurchaseClaimCommand("t1", "g1", "SN-001", "Model X", "eg-1", "note")
+            new SubmitPurchaseClaimCommand("t1", "SN-001", "Model X", "eg-1", "note")
         );
 
         assertEquals("SUBMITTED", result.status());
@@ -74,7 +74,7 @@ class PurchaseClaimSubmitServiceTest {
         WorkflowDomainException ex = assertThrows(WorkflowDomainException.class, () ->
             service.submit(
                 CONSUMER,
-                new SubmitPurchaseClaimCommand("t1", "g1", "SN-001", "Model X", "eg-1", null)
+                new SubmitPurchaseClaimCommand("t1", "SN-001", "Model X", "eg-1", null)
             )
         );
         assertEquals(WorkflowErrorCode.CLAIM_EVIDENCE_INSUFFICIENT, ex.getErrorCode());
@@ -83,14 +83,14 @@ class PurchaseClaimSubmitServiceTest {
     @Test
     void submit_noUser_throws() {
         AuthPrincipal noUser = new AuthPrincipal(
-            "token1", null, null, null,
+            "token1", null, null,
             VerificationLevel.PHONE_VERIFIED, Set.of(), Instant.parse("2026-03-02T00:00:00Z")
         );
 
         WorkflowDomainException ex = assertThrows(WorkflowDomainException.class, () ->
             service.submit(
                 noUser,
-                new SubmitPurchaseClaimCommand("t1", "g1", "SN-001", "Model X", "eg-1", null)
+                new SubmitPurchaseClaimCommand("t1", "SN-001", "Model X", "eg-1", null)
             )
         );
         assertEquals(WorkflowErrorCode.INVALID_REQUEST, ex.getErrorCode());

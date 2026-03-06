@@ -3,8 +3,8 @@
 
 @baseUrl = http://localhost:8080
 @contentType = application/json
-@adminAccessToken = 84c7141a-344c-407d-a6de-6fcfa7b62aab
-@applicationId = f5ca9ac6-3875-4bde-83e9-cf889b885b00
+@adminAccessToken = da2d5e75-d6ac-4366-8c20-8428811ae14e
+@applicationId = 8ea6d2aa-bb89-4dbb-b822-2dd6f13d11f9
 
 ### 1) List applications (all)
 GET {{baseUrl}}/admin/onboarding/applications
