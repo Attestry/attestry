@@ -21,16 +21,15 @@ public class ProductVoidHttp {
         this.voidUseCase = voidUseCase;
     }
 
-    @PostMapping("/tenants/{tenantId}/passports/{passportId}/void")
+    @PostMapping("/passports/{passportId}/void")
     public VoidResponse voidAsset(
         @CurrentActor ActorContext actor,
-        @PathVariable("tenantId") String tenantId,
         @PathVariable("passportId") String passportId,
         @RequestBody VoidRequest request
     ) {
         ProductVoidUseCase.VoidResult result = voidUseCase.voidAsset(
             actor,
-            new ProductVoidUseCase.VoidCommand(tenantId, passportId, request.reason(), request.note())
+            new ProductVoidUseCase.VoidCommand(actor.tenantId(), passportId, request.reason(), request.note())
         );
         return new VoidResponse(result.assetId(), result.assetState(), result.outboxEventId());
     }

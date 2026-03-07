@@ -164,12 +164,13 @@ public class PartnerLinkService implements PartnerLinkUseCase {
     }
 
     private PartnerLinkResult toResult(PartnerLink link) {
-        String sourceTenantName = tenantReadPort.findTenantName(link.sourceTenantId());
+        TenantReadPort.TenantSummary source = tenantReadPort.findTenantSummary(link.sourceTenantId());
         String targetTenantName = tenantReadPort.findTenantName(link.targetTenantId());
         return new PartnerLinkResult(
                 link.partnerLinkId(),
                 link.sourceTenantId(),
-                sourceTenantName,
+                source != null ? source.name() : null,
+                source != null ? source.type() : null,
                 link.targetTenantId(),
                 targetTenantName,
                 link.partnerType().name(),

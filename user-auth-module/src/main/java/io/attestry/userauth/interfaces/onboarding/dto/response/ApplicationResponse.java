@@ -2,6 +2,7 @@ package io.attestry.userauth.interfaces.onboarding.dto.response;
 
 import io.attestry.userauth.application.dto.result.ApplicationResult;
 import io.attestry.userauth.application.dto.view.ApplicationView;
+import java.util.List;
 
 public record ApplicationResponse(
     String applicationId,
@@ -12,8 +13,7 @@ public record ApplicationResponse(
     String country,
     String bizRegNo,
     String evidenceBundleId,
-    String evidenceOriginalFileName,
-    String evidenceDownloadUrl,
+    List<EvidenceFileResponse> evidenceFiles,
     String status,
     String rejectReason
 ) {
@@ -27,14 +27,18 @@ public record ApplicationResponse(
             app.country(),
             app.bizRegNo(),
             app.evidenceBundleId(),
-            null,
-            null,
+            List.of(),
             app.status(),
             app.rejectReason()
         );
     }
 
     public static ApplicationResponse from(ApplicationView app) {
+        List<EvidenceFileResponse> files = app.evidenceFiles().stream()
+            .map(f -> new EvidenceFileResponse(
+                f.evidenceFileId(), f.originalFileName(), f.contentType(), f.sizeBytes(), f.downloadUrl()
+            ))
+            .toList();
         return new ApplicationResponse(
             app.applicationId(),
             app.type(),
@@ -44,10 +48,18 @@ public record ApplicationResponse(
             app.country(),
             app.bizRegNo(),
             app.evidenceBundleId(),
-            app.evidenceOriginalFileName(),
-            app.evidenceDownloadUrl(),
+            files,
             app.status(),
             app.rejectReason()
         );
+    }
+
+    public record EvidenceFileResponse(
+        String evidenceFileId,
+        String originalFileName,
+        String contentType,
+        long sizeBytes,
+        String downloadUrl
+    ) {
     }
 }

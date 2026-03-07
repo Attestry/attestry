@@ -16,4 +16,8 @@ public interface ShipmentRepository {
     Optional<Shipment> findByShipmentId(String shipmentId);
 
     List<Shipment> findByPassportId(String passportId);
+
+    Optional<Shipment> findLatestByPassportId(String passportId);
+
+    List<Shipment> findByTenantId(String tenantId);
 }

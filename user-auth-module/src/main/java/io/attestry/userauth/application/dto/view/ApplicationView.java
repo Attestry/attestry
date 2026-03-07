@@ -1,5 +1,7 @@
 package io.attestry.userauth.application.dto.view;
 
+import java.util.List;
+
 public record ApplicationView(
     String applicationId,
     String type,
@@ -9,9 +11,16 @@ public record ApplicationView(
     String country,
     String bizRegNo,
     String evidenceBundleId,
-    String evidenceOriginalFileName,
-    String evidenceDownloadUrl,
+    List<EvidenceFileView> evidenceFiles,
     String status,
     String rejectReason
 ) {
+    public record EvidenceFileView(
+        String evidenceFileId,
+        String originalFileName,
+        String contentType,
+        long sizeBytes,
+        String downloadUrl
+    ) {
+    }
 }

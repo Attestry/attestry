@@ -38,6 +38,9 @@ public interface WorkflowEvidencePort {
         String evidenceGroupId,
         String fileHash,
         String objectKey,
+        String originalFileName,
+        String contentType,
+        long sizeBytes,
         String status
     ) {
     }

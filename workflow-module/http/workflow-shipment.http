@@ -4,7 +4,6 @@
 @baseUrl = http://localhost:8080
 @contentType = application/json
 @brandAccessToken = 79e7c37d-027b-4016-a9aa-872b1d3a50cb
-@tenantId = 4be926c6-39ce-4622-8ca4-86149abd2894
 @passportId = 019cbcc2-623d-7add-89db-ebda257267c1
 @evidenceGroupId = 5e117e6f-e4f7-4e69-9cb9-089da6994573
 @evidenceId = 0eb26ce2-642e-4076-97ac-e11eae8a94fa
@@ -13,7 +12,7 @@
 
 ### 1) Presign shipment evidence upload
 # @name presignShipmentEvidence
-POST {{baseUrl}}/workflows/tenants/{{tenantId}}/shipments/evidences/presign
+POST {{baseUrl}}/workflows/shipments/evidences/presign
 Authorization: Bearer {{brandAccessToken}}
 Content-Type: {{contentType}}
 
@@ -36,7 +35,7 @@ Content-Type: image/jpeg
 < ./files/release-photo-1.jpg
 
 ### 3) Complete shipment evidence upload
-POST {{baseUrl}}/workflows/tenants/{{tenantId}}/shipments/evidences/complete
+POST {{baseUrl}}/workflows/shipments/evidences/complete
 Authorization: Bearer {{brandAccessToken}}
 Content-Type: {{contentType}}
 
@@ -48,7 +47,7 @@ Content-Type: {{contentType}}
 }
 
 ### 4) Release shipment
-POST {{baseUrl}}/workflows/tenants/{{tenantId}}/passports/{{passportId}}/shipments/release
+POST {{baseUrl}}/workflows/passports/{{passportId}}/shipments/release
 Authorization: Bearer {{brandAccessToken}}
 Content-Type: {{contentType}}
 
@@ -57,11 +56,15 @@ Content-Type: {{contentType}}
 }
 
 ### 5) List shipments by passport
-GET {{baseUrl}}/workflows/tenants/{{tenantId}}/passports/{{passportId}}/shipments
+GET {{baseUrl}}/workflows/passports/{{passportId}}/shipments
 Authorization: Bearer {{brandAccessToken}}
 
-### 6) Return shipment (optional return evidence group)
-POST {{baseUrl}}/workflows/tenants/{{tenantId}}/shipments/{{shipmentId}}/return
+### 6) List release candidates (ACTIVE, risk NONE, not currently RELEASED)
+GET {{baseUrl}}/workflows/shipments/release-candidates
+Authorization: Bearer {{brandAccessToken}}
+
+### 7) Return shipment (optional return evidence group)
+POST {{baseUrl}}/workflows/shipments/{{shipmentId}}/return
 Authorization: Bearer {{brandAccessToken}}
 Content-Type: {{contentType}}
 
@@ -70,6 +73,6 @@ Content-Type: {{contentType}}
   "reason": "returned to brand warehouse"
 }
 
-### 7) List shipment evidences (release + return)
-GET {{baseUrl}}/workflows/tenants/{{tenantId}}/shipments/{{shipmentId}}/evidences
+### 8) List shipment evidences (release + return)
+GET {{baseUrl}}/workflows/shipments/{{shipmentId}}/evidences
 Authorization: Bearer {{brandAccessToken}}

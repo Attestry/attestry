@@ -19,3 +19,8 @@ GET {{baseUrl}}/products/passports/{{passportId}}/owner
 ### Scope: isAuthenticated()
 GET {{baseUrl}}/products/me/passports
 Authorization: Bearer {{accessToken}}
+
+### 5) List Tenant Passports (paged + filters)
+### Scope: SCOPE_TENANT_READ_ONLY
+GET {{baseUrl}}/products/tenant/passports?page=0&size=20&assetState=ACTIVE&createdFrom=2026-01-01T00:00:00Z&createdTo=2026-12-31T23:59:59Z&keyword=SN-2026
+Authorization: Bearer {{accessToken}}

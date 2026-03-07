@@ -5,7 +5,15 @@ import java.util.List;
 
 public interface GroupPassportQueryPort {
 
-    PagedResult findByTenant(String tenantId, int page, int size);
+    PagedResult findByTenant(
+        String tenantId,
+        int page,
+        int size,
+        String assetState,
+        Instant createdFrom,
+        Instant createdTo,
+        String keyword
+    );
 
     record GroupPassportView(
         String passportId,
