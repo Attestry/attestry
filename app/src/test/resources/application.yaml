@@ -23,5 +23,7 @@ app:
       mail:
         provider: LOG
         enabled: false
+  product:
+    public-base-url: http://localhost:8080
   kafka:
     enabled: false

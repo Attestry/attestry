@@ -47,9 +47,9 @@ public class ShipmentEvidenceService implements ShipmentEvidenceUseCase {
     @Transactional
     public PresignedShipmentEvidenceUploadResult presignEvidenceUpload(
         AuthPrincipal principal,
-        String tenantId,
         PresignShipmentEvidenceUploadCommand command
     ) {
+        String tenantId = principal.tenantId();
         authorizationSupport.assertTenantContext(principal, tenantId);
         authorizationSupport.assertLivePermission(principal, tenantId, PermissionCodes.BRAND_RELEASE, "shipment:evidence:presign");
 
@@ -66,9 +66,9 @@ public class ShipmentEvidenceService implements ShipmentEvidenceUseCase {
     @Transactional
     public ShipmentEvidenceCompleteResult completeEvidenceUpload(
         AuthPrincipal principal,
-        String tenantId,
         CompleteShipmentEvidenceUploadCommand command
     ) {
+        String tenantId = principal.tenantId();
         authorizationSupport.assertTenantContext(principal, tenantId);
         authorizationSupport.assertLivePermission(principal, tenantId, PermissionCodes.BRAND_RELEASE, "shipment:evidence:complete");
         evidenceUploadSupport.assertEvidenceGroupScope(shipmentEvidencePort, command.evidenceGroupId(), tenantId);

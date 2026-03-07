@@ -10,13 +10,11 @@ public interface ShipmentEvidenceUseCase {
 
     PresignedShipmentEvidenceUploadResult presignEvidenceUpload(
         AuthPrincipal principal,
-        String tenantId,
         PresignShipmentEvidenceUploadCommand command
     );
 
     ShipmentEvidenceCompleteResult completeEvidenceUpload(
         AuthPrincipal principal,
-        String tenantId,
         CompleteShipmentEvidenceUploadCommand command
     );
 }

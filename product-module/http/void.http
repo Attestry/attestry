@@ -6,11 +6,10 @@
 @baseUrl = http://localhost:8080
 @contentType = application/json
 @brandAccessToken = REPLACE_BRAND_TOKEN
-@tenantId = REPLACE_TENANT_ID
 @passportId = REPLACE_PASSPORT_ID
 
 ### 1) Void Asset
-POST {{baseUrl}}/products/tenants/{{tenantId}}/passports/{{passportId}}/void
+POST {{baseUrl}}/products/passports/{{passportId}}/void
 Authorization: Bearer {{brandAccessToken}}
 Content-Type: {{contentType}}
 

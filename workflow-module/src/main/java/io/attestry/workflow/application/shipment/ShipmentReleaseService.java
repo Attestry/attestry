@@ -65,10 +65,10 @@ public class ShipmentReleaseService implements ShipmentReleaseUseCase {
     @Transactional
     public ReleaseShipmentResult release(
         AuthPrincipal principal,
-        String tenantId,
         String passportId,
         ReleaseShipmentCommand command
     ) {
+        String tenantId = principal.tenantId();
         authorizationSupport.assertTenantContext(principal, tenantId);
         authorizationSupport.assertLivePermission(principal, tenantId, PermissionCodes.BRAND_RELEASE, "shipment:release:" + passportId);
 
@@ -123,10 +123,10 @@ public class ShipmentReleaseService implements ShipmentReleaseUseCase {
     @Transactional
     public ReturnShipmentResult returnShipment(
         AuthPrincipal principal,
-        String tenantId,
         String shipmentId,
         ReturnShipmentCommand command
     ) {
+        String tenantId = principal.tenantId();
         authorizationSupport.assertTenantContext(principal, tenantId);
         authorizationSupport.assertLivePermission(principal, tenantId, PermissionCodes.BRAND_RELEASE, "shipment:return:" + shipmentId);
         Shipment current = shipmentRepository.findByShipmentId(shipmentId)

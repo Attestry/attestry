@@ -30,6 +30,7 @@ public record PartnerLink(
         return new PartnerLink(
             UUID.randomUUID().toString(),
             sourceTenantId,
+        
             targetTenantId,
             partnerType,
             PartnerLinkStatus.PENDING,
@@ -50,6 +51,7 @@ public record PartnerLink(
         return new PartnerLink(
             partnerLinkId,
             sourceTenantId,
+        
             targetTenantId,
             partnerType,
             PartnerLinkStatus.ACTIVE,
@@ -70,6 +72,7 @@ public record PartnerLink(
         return new PartnerLink(
             partnerLinkId,
             sourceTenantId,
+        
             targetTenantId,
             partnerType,
             PartnerLinkStatus.REJECTED,
@@ -90,6 +93,7 @@ public record PartnerLink(
         return new PartnerLink(
             partnerLinkId,
             sourceTenantId,
+        
             targetTenantId,
             partnerType,
             PartnerLinkStatus.SUSPENDED,
@@ -110,6 +114,7 @@ public record PartnerLink(
         return new PartnerLink(
             partnerLinkId,
             sourceTenantId,
+        
             targetTenantId,
             partnerType,
             PartnerLinkStatus.ACTIVE,
@@ -130,6 +135,7 @@ public record PartnerLink(
         return new PartnerLink(
             partnerLinkId,
             sourceTenantId,
+        
             targetTenantId,
             partnerType,
             PartnerLinkStatus.TERMINATED,

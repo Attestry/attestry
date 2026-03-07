@@ -24,7 +24,7 @@ POST {{baseUrl}}/auth/login
 Content-Type: {{contentType}}
 
 {
-  "email": "test@test.com",
+  "email": "test02@test.com",
   "password": "Sd14jp021!",
   "tenantId": null
 }
