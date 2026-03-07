@@ -10,14 +10,12 @@ public interface ShipmentReleaseUseCase {
 
     ReleaseShipmentResult release(
         AuthPrincipal principal,
-        String tenantId,
         String passportId,
         ReleaseShipmentCommand command
     );
 
     ReturnShipmentResult returnShipment(
         AuthPrincipal principal,
-        String tenantId,
         String shipmentId,
         ReturnShipmentCommand command
     );

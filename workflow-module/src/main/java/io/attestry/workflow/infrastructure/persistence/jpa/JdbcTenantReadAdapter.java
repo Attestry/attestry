@@ -35,6 +35,31 @@ public class JdbcTenantReadAdapter implements TenantReadPort {
     }
 
     @Override
+    public String findTenantType(String tenantId) {
+        List<String> types = jdbcTemplate.queryForList(
+            "SELECT type FROM tenants WHERE tenant_id = ?",
+            String.class,
+            tenantId
+        );
+        return types.isEmpty() ? null : types.get(0);
+    }
+
+    @Override
+    public TenantSummary findTenantSummary(String tenantId) {
+        List<TenantSummary> results = jdbcTemplate.query(
+            "SELECT tenant_id, name, region, type FROM tenants WHERE tenant_id = ?",
+            (rs, rowNum) -> new TenantSummary(
+                rs.getString("tenant_id"),
+                rs.getString("name"),
+                rs.getString("region"),
+                rs.getString("type")
+            ),
+            tenantId
+        );
+        return results.isEmpty() ? null : results.get(0);
+    }
+
+    @Override
     public List<TenantSummary> searchActiveTenantsByName(String name) {
         String keyword = "%" + name + "%";
         return jdbcTemplate.query(

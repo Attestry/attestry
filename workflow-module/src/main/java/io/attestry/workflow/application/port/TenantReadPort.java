@@ -7,6 +7,10 @@ public interface TenantReadPort {
 
     String findTenantName(String tenantId);
 
+    String findTenantType(String tenantId);
+
+    TenantSummary findTenantSummary(String tenantId);
+
     List<TenantSummary> searchActiveTenantsByName(String name);
 
     record TenantSummary(

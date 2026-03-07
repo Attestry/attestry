@@ -2,6 +2,7 @@ package io.attestry.product.application.service;
 
 import io.attestry.product.application.port.GroupPassportQueryPort;
 import io.attestry.product.application.port.MyPassportQueryPort;
+import io.attestry.product.application.port.PassportShipmentQueryPort;
 import io.attestry.product.application.port.ProductQueryPort;
 import io.attestry.product.application.usecase.ProductQueryUseCase;
 import io.attestry.product.domain.ProductDomainException;
@@ -12,7 +13,9 @@ import io.attestry.product.domain.passport.model.ProductAsset;
 import io.attestry.product.domain.passport.model.ProductPassport;
 import io.attestry.product.domain.permission.repository.PassportPermissionRepository;
 import io.attestry.product.domain.passport.repository.PassportRepository;
+import java.time.Instant;
 import java.util.List;
+import org.springframework.beans.factory.annotation.Value;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
@@ -25,19 +28,25 @@ public class ProductQueryService implements ProductQueryUseCase, ProductQueryPor
     private final PassportPermissionRepository permissionRepository;
     private final MyPassportQueryPort myPassportQueryPort;
     private final GroupPassportQueryPort groupPassportQueryPort;
+    private final PassportShipmentQueryPort shipmentQueryPort;
+    private final String publicBaseUrl;
 
     public ProductQueryService(
         PassportRepository passportRepository,
         PassportOwnershipRepository ownershipRepository,
         PassportPermissionRepository permissionRepository,
         MyPassportQueryPort myPassportQueryPort,
-        GroupPassportQueryPort groupPassportQueryPort
+        GroupPassportQueryPort groupPassportQueryPort,
+        PassportShipmentQueryPort shipmentQueryPort,
+        @Value("${app.product.public-base-url}") String publicBaseUrl
     ) {
         this.passportRepository = passportRepository;
         this.ownershipRepository = ownershipRepository;
         this.permissionRepository = permissionRepository;
         this.myPassportQueryPort = myPassportQueryPort;
         this.groupPassportQueryPort = groupPassportQueryPort;
+        this.shipmentQueryPort = shipmentQueryPort;
+        this.publicBaseUrl = publicBaseUrl;
     }
 
     // --- ProductQueryUseCase ---
@@ -74,7 +83,10 @@ public class ProductQueryService implements ProductQueryUseCase, ProductQueryPor
                 "Passport not found for tenant: " + passportId);
         }
         ProductAsset asset = passport.getAsset();
-        PassportOwnership ownership = ownershipRepository.findByPassportId(passportId).orElse(null);
+        String publicUrl = publicBaseUrl + "/ledgers/passports/" + passportId + "/entries";
+        ShipmentDetailResponse shipment = shipmentQueryPort.findLatestShipmentByPassportId(passportId)
+            .map(ShipmentDetailResponse::from)
+            .orElse(null);
 
         return new PassportDetailResponse(
             passport.getPassportId(),
@@ -89,9 +101,9 @@ public class ProductQueryService implements ProductQueryUseCase, ProductQueryPor
             asset.getFactoryCode(),
             asset.getAssetState().name(),
             asset.getRiskFlag().name(),
-            ownership == null ? null : ownership.getOwnerId(),
-            ownership == null ? null : ownership.getUpdatedAt(),
-            passport.getCreatedAt()
+            passport.getCreatedAt(),
+            publicUrl,
+            shipment
         );
     }
 
@@ -107,8 +119,29 @@ public class ProductQueryService implements ProductQueryUseCase, ProductQueryPor
     }
 
     @Override
-    public PagedTenantPassportResponse listTenantPassports(String tenantId, int page, int size) {
-        GroupPassportQueryPort.PagedResult paged = groupPassportQueryPort.findByTenant(tenantId, page, size);
+    public PagedTenantPassportResponse listTenantPassports(
+        String tenantId,
+        int page,
+        int size,
+        String assetState,
+        Instant createdFrom,
+        Instant createdTo,
+        String keyword
+    ) {
+        if (createdFrom != null && createdTo != null && createdFrom.isAfter(createdTo)) {
+            throw new ProductDomainException(ProductErrorCode.INVALID_REQUEST, "createdFrom must be before createdTo");
+        }
+        String normalizedAssetState = assetState == null || assetState.isBlank() ? null : assetState.trim();
+        String normalizedKeyword = keyword == null || keyword.isBlank() ? null : keyword.trim();
+        GroupPassportQueryPort.PagedResult paged = groupPassportQueryPort.findByTenant(
+            tenantId,
+            page,
+            size,
+            normalizedAssetState,
+            createdFrom,
+            createdTo,
+            normalizedKeyword
+        );
         List<TenantPassportResponse> content = paged.content().stream()
             .map(v -> new TenantPassportResponse(
                 v.passportId(), v.serialNumber(), v.modelId(), v.modelName(),

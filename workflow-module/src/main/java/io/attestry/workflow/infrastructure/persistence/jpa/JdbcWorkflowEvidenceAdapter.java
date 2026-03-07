@@ -85,7 +85,8 @@ public class JdbcWorkflowEvidenceAdapter implements WorkflowEvidencePort {
     public Optional<EvidenceView> findEvidenceById(String evidenceGroupId, String evidenceId) {
         List<EvidenceView> rows = jdbcTemplate.query(
             """
-                SELECT evidence_id, evidence_group_id, file_hash, object_key, status
+                SELECT evidence_id, evidence_group_id, file_hash, object_key,
+                       original_file_name, content_type, COALESCE(size_bytes, 0) AS size_bytes, status
                 FROM workflow_evidences
                 WHERE evidence_group_id = ?
                   AND evidence_id = ?
@@ -154,7 +155,8 @@ public class JdbcWorkflowEvidenceAdapter implements WorkflowEvidencePort {
     public List<EvidenceView> findEvidenceByEvidenceGroupId(String evidenceGroupId) {
         return jdbcTemplate.query(
             """
-                SELECT evidence_id, evidence_group_id, file_hash, object_key, status
+                SELECT evidence_id, evidence_group_id, file_hash, object_key,
+                       original_file_name, content_type, COALESCE(size_bytes, 0) AS size_bytes, status
                 FROM workflow_evidences
                 WHERE evidence_group_id = ?
                 ORDER BY created_at ASC, evidence_id ASC
@@ -170,6 +172,9 @@ public class JdbcWorkflowEvidenceAdapter implements WorkflowEvidencePort {
             rs.getString("evidence_group_id"),
             rs.getString("file_hash"),
             rs.getString("object_key"),
+            rs.getString("original_file_name"),
+            rs.getString("content_type"),
+            rs.getLong("size_bytes"),
             rs.getString("status")
         );
     }
