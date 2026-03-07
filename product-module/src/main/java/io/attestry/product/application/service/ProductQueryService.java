@@ -67,8 +67,12 @@ public class ProductQueryService implements ProductQueryUseCase, ProductQueryPor
     }
 
     @Override
-    public PassportDetailResponse getPassportDetail(String passportId) {
+    public PassportDetailResponse getTenantPassportDetail(String tenantId, String passportId) {
         ProductPassport passport = findPassport(passportId);
+        if (!passport.getTenantId().equals(tenantId)) {
+            throw new ProductDomainException(ProductErrorCode.ASSET_NOT_FOUND,
+                "Passport not found for tenant: " + passportId);
+        }
         ProductAsset asset = passport.getAsset();
         PassportOwnership ownership = ownershipRepository.findByPassportId(passportId).orElse(null);
 
@@ -103,17 +107,15 @@ public class ProductQueryService implements ProductQueryUseCase, ProductQueryPor
     }
 
     @Override
-    public PagedMintedPassportResponse listMintedPassports(String tenantId, int page, int size) {
+    public PagedTenantPassportResponse listTenantPassports(String tenantId, int page, int size) {
         GroupPassportQueryPort.PagedResult paged = groupPassportQueryPort.findByTenant(tenantId, page, size);
-        List<MintedPassportResponse> content = paged.content().stream()
-            .map(v -> new MintedPassportResponse(
-                v.passportId(), v.qrPublicCode(),
-                v.assetId(), v.serialNumber(), v.modelId(), v.modelName(),
-                v.manufacturedAt(), v.assetState(), v.riskFlag(),
-                v.ownerId(), v.createdAt()
+        List<TenantPassportResponse> content = paged.content().stream()
+            .map(v -> new TenantPassportResponse(
+                v.passportId(), v.serialNumber(), v.modelId(), v.modelName(),
+                v.assetState(), v.createdAt()
             ))
             .toList();
-        return new PagedMintedPassportResponse(content, paged.page(), paged.size(), paged.totalElements(), paged.totalPages());
+        return new PagedTenantPassportResponse(content, paged.page(), paged.size(), paged.totalElements(), paged.totalPages());
     }
 
     // --- ProductQueryPort ---

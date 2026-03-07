@@ -2,7 +2,6 @@ package io.attestry.product.interfaces.http;
 
 import io.attestry.product.application.service.ProductMintCsvParser;
 import io.attestry.product.application.usecase.ProductMintUseCase;
-import io.attestry.product.application.usecase.ProductQueryUseCase;
 import io.attestry.product.domain.ProductDomainException;
 import io.attestry.product.domain.ProductErrorCode;
 import io.attestry.userauth.application.dto.command.ActorContext;
@@ -13,7 +12,6 @@ import java.util.List;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.MediaType;
 import org.springframework.security.access.prepost.PreAuthorize;
-import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RequestMapping;
@@ -27,15 +25,12 @@ import org.springframework.web.multipart.MultipartFile;
 public class ProductMintHttp {
 
     private final ProductMintUseCase mintUseCase;
-    private final ProductQueryUseCase queryUseCase;
     private final ProductMintCsvParser csvParser;
 
     public ProductMintHttp(
             ProductMintUseCase mintUseCase,
-            ProductQueryUseCase queryUseCase,
             ProductMintCsvParser csvParser) {
         this.mintUseCase = mintUseCase;
-        this.queryUseCase = queryUseCase;
         this.csvParser = csvParser;
     }
 
@@ -75,25 +70,6 @@ public class ProductMintHttp {
         } catch (IOException e) {
             throw new ProductDomainException(ProductErrorCode.INVALID_REQUEST, "Failed to read uploaded file");
         }
-    }
-
-    @GetMapping("/minted/passports")
-    @PreAuthorize("hasAuthority('SCOPE_TENANT_READ_ONLY')")
-    public PagedMintedPassportResponse listMintedPassports(
-            @CurrentActor ActorContext actor,
-            @RequestParam(name = "page", defaultValue = "0") int page,
-            @RequestParam(name = "size", defaultValue = "20") int size) {
-        ProductQueryUseCase.PagedMintedPassportResponse result = queryUseCase.listMintedPassports(actor.tenantId(),
-                page, size);
-        List<MintedPassportResponse> content = result.content().stream()
-                .map(r -> new MintedPassportResponse(
-                        r.passportId(), r.qrPublicCode(),
-                        r.assetId(), r.serialNumber(), r.modelId(), r.modelName(),
-                        r.manufacturedAt(), r.assetState(), r.riskFlag(),
-                        r.ownerId(), r.createdAt()))
-                .toList();
-        return new PagedMintedPassportResponse(content, result.page(), result.size(), result.totalElements(),
-                result.totalPages());
     }
 
     public record MintedProductRequest(
@@ -138,27 +114,5 @@ public class ProductMintHttp {
     }
 
     public record BatchMintErrorResponse(int row, String serialNumber, String reason) {
-    }
-
-    public record MintedPassportResponse(
-            String passportId,
-            String qrPublicCode,
-            String assetId,
-            String serialNumber,
-            String modelId,
-            String modelName,
-            Instant manufacturedAt,
-            String assetState,
-            String riskFlag,
-            String ownerId,
-            Instant createdAt) {
-    }
-
-    public record PagedMintedPassportResponse(
-            List<MintedPassportResponse> content,
-            int page,
-            int size,
-            long totalElements,
-            int totalPages) {
     }
 }
