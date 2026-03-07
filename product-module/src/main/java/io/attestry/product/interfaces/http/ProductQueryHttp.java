@@ -9,6 +9,7 @@ import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.PathVariable;
 import org.springframework.web.bind.annotation.RequestMapping;
+import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.bind.annotation.RestController;
 
 @RestController
@@ -21,11 +22,14 @@ public class ProductQueryHttp {
         this.queryUseCase = queryUseCase;
     }
 
-    @GetMapping("/passports/{passportId}")
-    public PassportDetailResponse getPassportDetail(
+    @GetMapping("/tenant/passports/{passportId}")
+    @PreAuthorize("hasAuthority('SCOPE_TENANT_READ_ONLY')")
+    public PassportDetailResponse getTenantPassportDetail(
+        @CurrentActor ActorContext actor,
         @PathVariable("passportId") String passportId
     ) {
-        ProductQueryUseCase.PassportDetailResponse result = queryUseCase.getPassportDetail(passportId);
+        ProductQueryUseCase.PassportDetailResponse result = queryUseCase.getTenantPassportDetail(actor.tenantId(),
+            passportId);
         return new PassportDetailResponse(
             result.passportId(), result.qrPublicCode(),
             result.tenantId(),
@@ -65,6 +69,25 @@ public class ProductQueryHttp {
             .toList();
     }
 
+    @GetMapping("/tenant/passports")
+    @PreAuthorize("hasAuthority('SCOPE_TENANT_READ_ONLY')")
+    public PagedTenantPassportResponse listTenantPassports(
+        @CurrentActor ActorContext actor,
+        @RequestParam(name = "page", defaultValue = "0") int page,
+        @RequestParam(name = "size", defaultValue = "20") int size
+    ) {
+        ProductQueryUseCase.PagedTenantPassportResponse result = queryUseCase.listTenantPassports(actor.tenantId(),
+            page, size);
+        List<TenantPassportResponse> content = result.content().stream()
+            .map(r -> new TenantPassportResponse(
+                r.passportId(), r.serialNumber(), r.modelId(), r.modelName(),
+                r.assetState(), r.createdAt()
+            ))
+            .toList();
+        return new PagedTenantPassportResponse(content, result.page(), result.size(), result.totalElements(),
+            result.totalPages());
+    }
+
     public record MyPassportResponse(
         String passportId,
         String qrPublicCode,
@@ -101,5 +124,24 @@ public class ProductQueryHttp {
     }
 
     public record OwnerResponse(String passportId, String ownerId, Instant updatedAt) {
+    }
+
+    public record TenantPassportResponse(
+        String passportId,
+        String serialNumber,
+        String modelId,
+        String modelName,
+        String assetState,
+        Instant createdAt
+    ) {
+    }
+
+    public record PagedTenantPassportResponse(
+        List<TenantPassportResponse> content,
+        int page,
+        int size,
+        long totalElements,
+        int totalPages
+    ) {
     }
 }
