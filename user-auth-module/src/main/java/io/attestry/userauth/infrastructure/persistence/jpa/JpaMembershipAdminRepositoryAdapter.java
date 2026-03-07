@@ -107,7 +107,7 @@ public class JpaMembershipAdminRepositoryAdapter
             MembershipStatus.ACTIVE,
             TenantStatus.ACTIVE
         ));
-        String defaultRoleCode = DefaultMembershipRolePolicy.resolveGlobalRoleCode(saved.getRole(), saved.getTenantType());
+        String defaultRoleCode = DefaultMembershipRolePolicy.resolveGlobalRoleCode(role, saved.getTenantType());
         String roleId = resolveGlobalRoleIdByCode(defaultRoleCode);
         Instant now = Instant.now();
         membershipRoleAssignmentRepository.save(new MembershipRoleAssignmentJpaEntity(

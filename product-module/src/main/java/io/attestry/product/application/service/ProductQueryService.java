@@ -103,8 +103,9 @@ public class ProductQueryService implements ProductQueryUseCase, ProductQueryPor
     }
 
     @Override
-    public List<MintedPassportResponse> listMintedPassports(String tenantId) {
-        return groupPassportQueryPort.findByTenant(tenantId).stream()
+    public PagedMintedPassportResponse listMintedPassports(String tenantId, int page, int size) {
+        GroupPassportQueryPort.PagedResult paged = groupPassportQueryPort.findByTenant(tenantId, page, size);
+        List<MintedPassportResponse> content = paged.content().stream()
             .map(v -> new MintedPassportResponse(
                 v.passportId(), v.qrPublicCode(),
                 v.assetId(), v.serialNumber(), v.modelId(), v.modelName(),
@@ -112,6 +113,7 @@ public class ProductQueryService implements ProductQueryUseCase, ProductQueryPor
                 v.ownerId(), v.createdAt()
             ))
             .toList();
+        return new PagedMintedPassportResponse(content, paged.page(), paged.size(), paged.totalElements(), paged.totalPages());
     }
 
     // --- ProductQueryPort ---

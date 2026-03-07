@@ -6,7 +6,7 @@ public record GrantDelegationCommand(
     String partnerLinkId,
     String targetTenantId,
     String resourceType,
-    String resourceId,
+    String resourceId, // passportId
     String permissionCode,
     Instant expiresAt,
     String note

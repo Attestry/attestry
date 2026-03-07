@@ -5,11 +5,10 @@
 
 @baseUrl = http://localhost:8080
 @contentType = application/json
-@brandAccessToken = 79bcd28c-5205-4bd8-9fb1-05ed1913e579
-@tenantId = 4be926c6-39ce-4622-8ca4-86149abd2894
+@brandAccessToken = a01cb0eb-3b74-46d3-b9ee-5ccf1b973f0b
 
 ### 1) Minted (Genesis)
-POST {{baseUrl}}/products/tenants/{{tenantId}}/minted
+POST {{baseUrl}}/products/minted
 Authorization: Bearer {{brandAccessToken}}
 Content-Type: {{contentType}}
 
@@ -23,6 +22,6 @@ Content-Type: {{contentType}}
   "componentRootHash": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
 }
 
-### 2) List Minted Passports
-GET {{baseUrl}}/products/tenants/{{tenantId}}/minted
+### 2) List Minted Passports In My Tenant (paged)
+GET {{baseUrl}}/products/minted/passports?page=0&size=20
 Authorization: Bearer {{brandAccessToken}}

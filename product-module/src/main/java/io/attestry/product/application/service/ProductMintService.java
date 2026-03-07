@@ -19,6 +19,8 @@ import io.attestry.userauth.application.usecase.policy.EvaluateAuthorizationUseC
 import io.attestry.userauth.domain.authorization.model.PermissionCodes;
 import java.time.Clock;
 import java.time.Instant;
+import java.util.ArrayList;
+import java.util.List;
 import org.springframework.dao.DataIntegrityViolationException;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
@@ -107,6 +109,67 @@ public class ProductMintService implements ProductMintUseCase {
             event.eventCategory(),
             event.eventAction()
         );
+    }
+
+    @Override
+    @Transactional
+    public BatchMintResult batchMint(ActorContext actor, String tenantId, List<MintProductCommand> commands) {
+        brandAccessValidationPort.assertActiveBrandMembership(actor.userId(), tenantId);
+        assertBrandMintScope(actor, tenantId, "batch");
+
+        List<BatchMintError> errors = new ArrayList<>();
+        int minted = 0;
+
+        for (int i = 0; i < commands.size(); i++) {
+            MintProductCommand cmd = commands.get(i);
+            int row = i + 1;
+            try {
+                mintSingle(tenantId, cmd);
+                minted++;
+            } catch (Exception ex) {
+                errors.add(new BatchMintError(row, cmd.serialNumber(), ex.getMessage()));
+            }
+        }
+
+        return new BatchMintResult(commands.size(), minted, errors.size(), errors);
+    }
+
+    private void mintSingle(String tenantId, MintProductCommand command) {
+        MintProductInput input = MintProductInput.of(
+            tenantId,
+            command.serialNumber(),
+            command.modelId(),
+            command.modelName(),
+            command.manufacturedAt(),
+            command.productionBatch(),
+            command.factoryCode(),
+            command.componentRootHash()
+        );
+
+        if (passportRepository.existsByTenantAndSerial(tenantId, input.serialNumber())) {
+            throw new ProductDomainException(
+                ProductErrorCode.GENESIS_ALREADY_EXISTS,
+                "Duplicate serial number: " + input.serialNumber()
+            );
+        }
+
+        Instant now = Instant.now(clock);
+        ProductPassport passport = ProductPassport.mint(
+            uuidV7Generator.nextId(),
+            qrPublicCodeGenerator.nextCode(),
+            uuidV7Generator.nextId(),
+            input,
+            now
+        );
+        LedgerEventEnvelope event = LedgerEventEnvelope.minted(passport, now);
+
+        try {
+            passportRepository.save(passport);
+        } catch (DataIntegrityViolationException ex) {
+            throw new ProductDomainException(ProductErrorCode.DUPLICATE_SERIAL_NUMBER, "Duplicate serial number: " + input.serialNumber());
+        }
+
+        ledgerOutboxPort.enqueue(event);
     }
 
     private void assertBrandMintScope(ActorContext actor, String tenantId, String serialNumber) {

@@ -39,6 +39,11 @@ Content-Type: {{contentType}}
   "status": "ACTIVE"
 }
 
+### 4-1) Get membership detail (membership + userAccount)
+### Required scope: SCOPE_TENANT_MEMBERSHIP_VIEW or SCOPE_TENANT_READ_ONLY
+GET {{baseUrl}}/admin/memberships/{{membershipId}}
+Authorization: Bearer {{accessToken}}
+
 ### 5) List membership roles
 ### Required scope: SCOPE_TENANT_ROLE_ASSIGN
 GET {{baseUrl}}/admin/memberships/{{membershipId}}/roles

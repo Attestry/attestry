@@ -1,5 +1,7 @@
 package io.attestry.workflow.infrastructure.persistence.jpa;
 
+import io.attestry.workflow.domain.WorkflowDomainException;
+import io.attestry.workflow.domain.WorkflowErrorCode;
 import io.attestry.workflow.domain.partner.model.PartnerLink;
 import io.attestry.workflow.domain.partner.repository.PartnerLinkRepository;
 import io.attestry.workflow.domain.partner.model.PartnerLinkStatus;
@@ -8,6 +10,8 @@ import io.attestry.workflow.infrastructure.persistence.jpa.entity.PartnerLinkJpa
 import io.attestry.workflow.infrastructure.persistence.jpa.repository.PartnerLinkJpaRepository;
 import java.util.List;
 import java.util.Optional;
+import org.springframework.core.NestedExceptionUtils;
+import org.springframework.dao.DataIntegrityViolationException;
 import org.springframework.stereotype.Repository;
 
 @Repository
@@ -21,10 +25,20 @@ public class JpaPartnerLinkRepositoryAdapter implements PartnerLinkRepository {
 
     @Override
     public PartnerLink save(PartnerLink partnerLink) {
-        long rowVersion = repository.findById(partnerLink.partnerLinkId())
-            .map(PartnerLinkJpaEntity::getRowVersion)
-            .orElse(0L);
-        return toDomain(repository.save(toEntity(partnerLink, rowVersion)));
+        try {
+            long rowVersion = repository.findById(partnerLink.partnerLinkId())
+                .map(PartnerLinkJpaEntity::getRowVersion)
+                .orElse(0L);
+            return toDomain(repository.save(toEntity(partnerLink, rowVersion)));
+        } catch (DataIntegrityViolationException ex) {
+            if (isDuplicateStatusConstraint(ex)) {
+                throw new WorkflowDomainException(
+                    WorkflowErrorCode.PARTNER_LINK_DUPLICATE_STATUS,
+                    "Duplicate partner link status for the same source/target/type"
+                );
+            }
+            throw ex;
+        }
     }
 
     @Override
@@ -73,6 +87,7 @@ public class JpaPartnerLinkRepositoryAdapter implements PartnerLinkRepository {
             entity.getCreatedAt(),
             entity.getApprovedByUserId(),
             entity.getApprovedAt(),
+            entity.getExpiresAt(),
             entity.getTerminatedAt(),
             entity.getReason()
         );
@@ -89,9 +104,16 @@ public class JpaPartnerLinkRepositoryAdapter implements PartnerLinkRepository {
             link.createdAt(),
             link.approvedByUserId(),
             link.approvedAt(),
+            link.expiresAt(),
             link.terminatedAt(),
             link.reason(),
             rowVersion
         );
+    }
+
+    private boolean isDuplicateStatusConstraint(DataIntegrityViolationException ex) {
+        Throwable root = NestedExceptionUtils.getMostSpecificCause(ex);
+        String message = root != null ? root.getMessage() : ex.getMessage();
+        return message != null && message.contains("uq_partner_links_by_status");
     }
 }

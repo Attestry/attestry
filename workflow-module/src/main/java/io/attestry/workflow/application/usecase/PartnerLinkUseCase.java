@@ -3,6 +3,7 @@ package io.attestry.workflow.application.usecase;
 import io.attestry.userauth.security.AuthPrincipal;
 import io.attestry.workflow.application.partner.command.CreatePartnerLinkCommand;
 import io.attestry.workflow.application.partner.result.PartnerLinkResult;
+import io.attestry.workflow.application.partner.result.TenantSearchResult;
 import io.attestry.workflow.domain.partner.model.PartnerLinkStatus;
 import java.util.List;
 
@@ -20,4 +21,6 @@ public interface PartnerLinkUseCase {
     PartnerLinkResult terminate(AuthPrincipal principal, String partnerLinkId, String reason);
 
     List<PartnerLinkResult> listByTenant(AuthPrincipal principal, PartnerLinkStatus status);
+
+    List<TenantSearchResult> searchActiveTenantsByName(AuthPrincipal principal, String name);
 }

@@ -4,6 +4,7 @@ import io.attestry.userauth.security.AuthPrincipal;
 import io.attestry.userauth.domain.authorization.model.PermissionCodes;
 import io.attestry.workflow.application.partner.command.CreatePartnerLinkCommand;
 import io.attestry.workflow.application.partner.result.PartnerLinkResult;
+import io.attestry.workflow.application.partner.result.TenantSearchResult;
 import io.attestry.workflow.application.port.TenantReadPort;
 import io.attestry.workflow.application.support.WorkflowAuthorizationSupport;
 import io.attestry.workflow.application.usecase.PartnerLinkUseCase;
@@ -27,11 +28,10 @@ public class PartnerLinkService implements PartnerLinkUseCase {
     private final Clock clock;
 
     public PartnerLinkService(
-        PartnerLinkRepository repository,
-        TenantReadPort tenantReadPort,
-        WorkflowAuthorizationSupport authorizationSupport,
-        Clock clock
-    ) {
+            PartnerLinkRepository repository,
+            TenantReadPort tenantReadPort,
+            WorkflowAuthorizationSupport authorizationSupport,
+            Clock clock) {
         this.repository = repository;
         this.tenantReadPort = tenantReadPort;
         this.authorizationSupport = authorizationSupport;
@@ -43,29 +43,32 @@ public class PartnerLinkService implements PartnerLinkUseCase {
     public PartnerLinkResult create(AuthPrincipal principal, CreatePartnerLinkCommand command) {
         String sourceTenantId = requireTenantId(principal);
         authorizationSupport.assertTenantContext(principal, sourceTenantId);
-        authorizationSupport.assertLivePermission(principal, sourceTenantId, PermissionCodes.PARTNER_LINK_CREATE, "partner-link:create");
-        if (!tenantReadPort.existsActiveTenant(sourceTenantId) || !tenantReadPort.existsActiveTenant(command.targetTenantId())) {
+        authorizationSupport.assertLivePermission(principal, sourceTenantId, PermissionCodes.PARTNER_LINK_CREATE,
+                "partner-link:create");
+        if (!tenantReadPort.existsActiveTenant(sourceTenantId)
+                || !tenantReadPort.existsActiveTenant(command.targetTenantId())) {
             throw new WorkflowDomainException(WorkflowErrorCode.INVALID_REQUEST, "Tenant not found or inactive");
         }
         if (sourceTenantId.equals(command.targetTenantId())) {
-            throw new WorkflowDomainException(WorkflowErrorCode.INVALID_REQUEST, "Target tenant must be different from source tenant");
+            throw new WorkflowDomainException(WorkflowErrorCode.INVALID_REQUEST,
+                    "Target tenant must be different from source tenant");
         }
         boolean alreadyActive = repository.existsBySourceAndTargetAndTypeAndStatus(
-            sourceTenantId,
-            command.targetTenantId(),
-            command.partnerType(),
-            PartnerLinkStatus.ACTIVE
-        );
+                sourceTenantId,
+                command.targetTenantId(),
+                command.partnerType(),
+                PartnerLinkStatus.ACTIVE);
         if (alreadyActive) {
-            throw new WorkflowDomainException(WorkflowErrorCode.PARTNER_LINK_ALREADY_ACTIVE, "Active partner link already exists");
+            throw new WorkflowDomainException(WorkflowErrorCode.PARTNER_LINK_ALREADY_ACTIVE,
+                    "Active partner link already exists");
         }
         PartnerLink created = repository.save(PartnerLink.create(
-            sourceTenantId,
-            command.targetTenantId(),
-            command.partnerType(),
-            principal.userId(),
-            Instant.now(clock)
-        ));
+                sourceTenantId,
+                command.targetTenantId(),
+                command.partnerType(),
+                principal.userId(),
+                command.proposedExpiresAt(),
+                Instant.now(clock)));
         return toResult(created);
     }
 
@@ -74,7 +77,8 @@ public class PartnerLinkService implements PartnerLinkUseCase {
     public PartnerLinkResult approve(AuthPrincipal principal, String partnerLinkId) {
         PartnerLink partnerLink = getById(partnerLinkId);
         String policyTenantId = principal.tenantId() != null ? principal.tenantId() : partnerLink.sourceTenantId();
-        authorizationSupport.assertLivePermission(principal, policyTenantId, PermissionCodes.PARTNER_LINK_APPROVE, "partner-link:" + partnerLinkId);
+        authorizationSupport.assertLivePermission(principal, policyTenantId, PermissionCodes.PARTNER_LINK_APPROVE,
+                "partner-link:" + partnerLinkId);
         return toResult(repository.save(partnerLink.approve(principal.userId(), Instant.now(clock))));
     }
 
@@ -83,7 +87,8 @@ public class PartnerLinkService implements PartnerLinkUseCase {
     public PartnerLinkResult reject(AuthPrincipal principal, String partnerLinkId, String reason) {
         PartnerLink partnerLink = getById(partnerLinkId);
         String policyTenantId = principal.tenantId() != null ? principal.tenantId() : partnerLink.sourceTenantId();
-        authorizationSupport.assertLivePermission(principal, policyTenantId, PermissionCodes.PARTNER_LINK_APPROVE, "partner-link:" + partnerLinkId);
+        authorizationSupport.assertLivePermission(principal, policyTenantId, PermissionCodes.PARTNER_LINK_APPROVE,
+                "partner-link:" + partnerLinkId);
         return toResult(repository.save(partnerLink.reject(principal.userId(), reason, Instant.now(clock))));
     }
 
@@ -92,7 +97,8 @@ public class PartnerLinkService implements PartnerLinkUseCase {
     public PartnerLinkResult suspend(AuthPrincipal principal, String partnerLinkId) {
         PartnerLink partnerLink = getById(partnerLinkId);
         authorizationSupport.assertTenantContext(principal, partnerLink.sourceTenantId());
-        authorizationSupport.assertLivePermission(principal, partnerLink.sourceTenantId(), PermissionCodes.PARTNER_LINK_SUSPEND, "partner-link:" + partnerLinkId);
+        authorizationSupport.assertLivePermission(principal, partnerLink.sourceTenantId(),
+                PermissionCodes.PARTNER_LINK_SUSPEND, "partner-link:" + partnerLinkId);
         return toResult(repository.save(partnerLink.suspend(principal.userId(), Instant.now(clock))));
     }
 
@@ -101,7 +107,8 @@ public class PartnerLinkService implements PartnerLinkUseCase {
     public PartnerLinkResult resume(AuthPrincipal principal, String partnerLinkId) {
         PartnerLink partnerLink = getById(partnerLinkId);
         authorizationSupport.assertTenantContext(principal, partnerLink.sourceTenantId());
-        authorizationSupport.assertLivePermission(principal, partnerLink.sourceTenantId(), PermissionCodes.PARTNER_LINK_RESUME, "partner-link:" + partnerLinkId);
+        authorizationSupport.assertLivePermission(principal, partnerLink.sourceTenantId(),
+                PermissionCodes.PARTNER_LINK_RESUME, "partner-link:" + partnerLinkId);
         return toResult(repository.save(partnerLink.resume(principal.userId(), Instant.now(clock))));
     }
 
@@ -110,7 +117,8 @@ public class PartnerLinkService implements PartnerLinkUseCase {
     public PartnerLinkResult terminate(AuthPrincipal principal, String partnerLinkId, String reason) {
         PartnerLink partnerLink = getById(partnerLinkId);
         authorizationSupport.assertTenantContext(principal, partnerLink.sourceTenantId());
-        authorizationSupport.assertLivePermission(principal, partnerLink.sourceTenantId(), PermissionCodes.PARTNER_LINK_TERMINATE, "partner-link:" + partnerLinkId);
+        authorizationSupport.assertLivePermission(principal, partnerLink.sourceTenantId(),
+                PermissionCodes.PARTNER_LINK_TERMINATE, "partner-link:" + partnerLinkId);
         return toResult(repository.save(partnerLink.terminate(principal.userId(), reason, Instant.now(clock))));
     }
 
@@ -120,9 +128,26 @@ public class PartnerLinkService implements PartnerLinkUseCase {
         String tenantId = requireTenantId(principal);
         authorizationSupport.assertTenantContext(principal, tenantId);
         List<PartnerLink> links = status == null
-            ? repository.findByTenantId(tenantId)
-            : repository.findByTenantIdAndStatus(tenantId, status);
+                ? repository.findByTenantId(tenantId)
+                : repository.findByTenantIdAndStatus(tenantId, status);
         return links.stream().map(this::toResult).toList();
+    }
+
+    @Override
+    @Transactional(readOnly = true)
+    public List<TenantSearchResult> searchActiveTenantsByName(AuthPrincipal principal, String name) {
+        String tenantId = requireTenantId(principal);
+        authorizationSupport.assertTenantContext(principal, tenantId);
+        authorizationSupport.assertLivePermission(principal, tenantId, PermissionCodes.PARTNER_LINK_READ,
+                "partner-link:tenant-search");
+
+        if (name == null || name.isBlank()) {
+            throw new WorkflowDomainException(WorkflowErrorCode.INVALID_REQUEST, "name is required");
+        }
+
+        return tenantReadPort.searchActiveTenantsByName(name.trim()).stream()
+                .map(tenant -> new TenantSearchResult(tenant.tenantId(), tenant.name(), tenant.region(), tenant.type()))
+                .toList();
     }
 
     private String requireTenantId(AuthPrincipal principal) {
@@ -134,17 +159,22 @@ public class PartnerLinkService implements PartnerLinkUseCase {
 
     private PartnerLink getById(String partnerLinkId) {
         return repository.findById(partnerLinkId)
-            .orElseThrow(() -> new WorkflowDomainException(WorkflowErrorCode.PARTNER_LINK_NOT_FOUND, "Partner link not found"));
+                .orElseThrow(() -> new WorkflowDomainException(WorkflowErrorCode.PARTNER_LINK_NOT_FOUND,
+                        "Partner link not found"));
     }
 
     private PartnerLinkResult toResult(PartnerLink link) {
+        String sourceTenantName = tenantReadPort.findTenantName(link.sourceTenantId());
+        String targetTenantName = tenantReadPort.findTenantName(link.targetTenantId());
         return new PartnerLinkResult(
-            link.partnerLinkId(),
-            link.sourceTenantId(),
-            link.targetTenantId(),
-            link.partnerType().name(),
-            link.status().name(),
-            link.reason()
-        );
+                link.partnerLinkId(),
+                link.sourceTenantId(),
+                sourceTenantName,
+                link.targetTenantId(),
+                targetTenantName,
+                link.partnerType().name(),
+                link.status().name(),
+                link.reason(),
+                link.expiresAt());
     }
 }

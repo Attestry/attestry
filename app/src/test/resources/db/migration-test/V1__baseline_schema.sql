@@ -261,6 +261,7 @@ CREATE TABLE IF NOT EXISTS partner_links (
     created_at TIMESTAMP NOT NULL,
     approved_by_user_id VARCHAR(36),
     approved_at TIMESTAMP,
+    expires_at TIMESTAMP,
     terminated_at TIMESTAMP,
     reason VARCHAR(1000),
     CONSTRAINT fk_partner_links_brand_tenant FOREIGN KEY (brand_tenant_id) REFERENCES tenants (tenant_id),

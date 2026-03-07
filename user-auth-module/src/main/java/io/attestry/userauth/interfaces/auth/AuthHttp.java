@@ -21,7 +21,7 @@ import org.springframework.web.bind.annotation.ResponseStatus;
 import org.springframework.web.bind.annotation.RestController;
 
 @RestController
-@RequestMapping({"/auth", "/api-v1/auth"})
+@RequestMapping({ "/auth", "/api-v1/auth" })
 public class AuthHttp {
 
     private final AuthUseCase authApplicationService;
@@ -37,9 +37,7 @@ public class AuthHttp {
                 new SignUpCommand(
                         request.email(),
                         request.password(),
-                        request.phone()
-                )
-        );
+                        request.phone()));
         return new SignUpResponse(result.userId());
     }
 
@@ -47,16 +45,14 @@ public class AuthHttp {
     public LoginResponse login(@Valid @RequestBody LoginRequest request) {
 
         AuthTokenResult result = authApplicationService.login(
-            new LoginCommand(request.email(), request.password(), request.tenantId())
-        );
+                new LoginCommand(request.email(), request.password(), request.tenantId()));
 
         return new LoginResponse(
-            result.accessToken(),
-            result.tokenType(),
-            result.expiresAt(),
-            result.userId(),
-            result.tenantId()
-        );
+                result.accessToken(),
+                result.tokenType(),
+                result.expiresAt(),
+                result.userId(),
+                result.tenantId());
     }
 
     @PostMapping("/logout")
@@ -69,5 +65,16 @@ public class AuthHttp {
     @ResponseStatus(HttpStatus.NO_CONTENT)
     public void verifyPhone(@AuthenticationPrincipal AuthPrincipal principal) {
         authApplicationService.verifyPhone(principal.userId());
+    }
+
+    @PostMapping("/token-reissue")
+    public LoginResponse reissueToken(@AuthenticationPrincipal AuthPrincipal principal) {
+        AuthTokenResult result = authApplicationService.reissueToken(principal.userId(), principal.tenantId());
+        return new LoginResponse(
+                result.accessToken(),
+                result.tokenType(),
+                result.expiresAt(),
+                result.userId(),
+                result.tenantId());
     }
 }

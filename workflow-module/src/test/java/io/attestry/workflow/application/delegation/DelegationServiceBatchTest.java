@@ -65,7 +65,7 @@ class DelegationServiceBatchTest {
     private static final PartnerLink ACTIVE_PARTNER_LINK = new PartnerLink(
         PARTNER_LINK_ID, SOURCE_TENANT, TARGET_TENANT, PartnerType.RETAIL,
         PartnerLinkStatus.ACTIVE, "admin1", Instant.parse("2026-01-01T00:00:00Z"),
-        "approver1", Instant.parse("2026-01-02T00:00:00Z"), null, null
+        "approver1", Instant.parse("2026-01-02T00:00:00Z"), null, null, null
     );
 
     @BeforeEach

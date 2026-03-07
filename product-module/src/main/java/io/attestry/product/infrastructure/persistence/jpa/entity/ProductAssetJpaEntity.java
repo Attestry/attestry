@@ -44,9 +44,6 @@ public class ProductAssetJpaEntity {
     @Column(name = "risk_flag", nullable = false, length = 30)
     private String riskFlag;
 
-    @Column(name = "ownership_user_id", length = 36)
-    private String ownershipUserId;
-
     @Column(name = "created_at", nullable = false)
     private Instant createdAt;
 
@@ -86,7 +83,6 @@ public class ProductAssetJpaEntity {
         String componentRootHash,
         String assetState,
         String riskFlag,
-        String ownershipUserId,
         Instant createdAt,
         Instant voidedAt,
         String voidedReason,
@@ -107,7 +103,6 @@ public class ProductAssetJpaEntity {
         this.componentRootHash = componentRootHash;
         this.assetState = assetState;
         this.riskFlag = riskFlag;
-        this.ownershipUserId = ownershipUserId;
         this.createdAt = createdAt;
         this.voidedAt = voidedAt;
         this.voidedReason = voidedReason;
@@ -129,7 +124,6 @@ public class ProductAssetJpaEntity {
     public String getComponentRootHash() { return componentRootHash; }
     public String getAssetState() { return assetState; }
     public String getRiskFlag() { return riskFlag; }
-    public String getOwnershipUserId() { return ownershipUserId; }
     public Instant getCreatedAt() { return createdAt; }
     public Instant getVoidedAt() { return voidedAt; }
     public String getVoidedReason() { return voidedReason; }

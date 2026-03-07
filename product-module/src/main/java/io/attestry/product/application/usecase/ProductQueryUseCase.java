@@ -15,7 +15,7 @@ public interface ProductQueryUseCase {
 
     PassportDetailResponse getPassportDetail(String passportId);
 
-    List<MintedPassportResponse> listMintedPassports(String tenantId);
+    PagedMintedPassportResponse listMintedPassports(String tenantId, int page, int size);
 
     record AssetStateResponse(String assetId, String passportId, String assetState, String riskFlag) {
     }
@@ -48,6 +48,15 @@ public interface ProductQueryUseCase {
         String riskFlag,
         String ownerId,
         Instant createdAt
+    ) {
+    }
+
+    record PagedMintedPassportResponse(
+        List<MintedPassportResponse> content,
+        int page,
+        int size,
+        long totalElements,
+        int totalPages
     ) {
     }
 

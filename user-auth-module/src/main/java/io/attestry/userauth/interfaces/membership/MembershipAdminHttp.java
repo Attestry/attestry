@@ -2,6 +2,7 @@ package io.attestry.userauth.interfaces.membership;
 
 import io.attestry.userauth.application.dto.result.MembershipInvitationResult;
 import io.attestry.userauth.application.dto.result.MembershipResult;
+import io.attestry.userauth.application.dto.result.MembershipDetailResult;
 import io.attestry.userauth.application.dto.result.MembershipAssignableRolesResult;
 import io.attestry.userauth.application.dto.result.MembershipPermissionTemplateResult;
 import io.attestry.userauth.application.dto.result.MembershipRoleAssignmentsResult;
@@ -15,6 +16,7 @@ import io.attestry.userauth.interfaces.membership.dto.request.MutatePermissionTe
 import io.attestry.userauth.interfaces.membership.dto.request.UpdateMembershipStatusRequest;
 import io.attestry.userauth.interfaces.membership.dto.response.InvitationResponse;
 import io.attestry.userauth.interfaces.membership.dto.response.MembershipAssignableRolesResponse;
+import io.attestry.userauth.interfaces.membership.dto.response.MembershipDetailResponse;
 import io.attestry.userauth.interfaces.membership.dto.response.MembershipPermissionTemplateResponse;
 import io.attestry.userauth.interfaces.membership.dto.response.MembershipResponse;
 import io.attestry.userauth.interfaces.membership.dto.response.MembershipRoleAssignmentsResponse;
@@ -69,7 +71,14 @@ public class MembershipAdminHttp {
                 .toList();
     }
 
-    // TODO("membership 과 user join해서 특정 멤버십 상세조회 반환값은 userAccount 정보도 포함하도록 변경")
+    @GetMapping("/memberships/{id}")
+    @PreAuthorize("hasAnyAuthority('SCOPE_TENANT_READ_ONLY')")
+    public MembershipDetailResponse getMembershipDetail(
+            @CurrentActor ActorContext actor,
+            @PathVariable("id") String membershipId) {
+        MembershipDetailResult result = membershipAdminService.getMembershipDetail(actor, membershipId);
+        return MembershipDetailResponse.from(result);
+    }
 
 
     @PatchMapping("/memberships/{id}/status")

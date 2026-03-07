@@ -22,7 +22,6 @@ CREATE TABLE IF NOT EXISTS product_assets (
     component_root_hash VARCHAR(64),
     asset_state VARCHAR(30) NOT NULL,
     risk_flag VARCHAR(30) NOT NULL,
-    ownership_user_id VARCHAR(36),
     created_at TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP,
     voided_at TIMESTAMP,
     voided_reason VARCHAR(50),
@@ -32,7 +31,6 @@ CREATE TABLE IF NOT EXISTS product_assets (
     risk_reported_by VARCHAR(36),
     police_report_no VARCHAR(100),
     CONSTRAINT fk_product_assets_tenant FOREIGN KEY (tenant_id) REFERENCES tenants (tenant_id),
-    CONSTRAINT fk_product_assets_owner FOREIGN KEY (ownership_user_id) REFERENCES user_accounts (user_id),
     CONSTRAINT uq_product_assets_tenant_serial UNIQUE (tenant_id, serial_number)
 );
 

@@ -15,6 +15,7 @@ public record PartnerLink(
     Instant createdAt,
     String approvedByUserId,
     Instant approvedAt,
+    Instant expiresAt,
     Instant terminatedAt,
     String reason
 ) {
@@ -23,6 +24,7 @@ public record PartnerLink(
         String targetTenantId,
         PartnerType partnerType,
         String actorUserId,
+        Instant expiresAt,
         Instant now
     ) {
         return new PartnerLink(
@@ -35,6 +37,7 @@ public record PartnerLink(
             now,
             null,
             null,
+            expiresAt,
             null,
             null
         );
@@ -54,6 +57,7 @@ public record PartnerLink(
             createdAt,
             approverUserId,
             now,
+            expiresAt,
             null,
             null
         );
@@ -73,6 +77,7 @@ public record PartnerLink(
             createdAt,
             approverUserId,
             now,
+            expiresAt,
             now,
             rejectReason
         );
@@ -92,6 +97,7 @@ public record PartnerLink(
             createdAt,
             actorUserId,
             now,
+            expiresAt,
             null,
             null
         );
@@ -111,6 +117,7 @@ public record PartnerLink(
             createdAt,
             actorUserId,
             now,
+            expiresAt,
             null,
             null
         );
@@ -130,6 +137,7 @@ public record PartnerLink(
             createdAt,
             actorUserId,
             now,
+            expiresAt,
             now,
             terminateReason
         );

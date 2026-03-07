@@ -42,14 +42,13 @@ public class AuthApplicationService implements AuthUseCase {
     private final Duration accessTokenTtl;
 
     public AuthApplicationService(
-        UserAccountRepositoryPort userAccountRepository,
-        MembershipRepositoryPort membershipRepository,
-        MembershipPermissionQueryPort membershipPermissionQueryPort,
-        PasswordHasherPort passwordHasher,
-        AccessTokenPort accessTokenPort,
-        Clock clock,
-        @Value("${app.auth.token.access-ttl:PT15M}") Duration accessTokenTtl
-    ) {
+            UserAccountRepositoryPort userAccountRepository,
+            MembershipRepositoryPort membershipRepository,
+            MembershipPermissionQueryPort membershipPermissionQueryPort,
+            PasswordHasherPort passwordHasher,
+            AccessTokenPort accessTokenPort,
+            Clock clock,
+            @Value("${app.auth.token.access-ttl:PT15M}") Duration accessTokenTtl) {
         this.userAccountRepository = userAccountRepository;
         this.membershipRepository = membershipRepository;
         this.membershipPermissionQueryPort = membershipPermissionQueryPort;
@@ -69,7 +68,7 @@ public class AuthApplicationService implements AuthUseCase {
     @Override
     public AuthTokenResult login(LoginCommand command) {
         UserAccount account = userAccountRepository.findByEmail(Email.of(command.email()))
-            .orElseThrow(() -> new DomainException(ErrorCode.USER_NOT_FOUND, "User not found"));
+                .orElseThrow(() -> new DomainException(ErrorCode.USER_NOT_FOUND, "User not found"));
 
         account.assertPasswordMatches(command.password(), passwordHasher::matches);
         account.checkActiveStatus();
@@ -78,22 +77,20 @@ public class AuthApplicationService implements AuthUseCase {
 
         Instant now = Instant.now(clock);
         AuthPrincipal principal = AuthPrincipal.issue(
-            account.userId(),
-            loginContext.tenantId(),
-            account.verificationLevel(),
-            loginContext.scopes(),
-            now,
-            accessTokenTtl
-        );
+                account.userId(),
+                loginContext.tenantId(),
+                account.verificationLevel(),
+                loginContext.scopes(),
+                now,
+                accessTokenTtl);
         String token = accessTokenPort.issue(principal);
 
         return new AuthTokenResult(
-            token,
-            "Bearer",
-            principal.expiresAt(),
-            account.userId(),
-            loginContext.tenantId()
-        );
+                token,
+                "Bearer",
+                principal.expiresAt(),
+                account.userId(),
+                loginContext.tenantId());
     }
 
     @Override
@@ -104,13 +101,13 @@ public class AuthApplicationService implements AuthUseCase {
     @Override
     public AuthPrincipal authenticate(String accessToken) {
         return accessTokenPort.parse(accessToken)
-            .orElseThrow(() -> new DomainException(ErrorCode.ACCESS_TOKEN_INVALID, "Invalid access token"));
+                .orElseThrow(() -> new DomainException(ErrorCode.ACCESS_TOKEN_INVALID, "Invalid access token"));
     }
 
     private Membership resolveActiveMembership(String userId, String tenantId) {
         Optional<Membership> requestedMembership = (tenantId != null)
-            ? membershipRepository.findByUserIdAndTenantId(userId, tenantId)
-            : Optional.empty();
+                ? membershipRepository.findByUserIdAndTenantId(userId, tenantId)
+                : Optional.empty();
         List<Membership> memberships = membershipRepository.findByUserId(userId);
         return MembershipSelectionPolicy.resolve(tenantId, requestedMembership, memberships);
     }
@@ -128,25 +125,53 @@ public class AuthApplicationService implements AuthUseCase {
     }
 
     private Set<String> resolveMembershipScopes(Membership membership) {
-        Set<String> permissionCodes = membershipPermissionQueryPort.findPermissionCodesByMembershipId(membership.membershipId());
+        Set<String> permissionCodes = membershipPermissionQueryPort
+                .findPermissionCodesByMembershipId(membership.membershipId());
         return Set.copyOf(permissionCodes);
     }
 
     private Set<String> resolveOwnerPermissions() {
-        Set<String> permissionCodes = membershipPermissionQueryPort.findPermissionCodesByGlobalRoleCode(RoleCodes.OWNER_DEFAULT);
+        Set<String> permissionCodes = membershipPermissionQueryPort
+                .findPermissionCodesByGlobalRoleCode(RoleCodes.OWNER_DEFAULT);
         if (permissionCodes.isEmpty()) {
             throw new IllegalStateException("OWNER_DEFAULT role permissions are not configured");
         }
         return new HashSet<>(permissionCodes);
     }
 
-    // TODO("핸드폰 문자 발송")
     @Override
     public VerifyPhoneResult verifyPhone(String userId) {
         UserAccount account = userAccountRepository.findByUserId(userId)
-            .orElseThrow(() -> new DomainException(ErrorCode.USER_NOT_FOUND, "User not found"));
+                .orElseThrow(() -> new DomainException(ErrorCode.USER_NOT_FOUND, "User not found"));
         account.verifyPhone();
         userAccountRepository.save(account);
         return new VerifyPhoneResult(account.userId(), account.verificationLevel());
+    }
+
+    @Override
+    public AuthTokenResult reissueToken(String userId, String tenantId) {
+        UserAccount account = userAccountRepository.findByUserId(userId)
+                .orElseThrow(() -> new DomainException(ErrorCode.USER_NOT_FOUND, "User not found"));
+
+        account.checkActiveStatus();
+
+        LoginContext loginContext = resolveLoginContext(account.userId(), tenantId);
+
+        Instant now = Instant.now(clock);
+        AuthPrincipal principal = AuthPrincipal.issue(
+                account.userId(),
+                loginContext.tenantId(),
+                account.verificationLevel(),
+                loginContext.scopes(),
+                now,
+                accessTokenTtl);
+        String token = accessTokenPort.issue(principal);
+
+        return new AuthTokenResult(
+                token,
+                "Bearer",
+                principal.expiresAt(),
+                account.userId(),
+                loginContext.tenantId());
     }
 }

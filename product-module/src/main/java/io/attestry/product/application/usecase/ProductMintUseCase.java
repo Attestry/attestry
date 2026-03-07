@@ -2,10 +2,13 @@ package io.attestry.product.application.usecase;
 
 import io.attestry.userauth.application.dto.command.ActorContext;
 import java.time.Instant;
+import java.util.List;
 
 public interface ProductMintUseCase {
 
     MintedProductResult mint(ActorContext actor, MintProductCommand command);
+
+    BatchMintResult batchMint(ActorContext actor, String tenantId, List<MintProductCommand> commands);
 
     record MintProductCommand(
         String tenantId,
@@ -26,6 +29,21 @@ public interface ProductMintUseCase {
         String outboxEventId,
         String ledgerEventCategory,
         String ledgerEventAction
+    ) {
+    }
+
+    record BatchMintResult(
+        int totalRequested,
+        int totalMinted,
+        int totalFailed,
+        List<BatchMintError> errors
+    ) {
+    }
+
+    record BatchMintError(
+        int row,
+        String serialNumber,
+        String reason
     ) {
     }
 }

@@ -23,7 +23,7 @@ public class WorkflowApiExceptionHandler {
             case TENANT_ISOLATION_VIOLATION, FORBIDDEN_SCOPE -> HttpStatus.FORBIDDEN;
             case TRANSFER_EXPIRED -> HttpStatus.GONE;
             case TRANSFER_BRUTE_FORCE_BLOCKED -> HttpStatus.TOO_MANY_REQUESTS;
-            case TRANSFER_ALREADY_PENDING, SERVICE_REQUEST_ALREADY_SUBMITTED -> HttpStatus.CONFLICT;
+            case TRANSFER_ALREADY_PENDING, SERVICE_REQUEST_ALREADY_SUBMITTED, PARTNER_LINK_DUPLICATE_STATUS -> HttpStatus.CONFLICT;
             default -> HttpStatus.BAD_REQUEST;
         };
     }

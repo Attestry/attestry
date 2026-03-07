@@ -17,4 +17,6 @@ public interface AuthUseCase {
     AuthPrincipal authenticate(String accessToken);
 
     VerifyPhoneResult verifyPhone(String userId);
+
+    AuthTokenResult reissueToken(String userId, String tenantId);
 }

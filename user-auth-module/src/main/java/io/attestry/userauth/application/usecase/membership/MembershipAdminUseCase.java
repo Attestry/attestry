@@ -4,6 +4,7 @@ import io.attestry.userauth.application.dto.command.ActorContext;
 import io.attestry.userauth.application.dto.result.MembershipInvitationResult;
 import io.attestry.userauth.application.dto.result.MembershipPermissionTemplateResult;
 import io.attestry.userauth.application.dto.result.MembershipAssignableRolesResult;
+import io.attestry.userauth.application.dto.result.MembershipDetailResult;
 import io.attestry.userauth.application.dto.result.MembershipResult;
 import io.attestry.userauth.application.dto.result.MembershipRoleAssignmentsResult;
 import io.attestry.userauth.application.dto.result.TenantAvailableTemplateCodesResult;
@@ -18,6 +19,8 @@ public interface MembershipAdminUseCase {
     MembershipResult acceptInvitation(ActorContext actor, String invitationId);
 
     List<MembershipAdminView> listMemberships(ActorContext actor);
+
+    MembershipDetailResult getMembershipDetail(ActorContext actor, String membershipId);
 
     MembershipResult updateMembershipStatus(
             ActorContext actor,

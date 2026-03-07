@@ -13,6 +13,7 @@ import java.util.Locale;
 import io.attestry.workflow.interfaces.partner.dto.request.CreatePartnerLinkRequest;
 import io.attestry.workflow.interfaces.partner.dto.request.ReasonRequest;
 import io.attestry.workflow.interfaces.partner.dto.response.PartnerLinkResponse;
+import io.attestry.workflow.interfaces.partner.dto.response.TenantSearchResponse;
 import org.springframework.http.HttpStatus;
 import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.security.core.annotation.AuthenticationPrincipal;
@@ -45,7 +46,7 @@ public class PartnerLinkHttp {
         PartnerLinkResult result = partnerLinkUseCase.create(
             principal,
             new CreatePartnerLinkCommand(
-                request.resolvedTargetTenantId(),
+                request.targetTenantId(),
                 request.partnerType(),
                 request.proposedExpiresAt(),
                 request.message()
@@ -55,13 +56,24 @@ public class PartnerLinkHttp {
     }
 
     @GetMapping("/partner-links")
-    @PreAuthorize("hasAuthority('SCOPE_PARTNER_LINK_READ')")
+    @PreAuthorize("hasAnyAuthority('SCOPE_TENANT_READ_ONLY')")
     public List<PartnerLinkResponse> list(
         @AuthenticationPrincipal AuthPrincipal principal,
         @RequestParam(name = "status", required = false) String status
     ) {
         PartnerLinkStatus statusFilter = parseStatus(status);
         return partnerLinkUseCase.listByTenant(principal, statusFilter).stream().map(PartnerLinkResponse::from).toList();
+    }
+
+    @GetMapping("/tenants/search")
+    @PreAuthorize("hasAuthority('SCOPE_PARTNER_LINK_READ')")
+    public List<TenantSearchResponse> searchActiveTenants(
+        @AuthenticationPrincipal AuthPrincipal principal,
+        @RequestParam("name") String name
+    ) {
+        return partnerLinkUseCase.searchActiveTenantsByName(principal, name).stream()
+            .map(TenantSearchResponse::from)
+            .toList();
     }
 
     @PostMapping("/admin/partner-links/{id}/approve")

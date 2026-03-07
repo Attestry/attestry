@@ -45,6 +45,9 @@ public class PartnerLinkJpaEntity {
     @Column(name = "approved_at")
     private Instant approvedAt;
 
+    @Column(name = "expires_at")
+    private Instant expiresAt;
+
     @Column(name = "terminated_at")
     private Instant terminatedAt;
 
@@ -68,6 +71,7 @@ public class PartnerLinkJpaEntity {
         Instant createdAt,
         String approvedByUserId,
         Instant approvedAt,
+        Instant expiresAt,
         Instant terminatedAt,
         String reason,
         long rowVersion
@@ -81,6 +85,7 @@ public class PartnerLinkJpaEntity {
         this.createdAt = createdAt;
         this.approvedByUserId = approvedByUserId;
         this.approvedAt = approvedAt;
+        this.expiresAt = expiresAt;
         this.terminatedAt = terminatedAt;
         this.reason = reason;
         this.rowVersion = rowVersion;
@@ -129,6 +134,10 @@ public class PartnerLinkJpaEntity {
 
     public Instant getApprovedAt() {
         return approvedAt;
+    }
+
+    public Instant getExpiresAt() {
+        return expiresAt;
     }
 
     public Instant getTerminatedAt() {

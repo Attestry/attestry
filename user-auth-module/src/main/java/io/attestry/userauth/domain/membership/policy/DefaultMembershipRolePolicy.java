@@ -10,6 +10,13 @@ public final class DefaultMembershipRolePolicy {
     }
 
     public static String resolveGlobalRoleCode(MembershipRole membershipRole, TenantType groupType) {
-        return RoleCodes.TENANT_STAFF;
+        if (membershipRole == null) {
+            return RoleCodes.TENANT_STAFF;
+        }
+        return switch (membershipRole) {
+            case ADMIN -> RoleCodes.TENANT_OWNER;
+            case OPERATOR -> RoleCodes.TENANT_OPERATOR;
+            case STAFF -> RoleCodes.TENANT_STAFF;
+        };
     }
 }

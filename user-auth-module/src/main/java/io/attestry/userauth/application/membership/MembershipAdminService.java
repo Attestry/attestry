@@ -2,6 +2,7 @@ package io.attestry.userauth.application.membership;
 
 import io.attestry.userauth.application.dto.result.MembershipInvitationResult;
 import io.attestry.userauth.application.dto.result.MembershipAssignableRolesResult;
+import io.attestry.userauth.application.dto.result.MembershipDetailResult;
 import io.attestry.userauth.application.dto.result.MembershipResult;
 import io.attestry.userauth.application.dto.result.MembershipPermissionTemplateResult;
 import io.attestry.userauth.application.dto.result.MembershipRoleAssignmentsResult;
@@ -76,7 +77,6 @@ public class MembershipAdminService implements MembershipAdminUseCase {
         this.clock = clock;
     }
 
-    // TODO("이메일 발송로직")
     @Override
     @Transactional
     public MembershipInvitationResult invite(ActorContext actor, InviteCommand command) {
@@ -127,6 +127,34 @@ public class MembershipAdminService implements MembershipAdminUseCase {
         return membershipAdminRepository.findMembershipsByTenantId(tenantId).stream()
             .map(this::toMembershipView)
             .toList();
+    }
+
+    @Override
+    @Transactional(readOnly = true)
+    public MembershipDetailResult getMembershipDetail(ActorContext actor, String membershipId) {
+        String tenantId = actor.tenantId();
+        Membership membership = membershipAdminRepository.findMembershipById(membershipId)
+            .orElseThrow(() -> new DomainException(ErrorCode.MEMBERSHIP_NOT_FOUND, "Membership not found"));
+        if (!tenantId.equals(membership.tenantId())) {
+            throw new DomainException(ErrorCode.TENANT_ISOLATION_VIOLATION, "Cross-tenant membership access denied");
+        }
+
+        UserAccount userAccount = userAccountRepository.findByUserId(membership.userId())
+            .orElseThrow(() -> new DomainException(ErrorCode.USER_NOT_FOUND, "User not found"));
+
+        return new MembershipDetailResult(
+            membership.membershipId(),
+            membership.tenantId(),
+            membership.currentRoleCodes().stream().sorted().toList(),
+            membership.status().name(),
+            new MembershipDetailResult.UserAccountSummary(
+                userAccount.userId(),
+                userAccount.email().value(),
+                userAccount.phone(),
+                userAccount.status().name(),
+                userAccount.verificationLevel().name()
+            )
+        );
     }
 
     @Override

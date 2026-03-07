@@ -5,7 +5,7 @@ import java.util.List;
 
 public interface GroupPassportQueryPort {
 
-    List<GroupPassportView> findByTenant(String tenantId);
+    PagedResult findByTenant(String tenantId, int page, int size);
 
     record GroupPassportView(
         String passportId,
@@ -20,5 +20,8 @@ public interface GroupPassportQueryPort {
         String ownerId,
         Instant createdAt
     ) {
+    }
+
+    record PagedResult(List<GroupPassportView> content, int page, int size, long totalElements, int totalPages) {
     }
 }

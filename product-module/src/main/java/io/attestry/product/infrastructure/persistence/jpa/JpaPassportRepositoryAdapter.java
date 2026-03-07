@@ -98,7 +98,6 @@ public class JpaPassportRepositoryAdapter implements PassportRepository {
             asset.getComponentRootHash(),
             asset.getAssetState().name(),
             asset.getRiskFlag().name(),
-            null,
             asset.getCreatedAt(),
             asset.getVoidedAt(),
             asset.getVoidedReason() != null ? asset.getVoidedReason().name() : null,

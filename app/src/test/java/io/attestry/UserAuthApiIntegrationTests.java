@@ -279,6 +279,78 @@ class UserAuthApiIntegrationTests {
     }
 
     @Test
+    void operatorInvitationAcceptShouldGrantTenantOperatorRole() throws Exception {
+        String tenantId = UUID.randomUUID().toString();
+        String adminUserId = UUID.randomUUID().toString();
+        String adminEmail = "operator-invite-admin@test.com";
+        String adminPassword = "AdminPw123";
+
+        tenantRepository.save(new TenantJpaEntity(tenantId, "Tenant C", "KR", TenantType.BRAND, TenantStatus.ACTIVE));
+
+        userAccountRepository.save(new UserAccountJpaEntity(
+            adminUserId,
+            adminEmail,
+            passwordHasher.hash(adminPassword),
+            "010-7777-1111",
+            UserStatus.ACTIVE,
+            VerificationLevel.NONE
+        ));
+
+        MembershipJpaEntity adminMembership = membershipRepository.save(new MembershipJpaEntity(
+            UUID.randomUUID().toString(),
+            adminUserId,
+            tenantId,
+            TenantType.BRAND,
+            MembershipRole.ADMIN,
+            MembershipStatus.ACTIVE,
+            TenantStatus.ACTIVE
+        ));
+        membershipRoleAssignmentRepository.save(new io.attestry.userauth.infrastructure.persistence.jpa.entity.MembershipRoleAssignmentJpaEntity(
+            UUID.randomUUID().toString(),
+            adminMembership.getMembershipId(),
+            "role-tenant-owner",
+            null,
+            Instant.now()
+        ));
+        bindTenantOwnerTemplate(tenantId, adminUserId);
+
+        String inviteeEmail = "operator-invitee@test.com";
+        String inviteePassword = "OperatorPw123";
+        signUp(inviteeEmail, inviteePassword, "010-7777-2222");
+
+        String adminToken = login(adminEmail, adminPassword, tenantId);
+        MvcResult invitationCreated = mockMvc.perform(post("/admin/invitations")
+                .header("Authorization", bearer(adminToken))
+                .contentType(MediaType.APPLICATION_JSON)
+                .content(json(Map.of(
+                    "email", inviteeEmail,
+                    "role", "OPERATOR"
+                ))))
+            .andExpect(status().isCreated())
+            .andExpect(jsonPath("$.role").value("OPERATOR"))
+            .andExpect(jsonPath("$.status").value("PENDING"))
+            .andReturn();
+
+        String invitationId = readJson(invitationCreated).get("invitationId").asText();
+        String inviteeToken = login(inviteeEmail, inviteePassword, null);
+
+        mockMvc.perform(post("/admin/invitations/{invitationId}/accept", invitationId)
+                .header("Authorization", bearer(inviteeToken)))
+            .andExpect(status().isOk())
+            .andExpect(jsonPath("$.status").value("ACTIVE"))
+            .andExpect(jsonPath("$.roleCodes").isArray())
+            .andExpect(jsonPath("$.roleCodes").value(org.hamcrest.Matchers.hasItem("TENANT_OPERATOR")));
+
+        String inviteeUserId = userAccountRepository.findByEmail(inviteeEmail).orElseThrow().getUserId();
+        MembershipJpaEntity inviteeMembership = membershipRepository
+            .findByUserIdAndTenantId(inviteeUserId, tenantId)
+            .orElseThrow();
+        org.assertj.core.api.Assertions.assertThat(
+            membershipRoleAssignmentRepository.findRoleCodesByMembershipId(inviteeMembership.getMembershipId())
+        ).contains("TENANT_OPERATOR");
+    }
+
+    @Test
     void membershipUpdateShouldWork() throws Exception {
         String tenantId = UUID.randomUUID().toString();
         String adminUserId = UUID.randomUUID().toString();
