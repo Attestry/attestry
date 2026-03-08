@@ -21,12 +21,19 @@ import java.time.Clock;
 import java.time.Instant;
 import java.util.ArrayList;
 import java.util.List;
+import java.util.Set;
+import jakarta.persistence.EntityManager;
+import jakarta.persistence.PersistenceContext;
 import org.springframework.dao.DataIntegrityViolationException;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
 @Service
 public class ProductMintService implements ProductMintUseCase {
+    private static final Set<String> PLATFORM_ADMIN_SCOPES = Set.of(
+        "SCOPE_PLATFORM_ADMIN",
+        "PLATFORM_ADMIN"
+    );
 
     private final PassportRepository passportRepository;
     private final BrandAccessValidationPort brandAccessValidationPort;
@@ -35,6 +42,8 @@ public class ProductMintService implements ProductMintUseCase {
     private final UuidV7Generator uuidV7Generator;
     private final QrPublicCodeGenerator qrPublicCodeGenerator;
     private final Clock clock;
+    @PersistenceContext
+    private EntityManager entityManager;
 
     public ProductMintService(
         PassportRepository passportRepository,
@@ -68,8 +77,10 @@ public class ProductMintService implements ProductMintUseCase {
             command.componentRootHash()
         );
 
-        brandAccessValidationPort.assertActiveBrandMembership(actor.userId(), input.tenantId());
-        assertBrandMintScope(actor, input.tenantId(), input.serialNumber());
+        if (!isPlatformAdmin(actor)) {
+            brandAccessValidationPort.assertActiveBrandMembership(actor.userId(), input.tenantId());
+            assertBrandMintScope(actor, input.tenantId(), input.serialNumber());
+        }
 
         if (passportRepository.existsByTenantAndSerial(input.tenantId(), input.serialNumber())) {
             throw new ProductDomainException(
@@ -90,6 +101,8 @@ public class ProductMintService implements ProductMintUseCase {
 
         try {
             passport = passportRepository.save(passport);
+            // Ensure FK-dependent JDBC writes in caller can see the minted passport immediately.
+            entityManager.flush();
         } catch (DataIntegrityViolationException ex) {
             throw new ProductDomainException(ProductErrorCode.DUPLICATE_SERIAL_NUMBER, "Duplicate serial number in tenant");
         }
@@ -185,5 +198,9 @@ public class ProductMintService implements ProductMintUseCase {
         if (!decision.allowed()) {
             throw new ProductDomainException(ProductErrorCode.FORBIDDEN_MINT, "BRAND_MINT scope is required");
         }
+    }
+
+    private boolean isPlatformAdmin(ActorContext actor) {
+        return actor.scopes() != null && actor.scopes().stream().anyMatch(PLATFORM_ADMIN_SCOPES::contains);
     }
 }

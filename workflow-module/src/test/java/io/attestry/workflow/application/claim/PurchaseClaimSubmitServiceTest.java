@@ -6,6 +6,7 @@ import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.Mockito.when;
 
+import io.attestry.userauth.application.port.ObjectStoragePort;
 import io.attestry.userauth.domain.identity.model.VerificationLevel;
 import io.attestry.userauth.security.AuthPrincipal;
 import io.attestry.workflow.application.claim.command.SubmitPurchaseClaimCommand;
@@ -32,6 +33,7 @@ class PurchaseClaimSubmitServiceTest {
     @Mock PurchaseClaimRepository purchaseClaimRepository;
     @Mock ShipmentEvidencePort shipmentEvidencePort;
     @Mock PurchaseClaimEvidenceService evidenceService;
+    @Mock ObjectStoragePort objectStoragePort;
 
     private final Clock clock = Clock.fixed(Instant.parse("2026-03-01T10:00:00Z"), ZoneOffset.UTC);
 
@@ -45,12 +47,14 @@ class PurchaseClaimSubmitServiceTest {
     @BeforeEach
     void setUp() {
         service = new PurchaseClaimSubmitService(
-            purchaseClaimRepository, shipmentEvidencePort, evidenceService, clock
+            purchaseClaimRepository, shipmentEvidencePort, evidenceService, objectStoragePort, clock
         );
     }
 
     @Test
     void submit_success() {
+        when(shipmentEvidencePort.findEvidenceGroupScope("eg-1"))
+            .thenReturn(java.util.Optional.of(new ShipmentEvidencePort.EvidenceGroupScopeView("eg-1", "t1", "consumer1")));
         when(shipmentEvidencePort.findReadyEvidenceHashes("eg-1"))
             .thenReturn(List.of("abc123"));
         when(purchaseClaimRepository.save(any(PurchaseClaim.class)))
@@ -58,7 +62,7 @@ class PurchaseClaimSubmitServiceTest {
 
         SubmitPurchaseClaimResult result = service.submit(
             CONSUMER,
-            new SubmitPurchaseClaimCommand("t1", "SN-001", "Model X", "eg-1", "note")
+            new SubmitPurchaseClaimCommand("SN-001", "Model X", "eg-1", "note")
         );
 
         assertEquals("SUBMITTED", result.status());
@@ -68,13 +72,15 @@ class PurchaseClaimSubmitServiceTest {
 
     @Test
     void submit_noEvidence_throws() {
+        when(shipmentEvidencePort.findEvidenceGroupScope("eg-1"))
+            .thenReturn(java.util.Optional.of(new ShipmentEvidencePort.EvidenceGroupScopeView("eg-1", "t1", "consumer1")));
         when(shipmentEvidencePort.findReadyEvidenceHashes("eg-1"))
             .thenReturn(List.of());
 
         WorkflowDomainException ex = assertThrows(WorkflowDomainException.class, () ->
             service.submit(
                 CONSUMER,
-                new SubmitPurchaseClaimCommand("t1", "SN-001", "Model X", "eg-1", null)
+                new SubmitPurchaseClaimCommand("SN-001", "Model X", "eg-1", null)
             )
         );
         assertEquals(WorkflowErrorCode.CLAIM_EVIDENCE_INSUFFICIENT, ex.getErrorCode());
@@ -90,7 +96,7 @@ class PurchaseClaimSubmitServiceTest {
         WorkflowDomainException ex = assertThrows(WorkflowDomainException.class, () ->
             service.submit(
                 noUser,
-                new SubmitPurchaseClaimCommand("t1", "SN-001", "Model X", "eg-1", null)
+                new SubmitPurchaseClaimCommand("SN-001", "Model X", "eg-1", null)
             )
         );
         assertEquals(WorkflowErrorCode.INVALID_REQUEST, ex.getErrorCode());
