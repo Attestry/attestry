@@ -37,9 +37,9 @@ public class ProductQueryHttp {
                 result.shipment().status(),
                 result.shipment().shipmentRound(),
                 result.shipment().releasedAt(),
-                result.shipment().releasedByUserId(),
+                result.shipment().releasedByUserEmail(),
                 result.shipment().returnedAt(),
-                result.shipment().returnedByUserId(),
+                result.shipment().returnedByUserEmail(),
                 result.shipment().evidenceFiles().stream()
                     .map(e -> new EvidenceFileResponse(
                         e.evidenceId(), e.originalFileName(), e.contentType(), e.sizeBytes(), e.downloadUrl()
@@ -148,9 +148,9 @@ public class ProductQueryHttp {
         String status,
         int shipmentRound,
         Instant releasedAt,
-        String releasedByUserId,
+        String releasedByUserEmail,
         Instant returnedAt,
-        String returnedByUserId,
+        String returnedByUserEmail,
         List<EvidenceFileResponse> evidenceFiles
     ) {
     }

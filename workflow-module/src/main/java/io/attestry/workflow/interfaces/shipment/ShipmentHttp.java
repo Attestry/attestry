@@ -25,6 +25,7 @@ import org.springframework.web.bind.annotation.PathVariable;
 import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RequestMapping;
+import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.bind.annotation.ResponseStatus;
 import org.springframework.web.bind.annotation.RestController;
 
@@ -89,34 +90,39 @@ public class ShipmentHttp {
         return ReleaseShipmentResponse.from(result);
     }
 
-    //TODO("pageing  적용 ")
-    @GetMapping("/passports/{passportId}/shipments")
-    @PreAuthorize("hasAuthority('SCOPE_TENANT_READ_ONLY')")
-    public List<ShipmentResponse> listShipments(
-            @AuthenticationPrincipal AuthPrincipal principal,
-            @PathVariable("passportId") String passportId) {
-        return shipmentQueryUseCase.listByPassport(principal, passportId).stream()
-                .map(ShipmentResponse::from)
-                .toList();
-    }
 
-    //TODO("pageing  적용 ")
     @GetMapping("/shipments/release-candidates")
     @PreAuthorize("hasAuthority('SCOPE_TENANT_READ_ONLY')")
-    public List<ShipmentReleaseCandidateResponse> listReleaseCandidates(
-            @AuthenticationPrincipal AuthPrincipal principal) {
-        return shipmentQueryUseCase.listReleaseCandidates(principal).stream()
+    public PagedShipmentReleaseCandidateResponse listReleaseCandidates(
+            @AuthenticationPrincipal AuthPrincipal principal,
+            @RequestParam(name = "page", defaultValue = "0") int page,
+            @RequestParam(name = "size", defaultValue = "20") int size,
+            @RequestParam(name = "keyword", required = false) String keyword) {
+        ShipmentQueryUseCase.PagedReleaseCandidateResponse result =
+                shipmentQueryUseCase.listReleaseCandidates(principal, page, size, keyword);
+        List<ShipmentReleaseCandidateResponse> content = result.content().stream()
                 .map(ShipmentReleaseCandidateResponse::from)
                 .toList();
+        return new PagedShipmentReleaseCandidateResponse(
+                content, result.page(), result.size(),
+                result.totalElements(), result.totalPages());
     }
 
-    //TODO("pageing  적용 ")
     @GetMapping("/shipments")
     @PreAuthorize("hasAuthority('SCOPE_TENANT_READ_ONLY')")
-    public List<ShipmentResponse> listAllShipments(@AuthenticationPrincipal AuthPrincipal principal) {
-        return shipmentQueryUseCase.listByTenant(principal).stream()
+    public PagedShipmentResponse listAllShipments(
+            @AuthenticationPrincipal AuthPrincipal principal,
+            @RequestParam(name = "page", defaultValue = "0") int page,
+            @RequestParam(name = "size", defaultValue = "20") int size,
+            @RequestParam(name = "keyword", required = false) String keyword) {
+        ShipmentQueryUseCase.PagedShipmentViewResponse result =
+                shipmentQueryUseCase.listByTenant(principal, page, size, keyword);
+        List<ShipmentResponse> content = result.content().stream()
                 .map(ShipmentResponse::from)
                 .toList();
+        return new PagedShipmentResponse(
+                content, result.page(), result.size(),
+                result.totalElements(), result.totalPages());
     }
 
     @GetMapping("/shipments/{shipmentId}")
@@ -212,6 +218,12 @@ public class ShipmentHttp {
     public record ShipmentResponse(
             String shipmentId,
             String passportId,
+            String assetId,
+            String serialNumber,
+            String modelId,
+            String modelName,
+            String productionBatch,
+            String factoryCode,
             int shipmentRound,
             String status,
             Instant releasedAt,
@@ -221,6 +233,12 @@ public class ShipmentHttp {
             return new ShipmentResponse(
                     result.shipmentId(),
                     result.passportId(),
+                    result.assetId(),
+                    result.serialNumber(),
+                    result.modelId(),
+                    result.modelName(),
+                    result.productionBatch(),
+                    result.factoryCode(),
                     result.shipmentRound(),
                     result.status(),
                     result.releasedAt(),
@@ -233,12 +251,14 @@ public class ShipmentHttp {
             String shipmentId,
             String tenantId,
             String passportId,
+            String modelName,
+            String serialNumber,
             int shipmentRound,
             String status,
             Instant releasedAt,
-            String releasedByUserId,
+            String releasedByUserEmail,
             Instant returnedAt,
-            String returnedByUserId,
+            String returnedByUserEmail,
             List<EvidenceFileResponse> releaseEvidenceFiles,
             List<EvidenceFileResponse> returnEvidenceFiles,
             Instant createdAt) {
@@ -247,12 +267,14 @@ public class ShipmentHttp {
                     result.shipmentId(),
                     result.tenantId(),
                     result.passportId(),
+                    result.modelName(),
+                    result.serialNumber(),
                     result.shipmentRound(),
                     result.status(),
                     result.releasedAt(),
-                    result.releasedByUserId(),
+                    result.releasedByUserEmail(),
                     result.returnedAt(),
-                    result.returnedByUserId(),
+                    result.returnedByUserEmail(),
                     result.releaseEvidenceFiles().stream()
                             .map(EvidenceFileResponse::from)
                             .toList(),
@@ -321,5 +343,21 @@ public class ShipmentHttp {
                     result.returnEvidenceGroupId(),
                     result.outboxEventId());
         }
+    }
+
+    public record PagedShipmentResponse(
+            List<ShipmentResponse> content,
+            int page,
+            int size,
+            long totalElements,
+            int totalPages) {
+    }
+
+    public record PagedShipmentReleaseCandidateResponse(
+            List<ShipmentReleaseCandidateResponse> content,
+            int page,
+            int size,
+            long totalElements,
+            int totalPages) {
     }
 }

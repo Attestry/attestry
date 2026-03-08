@@ -88,9 +88,9 @@ public interface ProductQueryUseCase {
         String status,
         int shipmentRound,
         Instant releasedAt,
-        String releasedByUserId,
+        String releasedByUserEmail,
         Instant returnedAt,
-        String returnedByUserId,
+        String returnedByUserEmail,
         List<EvidenceFileResponse> evidenceFiles
     ) {
         public static ShipmentDetailResponse from(PassportShipmentQueryPort.ShipmentView view) {
@@ -101,8 +101,8 @@ public interface ProductQueryUseCase {
                 .toList();
             return new ShipmentDetailResponse(
                 view.shipmentId(), view.status(), view.shipmentRound(),
-                view.releasedAt(), view.releasedByUserId(),
-                view.returnedAt(), view.returnedByUserId(),
+                view.releasedAt(), view.releasedByUserEmail(),
+                view.returnedAt(), view.returnedByUserEmail(),
                 files
             );
         }
