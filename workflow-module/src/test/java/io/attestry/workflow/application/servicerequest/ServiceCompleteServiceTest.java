@@ -15,7 +15,7 @@ import io.attestry.workflow.application.port.WorkflowLedgerOutboxPort;
 import io.attestry.workflow.application.port.ServicePermissionPort;
 import io.attestry.workflow.application.port.ServiceProductReadPort;
 import io.attestry.workflow.application.port.ServiceProductReadPort.ServicePassportState;
-import io.attestry.workflow.application.port.ShipmentEvidencePort;
+import io.attestry.workflow.application.port.WorkflowEvidencePort;
 import io.attestry.workflow.application.servicerequest.command.CompleteServiceRequestCommand;
 import io.attestry.workflow.application.servicerequest.result.CompleteServiceRequestResult;
 import io.attestry.workflow.application.shipment.result.WorkflowLedgerEventEnvelope;
@@ -44,7 +44,7 @@ class ServiceCompleteServiceTest {
     @Mock ServiceProductReadPort serviceProductReadPort;
     @Mock ServicePermissionPort servicePermissionPort;
     @Mock WorkflowLedgerOutboxPort serviceLedgerOutboxPort;
-    @Mock ShipmentEvidencePort shipmentEvidencePort;
+    @Mock WorkflowEvidencePort shipmentEvidencePort;
     @Mock WorkflowAuthorizationSupport authorizationSupport;
 
     private final ServiceCompletePolicy completePolicy = new ServiceCompletePolicy();

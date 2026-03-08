@@ -6,8 +6,6 @@ public record ClaimEvidenceView(
     String evidenceId,
     String status,
     String downloadUrl,
-    Instant expiresAt,
-    String errorCode,
-    String errorMessage
+    Instant expiresAt
 ) {
 }

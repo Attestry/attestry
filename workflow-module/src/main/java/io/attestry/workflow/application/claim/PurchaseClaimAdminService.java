@@ -3,8 +3,8 @@ package io.attestry.workflow.application.claim;
 import io.attestry.product.application.usecase.ProductMintUseCase;
 import io.attestry.product.application.usecase.ProductMintUseCase.MintProductCommand;
 import io.attestry.product.application.usecase.ProductMintUseCase.MintedProductResult;
-import io.attestry.userauth.application.port.ObjectStoragePort;
 import io.attestry.userauth.application.dto.command.ActorContext;
+import io.attestry.userauth.application.port.ObjectStoragePort;
 import io.attestry.userauth.domain.authorization.model.PermissionCodes;
 import io.attestry.userauth.security.AuthPrincipal;
 import io.attestry.workflow.application.claim.command.ApprovePurchaseClaimCommand;
@@ -12,9 +12,9 @@ import io.attestry.workflow.application.claim.result.ApprovePurchaseClaimResult;
 import io.attestry.workflow.application.claim.result.ClaimEvidenceView;
 import io.attestry.workflow.application.claim.result.PendingClaimView;
 import io.attestry.workflow.application.claim.result.RejectPurchaseClaimResult;
-import io.attestry.workflow.application.port.ShipmentEvidencePort;
-import io.attestry.workflow.application.port.WorkflowLedgerOutboxPort;
+import io.attestry.workflow.application.port.WorkflowEvidencePort;
 import io.attestry.workflow.application.port.TransferOwnershipUpdatePort;
+import io.attestry.workflow.application.port.WorkflowLedgerOutboxPort;
 import io.attestry.workflow.application.shipment.result.WorkflowLedgerEventEnvelope;
 import io.attestry.workflow.application.support.WorkflowAuthorizationSupport;
 import io.attestry.workflow.application.usecase.PurchaseClaimAdminUseCase;
@@ -38,7 +38,7 @@ public class PurchaseClaimAdminService implements PurchaseClaimAdminUseCase {
     private final ProductMintUseCase productMintUseCase;
     private final TransferOwnershipUpdatePort ownershipUpdatePort;
     private final WorkflowLedgerOutboxPort ledgerOutboxPort;
-    private final ShipmentEvidencePort shipmentEvidencePort;
+    private final WorkflowEvidencePort evidencePort;
     private final ObjectStoragePort objectStoragePort;
     private final WorkflowAuthorizationSupport authorizationSupport;
     private final Clock clock;
@@ -48,7 +48,7 @@ public class PurchaseClaimAdminService implements PurchaseClaimAdminUseCase {
         ProductMintUseCase productMintUseCase,
         TransferOwnershipUpdatePort ownershipUpdatePort,
         WorkflowLedgerOutboxPort ledgerOutboxPort,
-        ShipmentEvidencePort shipmentEvidencePort,
+        WorkflowEvidencePort evidencePort,
         ObjectStoragePort objectStoragePort,
         WorkflowAuthorizationSupport authorizationSupport,
         Clock clock
@@ -57,7 +57,7 @@ public class PurchaseClaimAdminService implements PurchaseClaimAdminUseCase {
         this.productMintUseCase = productMintUseCase;
         this.ownershipUpdatePort = ownershipUpdatePort;
         this.ledgerOutboxPort = ledgerOutboxPort;
-        this.shipmentEvidencePort = shipmentEvidencePort;
+        this.evidencePort = evidencePort;
         this.objectStoragePort = objectStoragePort;
         this.authorizationSupport = authorizationSupport;
         this.clock = clock;
@@ -66,33 +66,8 @@ public class PurchaseClaimAdminService implements PurchaseClaimAdminUseCase {
     @Override
     @Transactional(readOnly = true)
     public List<PendingClaimView> listPendingClaims(AuthPrincipal principal) {
-        authorizationSupport.assertLivePermission(principal, principal.tenantId(), PermissionCodes.PURCHASE_CLAIM_APPROVE, "purchase-claim:list");
-        List<PurchaseClaim> pendingClaims = purchaseClaimRepository.findByStatus(PurchaseClaimStatus.SUBMITTED);
-        return toPendingViews(pendingClaims);
-    }
-
-    @Override
-    @Transactional(readOnly = true)
-    public List<ClaimEvidenceView> listClaimEvidences(AuthPrincipal principal, String claimId) {
-        PurchaseClaim claim = purchaseClaimRepository.findById(claimId)
-            .orElseThrow(() -> new WorkflowDomainException(WorkflowErrorCode.CLAIM_NOT_FOUND, "Purchase claim not found"));
-
-        authorizationSupport.assertLivePermission(
-            principal,
-            principal.tenantId(),
-            PermissionCodes.PURCHASE_CLAIM_APPROVE,
-            "purchase-claim:evidences:" + claimId
-        );
-
-        return shipmentEvidencePort.findEvidenceByEvidenceGroupId(claim.evidenceGroupId()).stream()
-            .filter(e -> "READY".equalsIgnoreCase(e.status()))
-            .map(this::toEvidenceView)
-            .toList();
-    }
-
-    private List<PendingClaimView> toPendingViews(List<PurchaseClaim> pendingClaims) {
-        return pendingClaims
-            .stream()
+        authorizationSupport.assertLivePermission(principal, principal.tenantId(), PermissionCodes.PLATFORM_ADMIN, "purchase-claim:list");
+        return purchaseClaimRepository.findByStatus(PurchaseClaimStatus.SUBMITTED).stream()
             .map(c -> new PendingClaimView(
                 c.claimId(), c.claimantUserId(),
                 c.serialNumber(), c.modelName(),
@@ -103,40 +78,37 @@ public class PurchaseClaimAdminService implements PurchaseClaimAdminUseCase {
     }
 
     @Override
+    @Transactional(readOnly = true)
+    public List<ClaimEvidenceView> listClaimEvidences(AuthPrincipal principal, String claimId) {
+        authorizationSupport.assertLivePermission(principal, principal.tenantId(), PermissionCodes.PLATFORM_ADMIN, "purchase-claim:evidences:" + claimId);
+        PurchaseClaim claim = purchaseClaimRepository.findById(claimId)
+            .orElseThrow(() -> new WorkflowDomainException(WorkflowErrorCode.CLAIM_NOT_FOUND, "Purchase claim not found"));
+
+        return evidencePort.findEvidenceByEvidenceGroupId(claim.evidenceGroupId()).stream()
+            .filter(e -> "READY".equalsIgnoreCase(e.status()))
+            .map(this::toEvidenceView)
+            .toList();
+    }
+
+    @Override
     @Transactional
     public ApprovePurchaseClaimResult approve(
         AuthPrincipal principal,
         String claimId,
         ApprovePurchaseClaimCommand command
     ) {
-        authorizationSupport.assertLivePermission(principal, principal.tenantId(), PermissionCodes.PURCHASE_CLAIM_APPROVE, "purchase-claim:approve:" + claimId);
+        authorizationSupport.assertLivePermission(principal, principal.tenantId(), PermissionCodes.PLATFORM_ADMIN, "purchase-claim:approve:" + claimId);
 
         PurchaseClaim claim = findSubmittedClaim(claimId);
-        String targetTenantId = resolveClaimTenantId(claim.evidenceGroupId());
-        String safeModelName = (claim.modelName() == null || claim.modelName().isBlank())
-            ? claim.serialNumber()
-            : claim.modelName();
-        MintedProductResult mintResult;
-        try {
-            mintResult = productMintUseCase.mint(
-                ActorContext.from(principal),
-                new MintProductCommand(
-                    targetTenantId,
-                    claim.serialNumber(), null, safeModelName,
-                    command.manufacturedAt(), command.productionBatch(), command.factoryCode(),
-                    null,
-                    "ADMIN"
-                )
-            );
-        } catch (RuntimeException ex) {
-            if (containsTenantForeignKeyViolation(ex)) {
-                throw new WorkflowDomainException(
-                    WorkflowErrorCode.INVALID_REQUEST,
-                    "신청 데이터의 tenant가 유효하지 않아 승인할 수 없습니다. 반려 처리 후 재신청이 필요합니다."
-                );
-            }
-            throw ex;
-        }
+
+        MintedProductResult mintResult = productMintUseCase.mint(
+            ActorContext.from(principal),
+            new MintProductCommand(
+                principal.tenantId(),
+                claim.serialNumber(), null, claim.modelName(),
+                command.manufacturedAt(), command.productionBatch(), command.factoryCode(), null
+            )
+        );
 
         Instant now = Instant.now(clock);
         ownershipUpdatePort.upsertOwner(mintResult.passportId(), claim.claimantUserId(), now);
@@ -144,7 +116,7 @@ public class PurchaseClaimAdminService implements PurchaseClaimAdminUseCase {
         PurchaseClaim approved = claim.approve(principal.userId(), mintResult.passportId(), mintResult.assetId(), now);
         purchaseClaimRepository.save(approved);
 
-        List<String> evidenceHashes = shipmentEvidencePort.findReadyEvidenceHashes(claim.evidenceGroupId());
+        List<String> evidenceHashes = evidencePort.findReadyEvidenceHashes(claim.evidenceGroupId());
         ledgerOutboxPort.enqueue(
             WorkflowLedgerEventEnvelope.purchaseClaimApproved(
                 approved,
@@ -170,7 +142,7 @@ public class PurchaseClaimAdminService implements PurchaseClaimAdminUseCase {
         String claimId,
         String reason
     ) {
-        authorizationSupport.assertLivePermission(principal, principal.tenantId(), PermissionCodes.PURCHASE_CLAIM_APPROVE, "purchase-claim:reject:" + claimId);
+        authorizationSupport.assertLivePermission(principal, principal.tenantId(), PermissionCodes.PLATFORM_ADMIN, "purchase-claim:reject:" + claimId);
 
         PurchaseClaim claim = findSubmittedClaim(claimId);
 
@@ -192,50 +164,16 @@ public class PurchaseClaimAdminService implements PurchaseClaimAdminUseCase {
         return claim;
     }
 
-    private boolean containsTenantForeignKeyViolation(Throwable throwable) {
-        Throwable current = throwable;
-        while (current != null) {
-            String message = current.getMessage();
-            if (message != null && message.contains("fk_product_assets_tenant")) {
-                return true;
-            }
-            current = current.getCause();
-        }
-        return false;
-    }
-
-    private String resolveClaimTenantId(String evidenceGroupId) {
-        ShipmentEvidencePort.EvidenceGroupScopeView scope = shipmentEvidencePort.findEvidenceGroupScope(evidenceGroupId)
-            .orElseThrow(() -> new WorkflowDomainException(WorkflowErrorCode.EVIDENCE_NOT_FOUND, "Evidence group not found"));
-        if (scope.tenantId() == null || scope.tenantId().isBlank()) {
-            throw new WorkflowDomainException(WorkflowErrorCode.INVALID_REQUEST, "Evidence group tenant context is missing");
-        }
-        return scope.tenantId();
-    }
-
-    private ClaimEvidenceView toEvidenceView(ShipmentEvidencePort.ShipmentEvidenceView evidence) {
-        try {
-            ObjectStoragePort.PresignedDownload download = objectStoragePort.issuePresignedDownload(
-                evidence.objectKey(),
-                DOWNLOAD_TTL
-            );
-            return new ClaimEvidenceView(
-                evidence.evidenceId(),
-                evidence.status(),
-                download.downloadUrl(),
-                download.expiresAt(),
-                null,
-                null
-            );
-        } catch (RuntimeException ex) {
-            return new ClaimEvidenceView(
-                evidence.evidenceId(),
-                "PRESIGN_FAILED",
-                null,
-                null,
-                "EVIDENCE_PRESIGN_FAILED",
-                "첨부 파일 다운로드 링크 생성에 실패했습니다."
-            );
-        }
+    private ClaimEvidenceView toEvidenceView(WorkflowEvidencePort.EvidenceView evidence) {
+        ObjectStoragePort.PresignedDownload download = objectStoragePort.issuePresignedDownload(
+            evidence.objectKey(),
+            DOWNLOAD_TTL
+        );
+        return new ClaimEvidenceView(
+            evidence.evidenceId(),
+            evidence.status(),
+            download.downloadUrl(),
+            download.expiresAt()
+        );
     }
 }

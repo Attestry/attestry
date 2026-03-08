@@ -55,8 +55,8 @@ public class ProductMintHttp {
                         request.manufacturedAt(),
                         request.productionBatch(),
                         request.factoryCode(),
-                        request.componentRootHash(),
-                        null));
+                        request.componentRootHash()
+                ));
         return MintedProductResponse.from(result);
     }
 

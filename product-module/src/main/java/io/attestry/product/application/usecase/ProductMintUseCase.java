@@ -18,8 +18,7 @@ public interface ProductMintUseCase {
         Instant manufacturedAt,
         String productionBatch,
         String factoryCode,
-        String componentRootHash,
-        String actorRoleOverride
+        String componentRootHash
     ) {
     }
 

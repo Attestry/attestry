@@ -20,7 +20,7 @@ import io.attestry.userauth.security.AuthPrincipal;
 import io.attestry.workflow.application.claim.command.ApprovePurchaseClaimCommand;
 import io.attestry.workflow.application.claim.result.ApprovePurchaseClaimResult;
 import io.attestry.workflow.application.claim.result.RejectPurchaseClaimResult;
-import io.attestry.workflow.application.port.ShipmentEvidencePort;
+import io.attestry.workflow.application.port.WorkflowEvidencePort;
 import io.attestry.workflow.application.port.WorkflowLedgerOutboxPort;
 import io.attestry.workflow.application.port.TransferOwnershipUpdatePort;
 import io.attestry.workflow.application.shipment.result.WorkflowLedgerEventEnvelope;
@@ -49,7 +49,7 @@ class PurchaseClaimAdminServiceTest {
     @Mock ProductMintUseCase productMintUseCase;
     @Mock TransferOwnershipUpdatePort ownershipUpdatePort;
     @Mock WorkflowLedgerOutboxPort ledgerOutboxPort;
-    @Mock ShipmentEvidencePort shipmentEvidencePort;
+    @Mock WorkflowEvidencePort shipmentEvidencePort;
     @Mock ObjectStoragePort objectStoragePort;
     @Mock WorkflowAuthorizationSupport authorizationSupport;
 
@@ -69,7 +69,6 @@ class PurchaseClaimAdminServiceTest {
         return new PurchaseClaim(
             "claim-1",
             "consumer1",
-            "OWNER",
             "SN-001",
             "Model X",
             "eg-1",
@@ -97,8 +96,6 @@ class PurchaseClaimAdminServiceTest {
         PurchaseClaim claim = submittedClaim();
         doNothing().when(authorizationSupport).assertLivePermission(any(), anyString(), anyString(), anyString());
         when(purchaseClaimRepository.findById("claim-1")).thenReturn(Optional.of(claim));
-        when(shipmentEvidencePort.findEvidenceGroupScope("eg-1"))
-            .thenReturn(Optional.of(new ShipmentEvidencePort.EvidenceGroupScopeView("eg-1", "t1", "consumer1")));
         when(productMintUseCase.mint(any(ActorContext.class), any(MintProductCommand.class)))
             .thenReturn(new MintedProductResult("asset-1", "passport-1", "QR-ABC", "outbox-1", "GENESIS", "MINTED"));
         doNothing().when(ownershipUpdatePort).upsertOwner(anyString(), anyString(), any(Instant.class));
@@ -158,17 +155,4 @@ class PurchaseClaimAdminServiceTest {
         assertEquals(WorkflowErrorCode.CLAIM_NOT_FOUND, ex.getErrorCode());
     }
 
-    @Test
-    void approve_missingEvidenceGroupScope_throws() {
-        PurchaseClaim claim = submittedClaim();
-        doNothing().when(authorizationSupport).assertLivePermission(any(), anyString(), anyString(), anyString());
-        when(purchaseClaimRepository.findById("claim-1")).thenReturn(Optional.of(claim));
-        when(shipmentEvidencePort.findEvidenceGroupScope("eg-1")).thenReturn(Optional.empty());
-
-        WorkflowDomainException ex = assertThrows(WorkflowDomainException.class, () ->
-            service.approve(ADMIN, "claim-1",
-                new ApprovePurchaseClaimCommand(Instant.now(), "B1", "F1"))
-        );
-        assertEquals(WorkflowErrorCode.EVIDENCE_NOT_FOUND, ex.getErrorCode());
-    }
 }

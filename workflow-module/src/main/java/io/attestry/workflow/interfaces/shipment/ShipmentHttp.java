@@ -5,11 +5,11 @@ import io.attestry.workflow.application.shipment.command.CompleteShipmentEvidenc
 import io.attestry.workflow.application.shipment.command.PresignShipmentEvidenceUploadCommand;
 import io.attestry.workflow.application.shipment.command.ReleaseShipmentCommand;
 import io.attestry.workflow.application.shipment.command.ReturnShipmentCommand;
-import io.attestry.workflow.application.shipment.result.PresignedShipmentEvidenceUploadResult;
+import io.attestry.workflow.application.shipment.result.PresignedEvidenceUploadResult;
 import io.attestry.workflow.application.shipment.result.ReleaseShipmentResult;
 import io.attestry.workflow.application.shipment.result.ReturnShipmentResult;
-import io.attestry.workflow.application.shipment.result.ShipmentEvidenceCompleteResult;
-import io.attestry.workflow.application.shipment.result.ShipmentEvidenceViewResult;
+import io.attestry.workflow.application.shipment.result.EvidenceCompleteResult;
+import io.attestry.workflow.application.shipment.result.EvidenceViewResult;
 import io.attestry.workflow.application.shipment.result.ShipmentViewResult;
 import io.attestry.workflow.application.usecase.ShipmentEvidenceUseCase;
 import io.attestry.workflow.application.usecase.ShipmentQueryUseCase;
@@ -53,7 +53,7 @@ public class ShipmentHttp {
         @PathVariable("tenantId") String tenantId,
         @RequestBody PresignShipmentEvidenceUploadRequest request
     ) {
-        PresignedShipmentEvidenceUploadResult result = shipmentEvidenceUseCase.presignEvidenceUpload(
+        PresignedEvidenceUploadResult result = shipmentEvidenceUseCase.presignEvidenceUpload(
             principal,
             tenantId,
             new PresignShipmentEvidenceUploadCommand(
@@ -72,7 +72,7 @@ public class ShipmentHttp {
         @PathVariable("tenantId") String tenantId,
         @RequestBody CompleteShipmentEvidenceUploadRequest request
     ) {
-        ShipmentEvidenceCompleteResult result = shipmentEvidenceUseCase.completeEvidenceUpload(
+        EvidenceCompleteResult result = shipmentEvidenceUseCase.completeEvidenceUpload(
             principal,
             tenantId,
             new CompleteShipmentEvidenceUploadCommand(
@@ -176,7 +176,7 @@ public class ShipmentHttp {
         String uploadUrl,
         Instant expiresAt
     ) {
-        static PresignedShipmentEvidenceUploadResponse from(PresignedShipmentEvidenceUploadResult result) {
+        static PresignedShipmentEvidenceUploadResponse from(PresignedEvidenceUploadResult result) {
             return new PresignedShipmentEvidenceUploadResponse(
                 result.evidenceGroupId(),
                 result.evidenceId(),
@@ -192,7 +192,7 @@ public class ShipmentHttp {
         String evidenceId,
         String status
     ) {
-        static ShipmentEvidenceCompleteResponse from(ShipmentEvidenceCompleteResult result) {
+        static ShipmentEvidenceCompleteResponse from(EvidenceCompleteResult result) {
             return new ShipmentEvidenceCompleteResponse(result.evidenceGroupId(), result.evidenceId(), result.status());
         }
     }
@@ -254,7 +254,7 @@ public class ShipmentHttp {
     }
 
     public record ShipmentEvidenceResponse(String evidenceId, String evidenceGroupId, String fileHash) {
-        static ShipmentEvidenceResponse from(ShipmentEvidenceViewResult result) {
+        static ShipmentEvidenceResponse from(EvidenceViewResult result) {
             return new ShipmentEvidenceResponse(result.evidenceId(), result.evidenceGroupId(), result.fileHash());
         }
     }

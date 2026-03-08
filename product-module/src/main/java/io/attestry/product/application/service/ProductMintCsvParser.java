@@ -65,7 +65,7 @@ public class ProductMintCsvParser {
 
                 commands.add(new MintProductCommand(
                     tenantId, serialNumber, modelId, modelName,
-                    manufacturedAt, productionBatch, factoryCode, componentRootHash, null
+                    manufacturedAt, productionBatch, factoryCode, componentRootHash
                 ));
             }
 

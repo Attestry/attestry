@@ -5,7 +5,6 @@ import java.util.List;
 
 public record MyClaimView(
     String claimId,
-    String submitterProfileType,
     String serialNumber,
     String modelName,
     String status,

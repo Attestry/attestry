@@ -122,18 +122,14 @@ public class PurchaseClaimAdminHttp {
         String evidenceId,
         String status,
         String downloadUrl,
-        Instant expiresAt,
-        String errorCode,
-        String errorMessage
+        Instant expiresAt
     ) {
         static ClaimEvidenceResponse from(ClaimEvidenceView view) {
             return new ClaimEvidenceResponse(
                 view.evidenceId(),
                 view.status(),
                 view.downloadUrl(),
-                view.expiresAt(),
-                view.errorCode(),
-                view.errorMessage()
+                view.expiresAt()
             );
         }
     }

@@ -11,8 +11,8 @@ import io.attestry.workflow.application.servicerequest.result.RevokeServiceConse
 import io.attestry.workflow.application.servicerequest.result.SubmitServiceRequestResult;
 import io.attestry.workflow.application.shipment.command.CompleteShipmentEvidenceUploadCommand;
 import io.attestry.workflow.application.shipment.command.PresignShipmentEvidenceUploadCommand;
-import io.attestry.workflow.application.shipment.result.PresignedShipmentEvidenceUploadResult;
-import io.attestry.workflow.application.shipment.result.ShipmentEvidenceCompleteResult;
+import io.attestry.workflow.application.shipment.result.PresignedEvidenceUploadResult;
+import io.attestry.workflow.application.shipment.result.EvidenceCompleteResult;
 import io.attestry.workflow.application.usecase.ServiceCancelUseCase;
 import io.attestry.workflow.application.usecase.ServiceCompleteUseCase;
 import io.attestry.workflow.application.usecase.ServiceConsentUseCase;
@@ -157,7 +157,7 @@ public class ServiceRequestHttp {
         @AuthenticationPrincipal AuthPrincipal principal,
         @RequestBody PresignEvidenceRequest request
     ) {
-        PresignedShipmentEvidenceUploadResult result = serviceEvidenceUseCase.presignOwnerEvidenceUpload(
+        PresignedEvidenceUploadResult result = serviceEvidenceUseCase.presignOwnerEvidenceUpload(
             principal,
             new PresignShipmentEvidenceUploadCommand(
                 request.evidenceGroupId(),
@@ -174,7 +174,7 @@ public class ServiceRequestHttp {
         @AuthenticationPrincipal AuthPrincipal principal,
         @RequestBody CompleteEvidenceRequest request
     ) {
-        ShipmentEvidenceCompleteResult result = serviceEvidenceUseCase.completeOwnerEvidenceUpload(
+        EvidenceCompleteResult result = serviceEvidenceUseCase.completeOwnerEvidenceUpload(
             principal,
             new CompleteShipmentEvidenceUploadCommand(
                 request.evidenceGroupId(),
@@ -196,7 +196,7 @@ public class ServiceRequestHttp {
         @PathVariable("tenantId") String tenantId,
         @RequestBody PresignEvidenceRequest request
     ) {
-        PresignedShipmentEvidenceUploadResult result = serviceEvidenceUseCase.presignEvidenceUpload(
+        PresignedEvidenceUploadResult result = serviceEvidenceUseCase.presignEvidenceUpload(
             principal,
             tenantId,
             new PresignShipmentEvidenceUploadCommand(
@@ -215,7 +215,7 @@ public class ServiceRequestHttp {
         @PathVariable("tenantId") String tenantId,
         @RequestBody CompleteEvidenceRequest request
     ) {
-        ShipmentEvidenceCompleteResult result = serviceEvidenceUseCase.completeEvidenceUpload(
+        EvidenceCompleteResult result = serviceEvidenceUseCase.completeEvidenceUpload(
             principal,
             tenantId,
             new CompleteShipmentEvidenceUploadCommand(
@@ -361,7 +361,7 @@ public class ServiceRequestHttp {
         String uploadUrl,
         Instant expiresAt
     ) {
-        static PresignEvidenceResponse from(PresignedShipmentEvidenceUploadResult result) {
+        static PresignEvidenceResponse from(PresignedEvidenceUploadResult result) {
             return new PresignEvidenceResponse(
                 result.evidenceGroupId(),
                 result.evidenceId(),
@@ -377,7 +377,7 @@ public class ServiceRequestHttp {
         String evidenceId,
         String status
     ) {
-        static CompleteEvidenceResponse from(ShipmentEvidenceCompleteResult result) {
+        static CompleteEvidenceResponse from(EvidenceCompleteResult result) {
             return new CompleteEvidenceResponse(result.evidenceGroupId(), result.evidenceId(), result.status());
         }
     }

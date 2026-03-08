@@ -14,7 +14,7 @@ import io.attestry.userauth.security.AuthPrincipal;
 import io.attestry.workflow.application.port.ServicePermissionPort;
 import io.attestry.workflow.application.port.ServiceProductReadPort;
 import io.attestry.workflow.application.port.ServiceProductReadPort.ServicePassportState;
-import io.attestry.workflow.application.port.ShipmentEvidencePort;
+import io.attestry.workflow.application.port.WorkflowEvidencePort;
 import io.attestry.workflow.application.servicerequest.command.SubmitServiceRequestCommand;
 import io.attestry.workflow.application.servicerequest.result.SubmitServiceRequestResult;
 import io.attestry.workflow.application.support.WorkflowAuthorizationSupport;
@@ -41,7 +41,7 @@ class ServiceSubmitServiceTest {
     @Mock ServiceRequestRepository serviceRequestRepository;
     @Mock ServiceProductReadPort serviceProductReadPort;
     @Mock ServicePermissionPort servicePermissionPort;
-    @Mock ShipmentEvidencePort shipmentEvidencePort;
+    @Mock WorkflowEvidencePort shipmentEvidencePort;
     @Mock WorkflowAuthorizationSupport authorizationSupport;
 
     private final ServiceSubmitPolicy submitPolicy = new ServiceSubmitPolicy();

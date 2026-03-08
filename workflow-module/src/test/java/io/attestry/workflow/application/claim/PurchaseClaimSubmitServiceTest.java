@@ -11,7 +11,7 @@ import io.attestry.userauth.domain.identity.model.VerificationLevel;
 import io.attestry.userauth.security.AuthPrincipal;
 import io.attestry.workflow.application.claim.command.SubmitPurchaseClaimCommand;
 import io.attestry.workflow.application.claim.result.SubmitPurchaseClaimResult;
-import io.attestry.workflow.application.port.ShipmentEvidencePort;
+import io.attestry.workflow.application.port.WorkflowEvidencePort;
 import io.attestry.workflow.domain.WorkflowDomainException;
 import io.attestry.workflow.domain.WorkflowErrorCode;
 import io.attestry.workflow.domain.claim.model.PurchaseClaim;
@@ -31,7 +31,7 @@ import org.mockito.junit.jupiter.MockitoExtension;
 class PurchaseClaimSubmitServiceTest {
 
     @Mock PurchaseClaimRepository purchaseClaimRepository;
-    @Mock ShipmentEvidencePort shipmentEvidencePort;
+    @Mock WorkflowEvidencePort shipmentEvidencePort;
     @Mock PurchaseClaimEvidenceService evidenceService;
     @Mock ObjectStoragePort objectStoragePort;
 
@@ -54,7 +54,7 @@ class PurchaseClaimSubmitServiceTest {
     @Test
     void submit_success() {
         when(shipmentEvidencePort.findEvidenceGroupScope("eg-1"))
-            .thenReturn(java.util.Optional.of(new ShipmentEvidencePort.EvidenceGroupScopeView("eg-1", "t1", "consumer1")));
+            .thenReturn(java.util.Optional.of(new WorkflowEvidencePort.EvidenceGroupScopeView("eg-1", "t1", "consumer1")));
         when(shipmentEvidencePort.findReadyEvidenceHashes("eg-1"))
             .thenReturn(List.of("abc123"));
         when(purchaseClaimRepository.save(any(PurchaseClaim.class)))
@@ -73,7 +73,7 @@ class PurchaseClaimSubmitServiceTest {
     @Test
     void submit_noEvidence_throws() {
         when(shipmentEvidencePort.findEvidenceGroupScope("eg-1"))
-            .thenReturn(java.util.Optional.of(new ShipmentEvidencePort.EvidenceGroupScopeView("eg-1", "t1", "consumer1")));
+            .thenReturn(java.util.Optional.of(new WorkflowEvidencePort.EvidenceGroupScopeView("eg-1", "t1", "consumer1")));
         when(shipmentEvidencePort.findReadyEvidenceHashes("eg-1"))
             .thenReturn(List.of());
 

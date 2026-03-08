@@ -7,8 +7,8 @@ import io.attestry.workflow.application.claim.command.SubmitPurchaseClaimCommand
 import io.attestry.workflow.application.claim.result.ClaimEvidenceView;
 import io.attestry.workflow.application.claim.result.MyClaimView;
 import io.attestry.workflow.application.claim.result.SubmitPurchaseClaimResult;
-import io.attestry.workflow.application.shipment.result.PresignedShipmentEvidenceUploadResult;
-import io.attestry.workflow.application.shipment.result.ShipmentEvidenceCompleteResult;
+import io.attestry.workflow.application.shipment.result.PresignedEvidenceUploadResult;
+import io.attestry.workflow.application.shipment.result.EvidenceCompleteResult;
 import io.attestry.workflow.application.usecase.PurchaseClaimSubmitUseCase;
 import java.time.Instant;
 import java.util.List;
@@ -40,7 +40,7 @@ public class PurchaseClaimHttp {
         @AuthenticationPrincipal AuthPrincipal principal,
         @RequestBody PresignEvidenceRequest request
     ) {
-        PresignedShipmentEvidenceUploadResult result = purchaseClaimSubmitUseCase.presignEvidence(
+        PresignedEvidenceUploadResult result = purchaseClaimSubmitUseCase.presignEvidence(
             principal,
             new PresignClaimEvidenceCommand(
                 request.evidenceGroupId(), request.fileName(), request.contentType()
@@ -55,7 +55,7 @@ public class PurchaseClaimHttp {
         @AuthenticationPrincipal AuthPrincipal principal,
         @RequestBody CompleteEvidenceRequest request
     ) {
-        ShipmentEvidenceCompleteResult result = purchaseClaimSubmitUseCase.completeEvidence(
+        EvidenceCompleteResult result = purchaseClaimSubmitUseCase.completeEvidence(
             principal,
             new CompleteClaimEvidenceCommand(
                 request.evidenceGroupId(), request.evidenceId(),
@@ -122,7 +122,7 @@ public class PurchaseClaimHttp {
         String evidenceGroupId, String evidenceId,
         String objectKey, String uploadUrl, Instant expiresAt
     ) {
-        static PresignEvidenceResponse from(PresignedShipmentEvidenceUploadResult result) {
+        static PresignEvidenceResponse from(PresignedEvidenceUploadResult result) {
             return new PresignEvidenceResponse(
                 result.evidenceGroupId(), result.evidenceId(),
                 result.objectKey(), result.uploadUrl(), result.expiresAt()
@@ -131,7 +131,7 @@ public class PurchaseClaimHttp {
     }
 
     public record CompleteEvidenceResponse(String evidenceGroupId, String evidenceId, String status) {
-        static CompleteEvidenceResponse from(ShipmentEvidenceCompleteResult result) {
+        static CompleteEvidenceResponse from(EvidenceCompleteResult result) {
             return new CompleteEvidenceResponse(result.evidenceGroupId(), result.evidenceId(), result.status());
         }
     }
@@ -144,7 +144,6 @@ public class PurchaseClaimHttp {
 
     public record MyClaimResponse(
         String claimId,
-        String submitterProfileType,
         String serialNumber, String modelName,
         String status, Instant submittedAt,
         String rejectionReason, String passportId, String assetId,
@@ -153,7 +152,6 @@ public class PurchaseClaimHttp {
         static MyClaimResponse from(MyClaimView view) {
             return new MyClaimResponse(
                 view.claimId(),
-                view.submitterProfileType(),
                 view.serialNumber(), view.modelName(),
                 view.status(), view.submittedAt(),
                 view.rejectionReason(), view.passportId(), view.assetId(),
@@ -166,18 +164,14 @@ public class PurchaseClaimHttp {
         String evidenceId,
         String status,
         String downloadUrl,
-        Instant expiresAt,
-        String errorCode,
-        String errorMessage
+        Instant expiresAt
     ) {
         static ClaimEvidenceResponse from(ClaimEvidenceView view) {
             return new ClaimEvidenceResponse(
                 view.evidenceId(),
                 view.status(),
                 view.downloadUrl(),
-                view.expiresAt(),
-                view.errorCode(),
-                view.errorMessage()
+                view.expiresAt()
             );
         }
     }

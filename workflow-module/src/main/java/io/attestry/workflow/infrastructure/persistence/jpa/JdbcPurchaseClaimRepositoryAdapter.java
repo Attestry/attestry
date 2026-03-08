@@ -26,12 +26,11 @@ public class JdbcPurchaseClaimRepositoryAdapter implements PurchaseClaimReposito
             """
                 INSERT INTO purchase_claim_requests (
                     claim_id, claimant_user_id,
-                    submitter_profile_type,
                     serial_number, model_name, evidence_group_id, note,
                     status, submitted_at,
                     reviewed_by_user_id, reviewed_at, rejection_reason,
                     passport_id, asset_id, created_at
-                ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+                ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
                 ON CONFLICT (claim_id) DO UPDATE SET
                     status = EXCLUDED.status,
                     reviewed_by_user_id = EXCLUDED.reviewed_by_user_id,
@@ -42,7 +41,6 @@ public class JdbcPurchaseClaimRepositoryAdapter implements PurchaseClaimReposito
             """,
             claim.claimId(),
             claim.claimantUserId(),
-            claim.submitterProfileType(),
             claim.serialNumber(),
             claim.modelName(),
             claim.evidenceGroupId(),
@@ -92,7 +90,6 @@ public class JdbcPurchaseClaimRepositoryAdapter implements PurchaseClaimReposito
         return new PurchaseClaim(
             rs.getString("claim_id"),
             rs.getString("claimant_user_id"),
-            rs.getString("submitter_profile_type"),
             rs.getString("serial_number"),
             rs.getString("model_name"),
             rs.getString("evidence_group_id"),

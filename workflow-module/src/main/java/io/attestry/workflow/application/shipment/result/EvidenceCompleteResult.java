@@ -1,8 +1,8 @@
 package io.attestry.workflow.application.shipment.result;
 
-public record ShipmentEvidenceViewResult(
-    String evidenceId,
+public record EvidenceCompleteResult(
     String evidenceGroupId,
-    String fileHash
+    String evidenceId,
+    String status
 ) {
 }

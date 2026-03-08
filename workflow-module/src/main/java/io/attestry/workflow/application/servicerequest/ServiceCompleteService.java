@@ -5,7 +5,7 @@ import io.attestry.userauth.security.AuthPrincipal;
 import io.attestry.workflow.application.port.WorkflowLedgerOutboxPort;
 import io.attestry.workflow.application.port.ServicePermissionPort;
 import io.attestry.workflow.application.port.ServiceProductReadPort;
-import io.attestry.workflow.application.port.ShipmentEvidencePort;
+import io.attestry.workflow.application.port.WorkflowEvidencePort;
 import io.attestry.workflow.application.servicerequest.command.CompleteServiceRequestCommand;
 import io.attestry.workflow.application.servicerequest.result.CompleteServiceRequestResult;
 import io.attestry.workflow.application.shipment.result.WorkflowLedgerEventEnvelope;
@@ -31,7 +31,7 @@ public class ServiceCompleteService implements ServiceCompleteUseCase {
     private final ServiceProductReadPort serviceProductReadPort;
     private final ServicePermissionPort servicePermissionPort;
     private final WorkflowLedgerOutboxPort serviceLedgerOutboxPort;
-    private final ShipmentEvidencePort shipmentEvidencePort;
+    private final WorkflowEvidencePort evidencePort;
     private final WorkflowAuthorizationSupport authorizationSupport;
     private final ServiceCompletePolicy completePolicy;
     private final Clock clock;
@@ -41,7 +41,7 @@ public class ServiceCompleteService implements ServiceCompleteUseCase {
         ServiceProductReadPort serviceProductReadPort,
         ServicePermissionPort servicePermissionPort,
         WorkflowLedgerOutboxPort serviceLedgerOutboxPort,
-        ShipmentEvidencePort shipmentEvidencePort,
+        WorkflowEvidencePort evidencePort,
         WorkflowAuthorizationSupport authorizationSupport,
         ServiceCompletePolicy completePolicy,
         Clock clock
@@ -50,7 +50,7 @@ public class ServiceCompleteService implements ServiceCompleteUseCase {
         this.serviceProductReadPort = serviceProductReadPort;
         this.servicePermissionPort = servicePermissionPort;
         this.serviceLedgerOutboxPort = serviceLedgerOutboxPort;
-        this.shipmentEvidencePort = shipmentEvidencePort;
+        this.evidencePort = evidencePort;
         this.authorizationSupport = authorizationSupport;
         this.completePolicy = completePolicy;
         this.clock = clock;
@@ -92,7 +92,7 @@ public class ServiceCompleteService implements ServiceCompleteUseCase {
         String afterEvidenceGroupId = command.afterEvidenceGroupId();
         List<String> afterHashes = List.of();
         if (afterEvidenceGroupId != null && !afterEvidenceGroupId.isBlank()) {
-            afterHashes = shipmentEvidencePort.findReadyEvidenceHashes(afterEvidenceGroupId);
+            afterHashes = evidencePort.findReadyEvidenceHashes(afterEvidenceGroupId);
             if (afterHashes.isEmpty()) {
                 throw new WorkflowDomainException(WorkflowErrorCode.INVALID_REQUEST, "At least one READY after-evidence is required");
             }
@@ -100,7 +100,7 @@ public class ServiceCompleteService implements ServiceCompleteUseCase {
 
         List<String> beforeHashes = List.of();
         if (request.beforeEvidenceGroupId() != null && !request.beforeEvidenceGroupId().isBlank()) {
-            beforeHashes = shipmentEvidencePort.findReadyEvidenceHashes(request.beforeEvidenceGroupId());
+            beforeHashes = evidencePort.findReadyEvidenceHashes(request.beforeEvidenceGroupId());
         }
 
         Instant now = Instant.now(clock);
