@@ -12,13 +12,35 @@ public interface ShipmentQueryUseCase {
             AuthPrincipal principal,
             String passportId);
 
-    List<ShipmentViewResult> listByTenant(
-            AuthPrincipal principal);
+    PagedShipmentViewResponse listByTenant(
+            AuthPrincipal principal,
+            int page,
+            int size,
+            String keyword);
 
     ShipmentDetailResult getShipmentDetail(
             AuthPrincipal principal,
             String shipmentId);
 
-    List<ShipmentReleaseCandidateResult> listReleaseCandidates(
-            AuthPrincipal principal);
+    PagedReleaseCandidateResponse listReleaseCandidates(
+            AuthPrincipal principal,
+            int page,
+            int size,
+            String keyword);
+
+    record PagedShipmentViewResponse(
+            List<ShipmentViewResult> content,
+            int page,
+            int size,
+            long totalElements,
+            int totalPages) {
+    }
+
+    record PagedReleaseCandidateResponse(
+            List<ShipmentReleaseCandidateResult> content,
+            int page,
+            int size,
+            long totalElements,
+            int totalPages) {
+    }
 }

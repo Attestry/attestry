@@ -9,23 +9,21 @@ public interface PassportShipmentQueryPort {
     Optional<ShipmentView> findLatestShipmentByPassportId(String passportId);
 
     record ShipmentView(
-        String shipmentId,
-        String status,
-        int shipmentRound,
-        Instant releasedAt,
-        String releasedByUserId,
-        Instant returnedAt,
-        String returnedByUserId,
-        List<EvidenceFileView> evidenceFiles
-    ) {
+            String shipmentId,
+            String status,
+            int shipmentRound,
+            Instant releasedAt,
+            String releasedByUserEmail,
+            Instant returnedAt,
+            String returnedByUserEmail,
+            List<EvidenceFileView> evidenceFiles) {
     }
 
     record EvidenceFileView(
-        String evidenceId,
-        String originalFileName,
-        String contentType,
-        long sizeBytes,
-        String downloadUrl
-    ) {
+            String evidenceId,
+            String originalFileName,
+            String contentType,
+            long sizeBytes,
+            String downloadUrl) {
     }
 }
