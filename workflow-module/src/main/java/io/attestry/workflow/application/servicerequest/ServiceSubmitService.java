@@ -4,7 +4,7 @@ import io.attestry.userauth.domain.authorization.model.PermissionCodes;
 import io.attestry.userauth.security.AuthPrincipal;
 import io.attestry.workflow.application.port.ServicePermissionPort;
 import io.attestry.workflow.application.port.ServiceProductReadPort;
-import io.attestry.workflow.application.port.ShipmentEvidencePort;
+import io.attestry.workflow.application.port.WorkflowEvidencePort;
 import io.attestry.workflow.application.servicerequest.command.SubmitServiceRequestCommand;
 import io.attestry.workflow.application.servicerequest.result.SubmitServiceRequestResult;
 import io.attestry.workflow.application.support.WorkflowAuthorizationSupport;
@@ -28,7 +28,7 @@ public class ServiceSubmitService implements ServiceSubmitUseCase {
     private final ServiceRequestRepository serviceRequestRepository;
     private final ServiceProductReadPort serviceProductReadPort;
     private final ServicePermissionPort servicePermissionPort;
-    private final ShipmentEvidencePort shipmentEvidencePort;
+    private final WorkflowEvidencePort evidencePort;
     private final WorkflowAuthorizationSupport authorizationSupport;
     private final ServiceSubmitPolicy submitPolicy;
     private final Clock clock;
@@ -37,7 +37,7 @@ public class ServiceSubmitService implements ServiceSubmitUseCase {
         ServiceRequestRepository serviceRequestRepository,
         ServiceProductReadPort serviceProductReadPort,
         ServicePermissionPort servicePermissionPort,
-        ShipmentEvidencePort shipmentEvidencePort,
+        WorkflowEvidencePort evidencePort,
         WorkflowAuthorizationSupport authorizationSupport,
         ServiceSubmitPolicy submitPolicy,
         Clock clock
@@ -45,7 +45,7 @@ public class ServiceSubmitService implements ServiceSubmitUseCase {
         this.serviceRequestRepository = serviceRequestRepository;
         this.serviceProductReadPort = serviceProductReadPort;
         this.servicePermissionPort = servicePermissionPort;
-        this.shipmentEvidencePort = shipmentEvidencePort;
+        this.evidencePort = evidencePort;
         this.authorizationSupport = authorizationSupport;
         this.submitPolicy = submitPolicy;
         this.clock = clock;
@@ -84,7 +84,7 @@ public class ServiceSubmitService implements ServiceSubmitUseCase {
 
         String beforeEvidenceGroupId = command.beforeEvidenceGroupId();
         if (beforeEvidenceGroupId != null && !beforeEvidenceGroupId.isBlank()) {
-            List<String> hashes = shipmentEvidencePort.findReadyEvidenceHashes(beforeEvidenceGroupId);
+            List<String> hashes = evidencePort.findReadyEvidenceHashes(beforeEvidenceGroupId);
             if (hashes.isEmpty()) {
                 throw new WorkflowDomainException(WorkflowErrorCode.INVALID_REQUEST, "At least one READY before-evidence is required");
             }

@@ -2,7 +2,7 @@ package io.attestry.workflow.application.shipment.result;
 
 import java.time.Instant;
 
-public record PresignedShipmentEvidenceUploadResult(
+public record PresignedEvidenceUploadResult(
     String evidenceGroupId,
     String evidenceId,
     String objectKey,

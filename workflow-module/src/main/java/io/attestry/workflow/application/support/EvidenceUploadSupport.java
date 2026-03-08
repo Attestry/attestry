@@ -1,9 +1,9 @@
 package io.attestry.workflow.application.support;
 
 import io.attestry.userauth.application.port.ObjectStoragePort;
-import io.attestry.workflow.application.port.ShipmentEvidencePort;
-import io.attestry.workflow.application.shipment.result.PresignedShipmentEvidenceUploadResult;
-import io.attestry.workflow.application.shipment.result.ShipmentEvidenceCompleteResult;
+import io.attestry.workflow.application.port.WorkflowEvidencePort;
+import io.attestry.workflow.application.shipment.result.PresignedEvidenceUploadResult;
+import io.attestry.workflow.application.shipment.result.EvidenceCompleteResult;
 import io.attestry.workflow.domain.WorkflowDomainException;
 import io.attestry.workflow.domain.WorkflowErrorCode;
 import java.time.Duration;
@@ -56,8 +56,8 @@ public class EvidenceUploadSupport {
         }
     }
 
-    public PresignedShipmentEvidenceUploadResult doPresign(
-        ShipmentEvidencePort shipmentEvidencePort,
+    public PresignedEvidenceUploadResult doPresign(
+        WorkflowEvidencePort evidencePort,
         ObjectStoragePort objectStoragePort,
         String objectKeyPrefix, Duration presignTtl,
         String tenantId, String userId,
@@ -70,9 +70,9 @@ public class EvidenceUploadSupport {
             : evidenceGroupIdInput.trim();
 
         if (isNewGroup) {
-            shipmentEvidencePort.createEvidenceGroupIfAbsent(evidenceGroupId, tenantId, userId, now);
+            evidencePort.createEvidenceGroupIfAbsent(evidenceGroupId, tenantId, userId, now);
         } else {
-            assertEvidenceGroupScope(shipmentEvidencePort, evidenceGroupId, tenantId);
+            assertEvidenceGroupScope(evidencePort, evidenceGroupId, tenantId);
         }
 
         String safeFileName = normalizeFileName(fileName);
@@ -80,21 +80,21 @@ public class EvidenceUploadSupport {
         String objectKey = buildObjectKey(objectKeyPrefix, tenantId, evidenceGroupId, safeFileName);
         String evidenceId = UUID.randomUUID().toString();
 
-        shipmentEvidencePort.createPendingEvidence(evidenceId, evidenceGroupId, objectKey, safeFileName, normalizedContentType, now);
+        evidencePort.createPendingEvidence(evidenceId, evidenceGroupId, objectKey, safeFileName, normalizedContentType, now);
 
         ObjectStoragePort.PresignedUpload presigned = objectStoragePort.issuePresignedUpload(objectKey, normalizedContentType, presignTtl);
-        return new PresignedShipmentEvidenceUploadResult(
+        return new PresignedEvidenceUploadResult(
             evidenceGroupId, evidenceId, objectKey, presigned.uploadUrl(), presigned.expiresAt()
         );
     }
 
-    public ShipmentEvidenceCompleteResult doComplete(
-        ShipmentEvidencePort shipmentEvidencePort,
+    public EvidenceCompleteResult doComplete(
+        WorkflowEvidencePort evidencePort,
         ObjectStoragePort objectStoragePort,
         String evidenceGroupId, String evidenceId,
         long sizeBytes, String fileHash, Instant now
     ) {
-        ShipmentEvidencePort.ShipmentEvidenceView evidence = shipmentEvidencePort.findEvidenceById(
+        WorkflowEvidencePort.EvidenceView evidence = evidencePort.findEvidenceById(
             evidenceGroupId, evidenceId
         ).orElseThrow(() -> new WorkflowDomainException(WorkflowErrorCode.EVIDENCE_NOT_FOUND, "Evidence file not found"));
 
@@ -102,16 +102,16 @@ public class EvidenceUploadSupport {
         assertPositiveSize(sizeBytes);
 
         String normalizedHash = normalizeHash(fileHash);
-        shipmentEvidencePort.markEvidenceReady(evidenceGroupId, evidenceId, sizeBytes, normalizedHash, now);
+        evidencePort.markEvidenceReady(evidenceGroupId, evidenceId, sizeBytes, normalizedHash, now);
 
-        return new ShipmentEvidenceCompleteResult(evidenceGroupId, evidenceId, "READY");
+        return new EvidenceCompleteResult(evidenceGroupId, evidenceId, "READY");
     }
 
     public void assertEvidenceGroupScope(
-        ShipmentEvidencePort shipmentEvidencePort,
+        WorkflowEvidencePort evidencePort,
         String evidenceGroupId, String tenantId
     ) {
-        ShipmentEvidencePort.EvidenceGroupScopeView scope = shipmentEvidencePort
+        WorkflowEvidencePort.EvidenceGroupScopeView scope = evidencePort
             .findEvidenceGroupScope(evidenceGroupId)
             .orElseThrow(() -> new WorkflowDomainException(
                 WorkflowErrorCode.EVIDENCE_NOT_FOUND, "Evidence group not found"));

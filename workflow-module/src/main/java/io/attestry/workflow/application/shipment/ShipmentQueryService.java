@@ -2,8 +2,8 @@ package io.attestry.workflow.application.shipment;
 
 import io.attestry.userauth.security.AuthPrincipal;
 import io.attestry.userauth.domain.authorization.model.PermissionCodes;
-import io.attestry.workflow.application.port.ShipmentEvidencePort;
-import io.attestry.workflow.application.shipment.result.ShipmentEvidenceViewResult;
+import io.attestry.workflow.application.port.WorkflowEvidencePort;
+import io.attestry.workflow.application.shipment.result.EvidenceViewResult;
 import io.attestry.workflow.application.shipment.result.ShipmentViewResult;
 import io.attestry.workflow.application.support.WorkflowAuthorizationSupport;
 import io.attestry.workflow.application.usecase.ShipmentQueryUseCase;
@@ -20,16 +20,16 @@ import org.springframework.transaction.annotation.Transactional;
 public class ShipmentQueryService implements ShipmentQueryUseCase {
 
     private final ShipmentRepository shipmentRepository;
-    private final ShipmentEvidencePort shipmentEvidencePort;
+    private final WorkflowEvidencePort evidencePort;
     private final WorkflowAuthorizationSupport authorizationSupport;
 
     public ShipmentQueryService(
         ShipmentRepository shipmentRepository,
-        ShipmentEvidencePort shipmentEvidencePort,
+        WorkflowEvidencePort evidencePort,
         WorkflowAuthorizationSupport authorizationSupport
     ) {
         this.shipmentRepository = shipmentRepository;
-        this.shipmentEvidencePort = shipmentEvidencePort;
+        this.evidencePort = evidencePort;
         this.authorizationSupport = authorizationSupport;
     }
 
@@ -50,7 +50,7 @@ public class ShipmentQueryService implements ShipmentQueryUseCase {
 
     @Override
     @Transactional(readOnly = true)
-    public List<ShipmentEvidenceViewResult> listEvidenceByShipmentId(
+    public List<EvidenceViewResult> listEvidenceByShipmentId(
         AuthPrincipal principal,
         String tenantId,
         String shipmentId
@@ -62,14 +62,14 @@ public class ShipmentQueryService implements ShipmentQueryUseCase {
             throw new WorkflowDomainException(WorkflowErrorCode.TENANT_ISOLATION_VIOLATION, "Cross-tenant shipment access denied");
         }
         authorizationSupport.assertLivePermission(principal, tenantId, PermissionCodes.BRAND_RELEASE, "shipment:evidence:" + shipment.shipmentId());
-        List<ShipmentEvidencePort.ShipmentEvidenceView> evidences = new ArrayList<>(
-            shipmentEvidencePort.findEvidenceByEvidenceGroupId(shipment.evidenceGroupId())
+        List<WorkflowEvidencePort.EvidenceView> evidences = new ArrayList<>(
+            evidencePort.findEvidenceByEvidenceGroupId(shipment.evidenceGroupId())
         );
         if (shipment.returnEvidenceGroupId() != null) {
-            evidences.addAll(shipmentEvidencePort.findEvidenceByEvidenceGroupId(shipment.returnEvidenceGroupId()));
+            evidences.addAll(evidencePort.findEvidenceByEvidenceGroupId(shipment.returnEvidenceGroupId()));
         }
         return evidences.stream()
-            .map(evidence -> new ShipmentEvidenceViewResult(evidence.evidenceId(), evidence.evidenceGroupId(), evidence.fileHash()))
+            .map(evidence -> new EvidenceViewResult(evidence.evidenceId(), evidence.evidenceGroupId(), evidence.fileHash()))
             .toList();
     }
 

@@ -4,10 +4,11 @@ import io.attestry.userauth.security.AuthPrincipal;
 import io.attestry.workflow.application.claim.command.CompleteClaimEvidenceCommand;
 import io.attestry.workflow.application.claim.command.PresignClaimEvidenceCommand;
 import io.attestry.workflow.application.claim.command.SubmitPurchaseClaimCommand;
+import io.attestry.workflow.application.claim.result.ClaimEvidenceView;
 import io.attestry.workflow.application.claim.result.MyClaimView;
 import io.attestry.workflow.application.claim.result.SubmitPurchaseClaimResult;
-import io.attestry.workflow.application.shipment.result.PresignedShipmentEvidenceUploadResult;
-import io.attestry.workflow.application.shipment.result.ShipmentEvidenceCompleteResult;
+import io.attestry.workflow.application.shipment.result.PresignedEvidenceUploadResult;
+import io.attestry.workflow.application.shipment.result.EvidenceCompleteResult;
 import io.attestry.workflow.application.usecase.PurchaseClaimSubmitUseCase;
 import java.time.Instant;
 import java.util.List;
@@ -15,6 +16,7 @@ import org.springframework.http.HttpStatus;
 import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.security.core.annotation.AuthenticationPrincipal;
 import org.springframework.web.bind.annotation.GetMapping;
+import org.springframework.web.bind.annotation.PathVariable;
 import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RequestMapping;
@@ -38,10 +40,9 @@ public class PurchaseClaimHttp {
         @AuthenticationPrincipal AuthPrincipal principal,
         @RequestBody PresignEvidenceRequest request
     ) {
-        PresignedShipmentEvidenceUploadResult result = purchaseClaimSubmitUseCase.presignEvidence(
+        PresignedEvidenceUploadResult result = purchaseClaimSubmitUseCase.presignEvidence(
             principal,
             new PresignClaimEvidenceCommand(
-                request.tenantId(),
                 request.evidenceGroupId(), request.fileName(), request.contentType()
             )
         );
@@ -54,10 +55,9 @@ public class PurchaseClaimHttp {
         @AuthenticationPrincipal AuthPrincipal principal,
         @RequestBody CompleteEvidenceRequest request
     ) {
-        ShipmentEvidenceCompleteResult result = purchaseClaimSubmitUseCase.completeEvidence(
+        EvidenceCompleteResult result = purchaseClaimSubmitUseCase.completeEvidence(
             principal,
             new CompleteClaimEvidenceCommand(
-                request.tenantId(),
                 request.evidenceGroupId(), request.evidenceId(),
                 request.sizeBytes(), request.fileHash()
             )
@@ -75,7 +75,6 @@ public class PurchaseClaimHttp {
         SubmitPurchaseClaimResult result = purchaseClaimSubmitUseCase.submit(
             principal,
             new SubmitPurchaseClaimCommand(
-                request.tenantId(),
                 request.serialNumber(), request.modelName(),
                 request.evidenceGroupId(), request.note()
             )
@@ -91,21 +90,29 @@ public class PurchaseClaimHttp {
             .toList();
     }
 
+    @GetMapping("/{claimId}/evidences")
+    @PreAuthorize("isAuthenticated()")
+    public List<ClaimEvidenceResponse> listMyClaimEvidences(
+        @AuthenticationPrincipal AuthPrincipal principal,
+        @PathVariable("claimId") String claimId
+    ) {
+        return purchaseClaimSubmitUseCase.listMyClaimEvidences(principal, claimId).stream()
+            .map(ClaimEvidenceResponse::from)
+            .toList();
+    }
+
     public record PresignEvidenceRequest(
-        String tenantId,
         String evidenceGroupId, String fileName, String contentType
     ) {
     }
 
     public record CompleteEvidenceRequest(
-        String tenantId,
         String evidenceGroupId, String evidenceId,
         long sizeBytes, String fileHash
     ) {
     }
 
     public record SubmitClaimRequest(
-        String tenantId,
         String serialNumber, String modelName,
         String evidenceGroupId, String note
     ) {
@@ -115,7 +122,7 @@ public class PurchaseClaimHttp {
         String evidenceGroupId, String evidenceId,
         String objectKey, String uploadUrl, Instant expiresAt
     ) {
-        static PresignEvidenceResponse from(PresignedShipmentEvidenceUploadResult result) {
+        static PresignEvidenceResponse from(PresignedEvidenceUploadResult result) {
             return new PresignEvidenceResponse(
                 result.evidenceGroupId(), result.evidenceId(),
                 result.objectKey(), result.uploadUrl(), result.expiresAt()
@@ -124,7 +131,7 @@ public class PurchaseClaimHttp {
     }
 
     public record CompleteEvidenceResponse(String evidenceGroupId, String evidenceId, String status) {
-        static CompleteEvidenceResponse from(ShipmentEvidenceCompleteResult result) {
+        static CompleteEvidenceResponse from(EvidenceCompleteResult result) {
             return new CompleteEvidenceResponse(result.evidenceGroupId(), result.evidenceId(), result.status());
         }
     }
@@ -136,17 +143,35 @@ public class PurchaseClaimHttp {
     }
 
     public record MyClaimResponse(
-        String claimId, String tenantId,
+        String claimId,
         String serialNumber, String modelName,
         String status, Instant submittedAt,
-        String rejectionReason, String passportId, String assetId
+        String rejectionReason, String passportId, String assetId,
+        List<ClaimEvidenceResponse> evidences
     ) {
         static MyClaimResponse from(MyClaimView view) {
             return new MyClaimResponse(
-                view.claimId(), view.tenantId(),
+                view.claimId(),
                 view.serialNumber(), view.modelName(),
                 view.status(), view.submittedAt(),
-                view.rejectionReason(), view.passportId(), view.assetId()
+                view.rejectionReason(), view.passportId(), view.assetId(),
+                view.evidences() == null ? List.of() : view.evidences().stream().map(ClaimEvidenceResponse::from).toList()
+            );
+        }
+    }
+
+    public record ClaimEvidenceResponse(
+        String evidenceId,
+        String status,
+        String downloadUrl,
+        Instant expiresAt
+    ) {
+        static ClaimEvidenceResponse from(ClaimEvidenceView view) {
+            return new ClaimEvidenceResponse(
+                view.evidenceId(),
+                view.status(),
+                view.downloadUrl(),
+                view.expiresAt()
             );
         }
     }

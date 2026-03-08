@@ -19,15 +19,15 @@ public record LedgerEventEnvelope(
     String idempotencyKey
 ) {
 
-    public static LedgerEventEnvelope minted(ProductPassport passport, Instant occurredAt) {
+    public static LedgerEventEnvelope minted(ProductPassport passport, String actorRole, String actorId, Instant occurredAt) {
         ProductAsset asset = passport.getAsset();
         return new LedgerEventEnvelope(
             "PRODUCT",
             passport.getPassportId(),
             "GENESIS",
             "MINTED",
-            "BRAND",
-            passport.getTenantId(),
+            actorRole,
+            actorId,
             occurredAt,
             Map.of(
                 "assetId", asset.getAssetId(),

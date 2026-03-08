@@ -4,7 +4,7 @@ import java.time.Instant;
 import java.util.List;
 import java.util.Optional;
 
-public interface ShipmentEvidencePort {
+public interface WorkflowEvidencePort {
 
     void createEvidenceGroupIfAbsent(String evidenceGroupId, String tenantId, String ownerUserId, Instant now);
 
@@ -17,7 +17,7 @@ public interface ShipmentEvidencePort {
         Instant now
     );
 
-    Optional<ShipmentEvidenceView> findEvidenceById(String evidenceGroupId, String evidenceId);
+    Optional<EvidenceView> findEvidenceById(String evidenceGroupId, String evidenceId);
 
     void markEvidenceReady(
         String evidenceGroupId,
@@ -31,9 +31,9 @@ public interface ShipmentEvidencePort {
 
     List<String> findReadyEvidenceHashes(String evidenceGroupId);
 
-    List<ShipmentEvidenceView> findEvidenceByEvidenceGroupId(String evidenceGroupId);
+    List<EvidenceView> findEvidenceByEvidenceGroupId(String evidenceGroupId);
 
-    record ShipmentEvidenceView(
+    record EvidenceView(
         String evidenceId,
         String evidenceGroupId,
         String fileHash,

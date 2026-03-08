@@ -3,11 +3,11 @@ package io.attestry.workflow.application.servicerequest;
 import io.attestry.userauth.application.port.ObjectStoragePort;
 import io.attestry.userauth.domain.authorization.model.PermissionCodes;
 import io.attestry.userauth.security.AuthPrincipal;
-import io.attestry.workflow.application.port.ShipmentEvidencePort;
+import io.attestry.workflow.application.port.WorkflowEvidencePort;
 import io.attestry.workflow.application.shipment.command.CompleteShipmentEvidenceUploadCommand;
 import io.attestry.workflow.application.shipment.command.PresignShipmentEvidenceUploadCommand;
-import io.attestry.workflow.application.shipment.result.PresignedShipmentEvidenceUploadResult;
-import io.attestry.workflow.application.shipment.result.ShipmentEvidenceCompleteResult;
+import io.attestry.workflow.application.shipment.result.PresignedEvidenceUploadResult;
+import io.attestry.workflow.application.shipment.result.EvidenceCompleteResult;
 import io.attestry.workflow.application.support.EvidenceUploadSupport;
 import io.attestry.workflow.application.support.WorkflowAuthorizationSupport;
 import io.attestry.workflow.application.usecase.ServiceEvidenceUseCase;
@@ -23,20 +23,20 @@ public class ServiceEvidenceService implements ServiceEvidenceUseCase {
     private static final String OBJECT_KEY_PREFIX = "workflow/service/";
     private static final Duration PRESIGN_TTL = Duration.ofMinutes(15);
 
-    private final ShipmentEvidencePort shipmentEvidencePort;
+    private final WorkflowEvidencePort evidencePort;
     private final ObjectStoragePort objectStoragePort;
     private final WorkflowAuthorizationSupport authorizationSupport;
     private final EvidenceUploadSupport evidenceUploadSupport;
     private final Clock clock;
 
     public ServiceEvidenceService(
-        ShipmentEvidencePort shipmentEvidencePort,
+        WorkflowEvidencePort evidencePort,
         ObjectStoragePort objectStoragePort,
         WorkflowAuthorizationSupport authorizationSupport,
         EvidenceUploadSupport evidenceUploadSupport,
         Clock clock
     ) {
-        this.shipmentEvidencePort = shipmentEvidencePort;
+        this.evidencePort = evidencePort;
         this.objectStoragePort = objectStoragePort;
         this.authorizationSupport = authorizationSupport;
         this.evidenceUploadSupport = evidenceUploadSupport;
@@ -45,7 +45,7 @@ public class ServiceEvidenceService implements ServiceEvidenceUseCase {
 
     @Override
     @Transactional
-    public PresignedShipmentEvidenceUploadResult presignEvidenceUpload(
+    public PresignedEvidenceUploadResult presignEvidenceUpload(
         AuthPrincipal principal,
         String tenantId,
         PresignShipmentEvidenceUploadCommand command
@@ -54,7 +54,7 @@ public class ServiceEvidenceService implements ServiceEvidenceUseCase {
         authorizationSupport.assertLivePermission(principal, tenantId, PermissionCodes.SERVICE_COMPLETE, "service:evidence:presign");
 
         return evidenceUploadSupport.doPresign(
-            shipmentEvidencePort, objectStoragePort,
+            evidencePort, objectStoragePort,
             OBJECT_KEY_PREFIX, PRESIGN_TTL,
             tenantId, principal.userId(),
             command.evidenceGroupId(), command.fileName(), command.contentType(),
@@ -64,7 +64,7 @@ public class ServiceEvidenceService implements ServiceEvidenceUseCase {
 
     @Override
     @Transactional
-    public ShipmentEvidenceCompleteResult completeEvidenceUpload(
+    public EvidenceCompleteResult completeEvidenceUpload(
         AuthPrincipal principal,
         String tenantId,
         CompleteShipmentEvidenceUploadCommand command
@@ -77,7 +77,7 @@ public class ServiceEvidenceService implements ServiceEvidenceUseCase {
 
     @Override
     @Transactional
-    public PresignedShipmentEvidenceUploadResult presignOwnerEvidenceUpload(
+    public PresignedEvidenceUploadResult presignOwnerEvidenceUpload(
         AuthPrincipal principal,
         PresignShipmentEvidenceUploadCommand command
     ) {
@@ -85,7 +85,7 @@ public class ServiceEvidenceService implements ServiceEvidenceUseCase {
 
         String tenantId = principal.tenantId() != null ? principal.tenantId() : "owner";
         return evidenceUploadSupport.doPresign(
-            shipmentEvidencePort, objectStoragePort,
+            evidencePort, objectStoragePort,
             OBJECT_KEY_PREFIX, PRESIGN_TTL,
             tenantId, principal.userId(),
             command.evidenceGroupId(), command.fileName(), command.contentType(),
@@ -95,7 +95,7 @@ public class ServiceEvidenceService implements ServiceEvidenceUseCase {
 
     @Override
     @Transactional
-    public ShipmentEvidenceCompleteResult completeOwnerEvidenceUpload(
+    public EvidenceCompleteResult completeOwnerEvidenceUpload(
         AuthPrincipal principal,
         CompleteShipmentEvidenceUploadCommand command
     ) {
@@ -104,9 +104,9 @@ public class ServiceEvidenceService implements ServiceEvidenceUseCase {
         return doComplete(command);
     }
 
-    private ShipmentEvidenceCompleteResult doComplete(CompleteShipmentEvidenceUploadCommand command) {
+    private EvidenceCompleteResult doComplete(CompleteShipmentEvidenceUploadCommand command) {
         return evidenceUploadSupport.doComplete(
-            shipmentEvidencePort, objectStoragePort,
+            evidencePort, objectStoragePort,
             command.evidenceGroupId(), command.evidenceId(),
             command.sizeBytes(), command.fileHash(), Instant.now(clock)
         );

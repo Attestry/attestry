@@ -21,6 +21,8 @@ import java.time.Clock;
 import java.time.Instant;
 import java.util.ArrayList;
 import java.util.List;
+import jakarta.persistence.EntityManager;
+import jakarta.persistence.PersistenceContext;
 import org.springframework.dao.DataIntegrityViolationException;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
@@ -35,6 +37,8 @@ public class ProductMintService implements ProductMintUseCase {
     private final UuidV7Generator uuidV7Generator;
     private final QrPublicCodeGenerator qrPublicCodeGenerator;
     private final Clock clock;
+    @PersistenceContext
+    private EntityManager entityManager;
 
     public ProductMintService(
         PassportRepository passportRepository,
@@ -57,26 +61,14 @@ public class ProductMintService implements ProductMintUseCase {
     @Override
     @Transactional
     public MintedProductResult mint(ActorContext actor, MintProductCommand command) {
-        MintProductInput input = MintProductInput.of(
-            command.tenantId(),
-            command.serialNumber(),
-            command.modelId(),
-            command.modelName(),
-            command.manufacturedAt(),
-            command.productionBatch(),
-            command.factoryCode(),
-            command.componentRootHash()
-        );
+        MintProductInput input = toInput(command.tenantId(), command);
 
-        brandAccessValidationPort.assertActiveBrandMembership(actor.userId(), input.tenantId());
-        assertBrandMintScope(actor, input.tenantId(), input.serialNumber());
-
-        if (passportRepository.existsByTenantAndSerial(input.tenantId(), input.serialNumber())) {
-            throw new ProductDomainException(
-                ProductErrorCode.GENESIS_ALREADY_EXISTS,
-                "MINTED genesis already exists for tenant/serial"
-            );
+        if (!isPlatformAdmin(actor)) {
+            brandAccessValidationPort.assertActiveBrandMembership(actor.userId(), input.tenantId());
+            assertBrandMintScope(actor, input.tenantId(), input.serialNumber());
         }
+
+        assertNotDuplicate(input.tenantId(), input.serialNumber());
 
         Instant now = Instant.now(clock);
         ProductPassport passport = ProductPassport.mint(
@@ -86,20 +78,18 @@ public class ProductMintService implements ProductMintUseCase {
             input,
             now
         );
-        LedgerEventEnvelope event = LedgerEventEnvelope.minted(passport, now);
+        String actorRole = isPlatformAdmin(actor) ? "ADMIN" : "BRAND";
+        String actorId = isPlatformAdmin(actor) ? actor.userId() : input.tenantId();
+        LedgerEventEnvelope event = LedgerEventEnvelope.minted(passport, actorRole, actorId, now);
 
         try {
             passport = passportRepository.save(passport);
+            entityManager.flush();
         } catch (DataIntegrityViolationException ex) {
             throw new ProductDomainException(ProductErrorCode.DUPLICATE_SERIAL_NUMBER, "Duplicate serial number in tenant");
         }
 
-        String outboxEventId;
-        try {
-            outboxEventId = ledgerOutboxPort.enqueue(event);
-        } catch (RuntimeException ex) {
-            throw new ProductDomainException(ProductErrorCode.OUTBOX_ENQUEUE_FAILED, "Failed to enqueue ledger outbox event");
-        }
+        String outboxEventId = ledgerOutboxPort.enqueue(event);
 
         return new MintedProductResult(
             passport.getAsset().getAssetId(),
@@ -124,7 +114,7 @@ public class ProductMintService implements ProductMintUseCase {
             MintProductCommand cmd = commands.get(i);
             int row = i + 1;
             try {
-                mintSingle(tenantId, cmd);
+                mintSingle(actor, tenantId, cmd);
                 minted++;
             } catch (Exception ex) {
                 errors.add(new BatchMintError(row, cmd.serialNumber(), ex.getMessage()));
@@ -134,24 +124,10 @@ public class ProductMintService implements ProductMintUseCase {
         return new BatchMintResult(commands.size(), minted, errors.size(), errors);
     }
 
-    private void mintSingle(String tenantId, MintProductCommand command) {
-        MintProductInput input = MintProductInput.of(
-            tenantId,
-            command.serialNumber(),
-            command.modelId(),
-            command.modelName(),
-            command.manufacturedAt(),
-            command.productionBatch(),
-            command.factoryCode(),
-            command.componentRootHash()
-        );
+    private void mintSingle(ActorContext actor, String tenantId, MintProductCommand command) {
+        MintProductInput input = toInput(tenantId, command);
 
-        if (passportRepository.existsByTenantAndSerial(tenantId, input.serialNumber())) {
-            throw new ProductDomainException(
-                ProductErrorCode.GENESIS_ALREADY_EXISTS,
-                "Duplicate serial number: " + input.serialNumber()
-            );
-        }
+        assertNotDuplicate(tenantId, input.serialNumber());
 
         Instant now = Instant.now(clock);
         ProductPassport passport = ProductPassport.mint(
@@ -161,7 +137,9 @@ public class ProductMintService implements ProductMintUseCase {
             input,
             now
         );
-        LedgerEventEnvelope event = LedgerEventEnvelope.minted(passport, now);
+        String actorRole = isPlatformAdmin(actor) ? "ADMIN" : "BRAND";
+        String actorId = isPlatformAdmin(actor) ? actor.userId() : tenantId;
+        LedgerEventEnvelope event = LedgerEventEnvelope.minted(passport, actorRole, actorId, now);
 
         try {
             passportRepository.save(passport);
@@ -170,6 +148,28 @@ public class ProductMintService implements ProductMintUseCase {
         }
 
         ledgerOutboxPort.enqueue(event);
+    }
+
+    private MintProductInput toInput(String tenantId, MintProductCommand command) {
+        return MintProductInput.of(
+            tenantId,
+            command.serialNumber(),
+            command.modelId(),
+            command.modelName(),
+            command.manufacturedAt(),
+            command.productionBatch(),
+            command.factoryCode(),
+            null
+        );
+    }
+
+    private void assertNotDuplicate(String tenantId, String serialNumber) {
+        if (passportRepository.existsByTenantAndSerial(tenantId, serialNumber)) {
+            throw new ProductDomainException(
+                ProductErrorCode.GENESIS_ALREADY_EXISTS,
+                "MINTED genesis already exists for tenant/serial"
+            );
+        }
     }
 
     private void assertBrandMintScope(ActorContext actor, String tenantId, String serialNumber) {
@@ -185,5 +185,9 @@ public class ProductMintService implements ProductMintUseCase {
         if (!decision.allowed()) {
             throw new ProductDomainException(ProductErrorCode.FORBIDDEN_MINT, "BRAND_MINT scope is required");
         }
+    }
+
+    private boolean isPlatformAdmin(ActorContext actor) {
+        return actor.scopes() != null && actor.scopes().contains(PermissionCodes.PLATFORM_ADMIN);
     }
 }

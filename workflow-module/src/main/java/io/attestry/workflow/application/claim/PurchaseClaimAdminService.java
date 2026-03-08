@@ -4,15 +4,17 @@ import io.attestry.product.application.usecase.ProductMintUseCase;
 import io.attestry.product.application.usecase.ProductMintUseCase.MintProductCommand;
 import io.attestry.product.application.usecase.ProductMintUseCase.MintedProductResult;
 import io.attestry.userauth.application.dto.command.ActorContext;
+import io.attestry.userauth.application.port.ObjectStoragePort;
 import io.attestry.userauth.domain.authorization.model.PermissionCodes;
 import io.attestry.userauth.security.AuthPrincipal;
 import io.attestry.workflow.application.claim.command.ApprovePurchaseClaimCommand;
 import io.attestry.workflow.application.claim.result.ApprovePurchaseClaimResult;
+import io.attestry.workflow.application.claim.result.ClaimEvidenceView;
 import io.attestry.workflow.application.claim.result.PendingClaimView;
 import io.attestry.workflow.application.claim.result.RejectPurchaseClaimResult;
-import io.attestry.workflow.application.port.ShipmentEvidencePort;
-import io.attestry.workflow.application.port.WorkflowLedgerOutboxPort;
+import io.attestry.workflow.application.port.WorkflowEvidencePort;
 import io.attestry.workflow.application.port.TransferOwnershipUpdatePort;
+import io.attestry.workflow.application.port.WorkflowLedgerOutboxPort;
 import io.attestry.workflow.application.shipment.result.WorkflowLedgerEventEnvelope;
 import io.attestry.workflow.application.support.WorkflowAuthorizationSupport;
 import io.attestry.workflow.application.usecase.PurchaseClaimAdminUseCase;
@@ -22,6 +24,7 @@ import io.attestry.workflow.domain.claim.model.PurchaseClaim;
 import io.attestry.workflow.domain.claim.model.PurchaseClaimStatus;
 import io.attestry.workflow.domain.claim.repository.PurchaseClaimRepository;
 import java.time.Clock;
+import java.time.Duration;
 import java.time.Instant;
 import java.util.List;
 import org.springframework.stereotype.Service;
@@ -29,12 +32,14 @@ import org.springframework.transaction.annotation.Transactional;
 
 @Service
 public class PurchaseClaimAdminService implements PurchaseClaimAdminUseCase {
+    private static final Duration DOWNLOAD_TTL = Duration.ofDays(3);
 
     private final PurchaseClaimRepository purchaseClaimRepository;
     private final ProductMintUseCase productMintUseCase;
     private final TransferOwnershipUpdatePort ownershipUpdatePort;
     private final WorkflowLedgerOutboxPort ledgerOutboxPort;
-    private final ShipmentEvidencePort shipmentEvidencePort;
+    private final WorkflowEvidencePort evidencePort;
+    private final ObjectStoragePort objectStoragePort;
     private final WorkflowAuthorizationSupport authorizationSupport;
     private final Clock clock;
 
@@ -43,7 +48,8 @@ public class PurchaseClaimAdminService implements PurchaseClaimAdminUseCase {
         ProductMintUseCase productMintUseCase,
         TransferOwnershipUpdatePort ownershipUpdatePort,
         WorkflowLedgerOutboxPort ledgerOutboxPort,
-        ShipmentEvidencePort shipmentEvidencePort,
+        WorkflowEvidencePort evidencePort,
+        ObjectStoragePort objectStoragePort,
         WorkflowAuthorizationSupport authorizationSupport,
         Clock clock
     ) {
@@ -51,19 +57,17 @@ public class PurchaseClaimAdminService implements PurchaseClaimAdminUseCase {
         this.productMintUseCase = productMintUseCase;
         this.ownershipUpdatePort = ownershipUpdatePort;
         this.ledgerOutboxPort = ledgerOutboxPort;
-        this.shipmentEvidencePort = shipmentEvidencePort;
+        this.evidencePort = evidencePort;
+        this.objectStoragePort = objectStoragePort;
         this.authorizationSupport = authorizationSupport;
         this.clock = clock;
     }
 
     @Override
     @Transactional(readOnly = true)
-    public List<PendingClaimView> listPendingClaims(AuthPrincipal principal, String tenantId) {
-        authorizationSupport.assertTenantContext(principal, tenantId);
-        authorizationSupport.assertLivePermission(principal, tenantId, PermissionCodes.PURCHASE_CLAIM_APPROVE, "purchase-claim:list");
-
-        return purchaseClaimRepository.findByTenantIdAndStatus(tenantId, PurchaseClaimStatus.SUBMITTED)
-            .stream()
+    public List<PendingClaimView> listPendingClaims(AuthPrincipal principal) {
+        authorizationSupport.assertLivePermission(principal, principal.tenantId(), PermissionCodes.PLATFORM_ADMIN, "purchase-claim:list");
+        return purchaseClaimRepository.findByStatus(PurchaseClaimStatus.SUBMITTED).stream()
             .map(c -> new PendingClaimView(
                 c.claimId(), c.claimantUserId(),
                 c.serialNumber(), c.modelName(),
@@ -74,25 +78,35 @@ public class PurchaseClaimAdminService implements PurchaseClaimAdminUseCase {
     }
 
     @Override
+    @Transactional(readOnly = true)
+    public List<ClaimEvidenceView> listClaimEvidences(AuthPrincipal principal, String claimId) {
+        authorizationSupport.assertLivePermission(principal, principal.tenantId(), PermissionCodes.PLATFORM_ADMIN, "purchase-claim:evidences:" + claimId);
+        PurchaseClaim claim = purchaseClaimRepository.findById(claimId)
+            .orElseThrow(() -> new WorkflowDomainException(WorkflowErrorCode.CLAIM_NOT_FOUND, "Purchase claim not found"));
+
+        return evidencePort.findEvidenceByEvidenceGroupId(claim.evidenceGroupId()).stream()
+            .filter(e -> "READY".equalsIgnoreCase(e.status()))
+            .map(this::toEvidenceView)
+            .toList();
+    }
+
+    @Override
     @Transactional
     public ApprovePurchaseClaimResult approve(
         AuthPrincipal principal,
-        String tenantId,
         String claimId,
         ApprovePurchaseClaimCommand command
     ) {
-        authorizationSupport.assertTenantContext(principal, tenantId);
-        authorizationSupport.assertLivePermission(principal, tenantId, PermissionCodes.PURCHASE_CLAIM_APPROVE, "purchase-claim:approve:" + claimId);
+        authorizationSupport.assertLivePermission(principal, principal.tenantId(), PermissionCodes.PLATFORM_ADMIN, "purchase-claim:approve:" + claimId);
 
-        PurchaseClaim claim = findAndValidate(claimId, tenantId);
+        PurchaseClaim claim = findSubmittedClaim(claimId);
 
         MintedProductResult mintResult = productMintUseCase.mint(
             ActorContext.from(principal),
             new MintProductCommand(
-                tenantId,
-                claim.serialNumber(), claim.modelName(), null,
-                command.manufacturedAt(), command.productionBatch(), command.factoryCode(),
-                null
+                principal.tenantId(),
+                claim.serialNumber(), null, claim.modelName(),
+                command.manufacturedAt(), command.productionBatch(), command.factoryCode(), null
             )
         );
 
@@ -102,8 +116,15 @@ public class PurchaseClaimAdminService implements PurchaseClaimAdminUseCase {
         PurchaseClaim approved = claim.approve(principal.userId(), mintResult.passportId(), mintResult.assetId(), now);
         purchaseClaimRepository.save(approved);
 
-        List<String> evidenceHashes = shipmentEvidencePort.findReadyEvidenceHashes(claim.evidenceGroupId());
-        ledgerOutboxPort.enqueue(WorkflowLedgerEventEnvelope.purchaseClaimApproved(approved, evidenceHashes));
+        List<String> evidenceHashes = evidencePort.findReadyEvidenceHashes(claim.evidenceGroupId());
+        ledgerOutboxPort.enqueue(
+            WorkflowLedgerEventEnvelope.purchaseClaimApproved(
+                approved,
+                evidenceHashes,
+                "ADMIN",
+                principal.userId()
+            )
+        );
 
         return new ApprovePurchaseClaimResult(
             approved.claimId(),
@@ -118,14 +139,12 @@ public class PurchaseClaimAdminService implements PurchaseClaimAdminUseCase {
     @Transactional
     public RejectPurchaseClaimResult reject(
         AuthPrincipal principal,
-        String tenantId,
         String claimId,
         String reason
     ) {
-        authorizationSupport.assertTenantContext(principal, tenantId);
-        authorizationSupport.assertLivePermission(principal, tenantId, PermissionCodes.PURCHASE_CLAIM_APPROVE, "purchase-claim:reject:" + claimId);
+        authorizationSupport.assertLivePermission(principal, principal.tenantId(), PermissionCodes.PLATFORM_ADMIN, "purchase-claim:reject:" + claimId);
 
-        PurchaseClaim claim = findAndValidate(claimId, tenantId);
+        PurchaseClaim claim = findSubmittedClaim(claimId);
 
         Instant now = Instant.now(clock);
         PurchaseClaim rejected = claim.reject(principal.userId(), reason, now);
@@ -134,18 +153,27 @@ public class PurchaseClaimAdminService implements PurchaseClaimAdminUseCase {
         return new RejectPurchaseClaimResult(rejected.claimId(), rejected.status().name(), rejected.rejectionReason());
     }
 
-    private PurchaseClaim findAndValidate(String claimId, String tenantId) {
+    private PurchaseClaim findSubmittedClaim(String claimId) {
         PurchaseClaim claim = purchaseClaimRepository.findById(claimId)
             .orElseThrow(() -> new WorkflowDomainException(WorkflowErrorCode.CLAIM_NOT_FOUND, "Purchase claim not found"));
-
-        if (!tenantId.equals(claim.tenantId())) {
-            throw new WorkflowDomainException(WorkflowErrorCode.TENANT_ISOLATION_VIOLATION, "Claim does not belong to tenant");
-        }
 
         if (claim.status() != PurchaseClaimStatus.SUBMITTED) {
             throw new WorkflowDomainException(WorkflowErrorCode.CLAIM_INVALID_STATE, "Claim is not in SUBMITTED state");
         }
 
         return claim;
+    }
+
+    private ClaimEvidenceView toEvidenceView(WorkflowEvidencePort.EvidenceView evidence) {
+        ObjectStoragePort.PresignedDownload download = objectStoragePort.issuePresignedDownload(
+            evidence.objectKey(),
+            DOWNLOAD_TTL
+        );
+        return new ClaimEvidenceView(
+            evidence.evidenceId(),
+            evidence.status(),
+            download.downloadUrl(),
+            download.expiresAt()
+        );
     }
 }

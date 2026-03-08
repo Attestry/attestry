@@ -101,18 +101,23 @@ public record WorkflowLedgerEventEnvelope(
         );
     }
 
-    public static WorkflowLedgerEventEnvelope purchaseClaimApproved(PurchaseClaim claim, List<String> evidenceHashes) {
+    public static WorkflowLedgerEventEnvelope purchaseClaimApproved(
+        PurchaseClaim claim,
+        List<String> evidenceHashes,
+        String actorRole,
+        String actorId
+    ) {
         return new WorkflowLedgerEventEnvelope(
             "PURCHASE_CLAIM",
             claim.passportId(),
             "OWNERSHIP",
             "PURCHASE_CLAIM_APPROVED",
-            "CONSUMER",
-            claim.claimantUserId(),
+            actorRole,
+            actorId,
             claim.reviewedAt(),
             Map.of(
                 "claimId", claim.claimId(),
-                "tenantId", claim.tenantId(),
+                "claimantUserId", claim.claimantUserId(),
                 "serialNumber", claim.serialNumber(),
                 "modelName", claim.modelName(),
                 "evidenceGroupId", claim.evidenceGroupId(),

@@ -4,7 +4,7 @@ import static io.attestry.workflow.domain.WorkflowValidation.requireText;
 
 import io.attestry.userauth.security.AuthPrincipal;
 import io.attestry.userauth.domain.authorization.model.PermissionCodes;
-import io.attestry.workflow.application.port.ShipmentEvidencePort;
+import io.attestry.workflow.application.port.WorkflowEvidencePort;
 import io.attestry.workflow.application.port.WorkflowLedgerOutboxPort;
 import io.attestry.workflow.application.port.ShipmentProductReadPort;
 import io.attestry.workflow.application.shipment.command.ReleaseShipmentCommand;
@@ -33,7 +33,7 @@ import org.springframework.transaction.annotation.Transactional;
 public class ShipmentReleaseService implements ShipmentReleaseUseCase {
 
     private final ShipmentRepository shipmentRepository;
-    private final ShipmentEvidencePort shipmentEvidencePort;
+    private final WorkflowEvidencePort evidencePort;
     private final ShipmentProductReadPort shipmentProductReadPort;
     private final WorkflowLedgerOutboxPort shipmentLedgerOutboxPort;
     private final WorkflowAuthorizationSupport authorizationSupport;
@@ -43,7 +43,7 @@ public class ShipmentReleaseService implements ShipmentReleaseUseCase {
 
     public ShipmentReleaseService(
         ShipmentRepository shipmentRepository,
-        ShipmentEvidencePort shipmentEvidencePort,
+        WorkflowEvidencePort evidencePort,
         ShipmentProductReadPort shipmentProductReadPort,
         WorkflowLedgerOutboxPort shipmentLedgerOutboxPort,
         WorkflowAuthorizationSupport authorizationSupport,
@@ -52,7 +52,7 @@ public class ShipmentReleaseService implements ShipmentReleaseUseCase {
         Clock clock
     ) {
         this.shipmentRepository = shipmentRepository;
-        this.shipmentEvidencePort = shipmentEvidencePort;
+        this.evidencePort = evidencePort;
         this.shipmentProductReadPort = shipmentProductReadPort;
         this.shipmentLedgerOutboxPort = shipmentLedgerOutboxPort;
         this.authorizationSupport = authorizationSupport;
@@ -84,8 +84,8 @@ public class ShipmentReleaseService implements ShipmentReleaseUseCase {
 
         requireText(command.evidenceGroupId(), "evidenceGroupId");
         String evidenceGroupId = command.evidenceGroupId().trim();
-        evidenceUploadSupport.assertEvidenceGroupScope(shipmentEvidencePort, evidenceGroupId, tenantId);
-        List<String> evidenceHashes = shipmentEvidencePort.findReadyEvidenceHashes(evidenceGroupId);
+        evidenceUploadSupport.assertEvidenceGroupScope(evidencePort, evidenceGroupId, tenantId);
+        List<String> evidenceHashes = evidencePort.findReadyEvidenceHashes(evidenceGroupId);
         if (evidenceHashes.isEmpty()) {
             throw new WorkflowDomainException(WorkflowErrorCode.INVALID_REQUEST, "At least one READY evidence is required");
         }
@@ -142,8 +142,8 @@ public class ShipmentReleaseService implements ShipmentReleaseUseCase {
         List<String> returnEvidenceHashes = List.of();
         if (command.returnEvidenceGroupId() != null && !command.returnEvidenceGroupId().isBlank()) {
             returnEvidenceGroupId = command.returnEvidenceGroupId().trim();
-            evidenceUploadSupport.assertEvidenceGroupScope(shipmentEvidencePort, returnEvidenceGroupId, tenantId);
-            returnEvidenceHashes = shipmentEvidencePort.findReadyEvidenceHashes(returnEvidenceGroupId);
+            evidenceUploadSupport.assertEvidenceGroupScope(evidencePort, returnEvidenceGroupId, tenantId);
+            returnEvidenceHashes = evidencePort.findReadyEvidenceHashes(returnEvidenceGroupId);
             if (returnEvidenceHashes.isEmpty()) {
                 throw new WorkflowDomainException(WorkflowErrorCode.INVALID_REQUEST, "returnEvidenceGroupId has no READY evidences");
             }

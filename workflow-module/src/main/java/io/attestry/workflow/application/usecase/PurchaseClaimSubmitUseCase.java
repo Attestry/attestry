@@ -4,10 +4,11 @@ import io.attestry.userauth.security.AuthPrincipal;
 import io.attestry.workflow.application.claim.command.CompleteClaimEvidenceCommand;
 import io.attestry.workflow.application.claim.command.PresignClaimEvidenceCommand;
 import io.attestry.workflow.application.claim.command.SubmitPurchaseClaimCommand;
+import io.attestry.workflow.application.claim.result.ClaimEvidenceView;
 import io.attestry.workflow.application.claim.result.MyClaimView;
 import io.attestry.workflow.application.claim.result.SubmitPurchaseClaimResult;
-import io.attestry.workflow.application.shipment.result.PresignedShipmentEvidenceUploadResult;
-import io.attestry.workflow.application.shipment.result.ShipmentEvidenceCompleteResult;
+import io.attestry.workflow.application.shipment.result.PresignedEvidenceUploadResult;
+import io.attestry.workflow.application.shipment.result.EvidenceCompleteResult;
 import java.util.List;
 
 public interface PurchaseClaimSubmitUseCase {
@@ -16,7 +17,9 @@ public interface PurchaseClaimSubmitUseCase {
 
     List<MyClaimView> listMyClaims(AuthPrincipal principal);
 
-    PresignedShipmentEvidenceUploadResult presignEvidence(AuthPrincipal principal, PresignClaimEvidenceCommand command);
+    List<ClaimEvidenceView> listMyClaimEvidences(AuthPrincipal principal, String claimId);
 
-    ShipmentEvidenceCompleteResult completeEvidence(AuthPrincipal principal, CompleteClaimEvidenceCommand command);
+    PresignedEvidenceUploadResult presignEvidence(AuthPrincipal principal, PresignClaimEvidenceCommand command);
+
+    EvidenceCompleteResult completeEvidence(AuthPrincipal principal, CompleteClaimEvidenceCommand command);
 }

@@ -1,6 +1,6 @@
 package io.attestry.workflow.infrastructure.persistence.jpa;
 
-import io.attestry.workflow.application.port.ShipmentEvidencePort;
+import io.attestry.workflow.application.port.WorkflowEvidencePort;
 import java.sql.ResultSet;
 import java.sql.SQLException;
 import java.sql.Timestamp;
@@ -11,13 +11,13 @@ import org.springframework.jdbc.core.JdbcTemplate;
 import org.springframework.stereotype.Repository;
 
 @Repository
-public class JdbcShipmentEvidenceAdapter implements ShipmentEvidencePort {
+public class JdbcWorkflowEvidenceAdapter implements WorkflowEvidencePort {
 
     private static final String PLACEHOLDER_HASH = "0000000000000000000000000000000000000000000000000000000000000000";
 
     private final JdbcTemplate jdbcTemplate;
 
-    public JdbcShipmentEvidenceAdapter(JdbcTemplate jdbcTemplate) {
+    public JdbcWorkflowEvidenceAdapter(JdbcTemplate jdbcTemplate) {
         this.jdbcTemplate = jdbcTemplate;
     }
 
@@ -29,7 +29,7 @@ public class JdbcShipmentEvidenceAdapter implements ShipmentEvidencePort {
         Instant now
     ) {
         Integer count = jdbcTemplate.queryForObject(
-            "SELECT COUNT(1) FROM workflow_shipment_evidence_groups WHERE evidence_group_id = ?",
+            "SELECT COUNT(1) FROM workflow_evidence_groups WHERE evidence_group_id = ?",
             Integer.class,
             evidenceGroupId
         );
@@ -38,7 +38,7 @@ public class JdbcShipmentEvidenceAdapter implements ShipmentEvidencePort {
         }
         jdbcTemplate.update(
             """
-                INSERT INTO workflow_shipment_evidence_groups (
+                INSERT INTO workflow_evidence_groups (
                     evidence_group_id, tenant_id, owner_user_id, created_at
                 ) VALUES (?, ?, ?, ?)
             """,
@@ -60,7 +60,7 @@ public class JdbcShipmentEvidenceAdapter implements ShipmentEvidencePort {
     ) {
         jdbcTemplate.update(
             """
-                INSERT INTO workflow_shipment_evidences (
+                INSERT INTO workflow_evidences (
                     evidence_id,
                     evidence_group_id,
                     file_hash,
@@ -82,11 +82,11 @@ public class JdbcShipmentEvidenceAdapter implements ShipmentEvidencePort {
     }
 
     @Override
-    public Optional<ShipmentEvidenceView> findEvidenceById(String evidenceGroupId, String evidenceId) {
-        List<ShipmentEvidenceView> rows = jdbcTemplate.query(
+    public Optional<EvidenceView> findEvidenceById(String evidenceGroupId, String evidenceId) {
+        List<EvidenceView> rows = jdbcTemplate.query(
             """
                 SELECT evidence_id, evidence_group_id, file_hash, object_key, status
-                FROM workflow_shipment_evidences
+                FROM workflow_evidences
                 WHERE evidence_group_id = ?
                   AND evidence_id = ?
             """,
@@ -101,7 +101,7 @@ public class JdbcShipmentEvidenceAdapter implements ShipmentEvidencePort {
     public void markEvidenceReady(String evidenceGroupId, String evidenceId, long sizeBytes, String fileHash, Instant now) {
         jdbcTemplate.update(
             """
-                UPDATE workflow_shipment_evidences
+                UPDATE workflow_evidences
                 SET file_hash = ?,
                     size_bytes = ?,
                     status = 'READY',
@@ -122,7 +122,7 @@ public class JdbcShipmentEvidenceAdapter implements ShipmentEvidencePort {
         List<EvidenceGroupScopeView> rows = jdbcTemplate.query(
             """
                 SELECT evidence_group_id, tenant_id, owner_user_id
-                FROM workflow_shipment_evidence_groups
+                FROM workflow_evidence_groups
                 WHERE evidence_group_id = ?
             """,
             (rs, rowNum) -> new EvidenceGroupScopeView(
@@ -140,7 +140,7 @@ public class JdbcShipmentEvidenceAdapter implements ShipmentEvidencePort {
         return jdbcTemplate.query(
             """
                 SELECT file_hash
-                FROM workflow_shipment_evidences
+                FROM workflow_evidences
                 WHERE evidence_group_id = ?
                   AND status = 'READY'
                 ORDER BY completed_at ASC, evidence_id ASC
@@ -151,11 +151,11 @@ public class JdbcShipmentEvidenceAdapter implements ShipmentEvidencePort {
     }
 
     @Override
-    public List<ShipmentEvidenceView> findEvidenceByEvidenceGroupId(String evidenceGroupId) {
+    public List<EvidenceView> findEvidenceByEvidenceGroupId(String evidenceGroupId) {
         return jdbcTemplate.query(
             """
                 SELECT evidence_id, evidence_group_id, file_hash, object_key, status
-                FROM workflow_shipment_evidences
+                FROM workflow_evidences
                 WHERE evidence_group_id = ?
                 ORDER BY created_at ASC, evidence_id ASC
             """,
@@ -164,8 +164,8 @@ public class JdbcShipmentEvidenceAdapter implements ShipmentEvidencePort {
         );
     }
 
-    private ShipmentEvidenceView mapEvidence(ResultSet rs) throws SQLException {
-        return new ShipmentEvidenceView(
+    private EvidenceView mapEvidence(ResultSet rs) throws SQLException {
+        return new EvidenceView(
             rs.getString("evidence_id"),
             rs.getString("evidence_group_id"),
             rs.getString("file_hash"),
