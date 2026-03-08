@@ -1,7 +1,6 @@
 package io.attestry.workflow.application.claim.command;
 
 public record CompleteClaimEvidenceCommand(
-    String tenantId,
     String evidenceGroupId,
     String evidenceId,
     long sizeBytes,

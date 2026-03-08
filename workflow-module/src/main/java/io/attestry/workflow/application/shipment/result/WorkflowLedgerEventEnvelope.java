@@ -112,7 +112,6 @@ public record WorkflowLedgerEventEnvelope(
             claim.reviewedAt(),
             Map.of(
                 "claimId", claim.claimId(),
-                "tenantId", claim.tenantId(),
                 "serialNumber", claim.serialNumber(),
                 "modelName", claim.modelName(),
                 "evidenceGroupId", claim.evidenceGroupId(),

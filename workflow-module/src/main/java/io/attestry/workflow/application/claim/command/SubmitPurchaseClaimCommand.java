@@ -1,7 +1,6 @@
 package io.attestry.workflow.application.claim.command;
 
 public record SubmitPurchaseClaimCommand(
-    String tenantId,
     String serialNumber,
     String modelName,
     String evidenceGroupId,

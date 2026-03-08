@@ -13,5 +13,5 @@ public interface PurchaseClaimRepository {
 
     List<PurchaseClaim> findByClaimantUserId(String userId);
 
-    List<PurchaseClaim> findByTenantIdAndStatus(String tenantId, PurchaseClaimStatus status);
+    List<PurchaseClaim> findByStatus(PurchaseClaimStatus status);
 }

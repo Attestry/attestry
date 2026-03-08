@@ -25,7 +25,8 @@ public class JdbcPurchaseClaimRepositoryAdapter implements PurchaseClaimReposito
         jdbcTemplate.update(
             """
                 INSERT INTO purchase_claim_requests (
-                    claim_id, tenant_id, claimant_user_id,
+                    claim_id, claimant_user_id,
+                    submitter_profile_type,
                     serial_number, model_name, evidence_group_id, note,
                     status, submitted_at,
                     reviewed_by_user_id, reviewed_at, rejection_reason,
@@ -40,8 +41,8 @@ public class JdbcPurchaseClaimRepositoryAdapter implements PurchaseClaimReposito
                     asset_id = EXCLUDED.asset_id
             """,
             claim.claimId(),
-            claim.tenantId(),
             claim.claimantUserId(),
+            claim.submitterProfileType(),
             claim.serialNumber(),
             claim.modelName(),
             claim.evidenceGroupId(),
@@ -78,11 +79,11 @@ public class JdbcPurchaseClaimRepositoryAdapter implements PurchaseClaimReposito
     }
 
     @Override
-    public List<PurchaseClaim> findByTenantIdAndStatus(String tenantId, PurchaseClaimStatus status) {
+    public List<PurchaseClaim> findByStatus(PurchaseClaimStatus status) {
         return jdbcTemplate.query(
-            "SELECT * FROM purchase_claim_requests WHERE tenant_id = ? AND status = ? ORDER BY submitted_at ASC",
+            "SELECT * FROM purchase_claim_requests WHERE status = ? ORDER BY submitted_at ASC",
             (rs, rowNum) -> mapClaim(rs),
-            tenantId, status.name()
+            status.name()
         );
     }
 
@@ -90,8 +91,8 @@ public class JdbcPurchaseClaimRepositoryAdapter implements PurchaseClaimReposito
         Timestamp reviewedAt = rs.getTimestamp("reviewed_at");
         return new PurchaseClaim(
             rs.getString("claim_id"),
-            rs.getString("tenant_id"),
             rs.getString("claimant_user_id"),
+            rs.getString("submitter_profile_type"),
             rs.getString("serial_number"),
             rs.getString("model_name"),
             rs.getString("evidence_group_id"),
