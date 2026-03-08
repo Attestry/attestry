@@ -239,7 +239,7 @@ public class OnboardingApplicationService implements OnboardingUseCase {
     }
 
     private ApplicationView toApplicationView(OrganizationApplication app) {
-        EvidenceFileView evidenceFile = resolveEvidenceFileView(app.evidenceBundleId());
+        List<ApplicationView.EvidenceFileView> evidenceFiles = resolveEvidenceFiles(app.evidenceBundleId());
         return new ApplicationView(
                 app.applicationId(),
                 app.type().name(),
@@ -249,41 +249,40 @@ public class OnboardingApplicationService implements OnboardingUseCase {
                 app.country(),
                 app.bizRegNo(),
                 app.evidenceBundleId(),
-                evidenceFile.originalFileName(),
-                evidenceFile.downloadUrl(),
+                evidenceFiles,
                 app.status().name(),
                 app.rejectReason());
     }
 
-    private EvidenceFileView resolveEvidenceFileView(String evidenceBundleId) {
+    private List<ApplicationView.EvidenceFileView> resolveEvidenceFiles(String evidenceBundleId) {
         if (evidenceBundleId == null || evidenceBundleId.isBlank()) {
-            return EvidenceFileView.EMPTY;
+            return List.of();
         }
 
         OnboardingEvidenceBundle bundle = evidenceBundleRepository.findById(evidenceBundleId).orElse(null);
         if (bundle == null || bundle.files().isEmpty()) {
-            return EvidenceFileView.EMPTY;
+            return List.of();
         }
 
-        OnboardingEvidenceFile file = bundle.files().stream()
+        return bundle.files().stream()
                 .filter(OnboardingEvidenceFile::isReady)
-                .max(java.util.Comparator.comparing(OnboardingEvidenceFile::createdAt))
-                .orElse(null);
-        if (file == null) {
-            return EvidenceFileView.EMPTY;
-        }
-
-        try {
-            ObjectStoragePort.PresignedDownload download = objectStoragePort.issuePresignedDownload(file.objectKey(),
-                    PRESIGN_TTL);
-            return new EvidenceFileView(file.originalFileName(), download.downloadUrl());
-        } catch (Exception ignored) {
-            return EvidenceFileView.EMPTY;
-        }
-    }
-
-    private record EvidenceFileView(String originalFileName, String downloadUrl) {
-        private static final EvidenceFileView EMPTY = new EvidenceFileView(null, null);
+                .map(file -> {
+                    String downloadUrl = null;
+                    try {
+                        ObjectStoragePort.PresignedDownload download =
+                                objectStoragePort.issuePresignedDownload(file.objectKey(), PRESIGN_TTL);
+                        downloadUrl = download.downloadUrl();
+                    } catch (Exception ignored) {
+                    }
+                    return new ApplicationView.EvidenceFileView(
+                            file.evidenceFileId(),
+                            file.originalFileName(),
+                            file.contentType(),
+                            file.sizeBytes() != null ? file.sizeBytes() : 0,
+                            downloadUrl
+                    );
+                })
+                .toList();
     }
 
     private OnboardingEvidenceBundle resolveOrCreateBundle(ActorContext actor, String requestedBundleId, Instant now) {

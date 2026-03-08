@@ -5,6 +5,7 @@ import io.attestry.userauth.application.dto.command.ActorContext;
 import io.attestry.userauth.security.CurrentActor;
 import java.time.Instant;
 import java.util.List;
+import org.springframework.format.annotation.DateTimeFormat;
 import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.PathVariable;
@@ -30,13 +31,30 @@ public class ProductQueryHttp {
     ) {
         ProductQueryUseCase.PassportDetailResponse result = queryUseCase.getTenantPassportDetail(actor.tenantId(),
             passportId);
+        ShipmentResponse shipmentResponse = result.shipment() != null
+            ? new ShipmentResponse(
+                result.shipment().shipmentId(),
+                result.shipment().status(),
+                result.shipment().shipmentRound(),
+                result.shipment().releasedAt(),
+                result.shipment().releasedByUserEmail(),
+                result.shipment().returnedAt(),
+                result.shipment().returnedByUserEmail(),
+                result.shipment().evidenceFiles().stream()
+                    .map(e -> new EvidenceFileResponse(
+                        e.evidenceId(), e.originalFileName(), e.contentType(), e.sizeBytes(), e.downloadUrl()
+                    ))
+                    .toList()
+            )
+            : null;
         return new PassportDetailResponse(
             result.passportId(), result.qrPublicCode(),
             result.tenantId(),
             result.assetId(), result.serialNumber(), result.modelId(), result.modelName(),
             result.manufacturedAt(), result.productionBatch(), result.factoryCode(),
             result.assetState(), result.riskFlag(),
-            result.ownerId(), result.ownerUpdatedAt(), result.createdAt()
+            result.createdAt(), result.publicUrl(),
+            shipmentResponse
         );
     }
 
@@ -74,10 +92,14 @@ public class ProductQueryHttp {
     public PagedTenantPassportResponse listTenantPassports(
         @CurrentActor ActorContext actor,
         @RequestParam(name = "page", defaultValue = "0") int page,
-        @RequestParam(name = "size", defaultValue = "20") int size
+        @RequestParam(name = "size", defaultValue = "20") int size,
+        @RequestParam(name = "assetState", required = false) String assetState,
+        @RequestParam(name = "createdFrom", required = false) @DateTimeFormat(iso = DateTimeFormat.ISO.DATE_TIME) Instant createdFrom,
+        @RequestParam(name = "createdTo", required = false) @DateTimeFormat(iso = DateTimeFormat.ISO.DATE_TIME) Instant createdTo,
+        @RequestParam(name = "keyword", required = false) String keyword
     ) {
         ProductQueryUseCase.PagedTenantPassportResponse result = queryUseCase.listTenantPassports(actor.tenantId(),
-            page, size);
+            page, size, assetState, createdFrom, createdTo, keyword);
         List<TenantPassportResponse> content = result.content().stream()
             .map(r -> new TenantPassportResponse(
                 r.passportId(), r.serialNumber(), r.modelId(), r.modelName(),
@@ -87,6 +109,7 @@ public class ProductQueryHttp {
         return new PagedTenantPassportResponse(content, result.page(), result.size(), result.totalElements(),
             result.totalPages());
     }
+
 
     public record MyPassportResponse(
         String passportId,
@@ -114,9 +137,30 @@ public class ProductQueryHttp {
         String factoryCode,
         String assetState,
         String riskFlag,
-        String ownerId,
-        Instant ownerUpdatedAt,
-        Instant createdAt
+        Instant createdAt,
+        String publicUrl,
+        ShipmentResponse shipment
+    ) {
+    }
+
+    public record ShipmentResponse(
+        String shipmentId,
+        String status,
+        int shipmentRound,
+        Instant releasedAt,
+        String releasedByUserEmail,
+        Instant returnedAt,
+        String returnedByUserEmail,
+        List<EvidenceFileResponse> evidenceFiles
+    ) {
+    }
+
+    public record EvidenceFileResponse(
+        String evidenceId,
+        String originalFileName,
+        String contentType,
+        long sizeBytes,
+        String downloadUrl
     ) {
     }
 

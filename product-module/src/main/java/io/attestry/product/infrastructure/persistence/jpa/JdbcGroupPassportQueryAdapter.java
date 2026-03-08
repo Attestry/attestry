@@ -2,7 +2,10 @@ package io.attestry.product.infrastructure.persistence.jpa;
 
 import io.attestry.product.application.port.GroupPassportQueryPort;
 import java.sql.Timestamp;
+import java.time.Instant;
+import java.util.ArrayList;
 import java.util.List;
+import java.util.Locale;
 import org.springframework.jdbc.core.JdbcTemplate;
 import org.springframework.stereotype.Repository;
 
@@ -16,18 +19,53 @@ public class JdbcGroupPassportQueryAdapter implements GroupPassportQueryPort {
     }
 
     @Override
-    public PagedResult findByTenant(String tenantId, int page, int size) {
+    public PagedResult findByTenant(
+        String tenantId,
+        int page,
+        int size,
+        String assetState,
+        Instant createdFrom,
+        Instant createdTo,
+        String keyword
+    ) {
+        StringBuilder whereClause = new StringBuilder(" WHERE pp.tenant_id = ? ");
+        List<Object> filterParams = new ArrayList<>();
+        filterParams.add(tenantId);
+        if (assetState != null && !assetState.isBlank()) {
+            whereClause.append(" AND pa.asset_state = ? ");
+            filterParams.add(assetState);
+        }
+        if (createdFrom != null) {
+            whereClause.append(" AND pp.created_at >= ? ");
+            filterParams.add(Timestamp.from(createdFrom));
+        }
+        if (createdTo != null) {
+            whereClause.append(" AND pp.created_at <= ? ");
+            filterParams.add(Timestamp.from(createdTo));
+        }
+        if (keyword != null && !keyword.isBlank()) {
+            String like = "%" + keyword.toLowerCase(Locale.ROOT) + "%";
+            whereClause.append(" AND (LOWER(pa.serial_number) LIKE ? OR LOWER(pa.model_name) LIKE ?) ");
+            filterParams.add(like);
+            filterParams.add(like);
+        }
+
         Long totalElements = jdbcTemplate.queryForObject(
             """
                 SELECT COUNT(*)
                 FROM product_passports pp
-                WHERE pp.tenant_id = ?
-                """,
+                JOIN product_assets pa ON pa.asset_id = pp.asset_id
+                """
+                + whereClause,
             Long.class,
-            tenantId
+            filterParams.toArray()
         );
         long total = totalElements != null ? totalElements : 0;
         int totalPages = (int) Math.ceil((double) total / size);
+
+        List<Object> contentParams = new ArrayList<>(filterParams);
+        contentParams.add(size);
+        contentParams.add(page * size);
 
         List<GroupPassportView> content = jdbcTemplate.query(
             """
@@ -39,7 +77,9 @@ public class JdbcGroupPassportQueryAdapter implements GroupPassportQueryPort {
                 FROM product_passports pp
                 JOIN product_assets pa ON pa.asset_id = pp.asset_id
                 LEFT JOIN passport_ownership po ON po.passport_id = pp.passport_id
-                WHERE pp.tenant_id = ?
+                """
+                + whereClause
+                + """
                 ORDER BY pp.created_at DESC
                 LIMIT ? OFFSET ?
                 """,
@@ -59,7 +99,7 @@ public class JdbcGroupPassportQueryAdapter implements GroupPassportQueryPort {
                     rs.getTimestamp("created_at").toInstant()
                 );
             },
-            tenantId, size, page * size
+            contentParams.toArray()
         );
 
         return new PagedResult(content, page, size, total, totalPages);

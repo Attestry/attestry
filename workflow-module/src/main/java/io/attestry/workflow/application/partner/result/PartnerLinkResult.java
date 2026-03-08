@@ -6,6 +6,7 @@ public record PartnerLinkResult(
         String partnerLinkId,
         String sourceTenantId,
         String sourceTenantName,
+        String sourceType,
         String targetTenantId,
         String targetTenantName,
         String partnerType,

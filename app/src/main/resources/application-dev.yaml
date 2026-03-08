@@ -42,6 +42,8 @@ app:
       endpoint: ${S3_ENDPOINT:}
       access-key: ${AWS_ACCESS_KEY_ID:}
       secret-key: ${AWS_SECRET_ACCESS_KEY:}
+  product:
+    public-base-url: ${PRODUCT_PUBLIC_BASE_URL:https://dev.attestry.local}
   kafka:
     client-id: ${KAFKA_CLIENT_ID:attestry-dev}
     consumer-group-id: ${KAFKA_CONSUMER_GROUP:attestry-ledger-dev}
