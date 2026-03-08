@@ -63,17 +63,18 @@ public class DelegationService implements DelegationUseCase {
         authorizationSupport.assertTenantContext(principal, sourceTenantId);
         authorizationSupport.assertLivePermission(principal, sourceTenantId, PermissionCodes.DELEGATION_GRANT, "delegation:grant");
 
-        PartnerLink partnerLink = relationshipValidator.assertEligible(
-            command.partnerLinkId(), sourceTenantId, command.targetTenantId()
+        PartnerLink partnerLink = relationshipValidator.assertEligibleBySource(
+            command.partnerLinkId(), sourceTenantId
         );
-        assertTenantsActive(sourceTenantId, command.targetTenantId());
+        String targetTenantId = partnerLink.targetTenantId();
+        assertTenantsActive(sourceTenantId, targetTenantId);
 
         Instant now = Instant.now(clock);
-        DelegationGrantPolicy.DelegationGrantContext context = resolveGrantContext(sourceTenantId, command, now);
+        DelegationGrantPolicy.DelegationGrantContext context = resolveGrantContext(sourceTenantId, targetTenantId, command, now);
         delegationGrantPolicy.assertGrantable(context);
 
         Delegation granted = delegationRepository.save(Delegation.grant(
-            command.partnerLinkId(), sourceTenantId, command.targetTenantId(),
+            command.partnerLinkId(), sourceTenantId, targetTenantId,
             command.resourceType(), command.resourceId(), command.permissionCode(),
             command.expiresAt(), principal.userId(), now, command.note()
         ));
@@ -169,7 +170,7 @@ public class DelegationService implements DelegationUseCase {
     }
 
     private DelegationGrantPolicy.DelegationGrantContext resolveGrantContext(
-        String sourceTenantId, GrantDelegationCommand command, Instant now
+        String sourceTenantId, String targetTenantId, GrantDelegationCommand command, Instant now
     ) {
         Optional<PassportAuthorityQueryPort.PassportAuthorityView> passport =
             "PASSPORT".equals(command.resourceType())
@@ -177,7 +178,7 @@ public class DelegationService implements DelegationUseCase {
                 : Optional.empty();
 
         boolean activeDelegationExists = delegationRepository.existsActive(
-            sourceTenantId, command.targetTenantId(),
+            sourceTenantId, targetTenantId,
             command.resourceType(), command.resourceId(), command.permissionCode()
         );
 

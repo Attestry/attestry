@@ -46,7 +46,6 @@ public class DelegationHttp {
             sourceTenantId,
             new GrantDelegationCommand(
                 request.partnerLinkId(),
-                request.resolvedTargetTenantId(),
                 request.resourceType(),
                 request.resourceId(),
                 request.permissionCode(),
@@ -111,20 +110,12 @@ public class DelegationHttp {
 
     public record GrantDelegationRequest(
         String partnerLinkId,
-        String targetTenantId,
-        String partnerTenantId,
         String resourceType,
         String resourceId,
         String permissionCode,
         Instant expiresAt,
         String note
     ) {
-        String resolvedTargetTenantId() {
-            if (targetTenantId != null && !targetTenantId.isBlank()) {
-                return targetTenantId;
-            }
-            return partnerTenantId;
-        }
     }
 
     public record ReasonRequest(String reason) {

@@ -79,7 +79,18 @@ public interface ProductQueryUseCase {
         String riskFlag,
         Instant createdAt,
         String publicUrl,
-        ShipmentDetailResponse shipment
+        ShipmentDetailResponse shipment,
+        DistributionDetailResponse distribution
+    ) {
+    }
+
+    record DistributionDetailResponse(
+        String tenantId,
+        String tenantName,
+        String tenantType,
+        String permissionCode,
+        String scope,
+        Instant grantedAt
     ) {
     }
 
