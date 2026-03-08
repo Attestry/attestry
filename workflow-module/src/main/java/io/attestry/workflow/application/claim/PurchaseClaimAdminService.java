@@ -124,7 +124,8 @@ public class PurchaseClaimAdminService implements PurchaseClaimAdminUseCase {
                     targetTenantId,
                     claim.serialNumber(), null, safeModelName,
                     command.manufacturedAt(), command.productionBatch(), command.factoryCode(),
-                    null
+                    null,
+                    "ADMIN"
                 )
             );
         } catch (RuntimeException ex) {
@@ -144,7 +145,14 @@ public class PurchaseClaimAdminService implements PurchaseClaimAdminUseCase {
         purchaseClaimRepository.save(approved);
 
         List<String> evidenceHashes = shipmentEvidencePort.findReadyEvidenceHashes(claim.evidenceGroupId());
-        ledgerOutboxPort.enqueue(WorkflowLedgerEventEnvelope.purchaseClaimApproved(approved, evidenceHashes));
+        ledgerOutboxPort.enqueue(
+            WorkflowLedgerEventEnvelope.purchaseClaimApproved(
+                approved,
+                evidenceHashes,
+                "ADMIN",
+                principal.userId()
+            )
+        );
 
         return new ApprovePurchaseClaimResult(
             approved.claimId(),

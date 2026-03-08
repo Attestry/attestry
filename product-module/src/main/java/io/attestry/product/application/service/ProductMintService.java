@@ -97,7 +97,12 @@ public class ProductMintService implements ProductMintUseCase {
             input,
             now
         );
-        LedgerEventEnvelope event = LedgerEventEnvelope.minted(passport, now);
+        LedgerEventEnvelope event = LedgerEventEnvelope.minted(
+            passport,
+            resolveMintActorRole(actor, command.actorRoleOverride()),
+            resolveMintActorId(actor, input.tenantId()),
+            now
+        );
 
         try {
             passport = passportRepository.save(passport);
@@ -137,7 +142,7 @@ public class ProductMintService implements ProductMintUseCase {
             MintProductCommand cmd = commands.get(i);
             int row = i + 1;
             try {
-                mintSingle(tenantId, cmd);
+                mintSingle(actor, tenantId, cmd);
                 minted++;
             } catch (Exception ex) {
                 errors.add(new BatchMintError(row, cmd.serialNumber(), ex.getMessage()));
@@ -147,7 +152,7 @@ public class ProductMintService implements ProductMintUseCase {
         return new BatchMintResult(commands.size(), minted, errors.size(), errors);
     }
 
-    private void mintSingle(String tenantId, MintProductCommand command) {
+    private void mintSingle(ActorContext actor, String tenantId, MintProductCommand command) {
         MintProductInput input = MintProductInput.of(
             tenantId,
             command.serialNumber(),
@@ -174,7 +179,12 @@ public class ProductMintService implements ProductMintUseCase {
             input,
             now
         );
-        LedgerEventEnvelope event = LedgerEventEnvelope.minted(passport, now);
+        LedgerEventEnvelope event = LedgerEventEnvelope.minted(
+            passport,
+            resolveMintActorRole(actor, command.actorRoleOverride()),
+            resolveMintActorId(actor, tenantId),
+            now
+        );
 
         try {
             passportRepository.save(passport);
@@ -202,5 +212,16 @@ public class ProductMintService implements ProductMintUseCase {
 
     private boolean isPlatformAdmin(ActorContext actor) {
         return actor.scopes() != null && actor.scopes().stream().anyMatch(PLATFORM_ADMIN_SCOPES::contains);
+    }
+
+    private String resolveMintActorRole(ActorContext actor, String actorRoleOverride) {
+        if (actorRoleOverride != null && !actorRoleOverride.isBlank()) {
+            return actorRoleOverride;
+        }
+        return isPlatformAdmin(actor) ? "ADMIN" : "BRAND";
+    }
+
+    private String resolveMintActorId(ActorContext actor, String tenantId) {
+        return isPlatformAdmin(actor) ? actor.userId() : tenantId;
     }
 }
