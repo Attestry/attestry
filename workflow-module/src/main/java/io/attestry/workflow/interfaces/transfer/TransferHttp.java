@@ -12,9 +12,12 @@ import io.attestry.workflow.application.usecase.TransferCancelUseCase;
 import io.attestry.workflow.application.usecase.TransferCreateUseCase;
 import io.attestry.workflow.domain.transfer.model.AcceptMethod;
 import java.time.Instant;
+import java.util.Optional;
 import org.springframework.http.HttpStatus;
+import org.springframework.http.ResponseEntity;
 import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.security.core.annotation.AuthenticationPrincipal;
+import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.PathVariable;
 import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.RequestBody;
@@ -72,6 +75,19 @@ public class TransferHttp {
             new CreateB2CTransferCommand(request.acceptMethod(), request.password(), request.expiresAt())
         );
         return CreateTransferResponse.from(result);
+    }
+
+    @GetMapping("/passports/{passportId}/transfers/pending")
+    @PreAuthorize("hasAuthority('SCOPE_OWNER_TRANSFER_CREATE')")
+    public ResponseEntity<CreateTransferResponse> findLatestActivePending(
+        @AuthenticationPrincipal AuthPrincipal principal,
+        @PathVariable("passportId") String passportId
+    ) {
+        Optional<CreateTransferResult> result = transferCreateUseCase.findLatestActivePendingByPassportId(principal, passportId);
+        return result
+            .map(CreateTransferResponse::from)
+            .map(ResponseEntity::ok)
+            .orElseGet(() -> ResponseEntity.noContent().build());
     }
 
     @PostMapping("/transfers/{transferId}/accept")
@@ -133,7 +149,6 @@ public class TransferHttp {
     }
 
     public record AcceptTransferResponse(
-        String transferId,
         String passportId,
         String status,
         String toOwnerId,
@@ -142,7 +157,7 @@ public class TransferHttp {
     ) {
         static AcceptTransferResponse from(AcceptTransferResult result) {
             return new AcceptTransferResponse(
-                result.transferId(), result.passportId(),
+                result.passportId(),
                 result.status(), result.toOwnerId(),
                 result.completedAt(), result.outboxEventId()
             );

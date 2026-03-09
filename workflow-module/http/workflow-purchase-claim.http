@@ -81,11 +81,15 @@ Authorization: Bearer {{consumerAccessToken}}
 ## ──────────────────────────────────────
 
 ### 6) List pending claims (관리자)
-GET {{baseUrl}}/workflows/tenants/{{tenantId}}/purchase-claims
+GET {{baseUrl}}/workflows/purchase-claims/pending
 Authorization: Bearer {{adminAccessToken}}
 
-### 7) Approve claim (관리자 → 자동 MINT + 소유권 할당)
-POST {{baseUrl}}/workflows/tenants/{{tenantId}}/purchase-claims/{{claimId}}/approve
+### 7) List claim evidences (관리자)
+GET {{baseUrl}}/workflows/purchase-claims/{{claimId}}/admin-evidences
+Authorization: Bearer {{adminAccessToken}}
+
+### 8) Approve claim (관리자 → 자동 MINT + 소유권 할당)
+POST {{baseUrl}}/workflows/purchase-claims/{{claimId}}/approve
 Authorization: Bearer {{adminAccessToken}}
 Content-Type: {{contentType}}
 
@@ -95,8 +99,8 @@ Content-Type: {{contentType}}
   "factoryCode": "F1"
 }
 
-### 8) Reject claim (관리자)
-POST {{baseUrl}}/workflows/tenants/{{tenantId}}/purchase-claims/{{claimId}}/reject
+### 9) Reject claim (관리자)
+POST {{baseUrl}}/workflows/purchase-claims/{{claimId}}/reject
 Authorization: Bearer {{adminAccessToken}}
 Content-Type: {{contentType}}
 

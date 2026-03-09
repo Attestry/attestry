@@ -6,7 +6,10 @@ public final class TenantIsolationPolicy {
     }
 
     public static boolean isIsolated(String tokenTenantId, String resourceTenantId) {
-        if (tokenTenantId == null || resourceTenantId == null) {
+        if (resourceTenantId == null) {
+            return true;
+        }
+        if (tokenTenantId == null) {
             return false;
         }
         return tokenTenantId.equals(resourceTenantId);
