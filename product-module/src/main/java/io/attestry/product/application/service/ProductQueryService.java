@@ -91,10 +91,10 @@ public class ProductQueryService implements ProductQueryUseCase, ProductQueryPor
         ShipmentDetailResponse shipment = shipmentQueryPort.findLatestShipmentByPassportId(passportId)
             .map(ShipmentDetailResponse::from)
             .orElse(null);
-        DistributionDetailResponse distribution = distributionQueryPort.findActiveDistribution(passportId)
+        DistributionDetailResponse distribution = distributionQueryPort.findLatestDistribution(passportId)
             .map(v -> new DistributionDetailResponse(
-                v.tenantId(), v.tenantName(), v.tenantType(),
-                v.permissionCode(), v.scope(), v.grantedAt()
+                v.distributionId(), v.targetTenantId(), v.targetTenantName(),
+                v.targetTenantType(), v.partnerLinkId(), v.status(), v.distributedAt()
             ))
             .orElse(null);
 

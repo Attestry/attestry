@@ -16,30 +16,30 @@ public class JdbcPassportDistributionQueryAdapter implements PassportDistributio
     }
 
     @Override
-    public Optional<DistributionView> findActiveDistribution(String passportId) {
+    public Optional<DistributionView> findLatestDistribution(String passportId) {
         List<DistributionView> results = jdbcTemplate.query(
             """
-                SELECT perm.seller_tenant_id,
-                       t.name AS tenant_name,
-                       t.type AS tenant_type,
-                       perm.permission_code,
-                       perm.scope,
-                       perm.created_at AS granted_at
-                FROM passport_permissions perm
-                JOIN tenants t ON t.tenant_id = perm.seller_tenant_id
-                WHERE perm.passport_id = ?
-                  AND perm.scope = 'RETAIL_SALE'
-                  AND perm.status = 'ACTIVE'
-                ORDER BY perm.created_at DESC
+                SELECT d.distribution_id,
+                       d.target_tenant_id,
+                       t.name AS target_tenant_name,
+                       t.type AS target_tenant_type,
+                       d.partner_link_id,
+                       d.status,
+                       d.distributed_at
+                FROM distributions d
+                JOIN tenants t ON t.tenant_id = d.target_tenant_id
+                WHERE d.passport_id = ?
+                ORDER BY d.distributed_at DESC
                 LIMIT 1
                 """,
             (rs, rowNum) -> new DistributionView(
-                rs.getString("seller_tenant_id"),
-                rs.getString("tenant_name"),
-                rs.getString("tenant_type"),
-                rs.getString("permission_code"),
-                rs.getString("scope"),
-                rs.getTimestamp("granted_at").toInstant()
+                rs.getString("distribution_id"),
+                rs.getString("target_tenant_id"),
+                rs.getString("target_tenant_name"),
+                rs.getString("target_tenant_type"),
+                rs.getString("partner_link_id"),
+                rs.getString("status"),
+                rs.getTimestamp("distributed_at").toInstant()
             ),
             passportId
         );

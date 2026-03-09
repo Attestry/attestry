@@ -1,19 +1,15 @@
 package io.attestry.workflow.interfaces.delegation;
 
 import io.attestry.userauth.security.AuthPrincipal;
-import io.attestry.workflow.application.delegation.command.BatchGrantPassportDelegationCommand;
 import io.attestry.workflow.application.delegation.command.GrantDelegationCommand;
-import io.attestry.workflow.application.delegation.result.BatchDelegationResult;
 import io.attestry.workflow.application.delegation.result.DelegationEvaluateResult;
 import io.attestry.workflow.application.delegation.result.DelegationResult;
 import io.attestry.workflow.application.usecase.DelegationLifecycleUseCase;
 import io.attestry.workflow.application.usecase.DelegationUseCase;
 import java.time.Instant;
-import java.util.List;
 import org.springframework.http.HttpStatus;
 import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.security.core.annotation.AuthenticationPrincipal;
-import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.PathVariable;
 import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.RequestBody;
@@ -56,27 +52,6 @@ public class DelegationHttp {
         return DelegationResponse.from(result);
     }
 
-    @PostMapping("/tenants/{sourceTenantId}/partners/{partnerLinkId}/passport-delegations")
-    @PreAuthorize("hasAuthority('SCOPE_DELEGATION_GRANT')")
-    public BatchDelegationResponse batchGrantPassportDelegation(
-        @AuthenticationPrincipal AuthPrincipal principal,
-        @PathVariable("sourceTenantId") String sourceTenantId,
-        @PathVariable("partnerLinkId") String partnerLinkId,
-        @RequestBody BatchGrantPassportDelegationRequest request
-    ) {
-        BatchDelegationResult result = delegationUseCase.batchGrantPassportDelegation(
-            principal,
-            sourceTenantId,
-            partnerLinkId,
-            new BatchGrantPassportDelegationCommand(
-                request.passportIds(),
-                request.expiresAt(),
-                request.note()
-            )
-        );
-        return BatchDelegationResponse.from(result);
-    }
-
     @PostMapping("/delegations/{id}/revoke")
     @PreAuthorize("hasAuthority('SCOPE_DELEGATION_REVOKE')")
     public DelegationResponse revoke(
@@ -85,15 +60,6 @@ public class DelegationHttp {
         @RequestBody ReasonRequest request
     ) {
         return DelegationResponse.from(delegationUseCase.revoke(principal, delegationId, request.reason()));
-    }
-
-    @GetMapping("/tenants/{tenantId}/delegations")
-    @PreAuthorize("hasAuthority('SCOPE_DELEGATION_READ')")
-    public List<DelegationResponse> list(
-        @AuthenticationPrincipal AuthPrincipal principal,
-        @PathVariable("tenantId") String tenantId
-    ) {
-        return delegationUseCase.listByTenant(principal, tenantId).stream().map(DelegationResponse::from).toList();
     }
 
     @PostMapping("/internal/delegations/evaluate")
@@ -146,36 +112,6 @@ public class DelegationHttp {
     }
 
     public record DelegationEvaluateResponse(boolean allowed, String reason) {
-    }
-
-    public record BatchGrantPassportDelegationRequest(
-        List<String> passportIds,
-        Instant expiresAt,
-        String note
-    ) {
-    }
-
-    public record BatchDelegationResponse(
-        List<BatchDelegationEntryResponse> results,
-        int totalRequested,
-        long totalGranted
-    ) {
-        static BatchDelegationResponse from(BatchDelegationResult result) {
-            List<BatchDelegationEntryResponse> entries = result.results().stream()
-                .map(e -> new BatchDelegationEntryResponse(
-                    e.passportId(), e.delegationId(), e.status(), e.error()
-                ))
-                .toList();
-            return new BatchDelegationResponse(entries, result.totalRequested(), result.totalGranted());
-        }
-    }
-
-    public record BatchDelegationEntryResponse(
-        String passportId,
-        String delegationId,
-        String status,
-        String error
-    ) {
     }
 
     public record DelegationResponse(

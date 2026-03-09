@@ -49,12 +49,13 @@ public class ProductQueryHttp {
             : null;
         DistributionResponse distributionResponse = result.distribution() != null
             ? new DistributionResponse(
-                result.distribution().tenantId(),
-                result.distribution().tenantName(),
-                result.distribution().tenantType(),
-                result.distribution().permissionCode(),
-                result.distribution().scope(),
-                result.distribution().grantedAt()
+                result.distribution().distributionId(),
+                result.distribution().targetTenantId(),
+                result.distribution().targetTenantName(),
+                result.distribution().targetTenantType(),
+                result.distribution().partnerLinkId(),
+                result.distribution().status(),
+                result.distribution().distributedAt()
             )
             : null;
         return new PassportDetailResponse(
@@ -156,12 +157,13 @@ public class ProductQueryHttp {
     }
 
     public record DistributionResponse(
-        String tenantId,
-        String tenantName,
-        String tenantType,
-        String permissionCode,
-        String scope,
-        Instant grantedAt
+        String distributionId,
+        String targetTenantId,
+        String targetTenantName,
+        String targetTenantType,
+        String partnerLinkId,
+        String status,
+        Instant distributedAt
     ) {
     }
 

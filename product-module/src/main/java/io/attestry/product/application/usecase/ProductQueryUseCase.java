@@ -85,12 +85,13 @@ public interface ProductQueryUseCase {
     }
 
     record DistributionDetailResponse(
-        String tenantId,
-        String tenantName,
-        String tenantType,
-        String permissionCode,
-        String scope,
-        Instant grantedAt
+        String distributionId,
+        String targetTenantId,
+        String targetTenantName,
+        String targetTenantType,
+        String partnerLinkId,
+        String status,
+        Instant distributedAt
     ) {
     }
 

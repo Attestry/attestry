@@ -5,15 +5,16 @@ import java.util.Optional;
 
 public interface PassportDistributionQueryPort {
 
-    Optional<DistributionView> findActiveDistribution(String passportId);
+    Optional<DistributionView> findLatestDistribution(String passportId);
 
     record DistributionView(
-        String tenantId,
-        String tenantName,
-        String tenantType,
-        String permissionCode,
-        String scope,
-        Instant grantedAt
+        String distributionId,
+        String targetTenantId,
+        String targetTenantName,
+        String targetTenantType,
+        String partnerLinkId,
+        String status,
+        Instant distributedAt
     ) {
     }
 }
