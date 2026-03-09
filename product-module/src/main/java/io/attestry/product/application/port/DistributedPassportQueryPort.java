@@ -13,6 +13,8 @@ public interface DistributedPassportQueryPort {
         String sourceTenantId
     );
 
+    DistributedPassportDetailView findDetailByRetailAccess(String tenantId, String passportId);
+
     record DistributedPassportView(
         String passportId,
         String qrPublicCode,
@@ -28,6 +30,20 @@ public interface DistributedPassportQueryPort {
         String targetTenantId,
         String permissionStatus,
         Instant distributedAt
+    ) {
+    }
+
+    record DistributedPassportDetailView(
+        String passportId,
+        String qrPublicCode,
+        String serialNumber,
+        String modelId,
+        String modelName,
+        String assetState,
+        String riskFlag,
+        Instant manufacturedAt,
+        String productionBatch,
+        String factoryCode
     ) {
     }
 

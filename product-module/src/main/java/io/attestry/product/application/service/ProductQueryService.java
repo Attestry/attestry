@@ -91,7 +91,7 @@ public class ProductQueryService implements ProductQueryUseCase, ProductQueryPor
                 "Passport not found for tenant: " + passportId);
         }
         ProductAsset asset = passport.getAsset();
-        String publicUrl = publicBaseUrl + "/ledgers/passports/" + passportId + "/entries";
+        String publicUrl = publicBaseUrl + "/products/passports/" + passportId;
         ShipmentDetailResponse shipment = shipmentQueryPort.findLatestShipmentByPassportId(passportId)
             .map(ShipmentDetailResponse::from)
             .orElse(null);
@@ -119,6 +119,26 @@ public class ProductQueryService implements ProductQueryUseCase, ProductQueryPor
             publicUrl,
             shipment,
             distribution
+        );
+    }
+
+    @Override
+    public DistributedPassportDetailResponse getDistributedPassportDetail(String tenantId, String passportId) {
+        DistributedPassportQueryPort.DistributedPassportDetailView detail = distributedPassportQueryPort.findDetailByRetailAccess(
+            tenantId,
+            passportId
+        );
+        return new DistributedPassportDetailResponse(
+            detail.passportId(),
+            detail.qrPublicCode(),
+            detail.serialNumber(),
+            detail.modelId(),
+            detail.modelName(),
+            detail.assetState(),
+            detail.riskFlag(),
+            detail.manufacturedAt(),
+            detail.productionBatch(),
+            detail.factoryCode()
         );
     }
 

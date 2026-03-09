@@ -1,6 +1,8 @@
 package io.attestry.product.infrastructure.persistence.jpa;
 
 import io.attestry.product.application.port.DistributedPassportQueryPort;
+import io.attestry.product.domain.ProductDomainException;
+import io.attestry.product.domain.ProductErrorCode;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Locale;
@@ -132,5 +134,69 @@ public class JdbcDistributedPassportQueryAdapter implements DistributedPassportQ
         );
 
         return new PagedResult(content, page, size, total, totalPages);
+    }
+
+    @Override
+    public DistributedPassportDetailView findDetailByRetailAccess(String tenantId, String passportId) {
+        RowMapper<DistributedPassportDetailView> rowMapper = (rs, rowNum) -> new DistributedPassportDetailView(
+            rs.getString("passport_id"),
+            rs.getString("qr_public_code"),
+            rs.getString("serial_number"),
+            rs.getString("model_id"),
+            rs.getString("model_name"),
+            rs.getString("asset_state"),
+            rs.getString("risk_flag"),
+            rs.getTimestamp("manufactured_at") == null ? null : rs.getTimestamp("manufactured_at").toInstant(),
+            rs.getString("production_batch"),
+            rs.getString("factory_code")
+        );
+
+        List<DistributedPassportDetailView> results = jdbcTemplate.query(
+            """
+            SELECT pp.passport_id,
+                   pp.qr_public_code,
+                   pa.serial_number,
+                   pa.model_id,
+                   pa.model_name,
+                   pa.asset_state,
+                   pa.risk_flag,
+                   pa.manufactured_at,
+                   pa.production_batch,
+                   pa.factory_code
+            FROM product_passports pp
+            JOIN product_assets pa ON pa.asset_id = pp.asset_id
+            WHERE pp.passport_id = ?
+              AND (
+                  EXISTS (
+                      SELECT 1
+                      FROM passport_permissions ppm
+                      WHERE ppm.passport_id = pp.passport_id
+                        AND ppm.target_tenant_id = ?
+                        AND ppm.status = 'ACTIVE'
+                        AND ppm.permission_code = 'RETAIL_TRANSFER_CREATE'
+                        AND ppm.resource_type = 'PASSPORT'
+                        AND (ppm.expires_at IS NULL OR ppm.expires_at > CURRENT_TIMESTAMP)
+                  )
+                  OR EXISTS (
+                      SELECT 1
+                      FROM token_transfers tt
+                      WHERE tt.passport_id = pp.passport_id
+                        AND tt.tenant_id = ?
+                        AND tt.transfer_type = 'B2C'
+                        AND tt.status = 'COMPLETED'
+                  )
+              )
+            """,
+            rowMapper,
+            passportId,
+            tenantId,
+            tenantId
+        );
+
+        if (results.isEmpty()) {
+            throw new ProductDomainException(ProductErrorCode.ASSET_NOT_FOUND,
+                "Distributed passport not found for tenant: " + passportId);
+        }
+        return results.get(0);
     }
 }

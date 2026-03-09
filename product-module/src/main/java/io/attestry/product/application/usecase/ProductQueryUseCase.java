@@ -16,6 +16,8 @@ public interface ProductQueryUseCase {
 
     PassportDetailResponse getTenantPassportDetail(String tenantId, String passportId);
 
+    DistributedPassportDetailResponse getDistributedPassportDetail(String tenantId, String passportId);
+
     PagedTenantPassportResponse listTenantPassports(
         String tenantId,
         int page,
@@ -96,6 +98,20 @@ public interface ProductQueryUseCase {
         int size,
         long totalElements,
         int totalPages
+    ) {
+    }
+
+    record DistributedPassportDetailResponse(
+        String passportId,
+        String qrPublicCode,
+        String serialNumber,
+        String modelId,
+        String modelName,
+        String assetState,
+        String riskFlag,
+        Instant manufacturedAt,
+        String productionBatch,
+        String factoryCode
     ) {
     }
 

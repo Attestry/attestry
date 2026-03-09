@@ -160,6 +160,30 @@ public class ProductQueryHttp {
             result.totalPages());
     }
 
+    @GetMapping("/tenant/distributed-passports/{passportId}")
+    @PreAuthorize("hasAuthority('SCOPE_TENANT_READ_ONLY')")
+    public DistributedPassportDetailResponse getDistributedPassportDetail(
+        @CurrentActor ActorContext actor,
+        @PathVariable("passportId") String passportId
+    ) {
+        ProductQueryUseCase.DistributedPassportDetailResponse result = queryUseCase.getDistributedPassportDetail(
+            actor.tenantId(),
+            passportId
+        );
+        return new DistributedPassportDetailResponse(
+            result.passportId(),
+            result.qrPublicCode(),
+            result.serialNumber(),
+            result.modelId(),
+            result.modelName(),
+            result.assetState(),
+            result.riskFlag(),
+            result.manufacturedAt(),
+            result.productionBatch(),
+            result.factoryCode()
+        );
+    }
+
 
     public record MyPassportResponse(
         String passportId,
@@ -275,6 +299,20 @@ public class ProductQueryHttp {
         int size,
         long totalElements,
         int totalPages
+    ) {
+    }
+
+    public record DistributedPassportDetailResponse(
+        String passportId,
+        String qrPublicCode,
+        String serialNumber,
+        String modelId,
+        String modelName,
+        String assetState,
+        String riskFlag,
+        Instant manufacturedAt,
+        String productionBatch,
+        String factoryCode
     ) {
     }
 }

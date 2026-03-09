@@ -87,4 +87,40 @@ class ProductQueryServiceTest {
         assertEquals("ACTIVE", result.content().get(0).permissionStatus());
         verify(distributedPassportQueryPort).findByTargetTenant("retail-tenant", 0, 20, "SN", null);
     }
+
+    @Test
+    void getDistributedPassportDetail_returnsRetailReadableProductDetail() {
+        Instant manufacturedAt = Instant.parse("2025-02-01T10:00:00Z");
+        when(distributedPassportQueryPort.findDetailByRetailAccess("retail-tenant", "passport-1")).thenReturn(
+            new DistributedPassportQueryPort.DistributedPassportDetailView(
+                "passport-1",
+                "QR-001",
+                "SN-001",
+                "MODEL-1",
+                "Model Name",
+                "ACTIVE",
+                "NONE",
+                manufacturedAt,
+                "BATCH-01",
+                "FACTORY-A"
+            )
+        );
+
+        ProductQueryUseCase.DistributedPassportDetailResponse result = service.getDistributedPassportDetail(
+            "retail-tenant",
+            "passport-1"
+        );
+
+        assertEquals("passport-1", result.passportId());
+        assertEquals("QR-001", result.qrPublicCode());
+        assertEquals("SN-001", result.serialNumber());
+        assertEquals("MODEL-1", result.modelId());
+        assertEquals("Model Name", result.modelName());
+        assertEquals("ACTIVE", result.assetState());
+        assertEquals("NONE", result.riskFlag());
+        assertEquals(manufacturedAt, result.manufacturedAt());
+        assertEquals("BATCH-01", result.productionBatch());
+        assertEquals("FACTORY-A", result.factoryCode());
+        verify(distributedPassportQueryPort).findDetailByRetailAccess("retail-tenant", "passport-1");
+    }
 }
