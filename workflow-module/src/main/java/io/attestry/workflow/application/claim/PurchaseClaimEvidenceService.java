@@ -8,8 +8,6 @@ import io.attestry.workflow.application.port.WorkflowEvidencePort;
 import io.attestry.workflow.application.shipment.result.PresignedEvidenceUploadResult;
 import io.attestry.workflow.application.shipment.result.EvidenceCompleteResult;
 import io.attestry.workflow.application.support.EvidenceUploadSupport;
-import io.attestry.workflow.domain.WorkflowDomainException;
-import io.attestry.workflow.domain.WorkflowErrorCode;
 import java.time.Clock;
 import java.time.Duration;
 import java.time.Instant;
@@ -28,11 +26,10 @@ public class PurchaseClaimEvidenceService {
     private final Clock clock;
 
     public PurchaseClaimEvidenceService(
-        WorkflowEvidencePort evidencePort,
-        ObjectStoragePort objectStoragePort,
-        EvidenceUploadSupport evidenceUploadSupport,
-        Clock clock
-    ) {
+            WorkflowEvidencePort evidencePort,
+            ObjectStoragePort objectStoragePort,
+            EvidenceUploadSupport evidenceUploadSupport,
+            Clock clock) {
         this.evidencePort = evidencePort;
         this.objectStoragePort = objectStoragePort;
         this.evidenceUploadSupport = evidenceUploadSupport;
@@ -41,36 +38,32 @@ public class PurchaseClaimEvidenceService {
 
     @Transactional
     public PresignedEvidenceUploadResult presignEvidence(
-        AuthPrincipal principal,
-        PresignClaimEvidenceCommand command
-    ) {
+            AuthPrincipal principal,
+            PresignClaimEvidenceCommand command) {
         String tenantId = resolveTenantId(principal);
         return evidenceUploadSupport.doPresign(
-            evidencePort, objectStoragePort,
-            OBJECT_KEY_PREFIX, PRESIGN_TTL,
-            tenantId, principal.userId(),
-            command.evidenceGroupId(), command.fileName(), command.contentType(),
-            Instant.now(clock)
-        );
+                evidencePort, objectStoragePort,
+                OBJECT_KEY_PREFIX, PRESIGN_TTL,
+                tenantId, principal.userId(),
+                command.evidenceGroupId(), command.fileName(), command.contentType(),
+                Instant.now(clock));
     }
 
     @Transactional
     public EvidenceCompleteResult completeEvidence(
-        AuthPrincipal principal,
-        CompleteClaimEvidenceCommand command
-    ) {
+            AuthPrincipal principal,
+            CompleteClaimEvidenceCommand command) {
         String tenantId = resolveTenantId(principal);
         evidenceUploadSupport.assertEvidenceGroupScope(evidencePort, command.evidenceGroupId(), tenantId);
         return evidenceUploadSupport.doComplete(
-            evidencePort, objectStoragePort,
-            command.evidenceGroupId(), command.evidenceId(),
-            command.sizeBytes(), command.fileHash(), Instant.now(clock)
-        );
+                evidencePort, objectStoragePort,
+                command.evidenceGroupId(), command.evidenceId(),
+                command.sizeBytes(), command.fileHash(), Instant.now(clock));
     }
 
     private String resolveTenantId(AuthPrincipal principal) {
         if (principal.tenantId() == null || principal.tenantId().isBlank()) {
-            throw new WorkflowDomainException(WorkflowErrorCode.INVALID_REQUEST, "Tenant context is required");
+            return "CONSUMER"; // B2C users don't have a tenantId
         }
         return principal.tenantId();
     }
