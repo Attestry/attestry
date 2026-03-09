@@ -9,6 +9,8 @@ import io.attestry.workflow.application.transfer.command.CreateB2CTransferComman
 import io.attestry.workflow.application.transfer.command.CreateC2CTransferCommand;
 import io.attestry.workflow.application.transfer.result.CreateTransferResult;
 import io.attestry.workflow.application.usecase.TransferCreateUseCase;
+import io.attestry.workflow.domain.WorkflowDomainException;
+import io.attestry.workflow.domain.WorkflowErrorCode;
 import io.attestry.workflow.domain.transfer.model.AcceptCredential;
 import io.attestry.workflow.domain.transfer.model.TokenTransfer;
 import io.attestry.workflow.domain.transfer.policy.TransferCreatePolicy;
@@ -17,6 +19,7 @@ import io.attestry.workflow.domain.transfer.repository.TokenTransferRepository;
 import io.attestry.workflow.domain.transfer.service.AcceptCredentialFactory;
 import java.time.Clock;
 import java.time.Instant;
+import java.util.Optional;
 import java.util.UUID;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
@@ -93,6 +96,23 @@ public class TransferCreateService implements TransferCreateUseCase {
         );
         TokenTransfer saved = transferRepository.save(transfer);
         return toResult(saved);
+    }
+
+    @Override
+    @Transactional(readOnly = true)
+    public Optional<CreateTransferResult> findLatestActivePendingByPassportId(
+        AuthPrincipal principal,
+        String passportId
+    ) {
+        authorizationSupport.assertPermissionOnly(principal, PermissionCodes.OWNER_TRANSFER_CREATE, "transfer:pending:" + passportId);
+        String currentOwnerId = productReadPort.findCurrentOwnerId(passportId).orElse(null);
+        if (!principal.userId().equals(currentOwnerId)) {
+            throw new WorkflowDomainException(WorkflowErrorCode.FORBIDDEN_SCOPE, "Only current owner can view pending C2C transfer");
+        }
+
+        Instant now = Instant.now(clock);
+        return transferRepository.findLatestActivePendingByPassportId(passportId, now)
+            .map(this::toResult);
     }
 
     private TransferCreateContext resolveContext(String actorUserId, String requestTenantId, String passportId) {

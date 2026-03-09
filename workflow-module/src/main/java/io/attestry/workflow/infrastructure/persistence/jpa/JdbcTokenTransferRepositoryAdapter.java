@@ -75,6 +75,24 @@ public class JdbcTokenTransferRepositoryAdapter implements TokenTransferReposito
     }
 
     @Override
+    public Optional<TokenTransfer> findLatestActivePendingByPassportId(String passportId, Instant now) {
+        List<TokenTransfer> rows = jdbcTemplate.query(
+            """
+                SELECT * FROM token_transfers
+                WHERE passport_id = ?
+                  AND status = 'PENDING'
+                  AND expires_at > ?
+                ORDER BY created_at DESC
+                LIMIT 1
+            """,
+            (rs, rowNum) -> mapTransfer(rs),
+            passportId,
+            Timestamp.from(now)
+        );
+        return rows.stream().findFirst();
+    }
+
+    @Override
     public boolean existsActivePendingByPassportId(String passportId) {
         Integer count = jdbcTemplate.queryForObject(
             "SELECT COUNT(1) FROM token_transfers WHERE passport_id = ? AND status = 'PENDING'",

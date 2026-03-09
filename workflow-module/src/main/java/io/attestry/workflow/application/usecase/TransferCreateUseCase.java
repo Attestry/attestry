@@ -4,6 +4,7 @@ import io.attestry.userauth.security.AuthPrincipal;
 import io.attestry.workflow.application.transfer.command.CreateB2CTransferCommand;
 import io.attestry.workflow.application.transfer.command.CreateC2CTransferCommand;
 import io.attestry.workflow.application.transfer.result.CreateTransferResult;
+import java.util.Optional;
 
 public interface TransferCreateUseCase {
 
@@ -18,5 +19,10 @@ public interface TransferCreateUseCase {
         String tenantId,
         String passportId,
         CreateB2CTransferCommand command
+    );
+
+    Optional<CreateTransferResult> findLatestActivePendingByPassportId(
+        AuthPrincipal principal,
+        String passportId
     );
 }

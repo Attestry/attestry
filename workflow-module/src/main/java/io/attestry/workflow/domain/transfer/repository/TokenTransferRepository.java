@@ -11,6 +11,8 @@ public interface TokenTransferRepository {
 
     Optional<TokenTransfer> findById(String transferId);
 
+    Optional<TokenTransfer> findLatestActivePendingByPassportId(String passportId, Instant now);
+
     boolean existsActivePendingByPassportId(String passportId);
 
     List<TokenTransfer> findPendingExpiredBefore(Instant cutoff);
