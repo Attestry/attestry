@@ -17,15 +17,6 @@ public class PartnerLinkRelationshipValidator implements RelationshipValidator {
     }
 
     @Override
-    public PartnerLink assertEligible(String partnerLinkId, String sourceTenantId, String targetTenantId) {
-        PartnerLink partnerLink = assertEligibleBySource(partnerLinkId, sourceTenantId);
-        if (!partnerLink.targetTenantId().equals(targetTenantId)) {
-            throw new WorkflowDomainException(WorkflowErrorCode.TENANT_ISOLATION_VIOLATION, "Partner link tenant mismatch");
-        }
-        return partnerLink;
-    }
-
-    @Override
     public PartnerLink assertEligibleBySource(String partnerLinkId, String sourceTenantId) {
         PartnerLink partnerLink = partnerLinkRepository.findById(partnerLinkId)
             .orElseThrow(() -> new WorkflowDomainException(WorkflowErrorCode.PARTNER_LINK_NOT_FOUND, "Partner link not found"));

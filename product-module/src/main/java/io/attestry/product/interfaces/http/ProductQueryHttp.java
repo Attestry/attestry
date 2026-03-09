@@ -47,6 +47,17 @@ public class ProductQueryHttp {
                     .toList()
             )
             : null;
+        DistributionResponse distributionResponse = result.distribution() != null
+            ? new DistributionResponse(
+                result.distribution().distributionId(),
+                result.distribution().targetTenantId(),
+                result.distribution().targetTenantName(),
+                result.distribution().targetTenantType(),
+                result.distribution().partnerLinkId(),
+                result.distribution().status(),
+                result.distribution().distributedAt()
+            )
+            : null;
         return new PassportDetailResponse(
             result.passportId(), result.qrPublicCode(),
             result.tenantId(),
@@ -54,7 +65,8 @@ public class ProductQueryHttp {
             result.manufacturedAt(), result.productionBatch(), result.factoryCode(),
             result.assetState(), result.riskFlag(),
             result.createdAt(), result.publicUrl(),
-            shipmentResponse
+            shipmentResponse,
+            distributionResponse
         );
     }
 
@@ -139,7 +151,19 @@ public class ProductQueryHttp {
         String riskFlag,
         Instant createdAt,
         String publicUrl,
-        ShipmentResponse shipment
+        ShipmentResponse shipment,
+        DistributionResponse distribution
+    ) {
+    }
+
+    public record DistributionResponse(
+        String distributionId,
+        String targetTenantId,
+        String targetTenantName,
+        String targetTenantType,
+        String partnerLinkId,
+        String status,
+        Instant distributedAt
     ) {
     }
 

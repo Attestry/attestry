@@ -58,7 +58,14 @@ public final class SystemPermissionTemplateCatalog {
                 TEMPLATE_BRAND_WORK,
                 "Brand Work Template",
                 "Brand operator work permissions",
-                List.of(PermissionCodes.BRAND_MINT, PermissionCodes.BRAND_VOID, PermissionCodes.BRAND_RELEASE)
+                List.of(
+                    PermissionCodes.BRAND_MINT,
+                    PermissionCodes.BRAND_VOID,
+                    PermissionCodes.BRAND_RELEASE,
+                    PermissionCodes.DELEGATION_GRANT,
+                    PermissionCodes.DELEGATION_REVOKE,
+                    PermissionCodes.DELEGATION_READ
+                )
             ),
             TEMPLATE_RETAIL_WORK,
             new TemplateDefinition(

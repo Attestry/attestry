@@ -2,6 +2,7 @@ package io.attestry.product.application.service;
 
 import io.attestry.product.application.port.GroupPassportQueryPort;
 import io.attestry.product.application.port.MyPassportQueryPort;
+import io.attestry.product.application.port.PassportDistributionQueryPort;
 import io.attestry.product.application.port.PassportShipmentQueryPort;
 import io.attestry.product.application.port.ProductQueryPort;
 import io.attestry.product.application.usecase.ProductQueryUseCase;
@@ -29,6 +30,7 @@ public class ProductQueryService implements ProductQueryUseCase, ProductQueryPor
     private final MyPassportQueryPort myPassportQueryPort;
     private final GroupPassportQueryPort groupPassportQueryPort;
     private final PassportShipmentQueryPort shipmentQueryPort;
+    private final PassportDistributionQueryPort distributionQueryPort;
     private final String publicBaseUrl;
 
     public ProductQueryService(
@@ -38,6 +40,7 @@ public class ProductQueryService implements ProductQueryUseCase, ProductQueryPor
         MyPassportQueryPort myPassportQueryPort,
         GroupPassportQueryPort groupPassportQueryPort,
         PassportShipmentQueryPort shipmentQueryPort,
+        PassportDistributionQueryPort distributionQueryPort,
         @Value("${app.product.public-base-url}") String publicBaseUrl
     ) {
         this.passportRepository = passportRepository;
@@ -46,6 +49,7 @@ public class ProductQueryService implements ProductQueryUseCase, ProductQueryPor
         this.myPassportQueryPort = myPassportQueryPort;
         this.groupPassportQueryPort = groupPassportQueryPort;
         this.shipmentQueryPort = shipmentQueryPort;
+        this.distributionQueryPort = distributionQueryPort;
         this.publicBaseUrl = publicBaseUrl;
     }
 
@@ -87,6 +91,12 @@ public class ProductQueryService implements ProductQueryUseCase, ProductQueryPor
         ShipmentDetailResponse shipment = shipmentQueryPort.findLatestShipmentByPassportId(passportId)
             .map(ShipmentDetailResponse::from)
             .orElse(null);
+        DistributionDetailResponse distribution = distributionQueryPort.findLatestDistribution(passportId)
+            .map(v -> new DistributionDetailResponse(
+                v.distributionId(), v.targetTenantId(), v.targetTenantName(),
+                v.targetTenantType(), v.partnerLinkId(), v.status(), v.distributedAt()
+            ))
+            .orElse(null);
 
         return new PassportDetailResponse(
             passport.getPassportId(),
@@ -103,7 +113,8 @@ public class ProductQueryService implements ProductQueryUseCase, ProductQueryPor
             asset.getRiskFlag().name(),
             passport.getCreatedAt(),
             publicUrl,
-            shipment
+            shipment,
+            distribution
         );
     }
 
