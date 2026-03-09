@@ -137,6 +137,9 @@ public class DelegationPassportPermissionProjectionSync {
     }
 
     private PermissionStatus toProjectionStatus(DelegationRow delegation, Instant now) {
+        if ("CONSUMED".equals(delegation.delegationStatus())) {
+            return PermissionStatus.CONSUMED;
+        }
         if ("REVOKED".equals(delegation.delegationStatus())) {
             return PermissionStatus.REVOKED;
         }
