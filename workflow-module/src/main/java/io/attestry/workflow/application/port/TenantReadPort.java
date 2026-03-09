@@ -13,11 +13,22 @@ public interface TenantReadPort {
 
     List<TenantSummary> searchActiveTenantsByName(String name);
 
+    PagedTenantSummary searchActiveTenantsByTypeAndName(String type, String name, int page, int size);
+
     record TenantSummary(
         String tenantId,
         String name,
         String region,
         String type
+    ) {
+    }
+
+    record PagedTenantSummary(
+        List<TenantSummary> content,
+        int page,
+        int size,
+        long totalElements,
+        int totalPages
     ) {
     }
 }

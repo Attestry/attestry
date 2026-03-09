@@ -2,10 +2,10 @@ package io.attestry.workflow.application.servicerequest;
 
 import io.attestry.userauth.domain.authorization.model.PermissionCodes;
 import io.attestry.userauth.security.AuthPrincipal;
-import io.attestry.workflow.application.port.ServicePermissionPort;
-import io.attestry.workflow.application.servicerequest.result.CancelServiceRequestResult;
+import io.attestry.workflow.application.servicerequest.command.AcceptServiceRequestCommand;
+import io.attestry.workflow.application.servicerequest.result.AcceptServiceRequestResult;
 import io.attestry.workflow.application.support.WorkflowAuthorizationSupport;
-import io.attestry.workflow.application.usecase.ServiceCancelUseCase;
+import io.attestry.workflow.application.usecase.ServiceAcceptUseCase;
 import io.attestry.workflow.domain.WorkflowDomainException;
 import io.attestry.workflow.domain.WorkflowErrorCode;
 import io.attestry.workflow.domain.servicerequest.model.ServiceRequest;
@@ -17,58 +17,52 @@ import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
 @Service
-public class ServiceCancelService implements ServiceCancelUseCase {
+public class ServiceAcceptService implements ServiceAcceptUseCase {
 
     private final ServiceRequestRepository serviceRequestRepository;
-    private final ServicePermissionPort servicePermissionPort;
     private final WorkflowAuthorizationSupport authorizationSupport;
     private final Clock clock;
 
-    public ServiceCancelService(
+    public ServiceAcceptService(
         ServiceRequestRepository serviceRequestRepository,
-        ServicePermissionPort servicePermissionPort,
         WorkflowAuthorizationSupport authorizationSupport,
         Clock clock
     ) {
         this.serviceRequestRepository = serviceRequestRepository;
-        this.servicePermissionPort = servicePermissionPort;
         this.authorizationSupport = authorizationSupport;
         this.clock = clock;
     }
 
     @Override
     @Transactional
-    public CancelServiceRequestResult cancel(
+    public AcceptServiceRequestResult accept(
         AuthPrincipal principal,
+        String tenantId,
         String serviceRequestId,
-        String cancelReason
+        AcceptServiceRequestCommand command
     ) {
-        authorizationSupport.assertPermissionOnly(principal, PermissionCodes.OWNER_SERVICE_CREATE, "service:cancel:" + serviceRequestId);
+        authorizationSupport.assertTenantContext(principal, tenantId);
+        authorizationSupport.assertLivePermission(principal, tenantId, PermissionCodes.SERVICE_COMPLETE, "service:accept:" + serviceRequestId);
 
         ServiceRequest request = serviceRequestRepository.findById(serviceRequestId)
             .orElseThrow(() -> new WorkflowDomainException(WorkflowErrorCode.SERVICE_REQUEST_NOT_FOUND, "Service request not found"));
 
-        if (request.status() != ServiceRequestStatus.PENDING && request.status() != ServiceRequestStatus.ACCEPTED) {
-            throw new WorkflowDomainException(
-                WorkflowErrorCode.SERVICE_REQUEST_INVALID_STATE,
-                "Only PENDING or ACCEPTED service request can be cancelled"
-            );
+        if (!tenantId.equals(request.providerTenantId())) {
+            throw new WorkflowDomainException(WorkflowErrorCode.TENANT_ISOLATION_VIOLATION, "Cross-tenant service request access denied");
         }
-        if (!principal.userId().equals(request.ownerUserId())) {
-            throw new WorkflowDomainException(WorkflowErrorCode.FORBIDDEN_SCOPE, "Only the owner can cancel a service request");
+        if (request.status() != ServiceRequestStatus.PENDING) {
+            throw new WorkflowDomainException(WorkflowErrorCode.SERVICE_REQUEST_INVALID_STATE, "Only PENDING service request can be accepted");
         }
 
         Instant now = Instant.now(clock);
-        ServiceRequest cancelled = request.cancel(cancelReason, now);
-        ServiceRequest saved = serviceRequestRepository.save(cancelled);
+        ServiceRequest accepted = request.accept(command.serviceType(), command.description(), now);
+        ServiceRequest saved = serviceRequestRepository.save(accepted);
 
-        servicePermissionPort.revokeByServiceRequestId(serviceRequestId);
-
-        return new CancelServiceRequestResult(
+        return new AcceptServiceRequestResult(
             saved.serviceRequestId(),
             saved.passportId(),
             saved.status().name(),
-            saved.cancelledAt()
+            now
         );
     }
 }

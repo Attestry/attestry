@@ -14,10 +14,12 @@ import io.attestry.userauth.security.AuthPrincipal;
 import io.attestry.workflow.application.port.ServicePermissionPort;
 import io.attestry.workflow.application.port.ServiceProductReadPort;
 import io.attestry.workflow.application.port.ServiceProductReadPort.ServicePassportState;
+import io.attestry.workflow.application.port.TenantReadPort;
 import io.attestry.workflow.application.servicerequest.command.GrantServiceConsentCommand;
 import io.attestry.workflow.application.servicerequest.result.GrantServiceConsentResult;
 import io.attestry.workflow.application.servicerequest.result.RevokeServiceConsentResult;
 import io.attestry.workflow.application.support.WorkflowAuthorizationSupport;
+import io.attestry.workflow.application.usecase.ServiceSubmitUseCase;
 import io.attestry.workflow.domain.WorkflowDomainException;
 import io.attestry.workflow.domain.WorkflowErrorCode;
 import io.attestry.workflow.domain.servicerequest.policy.ServiceConsentPolicy;
@@ -37,6 +39,8 @@ class ServiceConsentServiceTest {
 
     @Mock ServiceProductReadPort serviceProductReadPort;
     @Mock ServicePermissionPort servicePermissionPort;
+    @Mock TenantReadPort tenantReadPort;
+    @Mock ServiceSubmitUseCase serviceSubmitUseCase;
     @Mock WorkflowAuthorizationSupport authorizationSupport;
 
     private final ServiceConsentPolicy consentPolicy = new ServiceConsentPolicy();
@@ -51,7 +55,7 @@ class ServiceConsentServiceTest {
     @BeforeEach
     void setUp() {
         service = new ServiceConsentService(
-            serviceProductReadPort, servicePermissionPort, authorizationSupport, consentPolicy, clock
+            serviceProductReadPort, servicePermissionPort, tenantReadPort, serviceSubmitUseCase, authorizationSupport, consentPolicy, clock
         );
     }
 
@@ -63,15 +67,22 @@ class ServiceConsentServiceTest {
         when(serviceProductReadPort.findCurrentOwnerId("p1")).thenReturn(Optional.of("owner1"));
         when(servicePermissionPort.grantServiceRepairConsent(anyString(), anyString(), anyString(), any(Instant.class)))
             .thenReturn("perm1");
+        when(serviceSubmitUseCase.approve(any(), any())).thenReturn(
+            new io.attestry.workflow.application.servicerequest.result.SubmitServiceRequestResult(
+                "sr1", "p1", "provG1", "REPAIR", "PENDING", "perm1", Instant.parse("2026-03-01T10:00:00Z")
+            )
+        );
 
-        GrantServiceConsentResult result = service.grantConsent(
+        GrantServiceConsentResult result = service.submit(
             OWNER, "p1", new GrantServiceConsentCommand("provG1")
         );
 
         assertEquals("perm1", result.permissionId());
+        assertEquals("sr1", result.serviceRequestId());
         assertEquals("p1", result.passportId());
         assertEquals("provG1", result.providerTenantId());
-        assertEquals("ACTIVE", result.status());
+        assertEquals("ACTIVE", result.consentStatus());
+        assertEquals("PENDING", result.serviceRequestStatus());
         assertNotNull(result.grantedAt());
     }
 
@@ -83,7 +94,7 @@ class ServiceConsentServiceTest {
         when(serviceProductReadPort.findCurrentOwnerId("p1")).thenReturn(Optional.of("owner1"));
 
         WorkflowDomainException ex = assertThrows(WorkflowDomainException.class, () ->
-            service.grantConsent(OWNER, "p1", new GrantServiceConsentCommand("provG1"))
+            service.submit(OWNER, "p1", new GrantServiceConsentCommand("provG1"))
         );
         assertEquals(WorkflowErrorCode.INVALID_STATE, ex.getErrorCode());
     }
@@ -96,7 +107,7 @@ class ServiceConsentServiceTest {
         when(serviceProductReadPort.findCurrentOwnerId("p1")).thenReturn(Optional.of("owner1"));
 
         WorkflowDomainException ex = assertThrows(WorkflowDomainException.class, () ->
-            service.grantConsent(OWNER, "p1", new GrantServiceConsentCommand("provG1"))
+            service.submit(OWNER, "p1", new GrantServiceConsentCommand("provG1"))
         );
         assertEquals(WorkflowErrorCode.INVALID_STATE, ex.getErrorCode());
     }
@@ -109,7 +120,7 @@ class ServiceConsentServiceTest {
         when(serviceProductReadPort.findCurrentOwnerId("p1")).thenReturn(Optional.of("differentOwner"));
 
         WorkflowDomainException ex = assertThrows(WorkflowDomainException.class, () ->
-            service.grantConsent(OWNER, "p1", new GrantServiceConsentCommand("provG1"))
+            service.submit(OWNER, "p1", new GrantServiceConsentCommand("provG1"))
         );
         assertEquals(WorkflowErrorCode.FORBIDDEN_SCOPE, ex.getErrorCode());
     }

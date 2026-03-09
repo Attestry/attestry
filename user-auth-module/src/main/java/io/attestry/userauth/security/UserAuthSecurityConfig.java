@@ -34,6 +34,7 @@ public class UserAuthSecurityConfig {
                                 "/ledgers/passports/*/entries",
                                 "/ledgers/passports/*/entries/*",
                                 "/ledgers/passports/*/verify",
+                                "/workflows/service/providers",
                                 "/actuator/health",
                                 "/actuator/health/*",
                                 "/actuator/info",

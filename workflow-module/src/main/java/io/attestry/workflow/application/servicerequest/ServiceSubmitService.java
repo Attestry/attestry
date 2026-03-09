@@ -53,33 +53,35 @@ public class ServiceSubmitService implements ServiceSubmitUseCase {
 
     @Override
     @Transactional
-    public SubmitServiceRequestResult submit(
+    public SubmitServiceRequestResult approve(
         AuthPrincipal principal,
-        String tenantId,
         SubmitServiceRequestCommand command
     ) {
-        authorizationSupport.assertTenantContext(principal, tenantId);
-        authorizationSupport.assertLivePermission(principal, tenantId, PermissionCodes.SERVICE_COMPLETE, "service:submit:" + command.passportId());
+        authorizationSupport.assertPermissionOnly(principal, PermissionCodes.OWNER_SERVICE_CREATE, "service:approve:" + command.passportId());
 
         String passportId = command.passportId();
+        String providerTenantId = command.providerTenantId();
 
         ServiceProductReadPort.ServicePassportState state = serviceProductReadPort.findPassportState(passportId)
             .orElseThrow(() -> new WorkflowDomainException(WorkflowErrorCode.INVALID_REQUEST, "Passport not found"));
 
         String ownerUserId = serviceProductReadPort.findCurrentOwnerId(passportId)
             .orElseThrow(() -> new WorkflowDomainException(WorkflowErrorCode.INVALID_REQUEST, "Passport owner not found"));
+        if (!principal.userId().equals(ownerUserId)) {
+            throw new WorkflowDomainException(WorkflowErrorCode.FORBIDDEN_SCOPE, "Only current owner can submit service request");
+        }
 
-        boolean hasPermission = servicePermissionPort.hasActiveServiceRepairPermission(passportId, tenantId);
+        boolean hasPermission = servicePermissionPort.hasActiveServiceRepairPermission(passportId, providerTenantId);
 
         ServiceSubmitContext context = new ServiceSubmitContext(
             state.assetState(),
             state.riskFlag(),
             hasPermission,
-            serviceRequestRepository.existsSubmittedByPassportId(passportId)
+            serviceRequestRepository.existsOpenByPassportId(passportId)
         );
         submitPolicy.assertSubmittable(context);
 
-        String permissionId = servicePermissionPort.findActivePermissionId(passportId, tenantId)
+        String permissionId = servicePermissionPort.findActivePermissionId(passportId, providerTenantId)
             .orElseThrow(() -> new WorkflowDomainException(WorkflowErrorCode.FORBIDDEN_SCOPE, "No active consent permission found"));
 
         String beforeEvidenceGroupId = command.beforeEvidenceGroupId();
@@ -96,10 +98,10 @@ public class ServiceSubmitService implements ServiceSubmitUseCase {
         ServiceRequest request = ServiceRequest.submit(
             serviceRequestId,
             passportId,
-            command.serviceType(),
+            null,
             ownerUserId,
-            tenantId,
-            command.description(),
+            providerTenantId,
+            null,
             beforeEvidenceGroupId,
             permissionId,
             principal.userId(),
@@ -113,7 +115,8 @@ public class ServiceSubmitService implements ServiceSubmitUseCase {
         return new SubmitServiceRequestResult(
             saved.serviceRequestId(),
             saved.passportId(),
-            saved.serviceType(),
+            saved.providerTenantId(),
+            null,
             saved.status().name(),
             saved.permissionId(),
             saved.submittedAt()

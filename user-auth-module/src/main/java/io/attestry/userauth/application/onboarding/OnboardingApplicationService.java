@@ -57,6 +57,7 @@ public class OnboardingApplicationService implements OnboardingUseCase {
         this.clock = clock;
     }
 
+    // TODO("OrganizationApplication 에 자세한 지역정보 제공")
     @Override
     @Transactional
     public ApplicationResult createApplication(ActorContext actor, CreateApplicationCommand command) {

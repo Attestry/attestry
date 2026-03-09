@@ -70,8 +70,8 @@ public class ServiceCompleteService implements ServiceCompleteUseCase {
         ServiceRequest request = serviceRequestRepository.findById(serviceRequestId)
             .orElseThrow(() -> new WorkflowDomainException(WorkflowErrorCode.SERVICE_REQUEST_NOT_FOUND, "Service request not found"));
 
-        if (request.status() != ServiceRequestStatus.SUBMITTED) {
-            throw new WorkflowDomainException(WorkflowErrorCode.SERVICE_REQUEST_INVALID_STATE, "Only SUBMITTED service request can be completed");
+        if (request.status() != ServiceRequestStatus.ACCEPTED) {
+            throw new WorkflowDomainException(WorkflowErrorCode.SERVICE_REQUEST_INVALID_STATE, "Only ACCEPTED service request can be completed");
         }
         if (!tenantId.equals(request.providerTenantId())) {
             throw new WorkflowDomainException(WorkflowErrorCode.TENANT_ISOLATION_VIOLATION, "Cross-tenant service request access denied");

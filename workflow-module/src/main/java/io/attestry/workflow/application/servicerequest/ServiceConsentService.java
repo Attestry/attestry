@@ -4,17 +4,21 @@ import io.attestry.userauth.domain.authorization.model.PermissionCodes;
 import io.attestry.userauth.security.AuthPrincipal;
 import io.attestry.workflow.application.port.ServicePermissionPort;
 import io.attestry.workflow.application.port.ServiceProductReadPort;
+import io.attestry.workflow.application.port.TenantReadPort;
 import io.attestry.workflow.application.servicerequest.command.GrantServiceConsentCommand;
+import io.attestry.workflow.application.servicerequest.command.SubmitServiceRequestCommand;
 import io.attestry.workflow.application.servicerequest.result.GrantServiceConsentResult;
 import io.attestry.workflow.application.servicerequest.result.RevokeServiceConsentResult;
 import io.attestry.workflow.application.support.WorkflowAuthorizationSupport;
 import io.attestry.workflow.application.usecase.ServiceConsentUseCase;
+import io.attestry.workflow.application.usecase.ServiceSubmitUseCase;
 import io.attestry.workflow.domain.WorkflowDomainException;
 import io.attestry.workflow.domain.WorkflowErrorCode;
 import io.attestry.workflow.domain.servicerequest.policy.ServiceConsentPolicy;
 import io.attestry.workflow.domain.servicerequest.policy.ServiceConsentPolicy.ServiceConsentContext;
 import java.time.Clock;
 import java.time.Instant;
+import java.util.List;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
@@ -23,6 +27,8 @@ public class ServiceConsentService implements ServiceConsentUseCase {
 
     private final ServiceProductReadPort serviceProductReadPort;
     private final ServicePermissionPort servicePermissionPort;
+    private final TenantReadPort tenantReadPort;
+    private final ServiceSubmitUseCase serviceSubmitUseCase;
     private final WorkflowAuthorizationSupport authorizationSupport;
     private final ServiceConsentPolicy consentPolicy;
     private final Clock clock;
@@ -30,12 +36,16 @@ public class ServiceConsentService implements ServiceConsentUseCase {
     public ServiceConsentService(
         ServiceProductReadPort serviceProductReadPort,
         ServicePermissionPort servicePermissionPort,
+        TenantReadPort tenantReadPort,
+        ServiceSubmitUseCase serviceSubmitUseCase,
         WorkflowAuthorizationSupport authorizationSupport,
         ServiceConsentPolicy consentPolicy,
         Clock clock
     ) {
         this.serviceProductReadPort = serviceProductReadPort;
         this.servicePermissionPort = servicePermissionPort;
+        this.tenantReadPort = tenantReadPort;
+        this.serviceSubmitUseCase = serviceSubmitUseCase;
         this.authorizationSupport = authorizationSupport;
         this.consentPolicy = consentPolicy;
         this.clock = clock;
@@ -43,7 +53,7 @@ public class ServiceConsentService implements ServiceConsentUseCase {
 
     @Override
     @Transactional
-    public GrantServiceConsentResult grantConsent(
+    public GrantServiceConsentResult submit(
         AuthPrincipal principal,
         String passportId,
         GrantServiceConsentCommand command
@@ -72,11 +82,22 @@ public class ServiceConsentService implements ServiceConsentUseCase {
             now
         );
 
+        var serviceRequest = serviceSubmitUseCase.approve(
+            principal,
+            new SubmitServiceRequestCommand(
+                passportId,
+                command.providerTenantId(),
+                null
+            )
+        );
+
         return new GrantServiceConsentResult(
             permissionId,
+            serviceRequest.serviceRequestId(),
             passportId,
             command.providerTenantId(),
             "ACTIVE",
+            serviceRequest.status(),
             now
         );
     }
@@ -100,5 +121,22 @@ public class ServiceConsentService implements ServiceConsentUseCase {
         servicePermissionPort.revokeConsentByPassportAndTenant(passportId, providerTenantId);
 
         return new RevokeServiceConsentResult(passportId, providerTenantId, "REVOKED");
+    }
+
+    @Override
+    @Transactional(readOnly = true)
+    public PagedServiceProviderResult listServiceProviders(String name, int page, int size) {
+        TenantReadPort.PagedTenantSummary paged = tenantReadPort.searchActiveTenantsByTypeAndName("SERVICE", name,
+            page, size);
+        List<ServiceProviderResult> content = paged.content().stream()
+            .map(tenant -> new ServiceProviderResult(tenant.tenantId(), tenant.name(), tenant.region(), tenant.type()))
+            .toList();
+        return new PagedServiceProviderResult(
+            content,
+            paged.page(),
+            paged.size(),
+            paged.totalElements(),
+            paged.totalPages()
+        );
     }
 }

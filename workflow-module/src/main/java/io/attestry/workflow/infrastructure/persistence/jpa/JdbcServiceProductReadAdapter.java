@@ -39,12 +39,31 @@ public class JdbcServiceProductReadAdapter implements ServiceProductReadPort {
     public Optional<String> findCurrentOwnerId(String passportId) {
         List<String> rows = jdbcTemplate.query(
             """
-                SELECT owner_user_id FROM passport_ownership
+                SELECT owner_id FROM passport_ownership
                 WHERE passport_id = ?
-                ORDER BY created_at DESC
+                ORDER BY updated_at DESC
                 LIMIT 1
             """,
-            (rs, rowNum) -> rs.getString("owner_user_id"),
+            (rs, rowNum) -> rs.getString("owner_id"),
+            passportId
+        );
+        return rows.stream().findFirst();
+    }
+
+    @Override
+    public Optional<ServicePassportAssetInfo> findPassportAssetInfo(String passportId) {
+        List<ServicePassportAssetInfo> rows = jdbcTemplate.query(
+            """
+                SELECT pp.passport_id, pa.serial_number, pa.model_name
+                FROM product_passports pp
+                JOIN product_assets pa ON pa.asset_id = pp.asset_id
+                WHERE pp.passport_id = ?
+            """,
+            (rs, rowNum) -> new ServicePassportAssetInfo(
+                rs.getString("passport_id"),
+                rs.getString("serial_number"),
+                rs.getString("model_name")
+            ),
             passportId
         );
         return rows.stream().findFirst();

@@ -42,7 +42,6 @@ public record ServiceRequest(
     ) {
         requireText(serviceRequestId, "serviceRequestId");
         requireText(passportId, "passportId");
-        requireText(serviceType, "serviceType");
         requireText(ownerUserId, "ownerUserId");
         requireText(providerTenantId, "providerTenantId");
         requireText(submittedByUserId, "submittedByUserId");
@@ -55,7 +54,7 @@ public record ServiceRequest(
             serviceType,
             ownerUserId,
             providerTenantId,
-            ServiceRequestStatus.SUBMITTED,
+            ServiceRequestStatus.PENDING,
             description,
             beforeEvidenceGroupId,
             null,
@@ -70,12 +69,67 @@ public record ServiceRequest(
         );
     }
 
+    public ServiceRequest accept(String serviceType, String description, Instant now) {
+        requireText(serviceType, "serviceType");
+        requireNonNull(now, "now");
+        if (status != ServiceRequestStatus.PENDING) {
+            throw new WorkflowDomainException(WorkflowErrorCode.SERVICE_REQUEST_INVALID_STATE,
+                "Only PENDING service request can be accepted");
+        }
+        return new ServiceRequest(
+            serviceRequestId,
+            passportId,
+            serviceType,
+            ownerUserId,
+            providerTenantId,
+            ServiceRequestStatus.ACCEPTED,
+            description,
+            beforeEvidenceGroupId,
+            afterEvidenceGroupId,
+            permissionId,
+            submittedByUserId,
+            submittedAt,
+            completedAt,
+            completedByUserId,
+            cancelledAt,
+            cancelReason,
+            createdAt
+        );
+    }
+
+    public ServiceRequest reject(String rejectReason, Instant now) {
+        requireNonNull(now, "now");
+        if (status != ServiceRequestStatus.PENDING) {
+            throw new WorkflowDomainException(WorkflowErrorCode.SERVICE_REQUEST_INVALID_STATE,
+                "Only PENDING service request can be rejected");
+        }
+        return new ServiceRequest(
+            serviceRequestId,
+            passportId,
+            serviceType,
+            ownerUserId,
+            providerTenantId,
+            ServiceRequestStatus.REJECTED,
+            description,
+            beforeEvidenceGroupId,
+            afterEvidenceGroupId,
+            permissionId,
+            submittedByUserId,
+            submittedAt,
+            completedAt,
+            completedByUserId,
+            now,
+            rejectReason,
+            createdAt
+        );
+    }
+
     public ServiceRequest complete(String completedByUserId, String afterEvidenceGroupId, Instant now) {
         requireText(completedByUserId, "completedByUserId");
         requireNonNull(now, "now");
-        if (status != ServiceRequestStatus.SUBMITTED) {
+        if (status != ServiceRequestStatus.ACCEPTED) {
             throw new WorkflowDomainException(WorkflowErrorCode.SERVICE_REQUEST_INVALID_STATE,
-                "Only SUBMITTED service request can be completed");
+                "Only ACCEPTED service request can be completed");
         }
         return new ServiceRequest(
             serviceRequestId,
@@ -100,9 +154,9 @@ public record ServiceRequest(
 
     public ServiceRequest cancel(String cancelReason, Instant now) {
         requireNonNull(now, "now");
-        if (status != ServiceRequestStatus.SUBMITTED) {
+        if (status != ServiceRequestStatus.PENDING && status != ServiceRequestStatus.ACCEPTED) {
             throw new WorkflowDomainException(WorkflowErrorCode.SERVICE_REQUEST_INVALID_STATE,
-                "Only SUBMITTED service request can be cancelled");
+                "Only PENDING or ACCEPTED service request can be cancelled");
         }
         return new ServiceRequest(
             serviceRequestId,

@@ -11,7 +11,7 @@ public class ServiceSubmitPolicy {
         assertPassportActive(context);
         assertNoRiskFlag(context);
         assertHasServiceRepairPermission(context);
-        assertNoDuplicateSubmission(context);
+        assertNoOpenRequest(context);
     }
 
     private void assertPassportActive(ServiceSubmitContext context) {
@@ -41,11 +41,11 @@ public class ServiceSubmitPolicy {
         }
     }
 
-    private void assertNoDuplicateSubmission(ServiceSubmitContext context) {
-        if (context.submittedExists()) {
+    private void assertNoOpenRequest(ServiceSubmitContext context) {
+        if (context.openRequestExists()) {
             throw new WorkflowDomainException(
                 WorkflowErrorCode.SERVICE_REQUEST_ALREADY_SUBMITTED,
-                "A SUBMITTED service request already exists for this passport"
+                "An open service request already exists for this passport"
             );
         }
     }
@@ -54,7 +54,7 @@ public class ServiceSubmitPolicy {
         String assetState,
         String riskFlag,
         boolean hasActiveServiceRepairPermission,
-        boolean submittedExists
+        boolean openRequestExists
     ) {
     }
 }

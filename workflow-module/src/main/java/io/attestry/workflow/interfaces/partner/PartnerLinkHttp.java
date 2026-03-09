@@ -65,6 +65,7 @@ public class PartnerLinkHttp {
         return partnerLinkUseCase.listByTenant(principal, statusFilter).stream().map(PartnerLinkResponse::from).toList();
     }
 
+    //TODO("tenant  모듈 분리하기 ")
     @GetMapping("/tenants/search")
     @PreAuthorize("hasAuthority('SCOPE_PARTNER_LINK_READ')")
     public List<TenantSearchResponse> searchActiveTenants(

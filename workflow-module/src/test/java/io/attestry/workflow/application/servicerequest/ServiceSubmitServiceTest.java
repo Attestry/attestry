@@ -49,8 +49,8 @@ class ServiceSubmitServiceTest {
 
     private ServiceSubmitService service;
 
-    private static final AuthPrincipal PROVIDER = new AuthPrincipal(
-        "token1", "provider1", "provT1", VerificationLevel.PHONE_VERIFIED, Set.of("SCOPE_SERVICE_COMPLETE"), Instant.parse("2026-03-02T00:00:00Z")
+    private static final AuthPrincipal OWNER = new AuthPrincipal(
+        "token1", "owner1", null, VerificationLevel.PHONE_VERIFIED, Set.of("SCOPE_OWNER_SERVICE_CREATE"), Instant.parse("2026-03-02T00:00:00Z")
     );
 
     @BeforeEach
@@ -63,25 +63,25 @@ class ServiceSubmitServiceTest {
 
     @Test
     void submit_success() {
-        doNothing().when(authorizationSupport).assertTenantContext(any(), anyString());
-        doNothing().when(authorizationSupport).assertLivePermission(any(), anyString(), anyString(), anyString());
+        doNothing().when(authorizationSupport).assertPermissionOnly(any(), anyString(), anyString());
         when(serviceProductReadPort.findPassportState("p1"))
             .thenReturn(Optional.of(new ServicePassportState("p1", "t1", "ACTIVE", "NONE")));
         when(serviceProductReadPort.findCurrentOwnerId("p1")).thenReturn(Optional.of("owner1"));
         when(servicePermissionPort.hasActiveServiceRepairPermission("p1", "provT1")).thenReturn(true);
-        when(serviceRequestRepository.existsSubmittedByPassportId("p1")).thenReturn(false);
+        when(serviceRequestRepository.existsOpenByPassportId("p1")).thenReturn(false);
         when(servicePermissionPort.findActivePermissionId("p1", "provT1")).thenReturn(Optional.of("perm1"));
         when(shipmentEvidencePort.findReadyEvidenceHashes("eg1")).thenReturn(List.of("hash1"));
         when(serviceRequestRepository.save(any(ServiceRequest.class))).thenAnswer(inv -> inv.getArgument(0));
 
-        SubmitServiceRequestResult result = service.submit(
-            PROVIDER, "provT1",
-            new SubmitServiceRequestCommand("p1", "REPAIR", "Fix it", "eg1")
+        SubmitServiceRequestResult result = service.approve(
+            OWNER,
+            new SubmitServiceRequestCommand("p1", "provT1", "eg1")
         );
 
-        assertEquals("SUBMITTED", result.status());
+        assertEquals("PENDING", result.status());
         assertEquals("p1", result.passportId());
-        assertEquals("REPAIR", result.serviceType());
+        assertEquals("provT1", result.providerTenantId());
+        assertEquals(null, result.serviceType());
         assertEquals("perm1", result.permissionId());
         assertNotNull(result.submittedAt());
         verify(servicePermissionPort).linkServiceRequest(anyString(), anyString());
@@ -89,49 +89,44 @@ class ServiceSubmitServiceTest {
 
     @Test
     void submit_noConsentPermission_throws() {
-        doNothing().when(authorizationSupport).assertTenantContext(any(), anyString());
-        doNothing().when(authorizationSupport).assertLivePermission(any(), anyString(), anyString(), anyString());
+        doNothing().when(authorizationSupport).assertPermissionOnly(any(), anyString(), anyString());
         when(serviceProductReadPort.findPassportState("p1"))
             .thenReturn(Optional.of(new ServicePassportState("p1", "t1", "ACTIVE", "NONE")));
         when(serviceProductReadPort.findCurrentOwnerId("p1")).thenReturn(Optional.of("owner1"));
         when(servicePermissionPort.hasActiveServiceRepairPermission("p1", "provT1")).thenReturn(false);
-        when(serviceRequestRepository.existsSubmittedByPassportId("p1")).thenReturn(false);
+        when(serviceRequestRepository.existsOpenByPassportId("p1")).thenReturn(false);
 
         WorkflowDomainException ex = assertThrows(WorkflowDomainException.class, () ->
-            service.submit(PROVIDER, "provT1", new SubmitServiceRequestCommand("p1", "REPAIR", null, null))
+            service.approve(OWNER, new SubmitServiceRequestCommand("p1", "provT1", null))
         );
         assertEquals(WorkflowErrorCode.FORBIDDEN_SCOPE, ex.getErrorCode());
     }
 
     @Test
-    void submit_duplicateSubmitted_throws() {
-        doNothing().when(authorizationSupport).assertTenantContext(any(), anyString());
-        doNothing().when(authorizationSupport).assertLivePermission(any(), anyString(), anyString(), anyString());
+    void submit_duplicateOpenRequest_throws() {
+        doNothing().when(authorizationSupport).assertPermissionOnly(any(), anyString(), anyString());
         when(serviceProductReadPort.findPassportState("p1"))
             .thenReturn(Optional.of(new ServicePassportState("p1", "t1", "ACTIVE", "NONE")));
         when(serviceProductReadPort.findCurrentOwnerId("p1")).thenReturn(Optional.of("owner1"));
         when(servicePermissionPort.hasActiveServiceRepairPermission("p1", "provT1")).thenReturn(true);
-        when(serviceRequestRepository.existsSubmittedByPassportId("p1")).thenReturn(true);
+        when(serviceRequestRepository.existsOpenByPassportId("p1")).thenReturn(true);
 
         WorkflowDomainException ex = assertThrows(WorkflowDomainException.class, () ->
-            service.submit(PROVIDER, "provT1", new SubmitServiceRequestCommand("p1", "REPAIR", null, null))
+            service.approve(OWNER, new SubmitServiceRequestCommand("p1", "provT1", null))
         );
         assertEquals(WorkflowErrorCode.SERVICE_REQUEST_ALREADY_SUBMITTED, ex.getErrorCode());
     }
 
     @Test
-    void submit_assetNotActive_throws() {
-        doNothing().when(authorizationSupport).assertTenantContext(any(), anyString());
-        doNothing().when(authorizationSupport).assertLivePermission(any(), anyString(), anyString(), anyString());
+    void submit_notCurrentOwner_throws() {
+        doNothing().when(authorizationSupport).assertPermissionOnly(any(), anyString(), anyString());
         when(serviceProductReadPort.findPassportState("p1"))
-            .thenReturn(Optional.of(new ServicePassportState("p1", "t1", "VOIDED", "NONE")));
-        when(serviceProductReadPort.findCurrentOwnerId("p1")).thenReturn(Optional.of("owner1"));
-        when(servicePermissionPort.hasActiveServiceRepairPermission("p1", "provT1")).thenReturn(true);
-        when(serviceRequestRepository.existsSubmittedByPassportId("p1")).thenReturn(false);
+            .thenReturn(Optional.of(new ServicePassportState("p1", "t1", "ACTIVE", "NONE")));
+        when(serviceProductReadPort.findCurrentOwnerId("p1")).thenReturn(Optional.of("otherOwner"));
 
         WorkflowDomainException ex = assertThrows(WorkflowDomainException.class, () ->
-            service.submit(PROVIDER, "provT1", new SubmitServiceRequestCommand("p1", "REPAIR", null, null))
+            service.approve(OWNER, new SubmitServiceRequestCommand("p1", "provT1", null))
         );
-        assertEquals(WorkflowErrorCode.INVALID_STATE, ex.getErrorCode());
+        assertEquals(WorkflowErrorCode.FORBIDDEN_SCOPE, ex.getErrorCode());
     }
 }
