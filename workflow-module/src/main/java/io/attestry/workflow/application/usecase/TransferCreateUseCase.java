@@ -25,4 +25,10 @@ public interface TransferCreateUseCase {
         AuthPrincipal principal,
         String passportId
     );
+
+    Optional<CreateTransferResult> findLatestActivePendingB2CByPassportId(
+        AuthPrincipal principal,
+        String tenantId,
+        String passportId
+    );
 }

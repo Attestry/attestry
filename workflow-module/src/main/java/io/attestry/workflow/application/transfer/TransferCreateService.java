@@ -115,6 +115,28 @@ public class TransferCreateService implements TransferCreateUseCase {
             .map(this::toResult);
     }
 
+    @Override
+    @Transactional(readOnly = true)
+    public Optional<CreateTransferResult> findLatestActivePendingB2CByPassportId(
+        AuthPrincipal principal,
+        String tenantId,
+        String passportId
+    ) {
+        authorizationSupport.assertTenantContext(principal, tenantId);
+        authorizationSupport.assertLivePermission(principal, tenantId, PermissionCodes.RETAIL_TRANSFER_CREATE,
+            "transfer:pending:" + passportId);
+        if (!productReadPort.hasRetailPermission(passportId, tenantId)) {
+            throw new WorkflowDomainException(WorkflowErrorCode.FORBIDDEN_SCOPE,
+                "Retail tenant does not have permission for this passport");
+        }
+
+        Instant now = Instant.now(clock);
+        return transferRepository.findLatestActivePendingByPassportId(passportId, now)
+            .filter(transfer -> transfer.transferType() == io.attestry.workflow.domain.transfer.model.TransferType.B2C)
+            .filter(transfer -> tenantId.equals(transfer.tenantId()))
+            .map(this::toResult);
+    }
+
     private TransferCreateContext resolveContext(String actorUserId, String requestTenantId, String passportId) {
         TransferPassportState state = productReadPort.findPassportState(passportId).orElse(null);
         String currentOwnerId = productReadPort.findCurrentOwnerId(passportId).orElse(null);

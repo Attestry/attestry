@@ -26,6 +26,14 @@ public interface ProductQueryUseCase {
         String keyword
     );
 
+    PagedDistributedPassportResponse listDistributedPassports(
+        String tenantId,
+        int page,
+        int size,
+        String keyword,
+        String sourceTenantId
+    );
+
     record AssetStateResponse(String assetId, String passportId, String assetState, String riskFlag) {
     }
 
@@ -57,6 +65,33 @@ public interface ProductQueryUseCase {
 
     record PagedTenantPassportResponse(
         List<TenantPassportResponse> content,
+        int page,
+        int size,
+        long totalElements,
+        int totalPages
+    ) {
+    }
+
+    record DistributedPassportResponse(
+        String passportId,
+        String qrPublicCode,
+        String assetId,
+        String serialNumber,
+        String modelId,
+        String modelName,
+        String assetState,
+        String riskFlag,
+        String permissionId,
+        Instant expiresAt,
+        String sourceTenantId,
+        String targetTenantId,
+        String permissionStatus,
+        Instant distributedAt
+    ) {
+    }
+
+    record PagedDistributedPassportResponse(
+        List<DistributedPassportResponse> content,
         int page,
         int size,
         long totalElements,

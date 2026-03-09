@@ -1,5 +1,6 @@
 package io.attestry.product.application.service;
 
+import io.attestry.product.application.port.DistributedPassportQueryPort;
 import io.attestry.product.application.port.GroupPassportQueryPort;
 import io.attestry.product.application.port.MyPassportQueryPort;
 import io.attestry.product.application.port.PassportDistributionQueryPort;
@@ -29,6 +30,7 @@ public class ProductQueryService implements ProductQueryUseCase, ProductQueryPor
     private final PassportPermissionRepository permissionRepository;
     private final MyPassportQueryPort myPassportQueryPort;
     private final GroupPassportQueryPort groupPassportQueryPort;
+    private final DistributedPassportQueryPort distributedPassportQueryPort;
     private final PassportShipmentQueryPort shipmentQueryPort;
     private final PassportDistributionQueryPort distributionQueryPort;
     private final String publicBaseUrl;
@@ -39,6 +41,7 @@ public class ProductQueryService implements ProductQueryUseCase, ProductQueryPor
         PassportPermissionRepository permissionRepository,
         MyPassportQueryPort myPassportQueryPort,
         GroupPassportQueryPort groupPassportQueryPort,
+        DistributedPassportQueryPort distributedPassportQueryPort,
         PassportShipmentQueryPort shipmentQueryPort,
         PassportDistributionQueryPort distributionQueryPort,
         @Value("${app.product.public-base-url}") String publicBaseUrl
@@ -48,6 +51,7 @@ public class ProductQueryService implements ProductQueryUseCase, ProductQueryPor
         this.permissionRepository = permissionRepository;
         this.myPassportQueryPort = myPassportQueryPort;
         this.groupPassportQueryPort = groupPassportQueryPort;
+        this.distributedPassportQueryPort = distributedPassportQueryPort;
         this.shipmentQueryPort = shipmentQueryPort;
         this.distributionQueryPort = distributionQueryPort;
         this.publicBaseUrl = publicBaseUrl;
@@ -162,6 +166,32 @@ public class ProductQueryService implements ProductQueryUseCase, ProductQueryPor
         return new PagedTenantPassportResponse(content, paged.page(), paged.size(), paged.totalElements(), paged.totalPages());
     }
 
+    @Override
+    public PagedDistributedPassportResponse listDistributedPassports(
+        String tenantId,
+        int page,
+        int size,
+        String keyword,
+        String sourceTenantId
+    ) {
+        DistributedPassportQueryPort.PagedResult paged = distributedPassportQueryPort.findByTargetTenant(
+            tenantId,
+            page,
+            size,
+            normalize(keyword),
+            normalize(sourceTenantId)
+        );
+        return new PagedDistributedPassportResponse(
+            paged.content().stream()
+                .map(ProductQueryService::toDistributedPassportResponse)
+                .toList(),
+            paged.page(),
+            paged.size(),
+            paged.totalElements(),
+            paged.totalPages()
+        );
+    }
+
     // --- ProductQueryPort ---
 
     @Override
@@ -182,4 +212,30 @@ public class ProductQueryService implements ProductQueryUseCase, ProductQueryPor
             .orElseThrow(() -> new ProductDomainException(ProductErrorCode.ASSET_NOT_FOUND,
                 "Passport not found: " + passportId));
     }
+
+    private static String normalize(String value) {
+        return value == null || value.isBlank() ? null : value.trim();
+    }
+
+    private static DistributedPassportResponse toDistributedPassportResponse(
+        DistributedPassportQueryPort.DistributedPassportView view
+    ) {
+        return new DistributedPassportResponse(
+            view.passportId(),
+            view.qrPublicCode(),
+            view.assetId(),
+            view.serialNumber(),
+            view.modelId(),
+            view.modelName(),
+            view.assetState(),
+            view.riskFlag(),
+            view.permissionId(),
+            view.expiresAt(),
+            view.sourceTenantId(),
+            view.targetTenantId(),
+            view.permissionStatus(),
+            view.distributedAt()
+        );
+    }
+
 }

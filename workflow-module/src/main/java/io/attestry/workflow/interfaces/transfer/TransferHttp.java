@@ -10,8 +10,10 @@ import io.attestry.workflow.application.transfer.result.CreateTransferResult;
 import io.attestry.workflow.application.usecase.TransferAcceptUseCase;
 import io.attestry.workflow.application.usecase.TransferCancelUseCase;
 import io.attestry.workflow.application.usecase.TransferCreateUseCase;
+import io.attestry.workflow.application.usecase.TransferQueryUseCase;
 import io.attestry.workflow.domain.transfer.model.AcceptMethod;
 import java.time.Instant;
+import java.util.List;
 import java.util.Optional;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
@@ -32,15 +34,18 @@ public class TransferHttp {
     private final TransferCreateUseCase transferCreateUseCase;
     private final TransferAcceptUseCase transferAcceptUseCase;
     private final TransferCancelUseCase transferCancelUseCase;
+    private final TransferQueryUseCase transferQueryUseCase;
 
     public TransferHttp(
         TransferCreateUseCase transferCreateUseCase,
         TransferAcceptUseCase transferAcceptUseCase,
-        TransferCancelUseCase transferCancelUseCase
+        TransferCancelUseCase transferCancelUseCase,
+        TransferQueryUseCase transferQueryUseCase
     ) {
         this.transferCreateUseCase = transferCreateUseCase;
         this.transferAcceptUseCase = transferAcceptUseCase;
         this.transferCancelUseCase = transferCancelUseCase;
+        this.transferQueryUseCase = transferQueryUseCase;
     }
 
     @PostMapping("/passports/{passportId}/transfers")
@@ -90,6 +95,57 @@ public class TransferHttp {
             .orElseGet(() -> ResponseEntity.noContent().build());
     }
 
+    @GetMapping("/tenants/{tenantId}/passports/{passportId}/transfers/pending")
+    @PreAuthorize("hasAuthority('SCOPE_RETAIL_TRANSFER_CREATE')")
+    public ResponseEntity<CreateTransferResponse> findLatestActivePendingB2C(
+        @AuthenticationPrincipal AuthPrincipal principal,
+        @PathVariable("tenantId") String tenantId,
+        @PathVariable("passportId") String passportId
+    ) {
+        Optional<CreateTransferResult> result = transferCreateUseCase.findLatestActivePendingB2CByPassportId(
+            principal,
+            tenantId,
+            passportId
+        );
+        return result
+            .map(CreateTransferResponse::from)
+            .map(ResponseEntity::ok)
+            .orElseGet(() -> ResponseEntity.noContent().build());
+    }
+
+    @GetMapping("/tenants/{tenantId}/transfers/completed")
+    @PreAuthorize("hasAuthority('SCOPE_TENANT_READ_ONLY')")
+    public PagedCompletedTransferResponse listCompletedB2CTransfers(
+        @AuthenticationPrincipal AuthPrincipal principal,
+        @PathVariable("tenantId") String tenantId,
+        @org.springframework.web.bind.annotation.RequestParam(value = "sourceTenantId", required = false) String sourceTenantId,
+        @org.springframework.web.bind.annotation.RequestParam(value = "page", defaultValue = "0") int page,
+        @org.springframework.web.bind.annotation.RequestParam(value = "size", defaultValue = "20") int size
+    ) {
+        TransferQueryUseCase.PagedCompletedTransferResponse result = transferQueryUseCase.listCompletedB2CTransfers(
+            principal,
+            tenantId,
+            sourceTenantId,
+            page,
+            size
+        );
+        List<CompletedTransferResponse> content = result.content().stream()
+            .map(v -> new CompletedTransferResponse(
+                v.transferId(),
+                v.passportId(),
+                v.sourceTenantId(),
+                v.serialNumber(),
+                v.modelName(),
+                v.assetState(),
+                v.toOwnerId(),
+                v.acceptMethod(),
+                v.completedAt()
+            ))
+            .toList();
+        return new PagedCompletedTransferResponse(content, result.page(), result.size(), result.totalElements(),
+            result.totalPages());
+    }
+
     @PostMapping("/transfers/{transferId}/accept")
     @ResponseStatus(HttpStatus.OK)
     @PreAuthorize("hasAuthority('SCOPE_OWNER_TRANSFER_ACCEPT')")
@@ -108,7 +164,7 @@ public class TransferHttp {
 
     @PostMapping("/transfers/{transferId}/cancel")
     @ResponseStatus(HttpStatus.OK)
-    @PreAuthorize("hasAuthority('SCOPE_OWNER_TRANSFER_CREATE')")
+    @PreAuthorize("hasAnyAuthority('SCOPE_OWNER_TRANSFER_CREATE', 'SCOPE_RETAIL_TRANSFER_CREATE')")
     public CancelTransferResponse cancel(
         @AuthenticationPrincipal AuthPrincipal principal,
         @PathVariable("transferId") String transferId
@@ -162,6 +218,28 @@ public class TransferHttp {
                 result.completedAt(), result.outboxEventId()
             );
         }
+    }
+
+    public record CompletedTransferResponse(
+        String transferId,
+        String passportId,
+        String sourceTenantId,
+        String serialNumber,
+        String modelName,
+        String assetState,
+        String toOwnerId,
+        String acceptMethod,
+        Instant completedAt
+    ) {
+    }
+
+    public record PagedCompletedTransferResponse(
+        List<CompletedTransferResponse> content,
+        int page,
+        int size,
+        long totalElements,
+        int totalPages
+    ) {
     }
 
     public record CancelTransferResponse(
