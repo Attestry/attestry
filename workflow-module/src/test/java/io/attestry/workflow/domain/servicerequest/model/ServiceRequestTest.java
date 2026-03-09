@@ -1,7 +1,6 @@
 package io.attestry.workflow.domain.servicerequest.model;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
-import static org.junit.jupiter.api.Assertions.assertNotNull;
 import static org.junit.jupiter.api.Assertions.assertNull;
 import static org.junit.jupiter.api.Assertions.assertThrows;
 
@@ -19,7 +18,7 @@ class ServiceRequestTest {
         ServiceRequest request = ServiceRequest.submit(
             "sr1", "p1", "REPAIR", "owner1",
             "tenant1", "Fix screen",
-            "eg1", "perm1", "provider1", NOW, NOW
+            "eg1", "perm1", "owner1", NOW, NOW
         );
 
         assertEquals("sr1", request.serviceRequestId());
@@ -27,12 +26,12 @@ class ServiceRequestTest {
         assertEquals("REPAIR", request.serviceType());
         assertEquals("owner1", request.ownerUserId());
         assertEquals("tenant1", request.providerTenantId());
-        assertEquals(ServiceRequestStatus.SUBMITTED, request.status());
+        assertEquals(ServiceRequestStatus.PENDING, request.status());
         assertEquals("Fix screen", request.description());
         assertEquals("eg1", request.beforeEvidenceGroupId());
         assertNull(request.afterEvidenceGroupId());
         assertEquals("perm1", request.permissionId());
-        assertEquals("provider1", request.submittedByUserId());
+        assertEquals("owner1", request.submittedByUserId());
         assertEquals(NOW, request.submittedAt());
         assertNull(request.completedAt());
         assertNull(request.cancelledAt());
@@ -41,7 +40,7 @@ class ServiceRequestTest {
     @Test
     void submit_requiresServiceRequestId() {
         WorkflowDomainException ex = assertThrows(WorkflowDomainException.class, () ->
-            ServiceRequest.submit(null, "p1", "REPAIR", "owner1", "t1", null, null, null, "provider1", NOW, NOW)
+            ServiceRequest.submit(null, "p1", "REPAIR", "owner1", "t1", null, null, null, "owner1", NOW, NOW)
         );
         assertEquals(WorkflowErrorCode.INVALID_REQUEST, ex.getErrorCode());
     }
@@ -55,11 +54,23 @@ class ServiceRequestTest {
     }
 
     @Test
-    void complete_fromSubmitted_succeeds() {
+    void accept_fromPending_succeeds() {
         ServiceRequest request = ServiceRequest.submit(
             "sr1", "p1", "REPAIR", "owner1",
-            "tenant1", "desc", "eg1", "perm1", "provider1", NOW, NOW
+            "tenant1", "desc", "eg1", "perm1", "owner1", NOW, NOW
         );
+
+        ServiceRequest accepted = request.accept("REPAIR", "desc", NOW);
+
+        assertEquals(ServiceRequestStatus.ACCEPTED, accepted.status());
+    }
+
+    @Test
+    void complete_fromAccepted_succeeds() {
+        ServiceRequest request = ServiceRequest.submit(
+            "sr1", "p1", "REPAIR", "owner1",
+            "tenant1", "desc", "eg1", "perm1", "owner1", NOW, NOW
+        ).accept("REPAIR", "desc", NOW);
 
         Instant completedAt = Instant.parse("2026-03-01T12:00:00Z");
         ServiceRequest completed = request.complete("provider1", "afterEg1", completedAt);
@@ -68,29 +79,27 @@ class ServiceRequestTest {
         assertEquals("provider1", completed.completedByUserId());
         assertEquals("afterEg1", completed.afterEvidenceGroupId());
         assertEquals(completedAt, completed.completedAt());
-        assertEquals("provider1", completed.submittedByUserId());
         assertNull(completed.cancelledAt());
     }
 
     @Test
-    void complete_whenNotSubmitted_throws() {
+    void complete_whenNotAccepted_throws() {
         ServiceRequest request = ServiceRequest.submit(
             "sr1", "p1", "REPAIR", "owner1",
-            "tenant1", "desc", null, null, "provider1", NOW, NOW
+            "tenant1", "desc", null, null, "owner1", NOW, NOW
         );
-        ServiceRequest cancelled = request.cancel("reason", NOW);
 
         WorkflowDomainException ex = assertThrows(WorkflowDomainException.class, () ->
-            cancelled.complete("provider1", "afterEg1", NOW)
+            request.complete("provider1", "afterEg1", NOW)
         );
         assertEquals(WorkflowErrorCode.SERVICE_REQUEST_INVALID_STATE, ex.getErrorCode());
     }
 
     @Test
-    void cancel_fromSubmitted_succeeds() {
+    void cancel_fromPending_succeeds() {
         ServiceRequest request = ServiceRequest.submit(
             "sr1", "p1", "REPAIR", "owner1",
-            "tenant1", "desc", null, null, "provider1", NOW, NOW
+            "tenant1", "desc", null, null, "owner1", NOW, NOW
         );
 
         Instant cancelledAt = Instant.parse("2026-03-01T11:00:00Z");
@@ -99,20 +108,29 @@ class ServiceRequestTest {
         assertEquals(ServiceRequestStatus.CANCELLED, cancelled.status());
         assertEquals("No longer needed", cancelled.cancelReason());
         assertEquals(cancelledAt, cancelled.cancelledAt());
-        assertEquals("provider1", cancelled.submittedByUserId());
         assertNull(cancelled.completedAt());
     }
 
     @Test
-    void cancel_whenNotSubmitted_throws() {
+    void reject_fromPending_succeeds() {
         ServiceRequest request = ServiceRequest.submit(
             "sr1", "p1", "REPAIR", "owner1",
-            "tenant1", "desc", null, null, "provider1", NOW, NOW
+            "tenant1", "desc", null, null, "owner1", NOW, NOW
         );
-        ServiceRequest completed = request.complete("provider1", "afterEg1", NOW);
+
+        ServiceRequest rejected = request.reject("cannot process", NOW);
+        assertEquals(ServiceRequestStatus.REJECTED, rejected.status());
+    }
+
+    @Test
+    void cancel_whenNotCancellable_throws() {
+        ServiceRequest request = ServiceRequest.submit(
+            "sr1", "p1", "REPAIR", "owner1",
+            "tenant1", "desc", null, null, "owner1", NOW, NOW
+        ).reject("reason", NOW);
 
         WorkflowDomainException ex = assertThrows(WorkflowDomainException.class, () ->
-            completed.cancel("reason", NOW)
+            request.cancel("reason", NOW)
         );
         assertEquals(WorkflowErrorCode.SERVICE_REQUEST_INVALID_STATE, ex.getErrorCode());
     }

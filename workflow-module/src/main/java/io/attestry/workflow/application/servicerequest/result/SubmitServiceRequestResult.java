@@ -5,6 +5,7 @@ import java.time.Instant;
 public record SubmitServiceRequestResult(
     String serviceRequestId,
     String passportId,
+    String providerTenantId,
     String serviceType,
     String status,
     String permissionId,

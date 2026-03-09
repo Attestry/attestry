@@ -54,13 +54,13 @@ class ServiceCancelServiceTest {
 
     @Test
     void cancel_success() {
-        ServiceRequest submitted = ServiceRequest.submit(
+        ServiceRequest pending = ServiceRequest.submit(
             "sr1", "p1", "REPAIR", "owner1",
-            "provT1", "desc", null, "perm1", "provider1", SUBMITTED_AT, SUBMITTED_AT
+            "provT1", "desc", null, "perm1", "owner1", SUBMITTED_AT, SUBMITTED_AT
         );
 
         doNothing().when(authorizationSupport).assertPermissionOnly(any(), anyString(), anyString());
-        when(serviceRequestRepository.findById("sr1")).thenReturn(Optional.of(submitted));
+        when(serviceRequestRepository.findById("sr1")).thenReturn(Optional.of(pending));
         when(serviceRequestRepository.save(any(ServiceRequest.class))).thenAnswer(inv -> inv.getArgument(0));
 
         CancelServiceRequestResult result = service.cancel(OWNER, "sr1", "No longer needed");
@@ -73,13 +73,13 @@ class ServiceCancelServiceTest {
 
     @Test
     void cancel_ownerMismatch_throws() {
-        ServiceRequest submitted = ServiceRequest.submit(
+        ServiceRequest pending = ServiceRequest.submit(
             "sr1", "p1", "REPAIR", "differentOwner",
-            "provT1", "desc", null, null, "provider1", SUBMITTED_AT, SUBMITTED_AT
+            "provT1", "desc", null, null, "differentOwner", SUBMITTED_AT, SUBMITTED_AT
         );
 
         doNothing().when(authorizationSupport).assertPermissionOnly(any(), anyString(), anyString());
-        when(serviceRequestRepository.findById("sr1")).thenReturn(Optional.of(submitted));
+        when(serviceRequestRepository.findById("sr1")).thenReturn(Optional.of(pending));
 
         WorkflowDomainException ex = assertThrows(WorkflowDomainException.class, () ->
             service.cancel(OWNER, "sr1", "reason")
@@ -88,15 +88,14 @@ class ServiceCancelServiceTest {
     }
 
     @Test
-    void cancel_notSubmitted_throws() {
-        ServiceRequest submitted = ServiceRequest.submit(
+    void cancel_notAllowedState_throws() {
+        ServiceRequest rejected = ServiceRequest.submit(
             "sr1", "p1", "REPAIR", "owner1",
-            "provT1", "desc", null, null, "provider1", SUBMITTED_AT, SUBMITTED_AT
-        );
-        ServiceRequest completed = submitted.complete("provider1", "afterEg", Instant.parse("2026-03-01T10:00:00Z"));
+            "provT1", "desc", null, null, "owner1", SUBMITTED_AT, SUBMITTED_AT
+        ).reject("reason", Instant.parse("2026-03-01T09:30:00Z"));
 
         doNothing().when(authorizationSupport).assertPermissionOnly(any(), anyString(), anyString());
-        when(serviceRequestRepository.findById("sr1")).thenReturn(Optional.of(completed));
+        when(serviceRequestRepository.findById("sr1")).thenReturn(Optional.of(rejected));
 
         WorkflowDomainException ex = assertThrows(WorkflowDomainException.class, () ->
             service.cancel(OWNER, "sr1", "reason")

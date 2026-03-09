@@ -48,8 +48,11 @@ public class ServiceCancelService implements ServiceCancelUseCase {
         ServiceRequest request = serviceRequestRepository.findById(serviceRequestId)
             .orElseThrow(() -> new WorkflowDomainException(WorkflowErrorCode.SERVICE_REQUEST_NOT_FOUND, "Service request not found"));
 
-        if (request.status() != ServiceRequestStatus.SUBMITTED) {
-            throw new WorkflowDomainException(WorkflowErrorCode.SERVICE_REQUEST_INVALID_STATE, "Only SUBMITTED service request can be cancelled");
+        if (request.status() != ServiceRequestStatus.PENDING && request.status() != ServiceRequestStatus.ACCEPTED) {
+            throw new WorkflowDomainException(
+                WorkflowErrorCode.SERVICE_REQUEST_INVALID_STATE,
+                "Only PENDING or ACCEPTED service request can be cancelled"
+            );
         }
         if (!principal.userId().equals(request.ownerUserId())) {
             throw new WorkflowDomainException(WorkflowErrorCode.FORBIDDEN_SCOPE, "Only the owner can cancel a service request");

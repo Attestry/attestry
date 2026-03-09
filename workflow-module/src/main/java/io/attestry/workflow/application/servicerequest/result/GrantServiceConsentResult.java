@@ -4,9 +4,11 @@ import java.time.Instant;
 
 public record GrantServiceConsentResult(
     String permissionId,
+    String serviceRequestId,
     String passportId,
     String providerTenantId,
-    String status,
+    String consentStatus,
+    String serviceRequestStatus,
     Instant grantedAt
 ) {
 }

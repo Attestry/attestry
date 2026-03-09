@@ -79,4 +79,49 @@ public class JdbcTenantReadAdapter implements TenantReadPort {
             keyword
         );
     }
+
+    @Override
+    public PagedTenantSummary searchActiveTenantsByTypeAndName(String type, String name, int page, int size) {
+        int normalizedPage = Math.max(page, 0);
+        int normalizedSize = Math.max(size, 1);
+        String keyword = (name == null || name.isBlank()) ? "%" : "%" + name.trim() + "%";
+        Long total = jdbcTemplate.queryForObject(
+            """
+                SELECT COUNT(*)
+                  FROM tenants
+                 WHERE status = 'ACTIVE'
+                   AND type = ?
+                   AND LOWER(name) LIKE LOWER(?)
+            """,
+            Long.class,
+            type,
+            keyword
+        );
+        long totalElements = total == null ? 0L : total;
+        int totalPages = (int) Math.ceil((double) totalElements / normalizedSize);
+        int offset = normalizedPage * normalizedSize;
+
+        List<TenantSummary> content = jdbcTemplate.query(
+            """
+                SELECT tenant_id, name, region, type
+                  FROM tenants
+                 WHERE status = 'ACTIVE'
+                   AND type = ?
+                   AND LOWER(name) LIKE LOWER(?)
+                 ORDER BY name ASC
+                 LIMIT ? OFFSET ?
+            """,
+            (rs, rowNum) -> new TenantSummary(
+                rs.getString("tenant_id"),
+                rs.getString("name"),
+                rs.getString("region"),
+                rs.getString("type")
+            ),
+            type,
+            keyword,
+            normalizedSize,
+            offset
+        );
+        return new PagedTenantSummary(content, normalizedPage, normalizedSize, totalElements, totalPages);
+    }
 }

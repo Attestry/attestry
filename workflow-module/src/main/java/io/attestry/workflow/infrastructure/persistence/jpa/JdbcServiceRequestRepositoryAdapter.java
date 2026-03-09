@@ -34,7 +34,9 @@ public class JdbcServiceRequestRepositoryAdapter implements ServiceRequestReposi
                     cancelled_at, cancel_reason, created_at
                 ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
                 ON CONFLICT (service_request_id) DO UPDATE
-                SET status = EXCLUDED.status,
+                SET service_type = EXCLUDED.service_type,
+                    description = EXCLUDED.description,
+                    status = EXCLUDED.status,
                     after_evidence_group_id = EXCLUDED.after_evidence_group_id,
                     completed_at = EXCLUDED.completed_at,
                     completed_by_user_id = EXCLUDED.completed_by_user_id,
@@ -78,13 +80,125 @@ public class JdbcServiceRequestRepositoryAdapter implements ServiceRequestReposi
     }
 
     @Override
-    public boolean existsSubmittedByPassportId(String passportId) {
+    public boolean existsOpenByPassportId(String passportId) {
         Integer count = jdbcTemplate.queryForObject(
-            "SELECT COUNT(1) FROM workflow_service_requests WHERE passport_id = ? AND status = 'SUBMITTED'",
+            """
+                SELECT COUNT(1) FROM workflow_service_requests
+                WHERE passport_id = ?
+                  AND status IN ('PENDING', 'ACCEPTED')
+            """,
             Integer.class,
             passportId
         );
         return count != null && count > 0;
+    }
+
+    @Override
+    public List<ServiceRequest> findByOwnerUserId(String ownerUserId, ServiceRequestStatus status, int page, int size) {
+        int safePage = Math.max(page, 0);
+        int safeSize = Math.max(size, 1);
+        int offset = safePage * safeSize;
+        if (status == null) {
+            return jdbcTemplate.query(
+                """
+                    SELECT * FROM workflow_service_requests
+                    WHERE owner_user_id = ?
+                    ORDER BY created_at DESC
+                    LIMIT ? OFFSET ?
+                """,
+                (rs, rowNum) -> mapServiceRequest(rs),
+                ownerUserId,
+                safeSize,
+                offset
+            );
+        }
+        return jdbcTemplate.query(
+            """
+                SELECT * FROM workflow_service_requests
+                WHERE owner_user_id = ?
+                  AND status = ?
+                ORDER BY created_at DESC
+                LIMIT ? OFFSET ?
+            """,
+            (rs, rowNum) -> mapServiceRequest(rs),
+            ownerUserId,
+            status.name(),
+            safeSize,
+            offset
+        );
+    }
+
+    @Override
+    public long countByOwnerUserId(String ownerUserId, ServiceRequestStatus status) {
+        if (status == null) {
+            Long count = jdbcTemplate.queryForObject(
+                "SELECT COUNT(1) FROM workflow_service_requests WHERE owner_user_id = ?",
+                Long.class,
+                ownerUserId
+            );
+            return count == null ? 0L : count;
+        }
+        Long count = jdbcTemplate.queryForObject(
+            "SELECT COUNT(1) FROM workflow_service_requests WHERE owner_user_id = ? AND status = ?",
+            Long.class,
+            ownerUserId,
+            status.name()
+        );
+        return count == null ? 0L : count;
+    }
+
+    @Override
+    public List<ServiceRequest> findByProviderTenantId(String providerTenantId, ServiceRequestStatus status, int page, int size) {
+        int safePage = Math.max(page, 0);
+        int safeSize = Math.max(size, 1);
+        int offset = safePage * safeSize;
+        if (status == null) {
+            return jdbcTemplate.query(
+                """
+                    SELECT * FROM workflow_service_requests
+                    WHERE provider_tenant_id = ?
+                    ORDER BY created_at DESC
+                    LIMIT ? OFFSET ?
+                """,
+                (rs, rowNum) -> mapServiceRequest(rs),
+                providerTenantId,
+                safeSize,
+                offset
+            );
+        }
+        return jdbcTemplate.query(
+            """
+                SELECT * FROM workflow_service_requests
+                WHERE provider_tenant_id = ?
+                  AND status = ?
+                ORDER BY created_at DESC
+                LIMIT ? OFFSET ?
+            """,
+            (rs, rowNum) -> mapServiceRequest(rs),
+            providerTenantId,
+            status.name(),
+            safeSize,
+            offset
+        );
+    }
+
+    @Override
+    public long countByProviderTenantId(String providerTenantId, ServiceRequestStatus status) {
+        if (status == null) {
+            Long count = jdbcTemplate.queryForObject(
+                "SELECT COUNT(1) FROM workflow_service_requests WHERE provider_tenant_id = ?",
+                Long.class,
+                providerTenantId
+            );
+            return count == null ? 0L : count;
+        }
+        Long count = jdbcTemplate.queryForObject(
+            "SELECT COUNT(1) FROM workflow_service_requests WHERE provider_tenant_id = ? AND status = ?",
+            Long.class,
+            providerTenantId,
+            status.name()
+        );
+        return count == null ? 0L : count;
     }
 
     private ServiceRequest mapServiceRequest(ResultSet rs) throws SQLException {

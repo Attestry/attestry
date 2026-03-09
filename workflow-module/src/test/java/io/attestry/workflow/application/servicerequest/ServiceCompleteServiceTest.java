@@ -11,11 +11,11 @@ import static org.mockito.Mockito.when;
 
 import io.attestry.userauth.domain.identity.model.VerificationLevel;
 import io.attestry.userauth.security.AuthPrincipal;
-import io.attestry.workflow.application.port.WorkflowLedgerOutboxPort;
 import io.attestry.workflow.application.port.ServicePermissionPort;
 import io.attestry.workflow.application.port.ServiceProductReadPort;
 import io.attestry.workflow.application.port.ServiceProductReadPort.ServicePassportState;
 import io.attestry.workflow.application.port.WorkflowEvidencePort;
+import io.attestry.workflow.application.port.WorkflowLedgerOutboxPort;
 import io.attestry.workflow.application.servicerequest.command.CompleteServiceRequestCommand;
 import io.attestry.workflow.application.servicerequest.result.CompleteServiceRequestResult;
 import io.attestry.workflow.application.shipment.result.WorkflowLedgerEventEnvelope;
@@ -67,14 +67,14 @@ class ServiceCompleteServiceTest {
 
     @Test
     void complete_success() {
-        ServiceRequest submitted = ServiceRequest.submit(
+        ServiceRequest accepted = ServiceRequest.submit(
             "sr1", "p1", "REPAIR", "owner1",
-            "provT1", "desc", "beforeEg", "perm1", "provider1", SUBMITTED_AT, SUBMITTED_AT
-        );
+            "provT1", "desc", "beforeEg", "perm1", "owner1", SUBMITTED_AT, SUBMITTED_AT
+        ).accept("REPAIR", "desc", Instant.parse("2026-03-01T09:30:00Z"));
 
         doNothing().when(authorizationSupport).assertTenantContext(any(), anyString());
         doNothing().when(authorizationSupport).assertLivePermission(any(), anyString(), anyString(), anyString());
-        when(serviceRequestRepository.findById("sr1")).thenReturn(Optional.of(submitted));
+        when(serviceRequestRepository.findById("sr1")).thenReturn(Optional.of(accepted));
         when(serviceProductReadPort.findPassportState("p1"))
             .thenReturn(Optional.of(new ServicePassportState("p1", "t1", "ACTIVE", "NONE")));
         when(servicePermissionPort.hasActiveServiceRepairPermission("p1", "provT1")).thenReturn(true);
@@ -109,14 +109,14 @@ class ServiceCompleteServiceTest {
 
     @Test
     void complete_wrongTenant_throws() {
-        ServiceRequest submitted = ServiceRequest.submit(
+        ServiceRequest accepted = ServiceRequest.submit(
             "sr1", "p1", "REPAIR", "owner1",
-            "otherTenant", "desc", null, null, "provider1", SUBMITTED_AT, SUBMITTED_AT
-        );
+            "otherTenant", "desc", null, null, "owner1", SUBMITTED_AT, SUBMITTED_AT
+        ).accept("REPAIR", "desc", Instant.parse("2026-03-01T09:30:00Z"));
 
         doNothing().when(authorizationSupport).assertTenantContext(any(), anyString());
         doNothing().when(authorizationSupport).assertLivePermission(any(), anyString(), anyString(), anyString());
-        when(serviceRequestRepository.findById("sr1")).thenReturn(Optional.of(submitted));
+        when(serviceRequestRepository.findById("sr1")).thenReturn(Optional.of(accepted));
 
         WorkflowDomainException ex = assertThrows(WorkflowDomainException.class, () ->
             service.complete(PROVIDER, "provT1", "sr1", new CompleteServiceRequestCommand(null, null))
@@ -126,14 +126,14 @@ class ServiceCompleteServiceTest {
 
     @Test
     void complete_noPermission_throws() {
-        ServiceRequest submitted = ServiceRequest.submit(
+        ServiceRequest accepted = ServiceRequest.submit(
             "sr1", "p1", "REPAIR", "owner1",
-            "provT1", "desc", null, null, "provider1", SUBMITTED_AT, SUBMITTED_AT
-        );
+            "provT1", "desc", null, null, "owner1", SUBMITTED_AT, SUBMITTED_AT
+        ).accept("REPAIR", "desc", Instant.parse("2026-03-01T09:30:00Z"));
 
         doNothing().when(authorizationSupport).assertTenantContext(any(), anyString());
         doNothing().when(authorizationSupport).assertLivePermission(any(), anyString(), anyString(), anyString());
-        when(serviceRequestRepository.findById("sr1")).thenReturn(Optional.of(submitted));
+        when(serviceRequestRepository.findById("sr1")).thenReturn(Optional.of(accepted));
         when(serviceProductReadPort.findPassportState("p1"))
             .thenReturn(Optional.of(new ServicePassportState("p1", "t1", "ACTIVE", "NONE")));
         when(servicePermissionPort.hasActiveServiceRepairPermission("p1", "provT1")).thenReturn(false);
