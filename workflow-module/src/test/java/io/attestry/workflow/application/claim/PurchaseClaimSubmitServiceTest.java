@@ -6,7 +6,7 @@ import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.Mockito.when;
 
-import io.attestry.userauth.application.port.ObjectStoragePort;
+import io.attestry.commonlib.application.port.ObjectStoragePort;
 import io.attestry.userauth.domain.identity.model.VerificationLevel;
 import io.attestry.userauth.security.AuthPrincipal;
 import io.attestry.workflow.application.claim.command.SubmitPurchaseClaimCommand;

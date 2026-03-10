@@ -1,38 +1,34 @@
 package io.attestry.userauth.application.onboarding;
 
-import io.attestry.userauth.application.port.MembershipProvisioningRepositoryPort;
-import io.attestry.userauth.application.port.TemplateAdminRepositoryPort;
-import io.attestry.userauth.domain.authorization.model.RoleCodes;
-import io.attestry.userauth.domain.authorization.policy.SystemPermissionTemplateCatalog;
+import io.attestry.userauth.application.port.MembershipPort;
+import io.attestry.userauth.application.port.TenantRoleTemplateBindingPort;
+import io.attestry.userauth.application.port.TenantRepositoryPort;
 import io.attestry.userauth.domain.membership.model.Membership;
 import io.attestry.userauth.domain.membership.model.MembershipRole;
-import io.attestry.userauth.domain.organization.model.TenantType;
-import io.attestry.userauth.domain.organization.model.Tenant;
-import io.attestry.userauth.domain.organization.model.TenantStatus;
-import io.attestry.userauth.domain.organization.repository.TenantRepository;
+import io.attestry.userauth.domain.membership.policy.DefaultMembershipRolePolicy;
+import io.attestry.userauth.domain.onboarding.policy.OnboardingTemplateBindingPolicy;
+import io.attestry.userauth.domain.tenant.model.Tenant;
+import io.attestry.userauth.domain.tenant.model.TenantType;
+import io.attestry.userauth.domain.tenant.model.TenantStatus;
+import jakarta.persistence.EntityManager;
 import java.time.Clock;
 import java.time.Instant;
-import org.springframework.stereotype.Component;
+import java.util.List;
 
-@Component
+import lombok.RequiredArgsConstructor;
+import org.springframework.stereotype.Service;
+
+@RequiredArgsConstructor
+@Service
 public class OnboardingProvisioningService {
 
-    private final TenantRepository tenantRepository;
-    private final MembershipProvisioningRepositoryPort membershipProvisioningRepository;
-    private final TemplateAdminRepositoryPort templateAdminRepository;
+    private final TenantRepositoryPort tenantRepository;
+    private final MembershipPort membershipPort;
+    private final TenantRoleTemplateBindingPort tenantRoleTemplateBindingPort;
+    private final OnboardingTemplateBindingPolicy templateBindingPolicy = new OnboardingTemplateBindingPolicy();
     private final Clock clock;
+    private final EntityManager entityManager;
 
-    public OnboardingProvisioningService(
-        TenantRepository tenantRepository,
-        MembershipProvisioningRepositoryPort membershipProvisioningRepository,
-        TemplateAdminRepositoryPort templateAdminRepository,
-        Clock clock
-    ) {
-        this.tenantRepository = tenantRepository;
-        this.membershipProvisioningRepository = membershipProvisioningRepository;
-        this.templateAdminRepository = templateAdminRepository;
-        this.clock = clock;
-    }
 
     public ProvisioningResult provision(
         TenantType type,
@@ -50,60 +46,28 @@ public class OnboardingProvisioningService {
             type, MembershipRole.ADMIN,
             TenantStatus.ACTIVE
         );
-        membershipProvisioningRepository.save(membership);
-        membershipProvisioningRepository.assignRole(membership.membershipId(), RoleCodes.TENANT_OWNER, actorUserId);
-        Instant now = Instant.now(clock);
+        membershipPort.save(membership);
 
-        templateAdminRepository.bindTemplateToTenantRole(
-            tenant.tenantId(),
-            RoleCodes.TENANT_OWNER,
-            SystemPermissionTemplateCatalog.TEMPLATE_TENANT_OWNER_CORE,
-            actorUserId,
-            now
-        );
-        templateAdminRepository.bindTemplateToTenantRole(
-            tenant.tenantId(),
-            RoleCodes.TENANT_OWNER,
-            SystemPermissionTemplateCatalog.TEMPLATE_TENANT_READ_ONLY,
-            actorUserId,
-            now
-        );
-        templateAdminRepository.bindTemplateToTenantRole(
-            tenant.tenantId(),
-            RoleCodes.TENANT_OPERATOR,
-            SystemPermissionTemplateCatalog.TEMPLATE_TENANT_READ_ONLY,
-            actorUserId,
-            now
-        );
-        bindDefaultOperatorWorkTemplate(tenant.tenantId(), type, actorUserId, now);
-        templateAdminRepository.bindTemplateToTenantRole(
-            tenant.tenantId(),
-            RoleCodes.TENANT_STAFF,
-            SystemPermissionTemplateCatalog.TEMPLATE_TENANT_READ_ONLY,
-            actorUserId,
-            now
-        );
+        String roleCode = DefaultMembershipRolePolicy.resolveGlobalRoleCode(membership.role(), membership.groupType());
+        membershipPort.assignRole(membership.membershipId(), roleCode, actorUserId);
+        entityManager.flush();
+
+        applyTemplateBindings(tenant.tenantId(), type, actorUserId, Instant.now(clock));
 
         return new ProvisioningResult(tenant.tenantId(), membership.membershipId());
     }
 
-    private void bindDefaultOperatorWorkTemplate(String tenantId, TenantType type, String actorUserId, Instant now) {
-        String templateCode = switch (type) {
-            case BRAND -> SystemPermissionTemplateCatalog.TEMPLATE_BRAND_WORK;
-            case RETAIL -> SystemPermissionTemplateCatalog.TEMPLATE_RETAIL_WORK;
-            case SERVICE -> SystemPermissionTemplateCatalog.TEMPLATE_SERVICE_WORK;
-            default -> null;
-        };
-        if (templateCode == null) {
-            return;
+    private void applyTemplateBindings(String tenantId, TenantType type, String actorUserId, Instant now) {
+        List<OnboardingTemplateBindingPolicy.TemplateBindingRule> rules = templateBindingPolicy.resolveDefaultBindings(type);
+        for (OnboardingTemplateBindingPolicy.TemplateBindingRule rule : rules) {
+            tenantRoleTemplateBindingPort.bindTemplateToTenantRole(
+                tenantId,
+                rule.roleCode(),
+                rule.templateCode(),
+                actorUserId,
+                now
+            );
         }
-        templateAdminRepository.bindTemplateToTenantRole(
-            tenantId,
-            RoleCodes.TENANT_OPERATOR,
-            templateCode,
-            actorUserId,
-            now
-        );
     }
 
     public record ProvisioningResult(String tenantId, String membershipId) {}

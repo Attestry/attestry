@@ -1,6 +1,6 @@
 package io.attestry.workflow.application.servicerequest;
 
-import io.attestry.userauth.application.port.ObjectStoragePort;
+import io.attestry.commonlib.application.port.ObjectStoragePort;
 import io.attestry.userauth.domain.authorization.model.PermissionCodes;
 import io.attestry.userauth.security.AuthPrincipal;
 import io.attestry.workflow.application.port.WorkflowEvidencePort;

@@ -2,14 +2,14 @@ package io.attestry.userauth.application.onboarding;
 
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
-import io.attestry.userauth.application.port.MembershipProvisioningRepositoryPort;
-import io.attestry.userauth.application.port.TemplateAdminRepositoryPort;
+import io.attestry.userauth.application.port.MembershipPort;
+import io.attestry.userauth.application.port.TenantRepositoryPort;
+import io.attestry.userauth.application.port.TenantRoleTemplateBindingPort;
 import io.attestry.userauth.domain.authorization.model.RoleCodes;
 import io.attestry.userauth.domain.authorization.policy.SystemPermissionTemplateCatalog;
 import io.attestry.userauth.domain.membership.model.Membership;
-import io.attestry.userauth.domain.organization.model.Tenant;
-import io.attestry.userauth.domain.organization.model.TenantType;
-import io.attestry.userauth.domain.organization.repository.TenantRepository;
+import io.attestry.userauth.domain.tenant.model.Tenant;
+import io.attestry.userauth.domain.tenant.model.TenantType;
 import java.time.Clock;
 import java.time.Instant;
 import java.time.ZoneOffset;
@@ -20,21 +20,29 @@ import java.util.Map;
 import java.util.Optional;
 import java.util.Set;
 import java.util.UUID;
+import jakarta.persistence.EntityManager;
 import org.junit.jupiter.api.Test;
+import org.springframework.data.domain.Page;
+import org.springframework.data.domain.PageImpl;
+import org.springframework.data.domain.Pageable;
 
 class OnboardingProvisioningServiceTest {
 
     private final InMemoryTenantRepository tenantRepository = new InMemoryTenantRepository();
-    private final NoopMembershipProvisioningRepository membershipProvisioningRepository =
-        new NoopMembershipProvisioningRepository();
-    private final RecordingTemplateAdminRepository templateRepository = new RecordingTemplateAdminRepository();
+    private final NoopMembershipRepository membershipRepository = new NoopMembershipRepository();
+    private final RecordingTenantRoleTemplateBindingPort templateRepository = new RecordingTenantRoleTemplateBindingPort();
     private final Clock clock = Clock.fixed(Instant.parse("2026-03-06T00:00:00Z"), ZoneOffset.UTC);
 
     private final OnboardingProvisioningService service = new OnboardingProvisioningService(
         tenantRepository,
-        membershipProvisioningRepository,
+        membershipRepository,
         templateRepository,
-        clock
+        clock,
+        (EntityManager) java.lang.reflect.Proxy.newProxyInstance(
+            EntityManager.class.getClassLoader(),
+            new Class[]{EntityManager.class},
+            (proxy, method, args) -> null
+        )
     );
 
     @Test
@@ -91,7 +99,7 @@ class OnboardingProvisioningServiceTest {
         );
     }
 
-    private static class InMemoryTenantRepository implements TenantRepository {
+    private static class InMemoryTenantRepository implements TenantRepositoryPort {
         private final Map<String, Tenant> byTenantId = new HashMap<>();
 
         @Override
@@ -104,21 +112,63 @@ class OnboardingProvisioningServiceTest {
         public Optional<Tenant> findById(String tenantId) {
             return Optional.ofNullable(byTenantId.get(tenantId));
         }
+
+        @Override
+        public Page<Tenant> findPage(
+                io.attestry.userauth.domain.tenant.model.TenantType type,
+                io.attestry.userauth.domain.tenant.model.TenantStatus status,
+                Pageable pageable) {
+            return new PageImpl<>(List.of());
+        }
     }
 
-    private static class NoopMembershipProvisioningRepository implements MembershipProvisioningRepositoryPort {
+    private static class NoopMembershipRepository implements MembershipPort {
         @Override
-        public Membership save(Membership membership) {
-            return membership;
+        public Optional<Membership> findById(String membershipId) { return Optional.empty(); }
+
+        @Override
+        public Membership save(Membership membership) { return membership; }
+
+        @Override
+        public List<Membership> findByUserId(String userId) { return List.of(); }
+
+        @Override
+        public Optional<Membership> findByUserIdAndTenantId(String userId, String tenantId) { return Optional.empty(); }
+
+        @Override
+        public List<Membership> findByTenantId(String tenantId) { return List.of(); }
+
+        @Override
+        public List<Membership> findMembershipsByTenantId(String tenantId) { return List.of(); }
+
+        @Override
+        public Optional<Membership> findMembershipById(String membershipId) { return Optional.empty(); }
+
+        @Override
+        public Membership updateMembership(
+                String tenantId,
+                String membershipId,
+                io.attestry.userauth.domain.membership.model.MembershipRole role,
+                io.attestry.userauth.domain.membership.model.MembershipStatus status) {
+            return null;
         }
 
         @Override
         public void assignRole(String membershipId, String roleCode, String assignedByUserId) {
             // no-op for this test
         }
+
+        @Override
+        public void deletePermissionOverrides(String membershipId, Set<String> permissionCodes) {}
+
+        @Override
+        public Set<String> applyPermissionTemplateToMembership(String membershipId, String templateCode, String reason, String actorUserId, Instant now) { return Set.of(); }
+
+        @Override
+        public Set<String> revokePermissionTemplateFromMembership(String membershipId, String templateCode) { return Set.of(); }
     }
 
-    private static class RecordingTemplateAdminRepository implements TemplateAdminRepositoryPort {
+    private static class RecordingTenantRoleTemplateBindingPort implements TenantRoleTemplateBindingPort {
         private final List<TenantRoleTemplateBindingView> bindings = new ArrayList<>();
 
         @Override
@@ -145,86 +195,6 @@ class OnboardingProvisioningServiceTest {
             return bindings.stream()
                 .filter(binding -> binding.tenantId().equals(tenantId))
                 .toList();
-        }
-
-        @Override
-        public Optional<PermissionTemplateView> findTemplateByCode(String templateCode) {
-            throw new UnsupportedOperationException();
-        }
-
-        @Override
-        public Optional<PermissionTemplateView> findTemplateByCodeAndTenantId(String templateCode, String tenantId) {
-            throw new UnsupportedOperationException();
-        }
-
-        @Override
-        public Optional<PermissionTemplateView> findTemplateVisibleToTenant(String templateCode, String tenantId) {
-            throw new UnsupportedOperationException();
-        }
-
-        @Override
-        public List<PermissionTemplateView> findAllTemplates() {
-            throw new UnsupportedOperationException();
-        }
-
-        @Override
-        public List<PermissionTemplateView> findTemplatesVisibleToTenant(String tenantId) {
-            throw new UnsupportedOperationException();
-        }
-
-        @Override
-        public PermissionTemplateView createTemplate(
-            String code,
-            String name,
-            String description,
-            String tenantId,
-            String actorUserId,
-            Instant now
-        ) {
-            throw new UnsupportedOperationException();
-        }
-
-        @Override
-        public PermissionTemplateView updateTemplateMeta(
-            String code,
-            String tenantId,
-            String name,
-            String description,
-            Boolean enabled,
-            Instant now
-        ) {
-            throw new UnsupportedOperationException();
-        }
-
-        @Override
-        public PermissionView createPermission(
-            String code,
-            String name,
-            String description,
-            String resourceType,
-            String action
-        ) {
-            throw new UnsupportedOperationException();
-        }
-
-        @Override
-        public List<PermissionView> findAllPermissions() {
-            throw new UnsupportedOperationException();
-        }
-
-        @Override
-        public Set<String> replaceTemplatePermissions(String templateCode, String tenantId, Set<String> permissionCodes) {
-            throw new UnsupportedOperationException();
-        }
-
-        @Override
-        public Set<String> addTemplatePermissions(String templateCode, String tenantId, Set<String> permissionCodes) {
-            throw new UnsupportedOperationException();
-        }
-
-        @Override
-        public Set<String> removeTemplatePermission(String templateCode, String tenantId, String permissionCode) {
-            throw new UnsupportedOperationException();
         }
 
         @Override

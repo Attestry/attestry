@@ -1,6 +1,6 @@
 package io.attestry.storage;
 
-import io.attestry.userauth.application.port.ObjectStoragePort;
+import io.attestry.commonlib.application.port.ObjectStoragePort;
 import org.springframework.boot.context.properties.EnableConfigurationProperties;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;

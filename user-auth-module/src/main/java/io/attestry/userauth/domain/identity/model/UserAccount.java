@@ -1,12 +1,13 @@
 package io.attestry.userauth.domain.identity.model;
 
-import io.attestry.userauth.common.error.DomainException;
-import io.attestry.userauth.common.error.ErrorCode;
+import io.attestry.commonlib.domain.AggregateRoot;
+import io.attestry.userauth.domain.UserAuthErrorCode;
+import io.attestry.userauth.domain.UserAuthDomainException;
 import io.attestry.userauth.domain.identity.policy.PasswordMatcher;
 
 import java.util.UUID;
 
-public class UserAccount {
+public class UserAccount extends AggregateRoot {
 
     private final String userId;
     private final Email email;
@@ -46,20 +47,40 @@ public class UserAccount {
 
     private static void validateRegister(String passwordHash) {
         if (passwordHash == null || passwordHash.isBlank()) {
-            throw new DomainException(ErrorCode.INVALID_CREDENTIALS, "Password hash is required");
+            throw new UserAuthDomainException(UserAuthErrorCode.INVALID_CREDENTIALS, "Password hash is required");
         }
     }
 
     public void updatePhone(String phone) {
-        this.phone = phone;
+        if (phone == null) {
+            this.phone = null;
+            return;
+        }
+
+        String normalizedPhone = phone.trim();
+        this.phone = normalizedPhone.isBlank() ? null : normalizedPhone;
     }
 
     public void changePassword(String currentRawPassword, String newPasswordHash, PasswordMatcher matcher) {
+        if (currentRawPassword == null || currentRawPassword.isBlank()) {
+            throw new UserAuthDomainException(UserAuthErrorCode.INVALID_CREDENTIALS, "Current password is required to change password");
+        }
         assertPasswordMatches(currentRawPassword, matcher);
         if (newPasswordHash == null || newPasswordHash.isBlank()) {
-            throw new DomainException(ErrorCode.INVALID_CREDENTIALS, "New password hash is required");
+            throw new UserAuthDomainException(UserAuthErrorCode.INVALID_CREDENTIALS, "New password hash is required");
         }
         this.passwordHash = newPasswordHash;
+    }
+
+    public void updateProfile(String phone, String currentRawPassword,
+                              String newPasswordHash, PasswordMatcher matcher) {
+        checkActiveStatus();
+        if (phone != null) {
+            updatePhone(phone);
+        }
+        if (newPasswordHash != null) {
+            changePassword(currentRawPassword, newPasswordHash, matcher);
+        }
     }
 
     public void verifyPhone() {
@@ -67,15 +88,12 @@ public class UserAccount {
     }
 
     public void checkActiveStatus() {
-        if (status != UserStatus.ACTIVE) {
-            throw new DomainException(ErrorCode.USER_SUSPENDED, "User is suspended");
-        }
+        if (status != UserStatus.ACTIVE) throw new UserAuthDomainException(UserAuthErrorCode.USER_SUSPENDED, "User is suspended");
+
     }
 
     public void assertPasswordMatches(String rawPassword, PasswordMatcher matcher) {
-        if (!matcher.matches(rawPassword, passwordHash)) {
-            throw new DomainException(ErrorCode.INVALID_CREDENTIALS, "Invalid credentials");
-        }
+        if (!matcher.matches(rawPassword, passwordHash)) throw new UserAuthDomainException(UserAuthErrorCode.INVALID_CREDENTIALS, "Invalid credentials");
     }
 
     public boolean isActive() {

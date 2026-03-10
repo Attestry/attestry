@@ -1,8 +1,10 @@
 package io.attestry.userauth.domain.onboarding.model;
 
-import io.attestry.userauth.common.error.DomainException;
-import io.attestry.userauth.common.error.ErrorCode;
-import io.attestry.userauth.domain.organization.model.TenantType;
+import io.attestry.commonlib.domain.exception.DomainException;
+import io.attestry.commonlib.domain.exception.ErrorCode;
+import io.attestry.userauth.domain.UserAuthDomainException;
+import io.attestry.userauth.domain.UserAuthErrorCode;
+import io.attestry.userauth.domain.tenant.model.TenantType;
 import java.time.Instant;
 import java.util.UUID;
 
@@ -41,7 +43,8 @@ public class OrganizationApplication {
         this.rejectReason = rejectReason;
     }
 
-    public static OrganizationApplication createBrand(
+    public static OrganizationApplication create(
+            TenantType type,
             String applicantUserId,
             String orgName,
             String country,
@@ -51,56 +54,7 @@ public class OrganizationApplication {
         validateEvidenceBundleId(evidenceBundleId);
         return new OrganizationApplication(
                 UUID.randomUUID().toString(),
-                TenantType.BRAND,
-                applicantUserId,
-                null,
-                orgName,
-                country,
-                address,
-                bizRegNo,
-                evidenceBundleId,
-                ApplicationStatus.PENDING,
-                null,
-                null,
-                null);
-    }
-
-    public static OrganizationApplication createService(
-            String applicantUserId,
-            String orgName,
-            String country,
-            String address,
-            String bizRegNo,
-            String evidenceBundleId) {
-        validateEvidenceBundleId(evidenceBundleId);
-        validateAddress(address);
-        return new OrganizationApplication(
-                UUID.randomUUID().toString(),
-                TenantType.SERVICE,
-                applicantUserId,
-                null,
-                orgName,
-                country,
-                address,
-                bizRegNo,
-                evidenceBundleId,
-                ApplicationStatus.PENDING,
-                null,
-                null,
-                null);
-    }
-
-    public static OrganizationApplication createRetail(
-            String applicantUserId,
-            String orgName,
-            String country,
-            String address,
-            String bizRegNo,
-            String evidenceBundleId) {
-        validateEvidenceBundleId(evidenceBundleId);
-        return new OrganizationApplication(
-                UUID.randomUUID().toString(),
-                TenantType.RETAIL,
+                type,
                 applicantUserId,
                 null,
                 orgName,
@@ -142,13 +96,13 @@ public class OrganizationApplication {
 
     public void assertPending() {
         if (status != ApplicationStatus.PENDING) {
-            throw new DomainException(ErrorCode.INVALID_APPLICATION_STATE, "Application is not pending");
+            throw new UserAuthDomainException(UserAuthErrorCode.INVALID_APPLICATION_STATE, "Application is not pending");
         }
     }
 
     private static void validateEvidenceBundleId(String evidenceBundleId) {
         if (evidenceBundleId == null || evidenceBundleId.isBlank()) {
-            throw new DomainException(ErrorCode.INVALID_APPLICATION_STATE, "Evidence bundle id is required");
+            throw new UserAuthDomainException(UserAuthErrorCode.INVALID_APPLICATION_STATE, "Evidence bundle id is required");
         }
     }
 

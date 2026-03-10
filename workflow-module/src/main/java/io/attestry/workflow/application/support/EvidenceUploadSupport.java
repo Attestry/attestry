@@ -1,6 +1,6 @@
 package io.attestry.workflow.application.support;
 
-import io.attestry.userauth.application.port.ObjectStoragePort;
+import io.attestry.commonlib.application.port.ObjectStoragePort;
 import io.attestry.workflow.application.port.WorkflowEvidencePort;
 import io.attestry.workflow.application.shipment.result.PresignedEvidenceUploadResult;
 import io.attestry.workflow.application.shipment.result.EvidenceCompleteResult;

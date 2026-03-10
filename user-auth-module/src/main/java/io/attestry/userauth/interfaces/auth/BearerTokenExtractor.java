@@ -1,8 +1,7 @@
 package io.attestry.userauth.interfaces.auth;
 
-import io.attestry.userauth.common.error.DomainException;
-import io.attestry.userauth.common.error.ErrorCode;
-
+import io.attestry.userauth.domain.UserAuthErrorCode;
+import io.attestry.userauth.domain.UserAuthDomainException;
 public final class BearerTokenExtractor {
 
     private static final String PREFIX = "Bearer ";
@@ -12,7 +11,7 @@ public final class BearerTokenExtractor {
 
     public static String extract(String authorizationHeader) {
         if (authorizationHeader == null || !authorizationHeader.startsWith(PREFIX)) {
-            throw new DomainException(ErrorCode.ACCESS_TOKEN_INVALID, "Bearer token is required");
+            throw new UserAuthDomainException(UserAuthErrorCode.ACCESS_TOKEN_INVALID, "Bearer token is required");
         }
         return authorizationHeader.substring(PREFIX.length()).trim();
     }

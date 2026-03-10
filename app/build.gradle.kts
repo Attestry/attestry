@@ -5,6 +5,7 @@ plugins {
 }
 
 dependencies {
+    implementation(project(":common-lib-module"))
     implementation(project(":user-auth-module"))
     implementation(project(":workflow-module"))
     implementation(project(":ledger-module"))
@@ -21,6 +22,7 @@ dependencies {
     implementation("com.fasterxml.jackson.datatype:jackson-datatype-jsr310")
     implementation("io.minio:minio:8.5.12")
     implementation("software.amazon.awssdk:s3:2.33.11")
+    implementation("software.amazon.awssdk:sqs:2.33.11")
     implementation("org.flywaydb:flyway-core")
     runtimeOnly("org.flywaydb:flyway-database-postgresql")
     runtimeOnly("org.postgresql:postgresql")

@@ -5,4 +5,8 @@ public record UpdateMyAccountCommand(
     String currentPassword,
     String newPassword
 ) {
+
+    public boolean hasPasswordChangeRequest() {
+        return newPassword != null && !newPassword.isBlank();
+    }
 }

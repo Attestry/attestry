@@ -12,7 +12,7 @@ POST {{baseUrl}}/auth/signup
 Content-Type: {{contentType}}
 
 {
-  "email": "user02@attestry.io",
+  "email": "user9@attestry.io",
   "password": "Password123!",
   "phone": "010-1234-5678"
 }
@@ -24,9 +24,8 @@ POST {{baseUrl}}/auth/login
 Content-Type: {{contentType}}
 
 {
-  "email": "test02@test.com",
-  "password": "Sd14jp021!",
-  "tenantId": null
+  "email": "user9@attestry.io",
+  "password": "Password123!"
 }
 
 > {%
@@ -42,7 +41,7 @@ POST {{baseUrl}}/auth/verify-phone
 Authorization: Bearer {{accessToken}}
 
 ### 5) Login (legacy path)
-POST {{baseUrl}}/api-v1/auth/login
+POST {{baseUrl}}/auth/login
 Content-Type: {{contentType}}
 
 {

@@ -12,10 +12,10 @@ import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.fasterxml.jackson.databind.node.ObjectNode;
 import io.attestry.userauth.application.port.PasswordHasherPort;
-import io.attestry.userauth.domain.organization.model.TenantType;
+import io.attestry.userauth.domain.tenant.model.TenantType;
 import io.attestry.userauth.domain.membership.model.MembershipRole;
 import io.attestry.userauth.domain.membership.model.MembershipStatus;
-import io.attestry.userauth.domain.organization.model.TenantStatus;
+import io.attestry.userauth.domain.tenant.model.TenantStatus;
 import io.attestry.userauth.domain.identity.model.UserStatus;
 import io.attestry.userauth.domain.identity.model.VerificationLevel;
 import io.attestry.userauth.infrastructure.persistence.jpa.entity.MembershipJpaEntity;
@@ -30,6 +30,7 @@ import io.attestry.userauth.infrastructure.persistence.jpa.repository.Organizati
 import io.attestry.userauth.infrastructure.persistence.jpa.repository.RoleAssignmentAuditJpaRepository;
 import io.attestry.userauth.infrastructure.persistence.jpa.repository.TenantJpaRepository;
 import io.attestry.userauth.infrastructure.persistence.jpa.repository.UserAccountJpaRepository;
+import io.attestry.userauth.infrastructure.persistence.jpa.repository.adapter.MembershipEffectivePermissionProjectionRefresher;
 import java.util.Map;
 import java.util.UUID;
 import java.time.Instant;
@@ -87,6 +88,9 @@ class UserAuthApiIntegrationTests {
     @Autowired
     private JdbcTemplate jdbcTemplate;
 
+    @Autowired
+    private MembershipEffectivePermissionProjectionRefresher permissionProjectionRefresher;
+
     @BeforeEach
     void initMockMvc() {
         clearData();
@@ -96,6 +100,7 @@ class UserAuthApiIntegrationTests {
     }
 
     private void clearData() {
+        jdbcTemplate.update("DELETE FROM membership_effective_permissions");
         jdbcTemplate.update("DELETE FROM tenant_role_template_bindings");
         roleAssignmentAuditRepository.deleteAll();
         membershipRoleAssignmentRepository.deleteAll();
@@ -128,8 +133,8 @@ class UserAuthApiIntegrationTests {
                     "evidenceBundleId", evidenceBundleId
                 ))))
             .andExpect(status().isCreated())
-            .andExpect(jsonPath("$.type").value("BRAND"))
-            .andExpect(jsonPath("$.status").value("PENDING"))
+            .andExpect(jsonPath("$.data.type").value("BRAND"))
+            .andExpect(jsonPath("$.data.status").value("PENDING"))
             .andReturn();
 
         String applicationId = readJson(created).get("applicationId").asText();
@@ -137,8 +142,8 @@ class UserAuthApiIntegrationTests {
         mockMvc.perform(get("/onboarding/applications/{id}", applicationId)
                 .header("Authorization", bearer(token)))
             .andExpect(status().isOk())
-            .andExpect(jsonPath("$.applicationId").value(applicationId))
-            .andExpect(jsonPath("$.orgName").value("Brand X"));
+            .andExpect(jsonPath("$.data.applicationId").value(applicationId))
+            .andExpect(jsonPath("$.data.orgName").value("Brand X"));
 
         org.assertj.core.api.Assertions.assertThat(organizationApplicationRepository.findById(applicationId)).isPresent();
     }
@@ -169,13 +174,10 @@ class UserAuthApiIntegrationTests {
             MembershipStatus.ACTIVE,
             TenantStatus.ACTIVE
         ));
-        membershipRoleAssignmentRepository.save(new io.attestry.userauth.infrastructure.persistence.jpa.entity.MembershipRoleAssignmentJpaEntity(
-            UUID.randomUUID().toString(),
+        assignRoleToMembership(
             membershipRepository.findByUserId(adminUserId).getFirst().getMembershipId(),
-            "role-platform-super-admin",
-            null,
-            Instant.now()
-        ));
+            "role-platform-super-admin"
+        );
 
         String membershipAdminUserId = UUID.randomUUID().toString();
         String membershipAdminEmail = "tenant-membership-admin@test.com";
@@ -196,13 +198,7 @@ class UserAuthApiIntegrationTests {
             MembershipStatus.ACTIVE,
             TenantStatus.ACTIVE
         ));
-        membershipRoleAssignmentRepository.save(new io.attestry.userauth.infrastructure.persistence.jpa.entity.MembershipRoleAssignmentJpaEntity(
-            UUID.randomUUID().toString(),
-            membershipAdminMembership.getMembershipId(),
-            "role-tenant-owner",
-            null,
-            Instant.now()
-        ));
+        assignRoleToMembership(membershipAdminMembership.getMembershipId(), "role-tenant-owner");
         bindTenantOwnerTemplate(tenantId, membershipAdminUserId);
 
         String applicantEmail = "retail-applicant@test.com";
@@ -225,12 +221,12 @@ class UserAuthApiIntegrationTests {
                     "evidenceBundleId", evidenceBundleId
                 ))))
             .andExpect(status().isCreated())
-            .andExpect(jsonPath("$.type").value("RETAIL"))
+            .andExpect(jsonPath("$.data.type").value("RETAIL"))
             .andReturn();
 
         String retailAppId = readJson(retailCreated).get("applicationId").asText();
 
-        MvcResult approved = mockMvc.perform(post("/admin/onboarding/applications/{id}/approve", retailAppId)
+        MvcResult approved = mockMvc.perform(post("/onboarding/applications/{id}/approve", retailAppId)
                 .header("Authorization", bearer(adminToken)))
             .andExpect(status().isOk())
             .andReturn();
@@ -259,7 +255,7 @@ class UserAuthApiIntegrationTests {
                     "role", "STAFF"
                 ))))
             .andExpect(status().isCreated())
-            .andExpect(jsonPath("$.status").value("PENDING"))
+            .andExpect(jsonPath("$.data.status").value("PENDING"))
             .andReturn();
 
         String invitationId = readJson(invitationCreated).get("invitationId").asText();
@@ -268,7 +264,7 @@ class UserAuthApiIntegrationTests {
         mockMvc.perform(post("/admin/invitations/{invitationId}/accept", invitationId)
                 .header("Authorization", bearer(inviteeToken)))
             .andExpect(status().isOk())
-            .andExpect(jsonPath("$.status").value("ACTIVE"));
+            .andExpect(jsonPath("$.data.status").value("ACTIVE"));
 
         mockMvc.perform(get("/admin/memberships")
                 .header("Authorization", bearer(retailAdminToken)))
@@ -305,13 +301,7 @@ class UserAuthApiIntegrationTests {
             MembershipStatus.ACTIVE,
             TenantStatus.ACTIVE
         ));
-        membershipRoleAssignmentRepository.save(new io.attestry.userauth.infrastructure.persistence.jpa.entity.MembershipRoleAssignmentJpaEntity(
-            UUID.randomUUID().toString(),
-            adminMembership.getMembershipId(),
-            "role-tenant-owner",
-            null,
-            Instant.now()
-        ));
+        assignRoleToMembership(adminMembership.getMembershipId(), "role-tenant-owner");
         bindTenantOwnerTemplate(tenantId, adminUserId);
 
         String inviteeEmail = "operator-invitee@test.com";
@@ -327,8 +317,8 @@ class UserAuthApiIntegrationTests {
                     "role", "OPERATOR"
                 ))))
             .andExpect(status().isCreated())
-            .andExpect(jsonPath("$.role").value("OPERATOR"))
-            .andExpect(jsonPath("$.status").value("PENDING"))
+            .andExpect(jsonPath("$.data.role").value("OPERATOR"))
+            .andExpect(jsonPath("$.data.status").value("PENDING"))
             .andReturn();
 
         String invitationId = readJson(invitationCreated).get("invitationId").asText();
@@ -337,9 +327,9 @@ class UserAuthApiIntegrationTests {
         mockMvc.perform(post("/admin/invitations/{invitationId}/accept", invitationId)
                 .header("Authorization", bearer(inviteeToken)))
             .andExpect(status().isOk())
-            .andExpect(jsonPath("$.status").value("ACTIVE"))
-            .andExpect(jsonPath("$.roleCodes").isArray())
-            .andExpect(jsonPath("$.roleCodes").value(org.hamcrest.Matchers.hasItem("TENANT_OPERATOR")));
+            .andExpect(jsonPath("$.data.status").value("ACTIVE"))
+            .andExpect(jsonPath("$.data.roleCodes").isArray())
+            .andExpect(jsonPath("$.data.roleCodes").value(org.hamcrest.Matchers.hasItem("TENANT_OPERATOR")));
 
         String inviteeUserId = userAccountRepository.findByEmail(inviteeEmail).orElseThrow().getUserId();
         MembershipJpaEntity inviteeMembership = membershipRepository
@@ -385,13 +375,10 @@ class UserAuthApiIntegrationTests {
             MembershipStatus.ACTIVE,
             TenantStatus.ACTIVE
         ));
-        membershipRoleAssignmentRepository.save(new io.attestry.userauth.infrastructure.persistence.jpa.entity.MembershipRoleAssignmentJpaEntity(
-            UUID.randomUUID().toString(),
+        assignRoleToMembership(
             membershipRepository.findByUserId(adminUserId).getFirst().getMembershipId(),
-            "role-tenant-owner",
-            null,
-            Instant.now()
-        ));
+            "role-tenant-owner"
+        );
         bindTenantOwnerTemplate(tenantId, adminUserId);
 
         MembershipJpaEntity targetMembership = membershipRepository.save(new MembershipJpaEntity(
@@ -409,8 +396,8 @@ class UserAuthApiIntegrationTests {
         mockMvc.perform(post("/admin/memberships/{id}/roles/{roleCode}",targetMembership.getMembershipId(), "TENANT_OPERATOR")
                 .header("Authorization", bearer(adminToken)))
             .andExpect(status().isOk())
-            .andExpect(jsonPath("$.membershipId").value(targetMembership.getMembershipId()))
-            .andExpect(jsonPath("$.roleCodes[?(@ == 'TENANT_OPERATOR')]").exists());
+            .andExpect(jsonPath("$.data.membershipId").value(targetMembership.getMembershipId()))
+            .andExpect(jsonPath("$.data.roleCodes[?(@ == 'TENANT_OPERATOR')]").exists());
 
         mockMvc.perform(patch("/admin/memberships/{id}/role",targetMembership.getMembershipId())
                 .header("Authorization", bearer(adminToken))
@@ -425,7 +412,7 @@ class UserAuthApiIntegrationTests {
                     "status", "SUSPENDED"
                 ))))
             .andExpect(status().isOk())
-            .andExpect(jsonPath("$.status").value("SUSPENDED"));
+            .andExpect(jsonPath("$.data.status").value("SUSPENDED"));
     }
 
     @Test
@@ -462,13 +449,7 @@ class UserAuthApiIntegrationTests {
             MembershipStatus.ACTIVE,
             TenantStatus.ACTIVE
         ));
-        membershipRoleAssignmentRepository.save(new io.attestry.userauth.infrastructure.persistence.jpa.entity.MembershipRoleAssignmentJpaEntity(
-            UUID.randomUUID().toString(),
-            adminMembership.getMembershipId(),
-            "role-tenant-owner",
-            null,
-            Instant.now()
-        ));
+        assignRoleToMembership(adminMembership.getMembershipId(), "role-tenant-owner");
         bindTenantOwnerTemplate(tenantId, adminUserId);
 
         MembershipJpaEntity targetMembership = membershipRepository.save(new MembershipJpaEntity(
@@ -480,32 +461,26 @@ class UserAuthApiIntegrationTests {
             MembershipStatus.ACTIVE,
             TenantStatus.ACTIVE
         ));
-        membershipRoleAssignmentRepository.save(new io.attestry.userauth.infrastructure.persistence.jpa.entity.MembershipRoleAssignmentJpaEntity(
-            UUID.randomUUID().toString(),
-            targetMembership.getMembershipId(),
-            "role-tenant-staff",
-            null,
-            Instant.now()
-        ));
+        assignRoleToMembership(targetMembership.getMembershipId(), "role-tenant-staff");
 
         String adminToken = login("assign-admin@test.com", "AdminPw123", tenantId);
 
         mockMvc.perform(post("/admin/memberships/{id}/roles/{roleCode}",targetMembership.getMembershipId(), "TENANT_OPERATOR")
                 .header("Authorization", bearer(adminToken)))
             .andExpect(status().isOk())
-            .andExpect(jsonPath("$.membershipId").value(targetMembership.getMembershipId()))
-            .andExpect(jsonPath("$.roleCodes").isArray())
-            .andExpect(jsonPath("$.roleCodes[?(@ == 'TENANT_OPERATOR')]").exists());
+            .andExpect(jsonPath("$.data.membershipId").value(targetMembership.getMembershipId()))
+            .andExpect(jsonPath("$.data.roleCodes").isArray())
+            .andExpect(jsonPath("$.data.roleCodes[?(@ == 'TENANT_OPERATOR')]").exists());
 
         mockMvc.perform(get("/admin/memberships/{id}/roles",targetMembership.getMembershipId())
                 .header("Authorization", bearer(adminToken)))
             .andExpect(status().isOk())
-            .andExpect(jsonPath("$.roleCodes[?(@ == 'TENANT_OPERATOR')]").exists());
+            .andExpect(jsonPath("$.data.roleCodes[?(@ == 'TENANT_OPERATOR')]").exists());
 
         mockMvc.perform(delete("/admin/memberships/{id}/roles/{roleCode}",targetMembership.getMembershipId(), "TENANT_OPERATOR")
                 .header("Authorization", bearer(adminToken)))
             .andExpect(status().isOk())
-            .andExpect(jsonPath("$.roleCodes[?(@ == 'TENANT_OPERATOR')]").doesNotExist());
+            .andExpect(jsonPath("$.data.roleCodes[?(@ == 'TENANT_OPERATOR')]").doesNotExist());
     }
 
     @Test
@@ -542,13 +517,7 @@ class UserAuthApiIntegrationTests {
             MembershipStatus.ACTIVE,
             TenantStatus.ACTIVE
         ));
-        membershipRoleAssignmentRepository.save(new io.attestry.userauth.infrastructure.persistence.jpa.entity.MembershipRoleAssignmentJpaEntity(
-            UUID.randomUUID().toString(),
-            adminMembership.getMembershipId(),
-            "role-tenant-owner",
-            null,
-            Instant.now()
-        ));
+        assignRoleToMembership(adminMembership.getMembershipId(), "role-tenant-owner");
         bindTenantOwnerTemplate(tenantId, adminUserId);
 
         MembershipJpaEntity targetMembership = membershipRepository.save(new MembershipJpaEntity(
@@ -566,9 +535,9 @@ class UserAuthApiIntegrationTests {
         mockMvc.perform(post("/admin/memberships/{id}/roles/{roleCode}",targetMembership.getMembershipId(), "TENANT_OWNER")
                 .header("Authorization", bearer(adminToken)))
             .andExpect(status().isOk())
-            .andExpect(jsonPath("$.membershipId").value(targetMembership.getMembershipId()))
-            .andExpect(jsonPath("$.roleCodes").isArray())
-            .andExpect(jsonPath("$.roleCodes").value(org.hamcrest.Matchers.hasItem("TENANT_OWNER")));
+            .andExpect(jsonPath("$.data.membershipId").value(targetMembership.getMembershipId()))
+            .andExpect(jsonPath("$.data.roleCodes").isArray())
+            .andExpect(jsonPath("$.data.roleCodes").value(org.hamcrest.Matchers.hasItem("TENANT_OWNER")));
     }
 
     private void signUp(String email, String password, String phone) throws Exception {
@@ -624,7 +593,7 @@ class UserAuthApiIntegrationTests {
                     "sizeBytes", 1024
                 ))))
             .andExpect(status().isOk())
-            .andExpect(jsonPath("$.status").value("READY"));
+            .andExpect(jsonPath("$.data.status").value("READY"));
 
         return evidenceBundleId;
     }
@@ -634,7 +603,9 @@ class UserAuthApiIntegrationTests {
     }
 
     private JsonNode readJson(MvcResult result) throws Exception {
-        return objectMapper.readTree(result.getResponse().getContentAsString());
+        JsonNode root = objectMapper.readTree(result.getResponse().getContentAsString());
+        JsonNode data = root.get("data");
+        return data != null && !data.isNull() ? data : root;
     }
 
     private String bearer(String token) {
@@ -669,5 +640,17 @@ class UserAuthApiIntegrationTests {
             actorUserId,
             tenantId
         );
+        permissionProjectionRefresher.refreshTenant(tenantId);
+    }
+
+    private void assignRoleToMembership(String membershipId, String roleId) {
+        membershipRoleAssignmentRepository.save(new io.attestry.userauth.infrastructure.persistence.jpa.entity.MembershipRoleAssignmentJpaEntity(
+            UUID.randomUUID().toString(),
+            membershipId,
+            roleId,
+            null,
+            Instant.now()
+        ));
+        permissionProjectionRefresher.refreshMembership(membershipId);
     }
 }

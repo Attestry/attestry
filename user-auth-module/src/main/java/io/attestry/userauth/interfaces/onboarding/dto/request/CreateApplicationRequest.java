@@ -1,12 +1,20 @@
 package io.attestry.userauth.interfaces.onboarding.dto.request;
 
+import jakarta.validation.constraints.NotBlank;
+
 //TODO("country는 enum으로 매핑 ")
 public record CreateApplicationRequest(
-    String type,
-    String orgName,
-    String country,
-    String address,
-    String bizRegNo,
-    String evidenceBundleId
+        @NotBlank(message = "type is required")
+        String type,
+        @NotBlank(message = "orgName is required")
+        String orgName,
+        @NotBlank(message = "country is required")
+        String country,
+        @NotBlank(message = "address is required")
+        String address,
+        @NotBlank(message = "bizRegNo is required")
+        String bizRegNo,
+        @NotBlank(message = "evidenceBundleId is required")
+        String evidenceBundleId
 ) {
 }

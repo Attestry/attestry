@@ -1,9 +1,9 @@
 package io.attestry.userauth.infrastructure.persistence.jpa.entity;
 
-import io.attestry.userauth.domain.organization.model.TenantType;
+import io.attestry.userauth.domain.tenant.model.TenantType;
 import io.attestry.userauth.domain.membership.model.MembershipRole;
 import io.attestry.userauth.domain.membership.model.MembershipStatus;
-import io.attestry.userauth.domain.organization.model.TenantStatus;
+import io.attestry.userauth.domain.tenant.model.TenantStatus;
 import jakarta.persistence.Column;
 import jakarta.persistence.Entity;
 import jakarta.persistence.EnumType;

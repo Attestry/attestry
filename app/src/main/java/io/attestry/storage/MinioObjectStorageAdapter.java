@@ -1,6 +1,6 @@
 package io.attestry.storage;
 
-import io.attestry.userauth.application.port.ObjectStoragePort;
+import io.attestry.commonlib.application.port.ObjectStoragePort;
 import io.minio.GetPresignedObjectUrlArgs;
 import io.minio.MinioClient;
 import io.minio.StatObjectArgs;

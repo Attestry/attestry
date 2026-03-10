@@ -3,8 +3,8 @@ package io.attestry.userauth.interfaces.auth;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertThrows;
 
-import io.attestry.userauth.common.error.DomainException;
-import io.attestry.userauth.common.error.ErrorCode;
+import io.attestry.userauth.domain.UserAuthDomainException;
+import io.attestry.userauth.domain.UserAuthErrorCode;
 import org.junit.jupiter.api.Test;
 
 class BearerTokenExtractorTest {
@@ -18,8 +18,8 @@ class BearerTokenExtractorTest {
 
     @Test
     void shouldRejectMissingBearerPrefix() {
-        DomainException ex = assertThrows(DomainException.class, () -> BearerTokenExtractor.extract("abc.def"));
+        UserAuthDomainException ex = assertThrows(UserAuthDomainException.class, () -> BearerTokenExtractor.extract("abc.def"));
 
-        assertEquals(ErrorCode.ACCESS_TOKEN_INVALID, ex.getErrorCode());
+        assertEquals(UserAuthErrorCode.ACCESS_TOKEN_INVALID, ex.getErrorCode());
     }
 }

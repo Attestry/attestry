@@ -7,6 +7,7 @@ import io.attestry.workflow.domain.partner.repository.PartnerLinkRepository;
 import io.attestry.workflow.domain.partner.model.PartnerLinkStatus;
 import io.attestry.workflow.domain.partner.model.PartnerType;
 import io.attestry.workflow.infrastructure.persistence.jpa.entity.PartnerLinkJpaEntity;
+import io.attestry.workflow.infrastructure.persistence.jpa.mapper.PartnerLinkMapper;
 import io.attestry.workflow.infrastructure.persistence.jpa.repository.PartnerLinkJpaRepository;
 import java.util.List;
 import java.util.Optional;
@@ -18,9 +19,11 @@ import org.springframework.stereotype.Repository;
 public class JpaPartnerLinkRepositoryAdapter implements PartnerLinkRepository {
 
     private final PartnerLinkJpaRepository repository;
+    private final PartnerLinkMapper mapper;
 
-    public JpaPartnerLinkRepositoryAdapter(PartnerLinkJpaRepository repository) {
+    public JpaPartnerLinkRepositoryAdapter(PartnerLinkJpaRepository repository, PartnerLinkMapper mapper) {
         this.repository = repository;
+        this.mapper = mapper;
     }
 
     @Override
@@ -29,7 +32,7 @@ public class JpaPartnerLinkRepositoryAdapter implements PartnerLinkRepository {
             long rowVersion = repository.findById(partnerLink.partnerLinkId())
                 .map(PartnerLinkJpaEntity::getRowVersion)
                 .orElse(0L);
-            return toDomain(repository.save(toEntity(partnerLink, rowVersion)));
+            return mapper.toDomain(repository.save(mapper.toEntity(partnerLink, rowVersion)));
         } catch (DataIntegrityViolationException ex) {
             if (isDuplicateStatusConstraint(ex)) {
                 throw new WorkflowDomainException(
@@ -43,12 +46,12 @@ public class JpaPartnerLinkRepositoryAdapter implements PartnerLinkRepository {
 
     @Override
     public Optional<PartnerLink> findById(String partnerLinkId) {
-        return repository.findById(partnerLinkId).map(this::toDomain);
+        return repository.findById(partnerLinkId).map(mapper::toDomain);
     }
 
     @Override
     public List<PartnerLink> findByTenantId(String tenantId) {
-        return repository.findBySourceTenantIdOrTargetTenantId(tenantId, tenantId).stream().map(this::toDomain).toList();
+        return repository.findBySourceTenantIdOrTargetTenantId(tenantId, tenantId).stream().map(mapper::toDomain).toList();
     }
 
     @Override
@@ -58,7 +61,7 @@ public class JpaPartnerLinkRepositoryAdapter implements PartnerLinkRepository {
             status,
             tenantId,
             status
-        ).stream().map(this::toDomain).toList();
+        ).stream().map(mapper::toDomain).toList();
     }
 
     @Override
@@ -73,41 +76,6 @@ public class JpaPartnerLinkRepositoryAdapter implements PartnerLinkRepository {
             targetTenantId,
             partnerType,
             status
-        );
-    }
-
-    private PartnerLink toDomain(PartnerLinkJpaEntity entity) {
-        return new PartnerLink(
-            entity.getPartnerLinkId(),
-            entity.getSourceTenantId(),
-            entity.getTargetTenantId(),
-            entity.getPartnerType(),
-            entity.getStatus(),
-            entity.getCreatedByUserId(),
-            entity.getCreatedAt(),
-            entity.getApprovedByUserId(),
-            entity.getApprovedAt(),
-            entity.getExpiresAt(),
-            entity.getTerminatedAt(),
-            entity.getReason()
-        );
-    }
-
-    private PartnerLinkJpaEntity toEntity(PartnerLink link, long rowVersion) {
-        return new PartnerLinkJpaEntity(
-            link.partnerLinkId(),
-            link.sourceTenantId(),
-            link.targetTenantId(),
-            link.partnerType(),
-            link.status(),
-            link.createdByUserId(),
-            link.createdAt(),
-            link.approvedByUserId(),
-            link.approvedAt(),
-            link.expiresAt(),
-            link.terminatedAt(),
-            link.reason(),
-            rowVersion
         );
     }
 

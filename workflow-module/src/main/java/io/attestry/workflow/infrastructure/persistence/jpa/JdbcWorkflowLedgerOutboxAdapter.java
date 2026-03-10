@@ -2,8 +2,8 @@ package io.attestry.workflow.infrastructure.persistence.jpa;
 
 import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.databind.ObjectMapper;
-import io.attestry.userauth.common.error.DomainException;
-import io.attestry.userauth.common.error.ErrorCode;
+import io.attestry.workflow.domain.WorkflowDomainException;
+import io.attestry.workflow.domain.WorkflowErrorCode;
 import io.attestry.workflow.application.port.WorkflowLedgerOutboxPort;
 import io.attestry.workflow.application.shipment.result.WorkflowLedgerEventEnvelope;
 import java.sql.Timestamp;
@@ -32,7 +32,7 @@ public class JdbcWorkflowLedgerOutboxAdapter implements WorkflowLedgerOutboxPort
         try {
             payload = objectMapper.writeValueAsString(event);
         } catch (JsonProcessingException ex) {
-            throw new DomainException(ErrorCode.INVALID_REQUEST, "Failed to serialize workflow ledger payload");
+            throw new WorkflowDomainException(WorkflowErrorCode.INVALID_REQUEST, "Failed to serialize workflow ledger payload");
         }
 
         String eventId = UUID.randomUUID().toString();

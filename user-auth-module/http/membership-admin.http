@@ -2,12 +2,12 @@
 
 @baseUrl = http://localhost:8080
 @contentType = application/json
-@accessToken = 51d955eb-0bf7-4f44-85ed-fe4a7983259e
-@membershipId = 905043f9-7f2a-4242-be41-8901260a926d
-@invitationId = db657136-44b1-4950-9161-03e6ad81bd2b
+@accessToken = 89dac529-8f6b-464a-acd8-f1acc16d1053
+@membershipId = 3e427b0a-0da3-4c8f-bd83-d2f349191543
+@invitationId = 93ef3de2-16bc-48e5-937d-34d34b129eda
 @roleCode = TENANT_OPERATOR
 @templateCode = TEMPLATE_BRAND_WORK
-@invitation-accessToken = 82e2567e-8bba-4802-a037-98c9e36aa2fa
+@invitation-accessToken = ed21191d-c840-40f7-83b7-9c950034af09
 
 ### 1) Invite member
 ### Required scope: SCOPE_TENANT_INVITATION_CREATE

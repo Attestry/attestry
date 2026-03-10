@@ -1,5 +1,6 @@
 package io.attestry.userauth.interfaces.policy;
 
+import io.attestry.commonlib.infrastructure.ApiResponse;
 import io.attestry.userauth.application.dto.command.AuthzEvaluateCommand;
 import io.attestry.userauth.application.dto.command.ActorContext;
 import io.attestry.userauth.application.dto.command.PolicyDecisionMode;
@@ -22,7 +23,7 @@ public class AuthorizationHttp {
     }
 
     @PostMapping("/evaluate")
-    public AuthzEvaluateResponse evaluate(
+    public ApiResponse<AuthzEvaluateResponse> evaluate(
         @CurrentActor ActorContext actor,
         @RequestBody AuthzEvaluateRequest request
     ) {
@@ -31,7 +32,7 @@ public class AuthorizationHttp {
             new AuthzEvaluateCommand(request.tenantId(), request.action(), request.resourceRef(), request.decisionMode())
         );
 
-        return new AuthzEvaluateResponse(result.allowed(), result.reason(), result.effectiveScopes(), result.decisionMode());
+        return ApiResponse.success(new AuthzEvaluateResponse(result.allowed(), result.reason(), result.effectiveScopes(), result.decisionMode()));
     }
 
     public record AuthzEvaluateRequest(String tenantId, String action, String resourceRef, PolicyDecisionMode decisionMode) {

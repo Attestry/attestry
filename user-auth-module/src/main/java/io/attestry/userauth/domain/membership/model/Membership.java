@@ -1,11 +1,12 @@
 package io.attestry.userauth.domain.membership.model;
 
-import io.attestry.userauth.common.error.DomainException;
-import io.attestry.userauth.common.error.ErrorCode;
+import io.attestry.commonlib.domain.AggregateRoot;
+import io.attestry.userauth.domain.UserAuthDomainException;
+import io.attestry.userauth.domain.UserAuthErrorCode;
 import io.attestry.userauth.domain.membership.event.RoleAssignmentAuditedEvent;
 import io.attestry.userauth.domain.membership.service.RoleAssignmentDomainService;
-import io.attestry.userauth.domain.organization.model.TenantType;
-import io.attestry.userauth.domain.organization.model.TenantStatus;
+import io.attestry.userauth.domain.tenant.model.TenantType;
+import io.attestry.userauth.domain.tenant.model.TenantStatus;
 import java.time.Instant;
 import java.util.ArrayList;
 import java.util.Collections;
@@ -15,7 +16,7 @@ import java.util.Set;
 import java.util.UUID;
 import java.util.stream.Collectors;
 
-public class Membership {
+public class Membership extends AggregateRoot {
 
     private final String membershipId;
     private final String userId;
@@ -77,7 +78,7 @@ public class Membership {
         if (eval.denied()) {
             domainEvents.add(createAuditEvent(assignedByUserId, eval.normalizedRoleCode(), true,
                 false, mapDenialReason(eval.denialReason()), now));
-            throw new DomainException(mapDenialError(eval.denialReason()), mapDenialMessage(eval.denialReason()));
+            throw new UserAuthDomainException(mapDenialError(eval.denialReason()), mapDenialMessage(eval.denialReason()));
         }
         String normalized = eval.normalizedRoleCode();
         roleAssignments.removeIf(ra -> ra.roleCode().equals(normalized));
@@ -92,7 +93,7 @@ public class Membership {
         if (eval.denied()) {
             domainEvents.add(createAuditEvent(actorUserId, eval.normalizedRoleCode(), false,
                 false, mapDenialReason(eval.denialReason()), now));
-            throw new DomainException(mapDenialError(eval.denialReason()), mapDenialMessage(eval.denialReason()));
+            throw new UserAuthDomainException(mapDenialError(eval.denialReason()), mapDenialMessage(eval.denialReason()));
         }
         String normalized = eval.normalizedRoleCode();
         roleAssignments.removeIf(ra -> ra.roleCode().equals(normalized));
@@ -128,11 +129,11 @@ public class Membership {
         );
     }
 
-    private static ErrorCode mapDenialError(RoleAssignmentDomainService.DenialReason reason) {
+    private static UserAuthErrorCode mapDenialError(RoleAssignmentDomainService.DenialReason reason) {
         return switch (reason) {
-            case INVALID_ROLE_CODE -> ErrorCode.ROLE_NOT_FOUND;
-            case SELF_ESCALATION_DENIED, NOT_ASSIGNABLE -> ErrorCode.FORBIDDEN_SCOPE;
-            default -> ErrorCode.FORBIDDEN_SCOPE;
+            case INVALID_ROLE_CODE -> UserAuthErrorCode.ROLE_NOT_FOUND;
+            case SELF_ESCALATION_DENIED, NOT_ASSIGNABLE -> UserAuthErrorCode.FORBIDDEN_SCOPE;
+            default -> UserAuthErrorCode.FORBIDDEN_SCOPE;
         };
     }
 
@@ -148,8 +149,8 @@ public class Membership {
     private static String mapDenialReason(RoleAssignmentDomainService.DenialReason reason) {
         return switch (reason) {
             case NONE -> null;
-            case INVALID_ROLE_CODE -> ErrorCode.ROLE_NOT_FOUND.name();
-            case SELF_ESCALATION_DENIED, NOT_ASSIGNABLE -> ErrorCode.FORBIDDEN_SCOPE.name();
+            case INVALID_ROLE_CODE -> UserAuthErrorCode.ROLE_NOT_FOUND.name();
+            case SELF_ESCALATION_DENIED, NOT_ASSIGNABLE -> UserAuthErrorCode.FORBIDDEN_SCOPE.name();
         };
     }
 

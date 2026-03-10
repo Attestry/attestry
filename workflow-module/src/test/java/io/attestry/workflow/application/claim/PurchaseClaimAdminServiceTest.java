@@ -13,7 +13,7 @@ import static org.mockito.Mockito.when;
 import io.attestry.product.application.usecase.ProductMintUseCase;
 import io.attestry.product.application.usecase.ProductMintUseCase.MintProductCommand;
 import io.attestry.product.application.usecase.ProductMintUseCase.MintedProductResult;
-import io.attestry.userauth.application.port.ObjectStoragePort;
+import io.attestry.commonlib.application.port.ObjectStoragePort;
 import io.attestry.userauth.application.dto.command.ActorContext;
 import io.attestry.userauth.domain.identity.model.VerificationLevel;
 import io.attestry.userauth.security.AuthPrincipal;

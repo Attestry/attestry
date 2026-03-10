@@ -1,7 +1,7 @@
 package io.attestry.userauth.application.port;
 
 import io.attestry.userauth.domain.onboarding.model.OrganizationApplication;
-import io.attestry.userauth.domain.organization.model.TenantType;
+import io.attestry.userauth.domain.tenant.model.TenantType;
 import java.util.List;
 import java.util.Optional;
 
@@ -27,4 +27,8 @@ public interface OrganizationApplicationRepositoryPort {
     boolean existsBrandByBizRegNo(String bizRegNo);
 
     boolean existsRetailByTenantAndBizRegNo(String tenantId, String bizRegNo);
+
+    boolean existsServiceByTenantAndOrgNameAndCountry(String tenantId, String orgName, String country);
+
+    boolean existsServiceByTenantAndBizRegNo(String tenantId, String bizRegNo);
 }

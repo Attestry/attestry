@@ -4,7 +4,7 @@ import io.attestry.product.application.usecase.ProductMintUseCase;
 import io.attestry.product.application.usecase.ProductMintUseCase.MintProductCommand;
 import io.attestry.product.application.usecase.ProductMintUseCase.MintedProductResult;
 import io.attestry.userauth.application.dto.command.ActorContext;
-import io.attestry.userauth.application.port.ObjectStoragePort;
+import io.attestry.commonlib.application.port.ObjectStoragePort;
 import io.attestry.userauth.domain.authorization.model.PermissionCodes;
 import io.attestry.userauth.security.AuthPrincipal;
 import io.attestry.workflow.application.claim.command.ApprovePurchaseClaimCommand;
