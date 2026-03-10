@@ -1,5 +1,6 @@
 package io.attestry.userauth.interfaces.template;
 
+import io.attestry.commonlib.web.CurrentActor;
 import io.attestry.commonlib.infrastructure.ApiResponse;
 import io.attestry.userauth.application.dto.command.ActorContext;
 import io.attestry.userauth.application.dto.result.PermissionResult;
@@ -11,7 +12,6 @@ import io.attestry.userauth.interfaces.template.dto.request.SetTemplatePermissio
 import io.attestry.userauth.interfaces.template.dto.request.UpdatePermissionTemplateRequest;
 import io.attestry.userauth.interfaces.template.dto.response.PermissionResponse;
 import io.attestry.userauth.interfaces.template.dto.response.PermissionTemplateResponse;
-import io.attestry.userauth.security.CurrentActor;
 import java.util.List;
 import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.web.bind.annotation.DeleteMapping;

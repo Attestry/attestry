@@ -103,10 +103,22 @@ public class JdbcDistributionQueryAdapter implements DistributionQueryPort {
 
     @Override
     public Optional<DistributionRow> findById(String distributionId) {
+        return querySingle(" WHERE d.distribution_id = ? ", distributionId);
+    }
+
+    @Override
+    public Optional<DistributionRow> findLatestByPassportId(String passportId) {
+        return querySingle(
+            " WHERE d.passport_id = ? ORDER BY d.distributed_at DESC LIMIT 1 ",
+            passportId
+        );
+    }
+
+    private Optional<DistributionRow> querySingle(String suffix, Object... args) {
         List<DistributionRow> results = jdbcTemplate.query(
-            SELECT_CLAUSE + FROM_CLAUSE + " WHERE d.distribution_id = ?",
+            SELECT_CLAUSE + FROM_CLAUSE + suffix,
             ROW_MAPPER,
-            distributionId
+            args
         );
         return results.stream().findFirst();
     }

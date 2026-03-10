@@ -1,21 +1,21 @@
 package io.attestry.product.application.service;
 
+import io.attestry.product.application.dto.command.ClearRiskCommand;
+import io.attestry.product.application.dto.command.FlagLostCommand;
+import io.attestry.product.application.dto.command.FlagStolenCommand;
+import io.attestry.product.application.dto.command.ProductActor;
+import io.attestry.product.application.dto.result.RiskResult;
 import io.attestry.product.application.port.LedgerOutboxPort;
+import io.attestry.product.application.port.PassportOwnershipPort;
+import io.attestry.product.application.port.PassportPort;
+import io.attestry.product.application.port.ProductAuthorizationPort;
 import io.attestry.product.application.usecase.ProductRiskUseCase;
 import io.attestry.product.domain.passport.model.RiskFlag;
 import io.attestry.product.domain.event.LedgerEventEnvelope;
 import io.attestry.product.domain.ProductDomainException;
 import io.attestry.product.domain.ProductErrorCode;
 import io.attestry.product.domain.ownership.model.PassportOwnership;
-import io.attestry.product.domain.ownership.repository.PassportOwnershipRepository;
 import io.attestry.product.domain.passport.model.ProductPassport;
-import io.attestry.product.domain.passport.repository.PassportRepository;
-import io.attestry.userauth.application.dto.command.ActorContext;
-import io.attestry.userauth.application.dto.command.AuthzEvaluateCommand;
-import io.attestry.userauth.application.dto.command.PolicyDecisionMode;
-import io.attestry.userauth.application.dto.result.AuthzEvaluateResult;
-import io.attestry.userauth.application.usecase.policy.EvaluateAuthorizationUseCase;
-import io.attestry.userauth.domain.authorization.model.PermissionCodes;
 import java.time.Clock;
 import java.time.Instant;
 import org.springframework.stereotype.Service;
@@ -24,36 +24,36 @@ import org.springframework.transaction.annotation.Transactional;
 @Service
 public class ProductRiskService implements ProductRiskUseCase {
 
-    private final PassportRepository passportRepository;
-    private final PassportOwnershipRepository ownershipRepository;
+    private final PassportPort passportPort;
+    private final PassportOwnershipPort ownershipPort;
+    private final ProductAuthorizationPort productAuthorizationPort;
     private final LedgerOutboxPort ledgerOutboxPort;
-    private final EvaluateAuthorizationUseCase evaluateAuthorizationUseCase;
     private final Clock clock;
 
     public ProductRiskService(
-        PassportRepository passportRepository,
-        PassportOwnershipRepository ownershipRepository,
+        PassportPort passportPort,
+        PassportOwnershipPort ownershipPort,
+        ProductAuthorizationPort productAuthorizationPort,
         LedgerOutboxPort ledgerOutboxPort,
-        EvaluateAuthorizationUseCase evaluateAuthorizationUseCase,
         Clock clock
     ) {
-        this.passportRepository = passportRepository;
-        this.ownershipRepository = ownershipRepository;
+        this.passportPort = passportPort;
+        this.ownershipPort = ownershipPort;
+        this.productAuthorizationPort = productAuthorizationPort;
         this.ledgerOutboxPort = ledgerOutboxPort;
-        this.evaluateAuthorizationUseCase = evaluateAuthorizationUseCase;
         this.clock = clock;
     }
 
     @Override
     @Transactional
-    public RiskResult flagStolen(ActorContext actor, FlagStolenCommand command) {
-        assertRiskFlagScope(actor);
+    public RiskResult flagStolen(ProductActor actor, FlagStolenCommand command) {
+        productAuthorizationPort.assertOwnerRiskFlagAllowed(actor);
         assertOwnership(actor, command.passportId());
 
         Instant now = Instant.now(clock);
         ProductPassport passport = findPassport(command.passportId());
         passport.flagStolen(actor.userId(), command.policeReportNo(), now);
-        passportRepository.save(passport);
+        passportPort.save(passport);
 
         LedgerEventEnvelope event = LedgerEventEnvelope.riskFlagged(passport, actor.userId(), now);
         String outboxEventId = enqueueSafe(event);
@@ -63,14 +63,14 @@ public class ProductRiskService implements ProductRiskUseCase {
 
     @Override
     @Transactional
-    public RiskResult flagLost(ActorContext actor, FlagLostCommand command) {
-        assertRiskFlagScope(actor);
+    public RiskResult flagLost(ProductActor actor, FlagLostCommand command) {
+        productAuthorizationPort.assertOwnerRiskFlagAllowed(actor);
         assertOwnership(actor, command.passportId());
 
         Instant now = Instant.now(clock);
         ProductPassport passport = findPassport(command.passportId());
         passport.flagLost(actor.userId(), now);
-        passportRepository.save(passport);
+        passportPort.save(passport);
 
         LedgerEventEnvelope event = LedgerEventEnvelope.riskFlagged(passport, actor.userId(), now);
         String outboxEventId = enqueueSafe(event);
@@ -80,8 +80,8 @@ public class ProductRiskService implements ProductRiskUseCase {
 
     @Override
     @Transactional
-    public RiskResult clearRisk(ActorContext actor, ClearRiskCommand command) {
-        assertRiskClearScope(actor);
+    public RiskResult clearRisk(ProductActor actor, ClearRiskCommand command) {
+        productAuthorizationPort.assertOwnerRiskClearAllowed(actor);
         assertOwnership(actor, command.passportId());
 
         Instant now = Instant.now(clock);
@@ -93,7 +93,7 @@ public class ProductRiskService implements ProductRiskUseCase {
         }
 
         passport.clearRisk();
-        passportRepository.save(passport);
+        passportPort.save(passport);
 
         LedgerEventEnvelope event = LedgerEventEnvelope.riskCleared(passport, actor.userId(), now);
         String outboxEventId = enqueueSafe(event);
@@ -102,38 +102,18 @@ public class ProductRiskService implements ProductRiskUseCase {
     }
 
     private ProductPassport findPassport(String passportId) {
-        return passportRepository.findById(passportId)
+        return passportPort.findById(passportId)
             .orElseThrow(() -> new ProductDomainException(ProductErrorCode.ASSET_NOT_FOUND,
                 "Passport not found: " + passportId));
     }
 
-    private void assertOwnership(ActorContext actor, String passportId) {
-        PassportOwnership ownership = ownershipRepository.findByPassportId(passportId)
+    private void assertOwnership(ProductActor actor, String passportId) {
+        PassportOwnership ownership = ownershipPort.findByPassportId(passportId)
             .orElseThrow(() -> new ProductDomainException(ProductErrorCode.NOT_ASSET_OWNER,
                 "No ownership record for passport: " + passportId));
         if (!actor.userId().equals(ownership.getOwnerId())) {
             throw new ProductDomainException(ProductErrorCode.NOT_ASSET_OWNER,
                 "Actor is not the owner of passport: " + passportId);
-        }
-    }
-
-    private void assertRiskFlagScope(ActorContext actor) {
-        AuthzEvaluateResult decision = evaluateAuthorizationUseCase.evaluate(
-            actor,
-            new AuthzEvaluateCommand(actor.tenantId(), PermissionCodes.OWNER_RISK_FLAG, null, PolicyDecisionMode.TOKEN_SNAPSHOT)
-        );
-        if (!decision.allowed()) {
-            throw new ProductDomainException(ProductErrorCode.FORBIDDEN_RISK_FLAG, "OWNER_RISK_FLAG scope is required");
-        }
-    }
-
-    private void assertRiskClearScope(ActorContext actor) {
-        AuthzEvaluateResult decision = evaluateAuthorizationUseCase.evaluate(
-            actor,
-            new AuthzEvaluateCommand(actor.tenantId(), PermissionCodes.OWNER_RISK_CLEAR, null, PolicyDecisionMode.TOKEN_SNAPSHOT)
-        );
-        if (!decision.allowed()) {
-            throw new ProductDomainException(ProductErrorCode.FORBIDDEN_RISK_FLAG, "OWNER_RISK_CLEAR scope is required");
         }
     }
 

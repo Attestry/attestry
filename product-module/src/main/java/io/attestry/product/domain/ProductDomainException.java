@@ -1,15 +1,18 @@
 package io.attestry.product.domain;
 
-public class ProductDomainException extends RuntimeException {
+import io.attestry.commonlib.domain.exception.DomainException;
 
-    private final ProductErrorCode errorCode;
+public class ProductDomainException extends DomainException {
 
-    public ProductDomainException(ProductErrorCode errorCode, String message) {
-        super(message);
-        this.errorCode = errorCode;
+    public ProductDomainException(ProductErrorCode errorCode) {
+        super(errorCode);
     }
 
-    public ProductErrorCode getErrorCode() {
-        return errorCode;
+    public ProductDomainException(ProductErrorCode errorCode, String message) {
+        super(errorCode, message);
+    }
+
+    public ProductDomainException(ProductErrorCode errorCode, String message, Throwable cause) {
+        super(errorCode, message, cause);
     }
 }

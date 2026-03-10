@@ -11,8 +11,9 @@ import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 
 import io.attestry.product.application.usecase.ProductMintUseCase;
-import io.attestry.product.application.usecase.ProductMintUseCase.MintProductCommand;
-import io.attestry.product.application.usecase.ProductMintUseCase.MintedProductResult;
+import io.attestry.product.application.dto.command.MintProductCommand;
+import io.attestry.product.application.dto.command.ProductActor;
+import io.attestry.product.application.dto.result.MintedProductResult;
 import io.attestry.commonlib.application.port.ObjectStoragePort;
 import io.attestry.userauth.application.dto.command.ActorContext;
 import io.attestry.userauth.domain.identity.model.VerificationLevel;
@@ -96,7 +97,7 @@ class PurchaseClaimAdminServiceTest {
         PurchaseClaim claim = submittedClaim();
         doNothing().when(authorizationSupport).assertLivePermission(any(), anyString(), anyString(), anyString());
         when(purchaseClaimRepository.findById("claim-1")).thenReturn(Optional.of(claim));
-        when(productMintUseCase.mint(any(ActorContext.class), any(MintProductCommand.class)))
+        when(productMintUseCase.mint(any(ProductActor.class), any(MintProductCommand.class)))
             .thenReturn(new MintedProductResult("asset-1", "passport-1", "QR-ABC", "outbox-1", "GENESIS", "MINTED"));
         doNothing().when(ownershipUpdatePort).upsertOwner(anyString(), anyString(), any(Instant.class));
         when(purchaseClaimRepository.save(any(PurchaseClaim.class))).thenAnswer(inv -> inv.getArgument(0));

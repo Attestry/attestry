@@ -1,49 +1,17 @@
 package io.attestry.product.application.usecase;
 
-import io.attestry.userauth.application.dto.command.ActorContext;
-import java.time.Instant;
+import io.attestry.product.application.dto.command.MintProductCommand;
+import io.attestry.product.application.dto.command.ProductActor;
+import io.attestry.product.application.dto.result.BatchMintResult;
+import io.attestry.product.application.dto.result.MintedProductResult;
+import java.io.InputStream;
 import java.util.List;
 
 public interface ProductMintUseCase {
 
-    MintedProductResult mint(ActorContext actor, MintProductCommand command);
+    MintedProductResult mint(ProductActor actor, MintProductCommand command);
 
-    BatchMintResult batchMint(ActorContext actor, String tenantId, List<MintProductCommand> commands);
+    BatchMintResult batchMint(ProductActor actor, String tenantId, List<MintProductCommand> commands);
 
-    record MintProductCommand(
-        String tenantId,
-        String serialNumber,
-        String modelId,
-        String modelName,
-        Instant manufacturedAt,
-        String productionBatch,
-        String factoryCode,
-        String componentRootHash
-    ) {
-    }
-
-    record MintedProductResult(
-        String assetId,
-        String passportId,
-        String qrPublicCode,
-        String outboxEventId,
-        String ledgerEventCategory,
-        String ledgerEventAction
-    ) {
-    }
-
-    record BatchMintResult(
-        int totalRequested,
-        int totalMinted,
-        int totalFailed,
-        List<BatchMintError> errors
-    ) {
-    }
-
-    record BatchMintError(
-        int row,
-        String serialNumber,
-        String reason
-    ) {
-    }
+    BatchMintResult batchMintFromCsv(ProductActor actor, String tenantId, InputStream csvStream);
 }

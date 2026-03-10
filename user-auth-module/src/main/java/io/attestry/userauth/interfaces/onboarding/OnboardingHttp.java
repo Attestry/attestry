@@ -1,5 +1,6 @@
 package io.attestry.userauth.interfaces.onboarding;
 
+import io.attestry.commonlib.web.CurrentActor;
 import io.attestry.commonlib.infrastructure.ApiResponse;
 import io.attestry.userauth.application.dto.command.ActorContext;
 import io.attestry.userauth.application.dto.command.CompleteEvidenceUploadCommand;
@@ -17,7 +18,6 @@ import io.attestry.userauth.interfaces.onboarding.dto.response.ApplicationRespon
 import io.attestry.userauth.interfaces.onboarding.dto.response.ApproveResponse;
 import io.attestry.userauth.interfaces.onboarding.dto.response.EvidenceBundleResponse;
 import io.attestry.userauth.interfaces.onboarding.dto.response.PresignedEvidenceUploadResponse;
-import io.attestry.userauth.security.CurrentActor;
 import jakarta.validation.Valid;
 import java.util.List;
 

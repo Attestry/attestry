@@ -1,8 +1,14 @@
 package io.attestry.product.interfaces.http;
 
+import io.attestry.commonlib.web.CurrentActor;
+import io.attestry.product.application.dto.command.ClearRiskCommand;
+import io.attestry.product.application.dto.command.FlagLostCommand;
+import io.attestry.product.application.dto.command.FlagStolenCommand;
+import io.attestry.product.application.dto.command.ProductActor;
 import io.attestry.product.application.usecase.ProductRiskUseCase;
-import io.attestry.userauth.application.dto.command.ActorContext;
-import io.attestry.userauth.security.CurrentActor;
+import io.attestry.product.interfaces.http.dto.request.FlagStolenRequest;
+import io.attestry.product.interfaces.http.dto.response.RiskResponse;
+import lombok.RequiredArgsConstructor;
 import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.web.bind.annotation.DeleteMapping;
 import org.springframework.web.bind.annotation.PathVariable;
@@ -13,58 +19,46 @@ import org.springframework.web.bind.annotation.RestController;
 
 @RestController
 @RequestMapping("/products")
+@RequiredArgsConstructor
 public class ProductRiskHttp {
 
     private final ProductRiskUseCase riskUseCase;
 
-    public ProductRiskHttp(ProductRiskUseCase riskUseCase) {
-        this.riskUseCase = riskUseCase;
-    }
 
     @PostMapping("/passports/{passportId}/risk/stolen")
     @PreAuthorize("hasAuthority('SCOPE_OWNER_RISK_FLAG')")
     public RiskResponse flagStolen(
-        @CurrentActor ActorContext actor,
+        @CurrentActor ProductActor actor,
         @PathVariable("passportId") String passportId,
         @RequestBody FlagStolenRequest request
     ) {
-        ProductRiskUseCase.RiskResult result = riskUseCase.flagStolen(
+        return RiskResponse.from(riskUseCase.flagStolen(
             actor,
-            new ProductRiskUseCase.FlagStolenCommand(passportId, request.policeReportNo())
-        );
-        return new RiskResponse(result.assetId(), result.riskFlag(), result.outboxEventId());
+            new FlagStolenCommand(passportId, request.policeReportNo())
+        ));
     }
 
     @PostMapping("/passports/{passportId}/risk/lost")
     @PreAuthorize("hasAuthority('SCOPE_OWNER_RISK_FLAG')")
     public RiskResponse flagLost(
-        @CurrentActor ActorContext actor,
+        @CurrentActor ProductActor actor,
         @PathVariable("passportId") String passportId
     ) {
-        ProductRiskUseCase.RiskResult result = riskUseCase.flagLost(
+        return RiskResponse.from(riskUseCase.flagLost(
             actor,
-            new ProductRiskUseCase.FlagLostCommand(passportId)
-        );
-        return new RiskResponse(result.assetId(), result.riskFlag(), result.outboxEventId());
+            new FlagLostCommand(passportId)
+        ));
     }
-
 
     @PreAuthorize("hasAuthority('SCOPE_OWNER_RISK_CLEAR')")
     @DeleteMapping("/passports/{passportId}/risk")
     public RiskResponse clearRisk(
-        @CurrentActor ActorContext actor,
+        @CurrentActor ProductActor actor,
         @PathVariable("passportId") String passportId
     ) {
-        ProductRiskUseCase.RiskResult result = riskUseCase.clearRisk(
+        return RiskResponse.from(riskUseCase.clearRisk(
             actor,
-            new ProductRiskUseCase.ClearRiskCommand(passportId)
-        );
-        return new RiskResponse(result.assetId(), result.riskFlag(), result.outboxEventId());
-    }
-
-    public record FlagStolenRequest(String policeReportNo) {
-    }
-
-    public record RiskResponse(String assetId, String riskFlag, String outboxEventId) {
+            new ClearRiskCommand(passportId)
+        ));
     }
 }

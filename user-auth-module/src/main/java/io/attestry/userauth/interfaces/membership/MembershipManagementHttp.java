@@ -1,5 +1,6 @@
 package io.attestry.userauth.interfaces.membership;
 
+import io.attestry.commonlib.web.CurrentActor;
 import io.attestry.commonlib.infrastructure.ApiResponse;
 import io.attestry.userauth.application.dto.command.ActorContext;
 import io.attestry.userauth.application.dto.command.ApplyPermissionTemplateCommand;
@@ -23,7 +24,6 @@ import io.attestry.userauth.interfaces.membership.dto.response.MembershipPermiss
 import io.attestry.userauth.interfaces.membership.dto.response.MembershipResponse;
 import io.attestry.userauth.interfaces.membership.dto.response.MembershipRoleAssignmentsResponse;
 import io.attestry.userauth.interfaces.membership.dto.response.TenantAvailableTemplateCodesResponse;
-import io.attestry.userauth.security.CurrentActor;
 import java.util.List;
 
 import jakarta.validation.Valid;

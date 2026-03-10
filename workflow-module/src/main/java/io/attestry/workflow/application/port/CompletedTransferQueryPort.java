@@ -7,6 +7,8 @@ public interface CompletedTransferQueryPort {
 
     PagedResult findCompletedB2CByTenantId(String tenantId, String sourceTenantId, int page, int size);
 
+    boolean existsCompletedB2CByTenantAndPassportId(String tenantId, String passportId);
+
     record CompletedTransferRow(
         String transferId,
         String passportId,

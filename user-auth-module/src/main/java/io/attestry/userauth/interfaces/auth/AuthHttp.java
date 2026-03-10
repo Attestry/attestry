@@ -1,5 +1,6 @@
 package io.attestry.userauth.interfaces.auth;
 
+import io.attestry.commonlib.web.CurrentActor;
 import io.attestry.commonlib.infrastructure.ApiResponse;
 import io.attestry.userauth.application.dto.result.AuthTokenResult;
 import io.attestry.userauth.application.dto.result.SignUpResult;
@@ -7,7 +8,6 @@ import io.attestry.userauth.application.dto.command.LoginCommand;
 import io.attestry.userauth.application.dto.command.SignUpCommand;
 import io.attestry.userauth.application.usecase.auth.AuthUseCase;
 import io.attestry.userauth.application.dto.command.ActorContext;
-import io.attestry.userauth.security.CurrentActor;
 import io.attestry.userauth.interfaces.auth.dto.request.LoginRequest;
 import io.attestry.userauth.interfaces.auth.dto.request.SignUpRequest;
 import io.attestry.userauth.interfaces.auth.dto.response.LoginResponse;

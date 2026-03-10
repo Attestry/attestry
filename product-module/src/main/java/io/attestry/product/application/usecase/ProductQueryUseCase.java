@@ -1,24 +1,32 @@
 package io.attestry.product.application.usecase;
 
-import io.attestry.product.application.port.PassportShipmentQueryPort;
+import io.attestry.product.application.dto.result.AssetStateResult;
+import io.attestry.product.application.dto.result.DistributedPassportDetailResult;
+import io.attestry.product.application.dto.result.DistributedPassportResult;
+import io.attestry.product.application.dto.result.MyPassportResult;
+import io.attestry.product.application.dto.result.OwnerResult;
+import io.attestry.product.application.dto.result.PagedDistributedPassportResult;
+import io.attestry.product.application.dto.result.PagedTenantPassportResult;
+import io.attestry.product.application.dto.result.PassportDetailResult;
+import io.attestry.product.application.dto.result.TenantPassportResult;
 import java.time.Instant;
 import java.util.List;
 
 public interface ProductQueryUseCase {
 
-    AssetStateResponse getAssetState(String passportId);
+    AssetStateResult getAssetState(String passportId);
 
-    OwnerResponse getCurrentOwner(String passportId);
+    OwnerResult getCurrentOwner(String passportId);
 
     boolean hasActivePermission(String passportId, String sellerTenantId);
 
-    List<MyPassportResponse> listMyPassports(String ownerId);
+    List<MyPassportResult> listMyPassports(String ownerId);
 
-    PassportDetailResponse getTenantPassportDetail(String tenantId, String passportId);
+    PassportDetailResult getTenantPassportDetail(String tenantId, String passportId);
 
-    DistributedPassportDetailResponse getDistributedPassportDetail(String tenantId, String passportId);
+    DistributedPassportDetailResult getDistributedPassportDetail(String tenantId, String passportId);
 
-    PagedTenantPassportResponse listTenantPassports(
+    PagedTenantPassportResult listTenantPassports(
         String tenantId,
         int page,
         int size,
@@ -28,155 +36,11 @@ public interface ProductQueryUseCase {
         String keyword
     );
 
-    PagedDistributedPassportResponse listDistributedPassports(
+    PagedDistributedPassportResult listDistributedPassports(
         String tenantId,
         int page,
         int size,
         String keyword,
         String sourceTenantId
     );
-
-    record AssetStateResponse(String assetId, String passportId, String assetState, String riskFlag) {
-    }
-
-    record OwnerResponse(String passportId, String ownerId, Instant updatedAt) {
-    }
-
-    record MyPassportResponse(
-        String passportId,
-        String qrPublicCode,
-        String tenantId,
-        String assetId,
-        String serialNumber,
-        String modelName,
-        String assetState,
-        String riskFlag,
-        Instant ownedSince
-    ) {
-    }
-
-    record TenantPassportResponse(
-        String passportId,
-        String serialNumber,
-        String modelId,
-        String modelName,
-        String assetState,
-        Instant createdAt
-    ) {
-    }
-
-    record PagedTenantPassportResponse(
-        List<TenantPassportResponse> content,
-        int page,
-        int size,
-        long totalElements,
-        int totalPages
-    ) {
-    }
-
-    record DistributedPassportResponse(
-        String passportId,
-        String qrPublicCode,
-        String assetId,
-        String serialNumber,
-        String modelId,
-        String modelName,
-        String assetState,
-        String riskFlag,
-        String permissionId,
-        Instant expiresAt,
-        String sourceTenantId,
-        String targetTenantId,
-        String permissionStatus,
-        Instant distributedAt
-    ) {
-    }
-
-    record PagedDistributedPassportResponse(
-        List<DistributedPassportResponse> content,
-        int page,
-        int size,
-        long totalElements,
-        int totalPages
-    ) {
-    }
-
-    record DistributedPassportDetailResponse(
-        String passportId,
-        String qrPublicCode,
-        String serialNumber,
-        String modelId,
-        String modelName,
-        String assetState,
-        String riskFlag,
-        Instant manufacturedAt,
-        String productionBatch,
-        String factoryCode
-    ) {
-    }
-
-    record PassportDetailResponse(
-        String passportId,
-        String qrPublicCode,
-        String tenantId,
-        String assetId,
-        String serialNumber,
-        String modelId,
-        String modelName,
-        Instant manufacturedAt,
-        String productionBatch,
-        String factoryCode,
-        String assetState,
-        String riskFlag,
-        Instant createdAt,
-        String publicUrl,
-        ShipmentDetailResponse shipment,
-        DistributionDetailResponse distribution
-    ) {
-    }
-
-    record DistributionDetailResponse(
-        String distributionId,
-        String targetTenantId,
-        String targetTenantName,
-        String targetTenantType,
-        String partnerLinkId,
-        String status,
-        Instant distributedAt
-    ) {
-    }
-
-    record ShipmentDetailResponse(
-        String shipmentId,
-        String status,
-        int shipmentRound,
-        Instant releasedAt,
-        String releasedByUserEmail,
-        Instant returnedAt,
-        String returnedByUserEmail,
-        List<EvidenceFileResponse> evidenceFiles
-    ) {
-        public static ShipmentDetailResponse from(PassportShipmentQueryPort.ShipmentView view) {
-            List<EvidenceFileResponse> files = view.evidenceFiles().stream()
-                .map(e -> new EvidenceFileResponse(
-                    e.evidenceId(), e.originalFileName(), e.contentType(), e.sizeBytes(), e.downloadUrl()
-                ))
-                .toList();
-            return new ShipmentDetailResponse(
-                view.shipmentId(), view.status(), view.shipmentRound(),
-                view.releasedAt(), view.releasedByUserEmail(),
-                view.returnedAt(), view.returnedByUserEmail(),
-                files
-            );
-        }
-    }
-
-    record EvidenceFileResponse(
-        String evidenceId,
-        String originalFileName,
-        String contentType,
-        long sizeBytes,
-        String downloadUrl
-    ) {
-    }
 }

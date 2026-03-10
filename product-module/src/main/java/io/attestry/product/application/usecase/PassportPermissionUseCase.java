@@ -1,20 +1,14 @@
 package io.attestry.product.application.usecase;
 
-import io.attestry.product.domain.permission.model.PermissionScope;
-import io.attestry.userauth.application.dto.command.ActorContext;
-import java.time.Instant;
+import io.attestry.product.application.dto.command.GrantCommand;
+import io.attestry.product.application.dto.command.ProductActor;
+import io.attestry.product.application.dto.result.GrantResult;
 
 public interface PassportPermissionUseCase {
 
-    GrantResult grantPermission(ActorContext actor, GrantCommand command);
+    GrantResult grantPermission(ProductActor actor, GrantCommand command);
 
-    void revokePermission(ActorContext actor, String permissionId);
+    void revokePermission(ProductActor actor, String permissionId);
 
-    void suspendPermission(ActorContext actor, String permissionId);
-
-    record GrantCommand(String passportId, String sellerTenantId, PermissionScope scope, Instant expiresAt) {
-    }
-
-    record GrantResult(String permissionId, String passportId, String sellerTenantId, String scope) {
-    }
+    void suspendPermission(ProductActor actor, String permissionId);
 }

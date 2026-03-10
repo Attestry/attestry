@@ -1,5 +1,6 @@
 package io.attestry.userauth.interfaces.membership;
 
+import io.attestry.commonlib.web.CurrentActor;
 import io.attestry.commonlib.infrastructure.ApiResponse;
 import io.attestry.userauth.application.dto.command.ActorContext;
 import io.attestry.userauth.application.dto.command.UpdateMyAccountCommand;
@@ -8,7 +9,6 @@ import io.attestry.userauth.application.dto.view.MembershipView;
 import io.attestry.userauth.application.dto.view.MyAccountView;
 import io.attestry.userauth.application.usecase.auth.MyAccountQueryUseCase;
 import io.attestry.userauth.application.usecase.membership.MembershipQueryUseCase;
-import io.attestry.userauth.security.CurrentActor;
 import java.util.List;
 
 import lombok.RequiredArgsConstructor;

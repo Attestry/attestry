@@ -1,26 +1,21 @@
 package io.attestry.product.infrastructure.persistence.jpa;
 
+import io.attestry.product.application.port.PassportPermissionPort;
 import io.attestry.product.domain.permission.model.PassportPermission;
-import io.attestry.product.domain.permission.repository.PassportPermissionRepository;
 import io.attestry.product.infrastructure.persistence.jpa.mapper.PassportPermissionMapper;
 import io.attestry.product.infrastructure.persistence.jpa.repository.PassportPermissionJpaRepository;
 import java.util.List;
 import java.util.Optional;
+
+import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Repository;
 
+@RequiredArgsConstructor
 @Repository
-public class JpaPassportPermissionRepositoryAdapter implements PassportPermissionRepository {
+public class JpaPassportPermissionRepositoryAdapter implements PassportPermissionPort {
 
     private final PassportPermissionJpaRepository jpaRepository;
     private final PassportPermissionMapper mapper;
-
-    public JpaPassportPermissionRepositoryAdapter(
-        PassportPermissionJpaRepository jpaRepository,
-        PassportPermissionMapper mapper
-    ) {
-        this.jpaRepository = jpaRepository;
-        this.mapper = mapper;
-    }
 
     @Override
     public Optional<PassportPermission> findById(String permissionId) {

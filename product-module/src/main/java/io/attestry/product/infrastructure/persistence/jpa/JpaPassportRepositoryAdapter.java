@@ -1,29 +1,23 @@
 package io.attestry.product.infrastructure.persistence.jpa;
 
+import io.attestry.product.application.port.PassportPort;
 import io.attestry.product.domain.passport.model.ProductPassport;
-import io.attestry.product.domain.passport.repository.PassportRepository;
 import io.attestry.product.infrastructure.persistence.jpa.mapper.PassportMapper;
 import io.attestry.product.infrastructure.persistence.jpa.repository.ProductAssetJpaRepository;
 import io.attestry.product.infrastructure.persistence.jpa.repository.ProductPassportJpaRepository;
 import java.util.Optional;
+
+import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Repository;
 
 @Repository
-public class JpaPassportRepositoryAdapter implements PassportRepository {
+@RequiredArgsConstructor
+public class JpaPassportRepositoryAdapter implements PassportPort {
 
     private final ProductPassportJpaRepository passportJpaRepository;
     private final ProductAssetJpaRepository assetJpaRepository;
     private final PassportMapper mapper;
 
-    public JpaPassportRepositoryAdapter(
-        ProductPassportJpaRepository passportJpaRepository,
-        ProductAssetJpaRepository assetJpaRepository,
-        PassportMapper mapper
-    ) {
-        this.passportJpaRepository = passportJpaRepository;
-        this.assetJpaRepository = assetJpaRepository;
-        this.mapper = mapper;
-    }
 
     @Override
     public Optional<ProductPassport> findById(String passportId) {

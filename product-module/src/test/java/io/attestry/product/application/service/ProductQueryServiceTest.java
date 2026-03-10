@@ -8,11 +8,11 @@ import io.attestry.product.application.port.DistributedPassportQueryPort;
 import io.attestry.product.application.port.GroupPassportQueryPort;
 import io.attestry.product.application.port.MyPassportQueryPort;
 import io.attestry.product.application.port.PassportDistributionQueryPort;
+import io.attestry.product.application.port.PassportOwnershipPort;
+import io.attestry.product.application.port.PassportPermissionPort;
+import io.attestry.product.application.port.PassportPort;
 import io.attestry.product.application.port.PassportShipmentQueryPort;
-import io.attestry.product.application.usecase.ProductQueryUseCase;
-import io.attestry.product.domain.ownership.repository.PassportOwnershipRepository;
-import io.attestry.product.domain.passport.repository.PassportRepository;
-import io.attestry.product.domain.permission.repository.PassportPermissionRepository;
+import io.attestry.product.application.dto.result.DistributedPassportDetailResult;
 import java.time.Instant;
 import java.util.List;
 import org.junit.jupiter.api.BeforeEach;
@@ -24,9 +24,9 @@ import org.mockito.junit.jupiter.MockitoExtension;
 @ExtendWith(MockitoExtension.class)
 class ProductQueryServiceTest {
 
-    @Mock PassportRepository passportRepository;
-    @Mock PassportOwnershipRepository ownershipRepository;
-    @Mock PassportPermissionRepository permissionRepository;
+    @Mock PassportPort passportPort;
+    @Mock PassportOwnershipPort ownershipPort;
+    @Mock PassportPermissionPort permissionPort;
     @Mock MyPassportQueryPort myPassportQueryPort;
     @Mock GroupPassportQueryPort groupPassportQueryPort;
     @Mock DistributedPassportQueryPort distributedPassportQueryPort;
@@ -38,9 +38,9 @@ class ProductQueryServiceTest {
     @BeforeEach
     void setUp() {
         service = new ProductQueryService(
-            passportRepository,
-            ownershipRepository,
-            permissionRepository,
+            passportPort,
+            ownershipPort,
+            permissionPort,
             myPassportQueryPort,
             groupPassportQueryPort,
             distributedPassportQueryPort,
@@ -106,7 +106,7 @@ class ProductQueryServiceTest {
             )
         );
 
-        ProductQueryUseCase.DistributedPassportDetailResponse result = service.getDistributedPassportDetail(
+        DistributedPassportDetailResult result = service.getDistributedPassportDetail(
             "retail-tenant",
             "passport-1"
         );

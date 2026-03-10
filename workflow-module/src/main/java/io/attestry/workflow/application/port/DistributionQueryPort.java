@@ -10,6 +10,8 @@ public interface DistributionQueryPort {
 
     Optional<DistributionRow> findById(String distributionId);
 
+    Optional<DistributionRow> findLatestByPassportId(String passportId);
+
     record PagedDistributionResult(
         List<DistributionRow> content,
         int page,

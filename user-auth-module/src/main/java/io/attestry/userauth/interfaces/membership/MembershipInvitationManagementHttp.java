@@ -1,5 +1,6 @@
 package io.attestry.userauth.interfaces.membership;
 
+import io.attestry.commonlib.web.CurrentActor;
 import io.attestry.commonlib.infrastructure.ApiResponse;
 import io.attestry.userauth.application.dto.command.ActorContext;
 import io.attestry.userauth.application.dto.command.InviteCommand;
@@ -9,7 +10,6 @@ import io.attestry.userauth.application.usecase.membership.MembershipCommandUseC
 import io.attestry.userauth.interfaces.membership.dto.request.InviteRequest;
 import io.attestry.userauth.interfaces.membership.dto.response.InvitationResponse;
 import io.attestry.userauth.interfaces.membership.dto.response.MembershipResponse;
-import io.attestry.userauth.security.CurrentActor;
 import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
 import org.springframework.http.HttpStatus;

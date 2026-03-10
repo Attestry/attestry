@@ -1,10 +1,11 @@
 package io.attestry.product.interfaces.http;
 
+import io.attestry.commonlib.web.CurrentActor;
+import io.attestry.product.application.dto.command.GrantCommand;
+import io.attestry.product.application.dto.command.ProductActor;
 import io.attestry.product.application.usecase.PassportPermissionUseCase;
-import io.attestry.product.domain.permission.model.PermissionScope;
-import io.attestry.userauth.application.dto.command.ActorContext;
-import io.attestry.userauth.security.CurrentActor;
-import java.time.Instant;
+import io.attestry.product.interfaces.http.dto.request.GrantPermissionRequest;
+import io.attestry.product.interfaces.http.dto.response.GrantPermissionResponse;
 import org.springframework.http.HttpStatus;
 import org.springframework.web.bind.annotation.DeleteMapping;
 import org.springframework.web.bind.annotation.PatchMapping;
@@ -27,27 +28,26 @@ public class PassportPermissionHttp {
 
     @PostMapping("/passports/{passportId}/permissions")
     @ResponseStatus(HttpStatus.CREATED)
-    public GrantResponse grantPermission(
-        @CurrentActor ActorContext actor,
+    public GrantPermissionResponse grantPermission(
+        @CurrentActor ProductActor actor,
         @PathVariable("passportId") String passportId,
-        @RequestBody GrantRequest request
+        @RequestBody GrantPermissionRequest request
     ) {
-        PassportPermissionUseCase.GrantResult result = permissionUseCase.grantPermission(
+        return GrantPermissionResponse.from(permissionUseCase.grantPermission(
             actor,
-            new PassportPermissionUseCase.GrantCommand(
+            new GrantCommand(
                 passportId,
                 request.sellerTenantId(),
                 request.scope(),
                 request.expiresAt()
             )
-        );
-        return new GrantResponse(result.permissionId(), result.passportId(), result.sellerTenantId(), result.scope());
+        ));
     }
 
     @DeleteMapping("/passports/{passportId}/permissions/{permissionId}")
     @ResponseStatus(HttpStatus.NO_CONTENT)
     public void revokePermission(
-        @CurrentActor ActorContext actor,
+        @CurrentActor ProductActor actor,
         @PathVariable("passportId") String passportId,
         @PathVariable("permissionId") String permissionId
     ) {
@@ -57,16 +57,10 @@ public class PassportPermissionHttp {
     @PatchMapping("/passports/{passportId}/permissions/{permissionId}/suspend")
     @ResponseStatus(HttpStatus.NO_CONTENT)
     public void suspendPermission(
-        @CurrentActor ActorContext actor,
+        @CurrentActor ProductActor actor,
         @PathVariable("passportId") String passportId,
         @PathVariable("permissionId") String permissionId
     ) {
         permissionUseCase.suspendPermission(actor, permissionId);
-    }
-
-    public record GrantRequest(String sellerTenantId, PermissionScope scope, Instant expiresAt) {
-    }
-
-    public record GrantResponse(String permissionId, String passportId, String sellerTenantId, String scope) {
     }
 }

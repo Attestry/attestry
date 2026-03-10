@@ -10,6 +10,13 @@ import org.springframework.stereotype.Repository;
 @Repository
 public class JdbcCompletedTransferQueryAdapter implements CompletedTransferQueryPort {
 
+    private static final String COMPLETED_B2C_WHERE = """
+        WHERE tt.tenant_id = ?
+          AND tt.passport_id = ?
+          AND tt.transfer_type = 'B2C'
+          AND tt.status = 'COMPLETED'
+        """;
+
     private final JdbcTemplate jdbcTemplate;
 
     public JdbcCompletedTransferQueryAdapter(JdbcTemplate jdbcTemplate) {
@@ -82,6 +89,17 @@ public class JdbcCompletedTransferQueryAdapter implements CompletedTransferQuery
         );
 
         return new PagedResult(content, page, size, total, totalPages);
+    }
+
+    @Override
+    public boolean existsCompletedB2CByTenantAndPassportId(String tenantId, String passportId) {
+        Long count = jdbcTemplate.queryForObject(
+            "SELECT COUNT(*) FROM token_transfers tt " + COMPLETED_B2C_WHERE,
+            Long.class,
+            tenantId,
+            passportId
+        );
+        return count != null && count > 0;
     }
 
     private static java.time.Instant toInstant(Timestamp timestamp) {

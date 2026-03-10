@@ -1,9 +1,9 @@
 package io.attestry.workflow.application.claim;
 
+import io.attestry.product.application.dto.command.MintProductCommand;
+import io.attestry.product.application.dto.command.ProductActor;
+import io.attestry.product.application.dto.result.MintedProductResult;
 import io.attestry.product.application.usecase.ProductMintUseCase;
-import io.attestry.product.application.usecase.ProductMintUseCase.MintProductCommand;
-import io.attestry.product.application.usecase.ProductMintUseCase.MintedProductResult;
-import io.attestry.userauth.application.dto.command.ActorContext;
 import io.attestry.commonlib.application.port.ObjectStoragePort;
 import io.attestry.userauth.domain.authorization.model.PermissionCodes;
 import io.attestry.userauth.security.AuthPrincipal;
@@ -102,7 +102,12 @@ public class PurchaseClaimAdminService implements PurchaseClaimAdminUseCase {
         PurchaseClaim claim = findSubmittedClaim(claimId);
 
         MintedProductResult mintResult = productMintUseCase.mint(
-            ActorContext.from(principal),
+            new ProductActor(
+                principal.userId(),
+                principal.tenantId(),
+                principal.scopes(),
+                principal.scopes() != null && principal.scopes().contains(PermissionCodes.PLATFORM_ADMIN)
+            ),
             new MintProductCommand(
                 principal.tenantId(),
                 claim.serialNumber(), null, claim.modelName(),
