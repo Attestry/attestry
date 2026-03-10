@@ -4,6 +4,7 @@ import java.time.Instant;
 import java.util.List;
 import org.springframework.data.domain.Pageable;
 import org.springframework.data.jpa.repository.JpaRepository;
+import org.springframework.data.jpa.repository.Modifying;
 import org.springframework.data.jpa.repository.Query;
 import org.springframework.data.repository.query.Param;
 
@@ -17,5 +18,13 @@ public interface OutboxEventJpaRepository extends JpaRepository<OutboxEventJpaEn
         @Param("status") OutboxStatus status,
         @Param("now") Instant now,
         Pageable pageable
+    );
+
+    @Modifying
+    @Query("DELETE FROM OutboxEventJpaEntity e " +
+        "WHERE e.status = :status AND e.publishedAt < :before")
+    int deleteByStatusAndPublishedBefore(
+        @Param("status") OutboxStatus status,
+        @Param("before") Instant before
     );
 }
