@@ -15,7 +15,6 @@ public class TransferCreatePolicy {
 
     public void assertB2CCreatable(TransferCreateContext context) {
         assertPassportTransferable(context);
-        assertPassportBelongsToTenant(context);
         assertNoCurrentOwner(context);
         assertRetailPermission(context);
         assertNoPendingTransfer(context);
@@ -39,12 +38,6 @@ public class TransferCreatePolicy {
         }
         if (!context.actorUserId().equals(context.currentOwnerId())) {
             throw new WorkflowDomainException(WorkflowErrorCode.FORBIDDEN_SCOPE, "Only the current owner can create a C2C transfer");
-        }
-    }
-
-    private void assertPassportBelongsToTenant(TransferCreateContext context) {
-        if (!context.requestTenantId().equals(context.passportTenantId())) {
-            throw new WorkflowDomainException(WorkflowErrorCode.TENANT_ISOLATION_VIOLATION, "Passport does not belong to tenant");
         }
     }
 

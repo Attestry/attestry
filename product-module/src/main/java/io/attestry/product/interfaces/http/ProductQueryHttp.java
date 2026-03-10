@@ -122,6 +122,68 @@ public class ProductQueryHttp {
             result.totalPages());
     }
 
+    @GetMapping("/tenant/distributed-passports")
+    @PreAuthorize("hasAuthority('SCOPE_TENANT_READ_ONLY')")
+    public PagedDistributedPassportResponse listDistributedPassports(
+        @CurrentActor ActorContext actor,
+        @RequestParam(name = "page", defaultValue = "0") int page,
+        @RequestParam(name = "size", defaultValue = "20") int size,
+        @RequestParam(name = "keyword", required = false) String keyword,
+        @RequestParam(name = "sourceTenantId", required = false) String sourceTenantId
+    ) {
+        ProductQueryUseCase.PagedDistributedPassportResponse result = queryUseCase.listDistributedPassports(
+            actor.tenantId(),
+            page,
+            size,
+            keyword,
+            sourceTenantId
+        );
+        List<DistributedPassportResponse> content = result.content().stream()
+            .map(r -> new DistributedPassportResponse(
+                r.passportId(),
+                r.qrPublicCode(),
+                r.assetId(),
+                r.serialNumber(),
+                r.modelId(),
+                r.modelName(),
+                r.assetState(),
+                r.riskFlag(),
+                r.permissionId(),
+                r.expiresAt(),
+                r.sourceTenantId(),
+                r.targetTenantId(),
+                r.permissionStatus(),
+                r.distributedAt()
+            ))
+            .toList();
+        return new PagedDistributedPassportResponse(content, result.page(), result.size(), result.totalElements(),
+            result.totalPages());
+    }
+
+    @GetMapping("/tenant/distributed-passports/{passportId}")
+    @PreAuthorize("hasAuthority('SCOPE_TENANT_READ_ONLY')")
+    public DistributedPassportDetailResponse getDistributedPassportDetail(
+        @CurrentActor ActorContext actor,
+        @PathVariable("passportId") String passportId
+    ) {
+        ProductQueryUseCase.DistributedPassportDetailResponse result = queryUseCase.getDistributedPassportDetail(
+            actor.tenantId(),
+            passportId
+        );
+        return new DistributedPassportDetailResponse(
+            result.passportId(),
+            result.qrPublicCode(),
+            result.serialNumber(),
+            result.modelId(),
+            result.modelName(),
+            result.assetState(),
+            result.riskFlag(),
+            result.manufacturedAt(),
+            result.productionBatch(),
+            result.factoryCode()
+        );
+    }
+
 
     public record MyPassportResponse(
         String passportId,
@@ -210,6 +272,47 @@ public class ProductQueryHttp {
         int size,
         long totalElements,
         int totalPages
+    ) {
+    }
+
+    public record DistributedPassportResponse(
+        String passportId,
+        String qrPublicCode,
+        String assetId,
+        String serialNumber,
+        String modelId,
+        String modelName,
+        String assetState,
+        String riskFlag,
+        String permissionId,
+        Instant expiresAt,
+        String sourceTenantId,
+        String targetTenantId,
+        String permissionStatus,
+        Instant distributedAt
+    ) {
+    }
+
+    public record PagedDistributedPassportResponse(
+        List<DistributedPassportResponse> content,
+        int page,
+        int size,
+        long totalElements,
+        int totalPages
+    ) {
+    }
+
+    public record DistributedPassportDetailResponse(
+        String passportId,
+        String qrPublicCode,
+        String serialNumber,
+        String modelId,
+        String modelName,
+        String assetState,
+        String riskFlag,
+        Instant manufacturedAt,
+        String productionBatch,
+        String factoryCode
     ) {
     }
 }

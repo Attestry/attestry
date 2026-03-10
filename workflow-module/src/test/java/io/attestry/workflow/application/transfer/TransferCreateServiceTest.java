@@ -4,6 +4,7 @@ import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertNotNull;
 import static org.junit.jupiter.api.Assertions.assertNull;
 import static org.junit.jupiter.api.Assertions.assertThrows;
+import static org.junit.jupiter.api.Assertions.assertTrue;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.anyString;
 import static org.mockito.Mockito.doNothing;
@@ -21,6 +22,8 @@ import io.attestry.workflow.application.transfer.result.CreateTransferResult;
 import io.attestry.workflow.domain.WorkflowDomainException;
 import io.attestry.workflow.domain.transfer.model.AcceptMethod;
 import io.attestry.workflow.domain.transfer.model.TokenTransfer;
+import io.attestry.workflow.domain.transfer.model.TransferType;
+import io.attestry.workflow.domain.transfer.model.TransferStatus;
 import io.attestry.workflow.domain.transfer.policy.TransferCreatePolicy;
 import io.attestry.workflow.domain.transfer.repository.TokenTransferRepository;
 import java.time.Clock;
@@ -148,7 +151,7 @@ class TransferCreateServiceTest {
         doNothing().when(authorizationSupport).assertTenantContext(any(), anyString());
         doNothing().when(authorizationSupport).assertLivePermission(any(), anyString(), anyString(), anyString());
         when(productReadPort.findPassportState("p1"))
-            .thenReturn(Optional.of(new TransferPassportState("p1", "tenant1", "ACTIVE", "NONE")));
+            .thenReturn(Optional.of(new TransferPassportState("p1", "brandTenant", "ACTIVE", "NONE")));
         when(productReadPort.findCurrentOwnerId("p1")).thenReturn(Optional.empty());
         when(productReadPort.hasRetailPermission("p1", "tenant1")).thenReturn(true);
         when(transferRepository.existsActivePendingByPassportId("p1")).thenReturn(false);
@@ -191,5 +194,40 @@ class TransferCreateServiceTest {
         assertThrows(WorkflowDomainException.class, () ->
             service.createB2C(RETAIL_PRINCIPAL, "tenant1", "p1", new CreateB2CTransferCommand(AcceptMethod.QR, null, EXPIRES))
         );
+    }
+
+    @Test
+    void findLatestActivePendingB2CByPassportId_returnsRetailPendingTransfer() {
+        doNothing().when(authorizationSupport).assertTenantContext(RETAIL_PRINCIPAL, "tenant1");
+        doNothing().when(authorizationSupport).assertLivePermission(RETAIL_PRINCIPAL, "tenant1", "RETAIL_TRANSFER_CREATE",
+            "transfer:pending:p1");
+        when(productReadPort.hasRetailPermission("p1", "tenant1")).thenReturn(true);
+        when(transferRepository.findLatestActivePendingByPassportId("p1", Instant.parse("2026-03-01T10:00:00Z")))
+            .thenReturn(Optional.of(new TokenTransfer(
+                "t1",
+                "p1",
+                TransferType.B2C,
+                TransferStatus.PENDING,
+                AcceptMethod.QR,
+                null,
+                null,
+                "tenant1",
+                "nonce-1",
+                null,
+                null,
+                0,
+                EXPIRES,
+                Instant.parse("2026-03-01T10:00:00Z"),
+                "retailUser",
+                null,
+                null,
+                null
+            )));
+
+        Optional<CreateTransferResult> result = service.findLatestActivePendingB2CByPassportId(RETAIL_PRINCIPAL, "tenant1", "p1");
+
+        assertTrue(result.isPresent());
+        assertEquals("t1", result.get().transferId());
+        assertEquals("B2C", result.get().transferType());
     }
 }

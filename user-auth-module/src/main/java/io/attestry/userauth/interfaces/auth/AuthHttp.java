@@ -68,13 +68,25 @@ public class AuthHttp {
     }
 
     @PostMapping("/token-reissue")
-    public LoginResponse reissueToken(@AuthenticationPrincipal AuthPrincipal principal) {
-        AuthTokenResult result = authApplicationService.reissueToken(principal.userId(), principal.tenantId());
+    public LoginResponse reissueToken(
+        @AuthenticationPrincipal AuthPrincipal principal,
+        @RequestBody(required = false) TokenReissueRequest request
+    ) {
+        String requestedTenantId = request != null && request.tenantId() != null && !request.tenantId().isBlank()
+            ? request.tenantId()
+            : null;
+        AuthTokenResult result = authApplicationService.reissueToken(
+            principal.userId(),
+            requestedTenantId != null ? requestedTenantId : principal.tenantId()
+        );
         return new LoginResponse(
                 result.accessToken(),
                 result.tokenType(),
                 result.expiresAt(),
                 result.userId(),
                 result.tenantId());
+    }
+
+    public record TokenReissueRequest(String tenantId) {
     }
 }
