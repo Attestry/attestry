@@ -86,7 +86,7 @@ app:
       enabled: ${LEDGER_INTEGRITY_CHECK_ENABLED:false}
       cron: ${LEDGER_INTEGRITY_CHECK_CRON:0 0 3 * * *}
   product:
-    public-base-url: ${PRODUCT_PUBLIC_BASE_URL:http://localhost:8080}
+    public-base-url: ${PRODUCT_PUBLIC_BASE_URL:http://localhost:5174}
     passport-permission-projection:
       enabled: ${PRODUCT_PERMISSION_PROJECTION_ENABLED:true}
       initial-delay-ms: ${PRODUCT_PERMISSION_PROJECTION_INITIAL_DELAY_MS:3000}
