@@ -11,7 +11,7 @@ import static org.mockito.Mockito.when;
 
 import io.attestry.userauth.domain.identity.model.VerificationLevel;
 import io.attestry.userauth.security.AuthPrincipal;
-import io.attestry.workflow.application.port.ServicePermissionPort;
+import io.attestry.workflow.application.port.servicerequest.ServicePermissionPort;
 import io.attestry.workflow.application.servicerequest.result.CancelServiceRequestResult;
 import io.attestry.workflow.application.support.WorkflowAuthorizationSupport;
 import io.attestry.workflow.domain.WorkflowDomainException;

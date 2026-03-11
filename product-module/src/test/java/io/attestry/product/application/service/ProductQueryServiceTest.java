@@ -12,8 +12,11 @@ import io.attestry.product.application.port.ownership.PassportOwnershipPort;
 import io.attestry.product.application.port.permission.PassportPermissionPort;
 import io.attestry.product.application.port.passport.PassportPort;
 import io.attestry.product.application.port.query.PassportShipmentQueryPort;
+import io.attestry.product.application.query.ProductQueryService;
+import io.attestry.product.application.query.assembler.ProductQueryViewAssembler;
 import io.attestry.product.application.dto.view.DistributedPassportView;
 import io.attestry.product.application.dto.view.DistributedPassportDetailView;
+import io.attestry.product.application.dto.view.PagedDistributedPassportView;
 import java.time.Instant;
 import java.util.List;
 import org.junit.jupiter.api.BeforeEach;
@@ -33,6 +36,7 @@ class ProductQueryServiceTest {
     @Mock DistributedPassportQueryPort distributedPassportQueryPort;
     @Mock PassportShipmentQueryPort shipmentQueryPort;
     @Mock PassportDistributionQueryPort distributionQueryPort;
+    @Mock ProductQueryViewAssembler viewAssembler;
 
     private ProductQueryService service;
 
@@ -47,36 +51,36 @@ class ProductQueryServiceTest {
             distributedPassportQueryPort,
             shipmentQueryPort,
             distributionQueryPort,
+            viewAssembler,
             "https://public.example.com"
         );
     }
 
     @Test
     void listDistributedPassports_returnsPagedPermissionBackedProducts() {
-        when(distributedPassportQueryPort.findByTargetTenant("retail-tenant", 0, 20, "SN", null)).thenReturn(
-            new DistributedPassportQueryPort.PagedResult(
-                List.of(new DistributedPassportView(
-                    "passport-1",
-                    "QR-001",
-                    "asset-1",
-                    "SN-001",
-                    "MODEL-1",
-                    "Model Name",
-                    "ACTIVE",
-                    "NONE",
-                    "perm-1",
-                    Instant.parse("2026-04-01T00:00:00Z"),
-                    "brand-tenant",
-                    "retail-tenant",
-                    "ACTIVE",
-                    Instant.parse("2026-03-01T00:00:00Z")
-                )),
-                0,
-                20,
-                1,
-                1
-            )
+        List<DistributedPassportView> views = List.of(new DistributedPassportView(
+            "passport-1",
+            "QR-001",
+            "asset-1",
+            "SN-001",
+            "MODEL-1",
+            "Model Name",
+            "ACTIVE",
+            "NONE",
+            "perm-1",
+            Instant.parse("2026-04-01T00:00:00Z"),
+            "brand-tenant",
+            "retail-tenant",
+            "ACTIVE",
+            Instant.parse("2026-03-01T00:00:00Z")
+        ));
+        DistributedPassportQueryPort.PagedResult pagedResult = new DistributedPassportQueryPort.PagedResult(
+            views, 0, 20, 1, 1
         );
+        when(distributedPassportQueryPort.findByTargetTenant("retail-tenant", 0, 20, "SN", null))
+            .thenReturn(pagedResult);
+        when(viewAssembler.toPagedDistributedPassportView(pagedResult))
+            .thenReturn(new PagedDistributedPassportView(views, 0, 20, 1, 1));
 
         var result = service.listDistributedPassports("retail-tenant", 0, 20, "  SN  ", null);
 

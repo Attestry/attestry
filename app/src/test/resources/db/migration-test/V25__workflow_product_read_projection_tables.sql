@@ -7,7 +7,7 @@ CREATE TABLE IF NOT EXISTS workflow_passport_state_projection (
     current_owner_id VARCHAR(36),
     source_event_id VARCHAR(100) NOT NULL,
     source_event_version BIGINT,
-    updated_at TIMESTAMPTZ NOT NULL DEFAULT CURRENT_TIMESTAMP,
+    updated_at TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP,
     CONSTRAINT uq_wpsp_source_event_id UNIQUE (source_event_id),
     CONSTRAINT chk_wpsp_asset_state CHECK (asset_state IN ('ACTIVE', 'VOIDED', 'STOLEN', 'LOST')),
     CONSTRAINT chk_wpsp_risk_flag CHECK (risk_flag IN ('NONE', 'FLAGGED'))
@@ -28,10 +28,10 @@ CREATE TABLE IF NOT EXISTS workflow_passport_catalog_projection (
     model_name VARCHAR(255),
     production_batch VARCHAR(100),
     factory_code VARCHAR(100),
-    manufactured_at TIMESTAMPTZ,
+    manufactured_at TIMESTAMP,
     source_event_id VARCHAR(100) NOT NULL,
     source_event_version BIGINT,
-    updated_at TIMESTAMPTZ NOT NULL DEFAULT CURRENT_TIMESTAMP,
+    updated_at TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP,
     CONSTRAINT uq_wpcp_asset_id UNIQUE (asset_id),
     CONSTRAINT uq_wpcp_source_event_id UNIQUE (source_event_id)
 );
@@ -48,10 +48,10 @@ CREATE TABLE IF NOT EXISTS workflow_passport_permission_projection (
     passport_id VARCHAR(36) NOT NULL,
     seller_tenant_id VARCHAR(36) NOT NULL,
     status VARCHAR(30) NOT NULL,
-    expires_at TIMESTAMPTZ,
+    expires_at TIMESTAMP,
     source_event_id VARCHAR(100) NOT NULL,
     source_event_version BIGINT,
-    updated_at TIMESTAMPTZ NOT NULL DEFAULT CURRENT_TIMESTAMP,
+    updated_at TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP,
     CONSTRAINT uq_wppp_source_event_id UNIQUE (source_event_id),
     CONSTRAINT chk_wppp_status CHECK (status IN ('ACTIVE', 'REVOKED', 'EXPIRED', 'COMPLETED', 'SUSPENDED', 'CONSUMED', 'LINK_INACTIVE'))
 );
@@ -68,7 +68,7 @@ CREATE TABLE IF NOT EXISTS workflow_passport_ownership_projection (
     owner_id VARCHAR(36) NOT NULL,
     source_event_id VARCHAR(100) NOT NULL,
     source_event_version BIGINT,
-    updated_at TIMESTAMPTZ NOT NULL DEFAULT CURRENT_TIMESTAMP,
+    updated_at TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP,
     CONSTRAINT uq_wpop_source_event_id UNIQUE (source_event_id)
 );
 

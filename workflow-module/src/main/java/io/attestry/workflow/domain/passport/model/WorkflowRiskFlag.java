@@ -4,7 +4,8 @@ import io.attestry.workflow.domain.WorkflowDomainException;
 import io.attestry.workflow.domain.WorkflowErrorCode;
 
 public enum WorkflowRiskFlag {
-    NONE;
+    NONE,
+    FLAGGED;
 
     public static WorkflowRiskFlag from(String value) {
         if (value == null) {

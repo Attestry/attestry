@@ -11,8 +11,9 @@ import io.attestry.userauth.domain.identity.model.VerificationLevel;
 import io.attestry.userauth.security.AuthPrincipal;
 import io.attestry.workflow.application.delegation.command.GrantDelegationCommand;
 import io.attestry.workflow.application.delegation.result.DelegationResult;
-import io.attestry.workflow.application.port.DistributionCandidateQueryPort;
-import io.attestry.workflow.application.port.DistributionQueryPort;
+import io.attestry.workflow.application.distribution.assembler.DistributionViewAssembler;
+import io.attestry.workflow.application.port.distribution.DistributionCandidateQueryPort;
+import io.attestry.workflow.application.port.distribution.DistributionQueryPort;
 import io.attestry.workflow.application.usecase.DelegationUseCase;
 import io.attestry.workflow.application.usecase.DistributionUseCase.BatchDistributeResult;
 import io.attestry.workflow.application.usecase.DistributionUseCase.DistributeCommand;
@@ -38,6 +39,7 @@ class DistributionServiceTest {
     @Mock DistributionRepository distributionRepository;
     @Mock DistributionCandidateQueryPort distributionCandidateQueryPort;
     @Mock DistributionQueryPort distributionQueryPort;
+    @Mock DistributionViewAssembler viewAssembler;
 
     private final Clock clock = Clock.fixed(Instant.parse("2026-03-01T10:00:00Z"), ZoneOffset.UTC);
 
@@ -55,7 +57,7 @@ class DistributionServiceTest {
 
     @BeforeEach
     void setUp() {
-        service = new DistributionService(delegationUseCase, distributionRepository, distributionCandidateQueryPort, distributionQueryPort, clock);
+        service = new DistributionService(delegationUseCase, distributionRepository, distributionCandidateQueryPort, distributionQueryPort, viewAssembler, clock);
     }
 
     @Test

@@ -11,9 +11,9 @@ import static org.mockito.Mockito.when;
 
 import io.attestry.userauth.domain.identity.model.VerificationLevel;
 import io.attestry.userauth.security.AuthPrincipal;
-import io.attestry.workflow.application.port.ServicePermissionPort;
-import io.attestry.workflow.application.port.ServiceProductReadPort;
-import io.attestry.workflow.application.port.ServiceProductReadPort.ServicePassportState;
+import io.attestry.workflow.application.port.servicerequest.ServicePermissionPort;
+import io.attestry.workflow.application.port.servicerequest.ServiceProductReadPort;
+import io.attestry.workflow.application.port.servicerequest.ServiceProductReadPort.ServicePassportState;
 import io.attestry.workflow.application.servicerequest.command.GrantServiceConsentCommand;
 import io.attestry.workflow.application.servicerequest.result.GrantServiceConsentResult;
 import io.attestry.workflow.application.servicerequest.result.RevokeServiceConsentResult;

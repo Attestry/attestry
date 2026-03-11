@@ -11,11 +11,11 @@ import static org.mockito.Mockito.when;
 
 import io.attestry.userauth.domain.identity.model.VerificationLevel;
 import io.attestry.userauth.security.AuthPrincipal;
-import io.attestry.workflow.application.port.ServicePermissionPort;
-import io.attestry.workflow.application.port.ServiceProductReadPort;
-import io.attestry.workflow.application.port.ServiceProductReadPort.ServicePassportState;
-import io.attestry.workflow.application.port.WorkflowEvidencePort;
-import io.attestry.workflow.application.port.WorkflowLedgerOutboxPort;
+import io.attestry.workflow.application.port.servicerequest.ServicePermissionPort;
+import io.attestry.workflow.application.port.servicerequest.ServiceProductReadPort;
+import io.attestry.workflow.application.port.servicerequest.ServiceProductReadPort.ServicePassportState;
+import io.attestry.workflow.application.port.common.WorkflowEvidencePort;
+import io.attestry.workflow.application.port.common.WorkflowLedgerOutboxPort;
 import io.attestry.workflow.application.servicerequest.command.CompleteServiceRequestCommand;
 import io.attestry.workflow.application.servicerequest.result.CompleteServiceRequestResult;
 import io.attestry.workflow.application.shipment.result.WorkflowLedgerEventEnvelope;
