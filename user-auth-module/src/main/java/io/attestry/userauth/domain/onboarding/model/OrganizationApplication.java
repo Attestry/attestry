@@ -52,13 +52,49 @@ public class OrganizationApplication {
         this.rejectReason = rejectReason;
     }
 
-    public static OrganizationApplication create(
+    public static OrganizationApplication createBrand(
+        String applicantUserId,
+        String orgName,
+        String country,
+        String bizRegNo,
+        String address,
+        String evidenceBundleId
+    ) {
+        return create(TenantType.BRAND, applicantUserId, orgName, country, bizRegNo, address, evidenceBundleId);
+    }
+
+    public static OrganizationApplication createRetail(
+        String applicantUserId,
+        String orgName,
+        String country,
+        String bizRegNo,
+        String address,
+        String evidenceBundleId
+    ) {
+        return create(TenantType.RETAIL, applicantUserId, orgName, country, bizRegNo, address, evidenceBundleId);
+    }
+
+    public static OrganizationApplication createService(
+        String applicantUserId,
+        String orgName,
+        String country,
+        String bizRegNo,
+        String address,
+        String evidenceBundleId
+    ) {
+        if (address == null || address.isBlank()) {
+            throw new UserAuthDomainException(UserAuthErrorCode.INVALID_REQUEST, "address is required for SERVICE type");
+        }
+        return create(TenantType.SERVICE, applicantUserId, orgName, country, bizRegNo, address, evidenceBundleId);
+    }
+
+    private static OrganizationApplication create(
         TenantType type,
         String applicantUserId,
         String orgName,
         String country,
-        String address,
         String bizRegNo,
+        String address,
         String evidenceBundleId
     ) {
         validateEvidenceBundleId(evidenceBundleId);
@@ -132,28 +168,19 @@ public class OrganizationApplication {
 
     public void assertPending() {
         if (status != ApplicationStatus.PENDING) {
-            throw new UserAuthDomainException(
-                UserAuthErrorCode.INVALID_APPLICATION_STATE,
-                "Application is not pending"
-            );
+            throw new UserAuthDomainException(UserAuthErrorCode.INVALID_APPLICATION_STATE, "Application is not pending");
         }
     }
 
     private static void validateEvidenceBundleId(String evidenceBundleId) {
         if (evidenceBundleId == null || evidenceBundleId.isBlank()) {
-            throw new UserAuthDomainException(
-                UserAuthErrorCode.INVALID_APPLICATION_STATE,
-                "Evidence bundle id is required"
-            );
+            throw new UserAuthDomainException(UserAuthErrorCode.INVALID_APPLICATION_STATE, "Evidence bundle id is required");
         }
     }
 
     private static void validateAddress(String address) {
         if (address == null || address.isBlank()) {
-            throw new UserAuthDomainException(
-                UserAuthErrorCode.INVALID_REQUEST,
-                "address is required"
-            );
+            throw new UserAuthDomainException(UserAuthErrorCode.INVALID_REQUEST, "address is required");
         }
     }
 

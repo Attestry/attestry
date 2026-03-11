@@ -51,25 +51,45 @@ public class OnboardingApplicationCommandService implements OnboardingApplicatio
         TenantType type = TenantType.parseSupported(command.type());
         requireReadyEvidenceOwnedByPrincipal(actor.userId(), command.evidenceBundleId());
 
-        switch (type) {
-            case BRAND -> uniquenessPolicy.assertUniqueBrand(command.orgName(), command.country(), command.bizRegNo());
-            case RETAIL -> uniquenessPolicy.assertUniqueRetail(command.orgName(), command.country(), command.bizRegNo());
-            case SERVICE -> uniquenessPolicy.assertUniqueService(command.orgName(), command.country(), command.bizRegNo());
+        OrganizationApplication application = switch (type) {
+            case BRAND -> {
+                uniquenessPolicy.assertUniqueBrand(command.orgName(), command.country(), command.bizRegNo());
+                yield OrganizationApplication.createBrand(
+                    actor.userId(),
+                    command.orgName(),
+                    command.country(),
+                    command.bizRegNo(),
+                    command.address(),
+                    command.evidenceBundleId()
+                );
+            }
+            case RETAIL -> {
+                uniquenessPolicy.assertUniqueRetail(command.orgName(), command.country(), command.bizRegNo());
+                yield OrganizationApplication.createRetail(
+                    actor.userId(),
+                    command.orgName(),
+                    command.country(),
+                    command.bizRegNo(),
+                    command.address(),
+                    command.evidenceBundleId()
+                );
+            }
+            case SERVICE -> {
+                uniquenessPolicy.assertUniqueService(command.orgName(), command.country(), command.bizRegNo());
+                yield OrganizationApplication.createService(
+                    actor.userId(),
+                    command.orgName(),
+                    command.country(),
+                    command.bizRegNo(),
+                    command.address(),
+                    command.evidenceBundleId()
+                );
+            }
             default -> throw new UserAuthDomainException(
                 UserAuthErrorCode.INVALID_REQUEST,
                 "Only BRAND, RETAIL, or SERVICE application type is supported"
             );
-        }
-
-        OrganizationApplication application = OrganizationApplication.create(
-            type,
-            actor.userId(),
-            command.orgName(),
-            command.country(),
-            command.address(),
-            command.bizRegNo(),
-            command.evidenceBundleId()
-        );
+        };
 
         return viewAssembler.toResult(applicationRepository.save(application));
     }

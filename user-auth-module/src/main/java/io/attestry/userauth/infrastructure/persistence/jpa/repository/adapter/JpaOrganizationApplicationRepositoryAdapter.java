@@ -9,8 +9,11 @@ import io.attestry.userauth.infrastructure.persistence.jpa.mapper.OrganizationAp
 import io.attestry.userauth.infrastructure.persistence.jpa.repository.OrganizationApplicationJpaRepository;
 import java.util.List;
 import java.util.Optional;
+
+import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Repository;
 
+@RequiredArgsConstructor
 @Repository
 public class JpaOrganizationApplicationRepositoryAdapter
         implements OrganizationApplicationRepositoryPort {
@@ -18,13 +21,6 @@ public class JpaOrganizationApplicationRepositoryAdapter
     private final OrganizationApplicationJpaRepository repository;
     private final OrganizationApplicationMapper mapper;
 
-    public JpaOrganizationApplicationRepositoryAdapter(
-        OrganizationApplicationJpaRepository repository,
-        OrganizationApplicationMapper mapper
-    ) {
-        this.repository = repository;
-        this.mapper = mapper;
-    }
 
     @Override
     public OrganizationApplication save(OrganizationApplication application) {
