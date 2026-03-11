@@ -38,8 +38,7 @@ public class OnboardingProvisioningService {
         String address,
         String actorUserId
     ) {
-        Tenant tenant = Tenant.create(orgName, country, address, type);
-        tenantRepository.save(tenant);
+        Tenant tenant = tenantRepository.save(Tenant.create(orgName, country, address, type));
 
         Membership membership = Membership.create(
             applicantUserId, tenant.tenantId(),

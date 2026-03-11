@@ -70,7 +70,7 @@ class ServiceCompleteServiceTest {
         ServiceRequest accepted = ServiceRequest.submit(
             "sr1", "p1", "REPAIR", "owner1",
             "provT1", "desc", "beforeEg", "ONLINE", "화면 불량", null, "연락처", "perm1", "owner1", SUBMITTED_AT, SUBMITTED_AT
-        ).accept("desc", Instant.parse("2026-03-01T09:30:00Z"));
+        ).accept("REPAIR", "desc", Instant.parse("2026-03-01T09:30:00Z"));
 
         doNothing().when(authorizationSupport).assertTenantContext(any(), anyString());
         doNothing().when(authorizationSupport).assertLivePermission(any(), anyString(), anyString(), anyString());
@@ -112,7 +112,7 @@ class ServiceCompleteServiceTest {
         ServiceRequest accepted = ServiceRequest.submit(
             "sr1", "p1", "REPAIR", "owner1",
             "otherTenant", "desc", "beforeEg", "ONLINE", "화면 불량", null, "연락처", null, "owner1", SUBMITTED_AT, SUBMITTED_AT
-        ).accept("desc", Instant.parse("2026-03-01T09:30:00Z"));
+        ).accept("REPAIR", "desc", Instant.parse("2026-03-01T09:30:00Z"));
 
         doNothing().when(authorizationSupport).assertTenantContext(any(), anyString());
         doNothing().when(authorizationSupport).assertLivePermission(any(), anyString(), anyString(), anyString());
@@ -129,7 +129,7 @@ class ServiceCompleteServiceTest {
         ServiceRequest accepted = ServiceRequest.submit(
             "sr1", "p1", "REPAIR", "owner1",
             "provT1", "desc", "beforeEg", "ONLINE", "화면 불량", null, "연락처", null, "owner1", SUBMITTED_AT, SUBMITTED_AT
-        ).accept("desc", Instant.parse("2026-03-01T09:30:00Z"));
+        ).accept("REPAIR", "desc", Instant.parse("2026-03-01T09:30:00Z"));
 
         doNothing().when(authorizationSupport).assertTenantContext(any(), anyString());
         doNothing().when(authorizationSupport).assertLivePermission(any(), anyString(), anyString(), anyString());

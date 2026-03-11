@@ -16,6 +16,7 @@ public class TenantMapper implements DomainMapper<Tenant, TenantJpaEntity> {
             entity.getTenantId(),
             entity.getName(),
             entity.getRegion(),
+            entity.getAddress(),
             entity.getType(),
             entity.getStatus()
         );
@@ -30,6 +31,7 @@ public class TenantMapper implements DomainMapper<Tenant, TenantJpaEntity> {
             domain.tenantId(),
             domain.name(),
             domain.region(),
+            domain.address(),
             domain.type(),
             domain.status()
         );
