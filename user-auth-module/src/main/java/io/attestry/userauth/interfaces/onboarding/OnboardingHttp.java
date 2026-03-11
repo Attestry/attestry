@@ -67,6 +67,7 @@ public class OnboardingHttp {
                         request.type(),
                         request.orgName(),
                         request.country(),
+                        request.address(),
                         request.bizRegNo(),
                         request.evidenceBundleId()));
         return ApplicationResponse.from(result);

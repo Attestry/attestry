@@ -59,8 +59,8 @@ class PartnerLinkServiceTenantSearchTest {
         doNothing().when(authorizationSupport).assertLivePermission(any(), anyString(), anyString(), anyString());
         when(tenantReadPort.searchActiveTenantsByName("brand"))
             .thenReturn(List.of(
-                new TenantReadPort.TenantSummary("tenant-kr", "Brand Korea", "KR", "BRAND"),
-                new TenantReadPort.TenantSummary("tenant-us", "Brand US", "US", "BRAND")
+                new TenantReadPort.TenantSummary("tenant-kr", "Brand Korea", "KR", null, "BRAND"),
+                new TenantReadPort.TenantSummary("tenant-us", "Brand US", "US", null, "BRAND")
             ));
 
         var result = service.searchActiveTenantsByName(PRINCIPAL, " brand ");

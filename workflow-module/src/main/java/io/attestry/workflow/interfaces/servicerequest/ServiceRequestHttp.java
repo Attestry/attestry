@@ -83,7 +83,14 @@ public class ServiceRequestHttp {
         GrantServiceConsentResult result = serviceConsentUseCase.submit(
             principal,
             passportId,
-            new GrantServiceConsentCommand(request.providerTenantId())
+            new GrantServiceConsentCommand(
+                request.providerTenantId(),
+                request.beforeEvidenceGroupId(),
+                request.serviceRequestMethod(),
+                request.symptomDescription(),
+                request.requestedReservationAt(),
+                request.contactMemo()
+            )
         );
         return GrantServiceConsentResponse.from(result);
     }
@@ -125,6 +132,13 @@ public class ServiceRequestHttp {
         );
     }
 
+    @GetMapping("/service/providers/{tenantId}")
+    public ServiceProviderResponse getServiceProvider(
+        @PathVariable("tenantId") String tenantId
+    ) {
+        return ServiceProviderResponse.from(serviceConsentUseCase.getServiceProvider(tenantId));
+    }
+
     // --- Submit endpoint (OWNER) ---
 
     @PostMapping("/service-requests")
@@ -139,7 +153,11 @@ public class ServiceRequestHttp {
             new SubmitServiceRequestCommand(
                 request.passportId(),
                 request.providerTenantId(),
-                request.beforeEvidenceGroupId()
+                request.beforeEvidenceGroupId(),
+                request.serviceRequestMethod(),
+                request.symptomDescription(),
+                request.requestedReservationAt(),
+                request.contactMemo()
             )
         );
         return SubmitServiceRequestResponse.from(result);
@@ -159,7 +177,7 @@ public class ServiceRequestHttp {
     }
 
     @GetMapping("/tenants/{tenantId}/service-requests")
-    @PreAuthorize("hasAuthority('SCOPE_SERVICE_COMPLETE')")
+    @PreAuthorize("hasAnyAuthority('SCOPE_SERVICE_COMPLETE', 'SCOPE_TENANT_READ_ONLY')")
     public PagedServiceRequestResponse listProviderRequests(
         @AuthenticationPrincipal AuthPrincipal principal,
         @PathVariable("tenantId") String tenantId,
@@ -220,7 +238,8 @@ public class ServiceRequestHttp {
             serviceRequestId,
             new CompleteServiceRequestCommand(
                 request.afterEvidenceGroupId(),
-                request.serviceResult()
+                request.serviceResult(),
+                request.completionMemo()
             )
         );
         return CompleteServiceRequestResponse.from(result);
@@ -318,7 +337,12 @@ public class ServiceRequestHttp {
     }
 
     public record GrantServiceConsentRequest(
-        String providerTenantId
+        String providerTenantId,
+        String beforeEvidenceGroupId,
+        String serviceRequestMethod,
+        String symptomDescription,
+        Instant requestedReservationAt,
+        String contactMemo
     ) {
     }
 
@@ -365,6 +389,7 @@ public class ServiceRequestHttp {
         String tenantId,
         String name,
         String region,
+        String address,
         String type
     ) {
         static ServiceProviderResponse from(ServiceConsentUseCase.ServiceProviderResult result) {
@@ -372,6 +397,7 @@ public class ServiceRequestHttp {
                 result.tenantId(),
                 result.name(),
                 result.region(),
+                result.address(),
                 result.type()
             );
         }
@@ -389,7 +415,11 @@ public class ServiceRequestHttp {
     public record SubmitServiceRequestRequest(
         String passportId,
         String providerTenantId,
-        String beforeEvidenceGroupId
+        String beforeEvidenceGroupId,
+        String serviceRequestMethod,
+        String symptomDescription,
+        Instant requestedReservationAt,
+        String contactMemo
     ) {
     }
 
@@ -401,7 +431,8 @@ public class ServiceRequestHttp {
 
     public record CompleteServiceRequestRequest(
         String afterEvidenceGroupId,
-        String serviceResult
+        String serviceResult,
+        String completionMemo
     ) {
     }
 
@@ -457,8 +488,21 @@ public class ServiceRequestHttp {
         String providerTenantName,
         String serviceType,
         String description,
+        String serviceRequestMethod,
+        String symptomDescription,
+        Instant requestedReservationAt,
+        String contactMemo,
+        String beforeEvidenceGroupId,
+        List<EvidenceFileResponse> beforeEvidenceFiles,
+        String afterEvidenceGroupId,
+        List<EvidenceFileResponse> afterEvidenceFiles,
+        String serviceResultDetail,
+        String completionMemo,
+        String rejectReason,
+        String cancelReason,
         String status,
-        Instant submittedAt
+        Instant submittedAt,
+        Instant completedAt
     ) {
         static ServiceRequestListItemResponse from(ServiceRequestQueryUseCase.ServiceRequestListItemResult result) {
             return new ServiceRequestListItemResponse(
@@ -470,8 +514,39 @@ public class ServiceRequestHttp {
                 result.providerTenantName(),
                 result.serviceType(),
                 result.description(),
+                result.serviceRequestMethod(),
+                result.symptomDescription(),
+                result.requestedReservationAt(),
+                result.contactMemo(),
+                result.beforeEvidenceGroupId(),
+                result.beforeEvidenceFiles().stream().map(EvidenceFileResponse::from).toList(),
+                result.afterEvidenceGroupId(),
+                result.afterEvidenceFiles().stream().map(EvidenceFileResponse::from).toList(),
+                result.serviceResultDetail(),
+                result.completionMemo(),
+                result.rejectReason(),
+                result.cancelReason(),
                 result.status(),
-                result.submittedAt()
+                result.submittedAt(),
+                result.completedAt()
+            );
+        }
+    }
+
+    public record EvidenceFileResponse(
+        String evidenceId,
+        String originalFileName,
+        String contentType,
+        long sizeBytes,
+        String downloadUrl
+    ) {
+        static EvidenceFileResponse from(ServiceRequestQueryUseCase.EvidenceFileResult result) {
+            return new EvidenceFileResponse(
+                result.evidenceId(),
+                result.originalFileName(),
+                result.contentType(),
+                result.sizeBytes(),
+                result.downloadUrl()
             );
         }
     }

@@ -15,8 +15,14 @@ public record ServiceRequest(
     String providerTenantId,
     ServiceRequestStatus status,
     String description,
+    String serviceRequestMethod,
+    String symptomDescription,
+    Instant requestedReservationAt,
+    String contactMemo,
     String beforeEvidenceGroupId,
     String afterEvidenceGroupId,
+    String serviceResultDetail,
+    String completionMemo,
     String permissionId,
     String submittedByUserId,
     Instant submittedAt,
@@ -35,6 +41,10 @@ public record ServiceRequest(
         String providerTenantId,
         String description,
         String beforeEvidenceGroupId,
+        String serviceRequestMethod,
+        String symptomDescription,
+        Instant requestedReservationAt,
+        String contactMemo,
         String permissionId,
         String submittedByUserId,
         Instant submittedAt,
@@ -47,6 +57,13 @@ public record ServiceRequest(
         requireText(submittedByUserId, "submittedByUserId");
         requireNonNull(submittedAt, "submittedAt");
         requireNonNull(createdAt, "createdAt");
+        requireText(beforeEvidenceGroupId, "beforeEvidenceGroupId");
+        requireText(symptomDescription, "symptomDescription");
+        requireText(contactMemo, "contactMemo");
+        String normalizedRequestMethod = ServiceRequestMethods.normalize(serviceRequestMethod);
+        if (ServiceRequestMethods.VISIT.equals(normalizedRequestMethod)) {
+            requireNonNull(requestedReservationAt, "requestedReservationAt");
+        }
 
         return new ServiceRequest(
             serviceRequestId,
@@ -56,7 +73,13 @@ public record ServiceRequest(
             providerTenantId,
             ServiceRequestStatus.PENDING,
             description,
+            normalizedRequestMethod,
+            symptomDescription,
+            requestedReservationAt,
+            contactMemo,
             beforeEvidenceGroupId,
+            null,
+            null,
             null,
             permissionId,
             submittedByUserId,
@@ -70,7 +93,7 @@ public record ServiceRequest(
     }
 
     public ServiceRequest accept(String serviceType, String description, Instant now) {
-        requireText(serviceType, "serviceType");
+        String normalizedServiceType = ServiceTypes.normalize(serviceType);
         requireNonNull(now, "now");
         if (status != ServiceRequestStatus.PENDING) {
             throw new WorkflowDomainException(WorkflowErrorCode.SERVICE_REQUEST_INVALID_STATE,
@@ -79,13 +102,19 @@ public record ServiceRequest(
         return new ServiceRequest(
             serviceRequestId,
             passportId,
-            serviceType,
+            normalizedServiceType,
             ownerUserId,
             providerTenantId,
             ServiceRequestStatus.ACCEPTED,
             description,
+            serviceRequestMethod,
+            symptomDescription,
+            requestedReservationAt,
+            contactMemo,
             beforeEvidenceGroupId,
             afterEvidenceGroupId,
+            serviceResultDetail,
+            completionMemo,
             permissionId,
             submittedByUserId,
             submittedAt,
@@ -111,8 +140,14 @@ public record ServiceRequest(
             providerTenantId,
             ServiceRequestStatus.REJECTED,
             description,
+            serviceRequestMethod,
+            symptomDescription,
+            requestedReservationAt,
+            contactMemo,
             beforeEvidenceGroupId,
             afterEvidenceGroupId,
+            serviceResultDetail,
+            completionMemo,
             permissionId,
             submittedByUserId,
             submittedAt,
@@ -124,8 +159,17 @@ public record ServiceRequest(
         );
     }
 
-    public ServiceRequest complete(String completedByUserId, String afterEvidenceGroupId, Instant now) {
+    public ServiceRequest complete(
+        String completedByUserId,
+        String afterEvidenceGroupId,
+        String serviceResultDetail,
+        String completionMemo,
+        Instant now
+    ) {
         requireText(completedByUserId, "completedByUserId");
+        requireText(afterEvidenceGroupId, "afterEvidenceGroupId");
+        requireText(serviceResultDetail, "serviceResultDetail");
+        requireText(completionMemo, "completionMemo");
         requireNonNull(now, "now");
         if (status != ServiceRequestStatus.ACCEPTED) {
             throw new WorkflowDomainException(WorkflowErrorCode.SERVICE_REQUEST_INVALID_STATE,
@@ -139,8 +183,14 @@ public record ServiceRequest(
             providerTenantId,
             ServiceRequestStatus.COMPLETED,
             description,
+            serviceRequestMethod,
+            symptomDescription,
+            requestedReservationAt,
+            contactMemo,
             beforeEvidenceGroupId,
             afterEvidenceGroupId,
+            serviceResultDetail,
+            completionMemo,
             permissionId,
             submittedByUserId,
             submittedAt,
@@ -166,8 +216,14 @@ public record ServiceRequest(
             providerTenantId,
             ServiceRequestStatus.CANCELLED,
             description,
+            serviceRequestMethod,
+            symptomDescription,
+            requestedReservationAt,
+            contactMemo,
             beforeEvidenceGroupId,
             afterEvidenceGroupId,
+            serviceResultDetail,
+            completionMemo,
             permissionId,
             submittedByUserId,
             submittedAt,

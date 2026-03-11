@@ -4,6 +4,7 @@ public record CreateApplicationCommand(
     String type,
     String orgName,
     String country,
+    String address,
     String bizRegNo,
     String evidenceBundleId
 ) {

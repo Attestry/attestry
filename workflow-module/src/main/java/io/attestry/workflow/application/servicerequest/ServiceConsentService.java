@@ -87,7 +87,11 @@ public class ServiceConsentService implements ServiceConsentUseCase {
             new SubmitServiceRequestCommand(
                 passportId,
                 command.providerTenantId(),
-                null
+                command.beforeEvidenceGroupId(),
+                command.serviceRequestMethod(),
+                command.symptomDescription(),
+                command.requestedReservationAt(),
+                command.contactMemo()
             )
         );
 
@@ -129,7 +133,13 @@ public class ServiceConsentService implements ServiceConsentUseCase {
         TenantReadPort.PagedTenantSummary paged = tenantReadPort.searchActiveTenantsByTypeAndName("SERVICE", name,
             page, size);
         List<ServiceProviderResult> content = paged.content().stream()
-            .map(tenant -> new ServiceProviderResult(tenant.tenantId(), tenant.name(), tenant.region(), tenant.type()))
+            .map(tenant -> new ServiceProviderResult(
+                tenant.tenantId(),
+                tenant.name(),
+                tenant.region(),
+                tenant.address(),
+                tenant.type()
+            ))
             .toList();
         return new PagedServiceProviderResult(
             content,
@@ -137,6 +147,22 @@ public class ServiceConsentService implements ServiceConsentUseCase {
             paged.size(),
             paged.totalElements(),
             paged.totalPages()
+        );
+    }
+
+    @Override
+    @Transactional(readOnly = true)
+    public ServiceProviderResult getServiceProvider(String tenantId) {
+        TenantReadPort.TenantSummary tenant = tenantReadPort.findTenantSummary(tenantId);
+        if (tenant == null || !"SERVICE".equalsIgnoreCase(tenant.type())) {
+            throw new WorkflowDomainException(WorkflowErrorCode.INVALID_REQUEST, "Service provider not found");
+        }
+        return new ServiceProviderResult(
+            tenant.tenantId(),
+            tenant.name(),
+            tenant.region(),
+            tenant.address(),
+            tenant.type()
         );
     }
 }

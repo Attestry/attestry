@@ -14,6 +14,7 @@ public class OrganizationApplication {
     private String tenantId;
     private final String orgName;
     private final String country;
+    private final String address;
     private final String bizRegNo;
     private final String evidenceBundleId;
     private ApplicationStatus status;
@@ -22,7 +23,7 @@ public class OrganizationApplication {
     private String rejectReason;
 
     private OrganizationApplication(String applicationId, TenantType type, String applicantUserId,
-            String tenantId, String orgName, String country, String bizRegNo,
+            String tenantId, String orgName, String country, String address, String bizRegNo,
             String evidenceBundleId, ApplicationStatus status,
             String reviewedByAdminId, java.time.Instant reviewedAt, String rejectReason) {
         this.applicationId = applicationId;
@@ -31,6 +32,7 @@ public class OrganizationApplication {
         this.tenantId = tenantId;
         this.orgName = orgName;
         this.country = country;
+        this.address = address;
         this.bizRegNo = bizRegNo;
         this.evidenceBundleId = evidenceBundleId;
         this.status = status;
@@ -43,6 +45,7 @@ public class OrganizationApplication {
             String applicantUserId,
             String orgName,
             String country,
+            String address,
             String bizRegNo,
             String evidenceBundleId) {
         validateEvidenceBundleId(evidenceBundleId);
@@ -53,6 +56,7 @@ public class OrganizationApplication {
                 null,
                 orgName,
                 country,
+                address,
                 bizRegNo,
                 evidenceBundleId,
                 ApplicationStatus.PENDING,
@@ -65,9 +69,11 @@ public class OrganizationApplication {
             String applicantUserId,
             String orgName,
             String country,
+            String address,
             String bizRegNo,
             String evidenceBundleId) {
         validateEvidenceBundleId(evidenceBundleId);
+        validateAddress(address);
         return new OrganizationApplication(
                 UUID.randomUUID().toString(),
                 TenantType.SERVICE,
@@ -75,6 +81,7 @@ public class OrganizationApplication {
                 null,
                 orgName,
                 country,
+                address,
                 bizRegNo,
                 evidenceBundleId,
                 ApplicationStatus.PENDING,
@@ -87,6 +94,7 @@ public class OrganizationApplication {
             String applicantUserId,
             String orgName,
             String country,
+            String address,
             String bizRegNo,
             String evidenceBundleId) {
         validateEvidenceBundleId(evidenceBundleId);
@@ -97,6 +105,7 @@ public class OrganizationApplication {
                 null,
                 orgName,
                 country,
+                address,
                 bizRegNo,
                 evidenceBundleId,
                 ApplicationStatus.PENDING,
@@ -107,11 +116,11 @@ public class OrganizationApplication {
 
     public static OrganizationApplication reconstitute(
             String applicationId, TenantType type, String applicantUserId,
-            String tenantId, String orgName, String country, String bizRegNo,
+            String tenantId, String orgName, String country, String address, String bizRegNo,
             String evidenceBundleId, ApplicationStatus status,
             String reviewedByAdminId, java.time.Instant reviewedAt, String rejectReason) {
         return new OrganizationApplication(
-                applicationId, type, applicantUserId, tenantId, orgName, country, bizRegNo,
+                applicationId, type, applicantUserId, tenantId, orgName, country, address, bizRegNo,
                 evidenceBundleId, status, reviewedByAdminId, reviewedAt, rejectReason);
     }
 
@@ -143,6 +152,12 @@ public class OrganizationApplication {
         }
     }
 
+    private static void validateAddress(String address) {
+        if (address == null || address.isBlank()) {
+            throw new DomainException(ErrorCode.INVALID_REQUEST, "address is required");
+        }
+    }
+
     // Getters
     public String applicationId() {
         return applicationId;
@@ -166,6 +181,10 @@ public class OrganizationApplication {
 
     public String country() {
         return country;
+    }
+
+    public String address() {
+        return address;
     }
 
     public String bizRegNo() {

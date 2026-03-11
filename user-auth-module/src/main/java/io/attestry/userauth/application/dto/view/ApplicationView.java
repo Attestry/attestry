@@ -9,6 +9,7 @@ public record ApplicationView(
     String tenantId,
     String orgName,
     String country,
+    String address,
     String bizRegNo,
     String evidenceBundleId,
     List<EvidenceFileView> evidenceFiles,

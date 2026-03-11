@@ -22,6 +22,7 @@ public class JpaTenantRepositoryAdapter implements TenantRepository {
             tenant.tenantId(),
             tenant.name(),
             tenant.region(),
+            tenant.address(),
             tenant.type(),
             tenant.status()
         ));
@@ -35,6 +36,7 @@ public class JpaTenantRepositoryAdapter implements TenantRepository {
                 entity.getTenantId(),
                 entity.getName(),
                 entity.getRegion(),
+                entity.getAddress(),
                 entity.getType(),
                 entity.getStatus()
             )

@@ -18,7 +18,7 @@ class ServiceRequestTest {
         ServiceRequest request = ServiceRequest.submit(
             "sr1", "p1", "REPAIR", "owner1",
             "tenant1", "Fix screen",
-            "eg1", "perm1", "owner1", NOW, NOW
+            "eg1", "ONLINE", "화면 불량", null, "010-0000-0000 / 평일 오후", "perm1", "owner1", NOW, NOW
         );
 
         assertEquals("sr1", request.serviceRequestId());
@@ -40,7 +40,7 @@ class ServiceRequestTest {
     @Test
     void submit_requiresServiceRequestId() {
         WorkflowDomainException ex = assertThrows(WorkflowDomainException.class, () ->
-            ServiceRequest.submit(null, "p1", "REPAIR", "owner1", "t1", null, null, null, "owner1", NOW, NOW)
+            ServiceRequest.submit(null, "p1", "REPAIR", "owner1", "t1", null, "eg1", "ONLINE", "화면 불량", null, "연락처", "perm1", "owner1", NOW, NOW)
         );
         assertEquals(WorkflowErrorCode.INVALID_REQUEST, ex.getErrorCode());
     }
@@ -48,7 +48,7 @@ class ServiceRequestTest {
     @Test
     void submit_requiresSubmittedByUserId() {
         WorkflowDomainException ex = assertThrows(WorkflowDomainException.class, () ->
-            ServiceRequest.submit("sr1", "p1", "REPAIR", "owner1", "t1", null, null, null, null, NOW, NOW)
+            ServiceRequest.submit("sr1", "p1", "REPAIR", "owner1", "t1", null, "eg1", "ONLINE", "화면 불량", null, "연락처", null, null, NOW, NOW)
         );
         assertEquals(WorkflowErrorCode.INVALID_REQUEST, ex.getErrorCode());
     }
@@ -57,7 +57,7 @@ class ServiceRequestTest {
     void accept_fromPending_succeeds() {
         ServiceRequest request = ServiceRequest.submit(
             "sr1", "p1", "REPAIR", "owner1",
-            "tenant1", "desc", "eg1", "perm1", "owner1", NOW, NOW
+            "tenant1", "desc", "eg1", "ONLINE", "화면 불량", null, "연락처", "perm1", "owner1", NOW, NOW
         );
 
         ServiceRequest accepted = request.accept("REPAIR", "desc", NOW);
@@ -69,11 +69,11 @@ class ServiceRequestTest {
     void complete_fromAccepted_succeeds() {
         ServiceRequest request = ServiceRequest.submit(
             "sr1", "p1", "REPAIR", "owner1",
-            "tenant1", "desc", "eg1", "perm1", "owner1", NOW, NOW
+            "tenant1", "desc", "eg1", "ONLINE", "화면 불량", null, "연락처", "perm1", "owner1", NOW, NOW
         ).accept("REPAIR", "desc", NOW);
 
         Instant completedAt = Instant.parse("2026-03-01T12:00:00Z");
-        ServiceRequest completed = request.complete("provider1", "afterEg1", completedAt);
+        ServiceRequest completed = request.complete("provider1", "afterEg1", "수리 완료", "메모", completedAt);
 
         assertEquals(ServiceRequestStatus.COMPLETED, completed.status());
         assertEquals("provider1", completed.completedByUserId());
@@ -86,11 +86,11 @@ class ServiceRequestTest {
     void complete_whenNotAccepted_throws() {
         ServiceRequest request = ServiceRequest.submit(
             "sr1", "p1", "REPAIR", "owner1",
-            "tenant1", "desc", null, null, "owner1", NOW, NOW
+            "tenant1", "desc", "eg1", "ONLINE", "화면 불량", null, "연락처", null, "owner1", NOW, NOW
         );
 
         WorkflowDomainException ex = assertThrows(WorkflowDomainException.class, () ->
-            request.complete("provider1", "afterEg1", NOW)
+            request.complete("provider1", "afterEg1", "수리 완료", "메모", NOW)
         );
         assertEquals(WorkflowErrorCode.SERVICE_REQUEST_INVALID_STATE, ex.getErrorCode());
     }
@@ -99,7 +99,7 @@ class ServiceRequestTest {
     void cancel_fromPending_succeeds() {
         ServiceRequest request = ServiceRequest.submit(
             "sr1", "p1", "REPAIR", "owner1",
-            "tenant1", "desc", null, null, "owner1", NOW, NOW
+            "tenant1", "desc", "eg1", "ONLINE", "화면 불량", null, "연락처", null, "owner1", NOW, NOW
         );
 
         Instant cancelledAt = Instant.parse("2026-03-01T11:00:00Z");
@@ -115,7 +115,7 @@ class ServiceRequestTest {
     void reject_fromPending_succeeds() {
         ServiceRequest request = ServiceRequest.submit(
             "sr1", "p1", "REPAIR", "owner1",
-            "tenant1", "desc", null, null, "owner1", NOW, NOW
+            "tenant1", "desc", "eg1", "ONLINE", "화면 불량", null, "연락처", null, "owner1", NOW, NOW
         );
 
         ServiceRequest rejected = request.reject("cannot process", NOW);
@@ -126,7 +126,7 @@ class ServiceRequestTest {
     void cancel_whenNotCancellable_throws() {
         ServiceRequest request = ServiceRequest.submit(
             "sr1", "p1", "REPAIR", "owner1",
-            "tenant1", "desc", null, null, "owner1", NOW, NOW
+            "tenant1", "desc", "eg1", "ONLINE", "화면 불량", null, "연락처", null, "owner1", NOW, NOW
         ).reject("reason", NOW);
 
         WorkflowDomainException ex = assertThrows(WorkflowDomainException.class, () ->

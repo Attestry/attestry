@@ -47,11 +47,12 @@ public class JdbcTenantReadAdapter implements TenantReadPort {
     @Override
     public TenantSummary findTenantSummary(String tenantId) {
         List<TenantSummary> results = jdbcTemplate.query(
-            "SELECT tenant_id, name, region, type FROM tenants WHERE tenant_id = ?",
+            "SELECT tenant_id, name, region, address, type FROM tenants WHERE tenant_id = ?",
             (rs, rowNum) -> new TenantSummary(
                 rs.getString("tenant_id"),
                 rs.getString("name"),
                 rs.getString("region"),
+                rs.getString("address"),
                 rs.getString("type")
             ),
             tenantId
@@ -64,18 +65,23 @@ public class JdbcTenantReadAdapter implements TenantReadPort {
         String keyword = "%" + name + "%";
         return jdbcTemplate.query(
             """
-                SELECT tenant_id, name, region, type
+                SELECT tenant_id, name, region, address, type
                   FROM tenants
                  WHERE status = 'ACTIVE'
-                   AND LOWER(name) LIKE LOWER(?)
+                   AND (
+                        LOWER(name) LIKE LOWER(?)
+                        OR LOWER(COALESCE(address, '')) LIKE LOWER(?)
+                   )
                  ORDER BY name ASC
             """,
             (rs, rowNum) -> new TenantSummary(
                 rs.getString("tenant_id"),
                 rs.getString("name"),
                 rs.getString("region"),
+                rs.getString("address"),
                 rs.getString("type")
             ),
+            keyword,
             keyword
         );
     }
@@ -91,10 +97,15 @@ public class JdbcTenantReadAdapter implements TenantReadPort {
                   FROM tenants
                  WHERE status = 'ACTIVE'
                    AND type = ?
-                   AND LOWER(name) LIKE LOWER(?)
+                   AND (
+                        LOWER(name) LIKE LOWER(?)
+                        OR LOWER(COALESCE(address, '')) LIKE LOWER(?)
+                   )
             """,
             Long.class,
             type,
+            keyword
+            ,
             keyword
         );
         long totalElements = total == null ? 0L : total;
@@ -103,11 +114,14 @@ public class JdbcTenantReadAdapter implements TenantReadPort {
 
         List<TenantSummary> content = jdbcTemplate.query(
             """
-                SELECT tenant_id, name, region, type
+                SELECT tenant_id, name, region, address, type
                   FROM tenants
                  WHERE status = 'ACTIVE'
                    AND type = ?
-                   AND LOWER(name) LIKE LOWER(?)
+                   AND (
+                        LOWER(name) LIKE LOWER(?)
+                        OR LOWER(COALESCE(address, '')) LIKE LOWER(?)
+                   )
                  ORDER BY name ASC
                  LIMIT ? OFFSET ?
             """,
@@ -115,9 +129,11 @@ public class JdbcTenantReadAdapter implements TenantReadPort {
                 rs.getString("tenant_id"),
                 rs.getString("name"),
                 rs.getString("region"),
+                rs.getString("address"),
                 rs.getString("type")
             ),
             type,
+            keyword,
             keyword,
             normalizedSize,
             offset
