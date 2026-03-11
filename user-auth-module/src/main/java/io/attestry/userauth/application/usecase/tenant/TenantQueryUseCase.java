@@ -7,5 +7,5 @@ public interface TenantQueryUseCase {
 
     TenantResult getTenant(String tenantId);
 
-    TenantPageResult listTenants(String type, String status, int page, int size);
+    TenantPageResult listTenants(String type, String status, String name, int page, int size);
 }

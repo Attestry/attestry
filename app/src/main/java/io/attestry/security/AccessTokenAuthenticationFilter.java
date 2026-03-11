@@ -1,7 +1,7 @@
 package io.attestry.security;
 
 import io.attestry.commonlib.domain.exception.DomainException;
-import io.attestry.userauth.application.port.AccessTokenPort;
+import io.attestry.userauth.application.port.auth.AccessTokenPort;
 import io.attestry.userauth.interfaces.auth.BearerTokenExtractor;
 import io.attestry.userauth.security.AuthPrincipal;
 import jakarta.servlet.FilterChain;

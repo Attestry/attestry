@@ -2,6 +2,7 @@ package io.attestry.workflow.domain.delegation.policy;
 
 import io.attestry.workflow.domain.WorkflowDomainException;
 import io.attestry.workflow.domain.WorkflowErrorCode;
+import io.attestry.workflow.domain.passport.model.WorkflowAssetState;
 import java.time.Duration;
 import java.time.Instant;
 import org.springframework.stereotype.Component;
@@ -11,7 +12,6 @@ public class DelegationGrantPolicy {
 
     private static final String RESOURCE_PASSPORT = "PASSPORT";
     private static final String PERMISSION_RETAIL_TRANSFER_CREATE = "RETAIL_TRANSFER_CREATE";
-    private static final String ASSET_STATE_VOIDED = "VOIDED";
     private static final Duration MAX_EXPIRY_WINDOW = Duration.ofDays(90);
 
     public void assertGrantable(DelegationGrantContext context) {
@@ -40,7 +40,7 @@ public class DelegationGrantPolicy {
             throw new WorkflowDomainException(WorkflowErrorCode.FORBIDDEN_SCOPE,
                 "Source tenant does not own the passport");
         }
-        if (ASSET_STATE_VOIDED.equals(context.passportAssetState())) {
+        if (context.passportAssetState() == WorkflowAssetState.VOIDED) {
             throw new WorkflowDomainException(WorkflowErrorCode.INVALID_STATE,
                 "VOIDED passport cannot be delegated");
         }
@@ -73,9 +73,30 @@ public class DelegationGrantPolicy {
         String permissionCode,
         Instant expiresAt,
         String passportTenantId,
-        String passportAssetState,
+        WorkflowAssetState passportAssetState,
         boolean activeDelegationExists,
         Instant now
     ) {
+        public DelegationGrantContext(
+            String sourceTenantId,
+            String resourceType,
+            String permissionCode,
+            Instant expiresAt,
+            String passportTenantId,
+            String passportAssetState,
+            boolean activeDelegationExists,
+            Instant now
+        ) {
+            this(
+                sourceTenantId,
+                resourceType,
+                permissionCode,
+                expiresAt,
+                passportTenantId,
+                WorkflowAssetState.from(passportAssetState),
+                activeDelegationExists,
+                now
+            );
+        }
     }
 }

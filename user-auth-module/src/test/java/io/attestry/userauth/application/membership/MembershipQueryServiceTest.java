@@ -3,17 +3,14 @@ package io.attestry.userauth.application.membership;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
-import io.attestry.userauth.application.dto.command.ActorContext;
-import io.attestry.userauth.application.dto.command.AuthzEvaluateCommand;
-import io.attestry.userauth.application.dto.command.PolicyDecisionMode;
-import io.attestry.userauth.application.dto.result.AuthzEvaluateResult;
 import io.attestry.userauth.application.dto.view.MembershipView;
-import io.attestry.userauth.application.port.MembershipPort;
-import io.attestry.userauth.application.port.MembershipProjectionPort;
-import io.attestry.userauth.application.port.TenantRepositoryPort;
-import io.attestry.userauth.application.port.TenantRoleTemplateBindingPort;
-import io.attestry.userauth.application.port.UserAccountRepositoryPort;
-import io.attestry.userauth.application.usecase.policy.EvaluateAuthorizationUseCase;
+import io.attestry.userauth.application.membership.assembler.MembershipQueryViewAssembler;
+import io.attestry.userauth.application.membership.query.MembershipQueryService;
+import io.attestry.userauth.application.port.membership.MembershipPort;
+import io.attestry.userauth.application.port.membership.MembershipProjectionPort;
+import io.attestry.userauth.application.port.tenant.TenantRepositoryPort;
+import io.attestry.userauth.application.port.template.TenantRoleTemplateBindingPort;
+import io.attestry.userauth.application.port.identity.UserAccountRepositoryPort;
 import io.attestry.userauth.domain.authorization.model.PermissionCodes;
 import io.attestry.userauth.domain.membership.model.Membership;
 import io.attestry.userauth.domain.membership.model.MembershipRole;
@@ -113,6 +110,7 @@ class MembershipQueryServiceTest {
             public Page<io.attestry.userauth.domain.tenant.model.Tenant> findPage(
                     io.attestry.userauth.domain.tenant.model.TenantType type,
                     io.attestry.userauth.domain.tenant.model.TenantStatus status,
+                    String name,
                     Pageable pageable) {
                 return new PageImpl<>(List.of());
             }
@@ -152,14 +150,6 @@ class MembershipQueryServiceTest {
             public void disableTenantRoleTemplateBinding(String tenantId, String roleCode, String templateCode, Instant now) {}
         };
 
-        EvaluateAuthorizationUseCase evaluateAuthorizationUseCase =
-                new EvaluateAuthorizationUseCase() {
-                    @Override
-                    public AuthzEvaluateResult evaluate(ActorContext actor, AuthzEvaluateCommand command) {
-                        return new AuthzEvaluateResult(true, null, Set.of(), PolicyDecisionMode.TOKEN_SNAPSHOT);
-                    }
-                };
-
         RoleAssignmentDomainService roleAssignmentDomainService =
                 new RoleAssignmentDomainService(new RoleAssignmentDecisionPolicy(new RoleAssignmentPolicy() {
                     @Override
@@ -186,13 +176,19 @@ class MembershipQueryServiceTest {
                     }
                 }));
 
+        MembershipQueryViewAssembler viewAssembler = new MembershipQueryViewAssembler(
+                membershipProjectionPort,
+                tenantRepository,
+                userAccountRepository);
+
         MembershipQueryService service = new MembershipQueryService(
                 membershipPort,
                 membershipProjectionPort,
-                tenantRepository,
                 userAccountRepository,
                 tenantRoleTemplateBindingPort,
-                evaluateAuthorizationUseCase,
+                null,
+                null,
+                viewAssembler,
                 roleAssignmentDomainService);
         List<MembershipView> views = service.getMemberships("u1");
 

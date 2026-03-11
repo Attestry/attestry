@@ -1,6 +1,6 @@
 package io.attestry.auth;
 
-import io.attestry.userauth.application.port.AccessTokenPort;
+import io.attestry.userauth.application.port.auth.AccessTokenPort;
 import io.attestry.userauth.security.AuthPrincipal;
 import java.time.Clock;
 import java.time.Instant;

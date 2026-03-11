@@ -3,7 +3,7 @@ package io.attestry.auth;
 import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import io.attestry.config.AccessTokenProperties;
-import io.attestry.userauth.application.port.AccessTokenPort;
+import io.attestry.userauth.application.port.auth.AccessTokenPort;
 import io.attestry.userauth.security.AuthPrincipal;
 import java.time.Clock;
 import java.time.Duration;

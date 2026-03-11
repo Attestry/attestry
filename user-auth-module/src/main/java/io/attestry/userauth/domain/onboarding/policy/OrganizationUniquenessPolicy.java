@@ -1,18 +1,16 @@
 package io.attestry.userauth.domain.onboarding.policy;
 
-import io.attestry.userauth.application.port.OrganizationApplicationRepositoryPort;
+import io.attestry.userauth.application.port.onboarding.OrganizationApplicationRepositoryPort;
 import io.attestry.userauth.domain.UserAuthErrorCode;
 import io.attestry.userauth.domain.UserAuthDomainException;
+import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Component;
 
 @Component
+@RequiredArgsConstructor
 public class OrganizationUniquenessPolicy {
 
     private final OrganizationApplicationRepositoryPort repository;
-
-    public OrganizationUniquenessPolicy(OrganizationApplicationRepositoryPort repository) {
-        this.repository = repository;
-    }
 
     public void assertUniqueBrand(String orgName, String country, String bizRegNo) {
         String normalizedOrgName = normalize(orgName);

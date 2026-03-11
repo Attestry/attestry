@@ -12,9 +12,9 @@ import io.attestry.workflow.application.claim.result.ApprovePurchaseClaimResult;
 import io.attestry.workflow.application.claim.result.ClaimEvidenceView;
 import io.attestry.workflow.application.claim.result.PendingClaimView;
 import io.attestry.workflow.application.claim.result.RejectPurchaseClaimResult;
-import io.attestry.workflow.application.port.WorkflowEvidencePort;
-import io.attestry.workflow.application.port.TransferOwnershipUpdatePort;
-import io.attestry.workflow.application.port.WorkflowLedgerOutboxPort;
+import io.attestry.workflow.application.port.common.WorkflowEvidencePort;
+import io.attestry.workflow.application.port.transfer.TransferOwnershipUpdatePort;
+import io.attestry.workflow.application.port.common.WorkflowLedgerOutboxPort;
 import io.attestry.workflow.application.shipment.result.WorkflowLedgerEventEnvelope;
 import io.attestry.workflow.application.support.WorkflowAuthorizationSupport;
 import io.attestry.workflow.application.usecase.PurchaseClaimAdminUseCase;
@@ -27,10 +27,13 @@ import java.time.Clock;
 import java.time.Duration;
 import java.time.Instant;
 import java.util.List;
+
+import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
 @Service
+@RequiredArgsConstructor
 public class PurchaseClaimAdminService implements PurchaseClaimAdminUseCase {
     private static final Duration DOWNLOAD_TTL = Duration.ofDays(3);
 
@@ -43,25 +46,6 @@ public class PurchaseClaimAdminService implements PurchaseClaimAdminUseCase {
     private final WorkflowAuthorizationSupport authorizationSupport;
     private final Clock clock;
 
-    public PurchaseClaimAdminService(
-        PurchaseClaimRepository purchaseClaimRepository,
-        ProductMintUseCase productMintUseCase,
-        TransferOwnershipUpdatePort ownershipUpdatePort,
-        WorkflowLedgerOutboxPort ledgerOutboxPort,
-        WorkflowEvidencePort evidencePort,
-        ObjectStoragePort objectStoragePort,
-        WorkflowAuthorizationSupport authorizationSupport,
-        Clock clock
-    ) {
-        this.purchaseClaimRepository = purchaseClaimRepository;
-        this.productMintUseCase = productMintUseCase;
-        this.ownershipUpdatePort = ownershipUpdatePort;
-        this.ledgerOutboxPort = ledgerOutboxPort;
-        this.evidencePort = evidencePort;
-        this.objectStoragePort = objectStoragePort;
-        this.authorizationSupport = authorizationSupport;
-        this.clock = clock;
-    }
 
     @Override
     @Transactional(readOnly = true)
@@ -169,7 +153,7 @@ public class PurchaseClaimAdminService implements PurchaseClaimAdminUseCase {
         return claim;
     }
 
-    private ClaimEvidenceView toEvidenceView(WorkflowEvidencePort.EvidenceView evidence) {
+    private ClaimEvidenceView toEvidenceView(WorkflowEvidencePort.EvidenceRecord evidence) {
         ObjectStoragePort.PresignedDownload download = objectStoragePort.issuePresignedDownload(
             evidence.objectKey(),
             DOWNLOAD_TTL

@@ -8,11 +8,11 @@ import static org.junit.jupiter.api.Assertions.assertTrue;
 import io.attestry.userauth.application.dto.result.AuthTokenResult;
 import io.attestry.userauth.application.dto.command.LoginCommand;
 import io.attestry.userauth.application.dto.command.SignUpCommand;
-import io.attestry.userauth.application.port.AccessTokenPort;
-import io.attestry.userauth.application.port.MembershipPort;
-import io.attestry.userauth.application.port.MembershipProjectionPort;
-import io.attestry.userauth.application.port.PasswordHasherPort;
-import io.attestry.userauth.application.port.UserAccountRepositoryPort;
+import io.attestry.userauth.application.port.auth.AccessTokenPort;
+import io.attestry.userauth.application.port.membership.MembershipPort;
+import io.attestry.userauth.application.port.membership.MembershipProjectionPort;
+import io.attestry.userauth.application.port.auth.PasswordHasherPort;
+import io.attestry.userauth.application.port.identity.UserAccountRepositoryPort;
 import io.attestry.userauth.domain.UserAuthDomainException;
 import io.attestry.userauth.domain.UserAuthErrorCode;
 import io.attestry.userauth.security.AuthPrincipal;
@@ -68,12 +68,13 @@ class AuthApplicationServiceTest {
             permissionQueryPort
         );
 
+        AuthTokenIssuer authTokenIssuer = new AuthTokenIssuer(tokenPort, clock);
         service = new AuthApplicationService(
             userRepo,
             loginContextResolver,
             passwordHasher,
-            tokenPort,
-            clock
+            authTokenIssuer,
+            tokenPort
         );
     }
 

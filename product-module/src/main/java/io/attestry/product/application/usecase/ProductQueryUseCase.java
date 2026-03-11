@@ -1,32 +1,30 @@
 package io.attestry.product.application.usecase;
 
-import io.attestry.product.application.dto.result.AssetStateResult;
-import io.attestry.product.application.dto.result.DistributedPassportDetailResult;
-import io.attestry.product.application.dto.result.DistributedPassportResult;
-import io.attestry.product.application.dto.result.MyPassportResult;
-import io.attestry.product.application.dto.result.OwnerResult;
-import io.attestry.product.application.dto.result.PagedDistributedPassportResult;
-import io.attestry.product.application.dto.result.PagedTenantPassportResult;
-import io.attestry.product.application.dto.result.PassportDetailResult;
-import io.attestry.product.application.dto.result.TenantPassportResult;
+import io.attestry.product.application.dto.view.AssetStateView;
+import io.attestry.product.application.dto.view.DistributedPassportDetailView;
+import io.attestry.product.application.dto.view.MyPassportView;
+import io.attestry.product.application.dto.view.OwnerView;
+import io.attestry.product.application.dto.view.PagedDistributedPassportView;
+import io.attestry.product.application.dto.view.PagedTenantPassportView;
+import io.attestry.product.application.dto.view.PassportDetailView;
 import java.time.Instant;
 import java.util.List;
 
 public interface ProductQueryUseCase {
 
-    AssetStateResult getAssetState(String passportId);
+    AssetStateView getAssetState(String passportId);
 
-    OwnerResult getCurrentOwner(String passportId);
+    OwnerView getCurrentOwner(String passportId);
 
     boolean hasActivePermission(String passportId, String sellerTenantId);
 
-    List<MyPassportResult> listMyPassports(String ownerId);
+    List<MyPassportView> listMyPassports(String ownerId);
 
-    PassportDetailResult getTenantPassportDetail(String tenantId, String passportId);
+    PassportDetailView getTenantPassportDetail(String tenantId, String passportId);
 
-    DistributedPassportDetailResult getDistributedPassportDetail(String tenantId, String passportId);
+    DistributedPassportDetailView getDistributedPassportDetail(String tenantId, String passportId);
 
-    PagedTenantPassportResult listTenantPassports(
+    PagedTenantPassportView listTenantPassports(
         String tenantId,
         int page,
         int size,
@@ -36,7 +34,7 @@ public interface ProductQueryUseCase {
         String keyword
     );
 
-    PagedDistributedPassportResult listDistributedPassports(
+    PagedDistributedPassportView listDistributedPassports(
         String tenantId,
         int page,
         int size,

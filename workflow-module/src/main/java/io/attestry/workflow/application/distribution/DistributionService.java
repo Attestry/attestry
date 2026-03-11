@@ -1,12 +1,12 @@
 package io.attestry.workflow.application.distribution;
 
 import io.attestry.userauth.security.AuthPrincipal;
+import io.attestry.workflow.application.distribution.assembler.DistributionViewAssembler;
 import io.attestry.workflow.application.delegation.command.GrantDelegationCommand;
 import io.attestry.workflow.application.delegation.result.DelegationResult;
-import io.attestry.workflow.application.port.DistributionCandidateQueryPort;
-import io.attestry.workflow.application.port.DistributionCandidateQueryPort.PagedDistributionCandidateResult;
-import io.attestry.workflow.application.port.DistributionQueryPort;
-import io.attestry.workflow.application.port.DistributionQueryPort.DistributionRow;
+import io.attestry.workflow.application.port.distribution.DistributionCandidateQueryPort;
+import io.attestry.workflow.application.port.distribution.DistributionCandidateQueryPort.PagedDistributionCandidateResult;
+import io.attestry.workflow.application.port.distribution.DistributionQueryPort;
 import io.attestry.workflow.application.usecase.DelegationUseCase;
 import io.attestry.workflow.application.usecase.DistributionUseCase;
 import io.attestry.workflow.domain.WorkflowDomainException;
@@ -17,9 +17,12 @@ import java.time.Clock;
 import java.time.Instant;
 import java.util.ArrayList;
 import java.util.List;
+
+import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
+@RequiredArgsConstructor
 @Service
 public class DistributionService implements DistributionUseCase {
 
@@ -27,21 +30,8 @@ public class DistributionService implements DistributionUseCase {
     private final DistributionRepository distributionRepository;
     private final DistributionCandidateQueryPort distributionCandidateQueryPort;
     private final DistributionQueryPort distributionQueryPort;
+    private final DistributionViewAssembler viewAssembler;
     private final Clock clock;
-
-    public DistributionService(
-        DelegationUseCase delegationUseCase,
-        DistributionRepository distributionRepository,
-        DistributionCandidateQueryPort distributionCandidateQueryPort,
-        DistributionQueryPort distributionQueryPort,
-        Clock clock
-    ) {
-        this.delegationUseCase = delegationUseCase;
-        this.distributionRepository = distributionRepository;
-        this.distributionCandidateQueryPort = distributionCandidateQueryPort;
-        this.distributionQueryPort = distributionQueryPort;
-        this.clock = clock;
-    }
 
     @Override
     @Transactional
@@ -83,7 +73,7 @@ public class DistributionService implements DistributionUseCase {
         delegationUseCase.revoke(principal, distribution.delegationId(), command.reason());
 
         return distributionQueryPort.findById(distributionId)
-            .map(this::toView)
+            .map(viewAssembler::toView)
             .orElseThrow(() -> new WorkflowDomainException(
                 WorkflowErrorCode.DISTRIBUTION_NOT_FOUND, "Distribution not found: " + distributionId
             ));
@@ -93,10 +83,7 @@ public class DistributionService implements DistributionUseCase {
     @Transactional(readOnly = true)
     public PagedDistributionResponse listByTenant(String sourceTenantId, int page, int size, String keyword) {
         var result = distributionQueryPort.findBySourceTenantId(sourceTenantId, page, size, keyword);
-        List<DistributionView> content = result.content().stream()
-            .map(this::toView)
-            .toList();
-        return new PagedDistributionResponse(content, result.page(), result.size(), result.totalElements(), result.totalPages());
+        return viewAssembler.toPagedDistributionResponse(result);
     }
 
     @Override
@@ -108,43 +95,7 @@ public class DistributionService implements DistributionUseCase {
             distributionCandidateQueryPort.findDistributionCandidatesByTenantId(
                 principal.tenantId(), page, size, keyword
             );
-
-        List<DistributionCandidateView> content = result.content().stream()
-            .map(c -> new DistributionCandidateView(
-                c.passportId(),
-                c.assetId(),
-                c.serialNumber(),
-                c.modelId(),
-                c.modelName(),
-                c.productionBatch(),
-                c.factoryCode()
-            ))
-            .toList();
-
-        return new PagedDistributionCandidateResponse(
-            content, result.page(), result.size(), result.totalElements(), result.totalPages()
-        );
-    }
-
-    private DistributionView toView(DistributionRow r) {
-        return new DistributionView(
-            r.distributionId(),
-            r.passportId(),
-            r.sourceTenantId(),
-            r.targetTenantId(),
-            r.targetTenantName(),
-            r.targetTenantType(),
-            r.partnerLinkId(),
-            r.delegationId(),
-            r.status(),
-            r.serialNumber(),
-            r.modelName(),
-            r.distributedByUserId(),
-            r.distributedAt(),
-            r.recalledByUserId(),
-            r.recalledAt(),
-            r.recallReason()
-        );
+        return viewAssembler.toPagedDistributionCandidateResponse(result);
     }
 
     private BatchDistributeResult.Entry distributeSingle(
@@ -184,7 +135,7 @@ public class DistributionService implements DistributionUseCase {
                 passportId, distribution.distributionId(), delegationResult.delegationId()
             );
         } catch (WorkflowDomainException ex) {
-            return BatchDistributeResult.Entry.failed(passportId, ex.getErrorCode().name());
+            return BatchDistributeResult.Entry.failed(passportId, ex.getErrorCode().getCode());
         }
     }
 }

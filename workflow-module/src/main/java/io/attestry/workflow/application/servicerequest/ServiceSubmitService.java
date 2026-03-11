@@ -2,10 +2,10 @@ package io.attestry.workflow.application.servicerequest;
 
 import io.attestry.userauth.domain.authorization.model.PermissionCodes;
 import io.attestry.userauth.security.AuthPrincipal;
-import io.attestry.workflow.application.port.ServicePermissionPort;
-import io.attestry.workflow.application.port.ServiceProductReadPort;
-import io.attestry.workflow.application.port.TenantReadPort;
-import io.attestry.workflow.application.port.WorkflowEvidencePort;
+import io.attestry.workflow.application.port.servicerequest.ServicePermissionPort;
+import io.attestry.workflow.application.port.servicerequest.ServiceProductReadPort;
+import io.attestry.workflow.application.port.common.TenantReadPort;
+import io.attestry.workflow.application.port.common.WorkflowEvidencePort;
 import io.attestry.workflow.application.servicerequest.command.SubmitServiceRequestCommand;
 import io.attestry.workflow.application.servicerequest.result.SubmitServiceRequestResult;
 import io.attestry.workflow.application.support.WorkflowAuthorizationSupport;
@@ -20,10 +20,13 @@ import java.time.Clock;
 import java.time.Instant;
 import java.util.List;
 import java.util.UUID;
+
+import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
 @Service
+@RequiredArgsConstructor
 public class ServiceSubmitService implements ServiceSubmitUseCase {
 
     private final ServiceRequestRepository serviceRequestRepository;
@@ -34,26 +37,6 @@ public class ServiceSubmitService implements ServiceSubmitUseCase {
     private final WorkflowAuthorizationSupport authorizationSupport;
     private final ServiceSubmitPolicy submitPolicy;
     private final Clock clock;
-
-    public ServiceSubmitService(
-        ServiceRequestRepository serviceRequestRepository,
-        ServiceProductReadPort serviceProductReadPort,
-        ServicePermissionPort servicePermissionPort,
-        TenantReadPort tenantReadPort,
-        WorkflowEvidencePort evidencePort,
-        WorkflowAuthorizationSupport authorizationSupport,
-        ServiceSubmitPolicy submitPolicy,
-        Clock clock
-    ) {
-        this.serviceRequestRepository = serviceRequestRepository;
-        this.serviceProductReadPort = serviceProductReadPort;
-        this.servicePermissionPort = servicePermissionPort;
-        this.tenantReadPort = tenantReadPort;
-        this.evidencePort = evidencePort;
-        this.authorizationSupport = authorizationSupport;
-        this.submitPolicy = submitPolicy;
-        this.clock = clock;
-    }
 
     @Override
     @Transactional

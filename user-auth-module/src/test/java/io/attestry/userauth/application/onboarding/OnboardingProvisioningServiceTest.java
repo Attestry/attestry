@@ -2,9 +2,10 @@ package io.attestry.userauth.application.onboarding;
 
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
-import io.attestry.userauth.application.port.MembershipPort;
-import io.attestry.userauth.application.port.TenantRepositoryPort;
-import io.attestry.userauth.application.port.TenantRoleTemplateBindingPort;
+import io.attestry.userauth.application.onboarding.command.OnboardingProvisioningService;
+import io.attestry.userauth.application.port.membership.MembershipPort;
+import io.attestry.userauth.application.port.tenant.TenantRepositoryPort;
+import io.attestry.userauth.application.port.template.TenantRoleTemplateBindingPort;
 import io.attestry.userauth.domain.authorization.model.RoleCodes;
 import io.attestry.userauth.domain.authorization.policy.SystemPermissionTemplateCatalog;
 import io.attestry.userauth.domain.membership.model.Membership;
@@ -117,6 +118,7 @@ class OnboardingProvisioningServiceTest {
         public Page<Tenant> findPage(
                 io.attestry.userauth.domain.tenant.model.TenantType type,
                 io.attestry.userauth.domain.tenant.model.TenantStatus status,
+                String name,
                 Pageable pageable) {
             return new PageImpl<>(List.of());
         }

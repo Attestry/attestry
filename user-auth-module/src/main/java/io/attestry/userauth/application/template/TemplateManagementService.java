@@ -4,9 +4,9 @@ import io.attestry.userauth.application.dto.command.ActorContext;
 import io.attestry.userauth.application.dto.result.PermissionResult;
 import io.attestry.userauth.application.dto.result.PermissionTemplateResult;
 import io.attestry.userauth.application.dto.result.TenantRoleTemplateBindingResult;
-import io.attestry.userauth.application.port.PermissionCatalogPort;
-import io.attestry.userauth.application.port.PermissionTemplatePort;
-import io.attestry.userauth.application.port.TenantRoleTemplateBindingPort;
+import io.attestry.userauth.application.port.template.PermissionCatalogPort;
+import io.attestry.userauth.application.port.template.PermissionTemplatePort;
+import io.attestry.userauth.application.port.template.TenantRoleTemplateBindingPort;
 import io.attestry.userauth.application.usecase.template.TemplateManagementUseCase;
 import io.attestry.userauth.domain.UserAuthErrorCode;
 import io.attestry.userauth.domain.UserAuthDomainException;
@@ -15,10 +15,12 @@ import java.time.Clock;
 import java.time.Instant;
 import java.util.List;
 import java.util.Set;
+import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
 @Service
+@RequiredArgsConstructor
 public class TemplateManagementService implements TemplateManagementUseCase {
 
     private final PermissionTemplatePort permissionTemplatePort;
@@ -27,22 +29,6 @@ public class TemplateManagementService implements TemplateManagementUseCase {
     private final TemplateCommandValidator validator;
     private final TenantRoleTemplateBindingPolicy tenantRoleTemplateBindingPolicy;
     private final Clock clock;
-
-    public TemplateManagementService(
-        PermissionTemplatePort permissionTemplatePort,
-        PermissionCatalogPort permissionCatalogPort,
-        TenantRoleTemplateBindingPort tenantRoleTemplateBindingPort,
-        TemplateCommandValidator validator,
-        TenantRoleTemplateBindingPolicy tenantRoleTemplateBindingPolicy,
-        Clock clock
-    ) {
-        this.permissionTemplatePort = permissionTemplatePort;
-        this.permissionCatalogPort = permissionCatalogPort;
-        this.tenantRoleTemplateBindingPort = tenantRoleTemplateBindingPort;
-        this.validator = validator;
-        this.tenantRoleTemplateBindingPolicy = tenantRoleTemplateBindingPolicy;
-        this.clock = clock;
-    }
 
     @Override
     @Transactional

@@ -1,6 +1,6 @@
 package io.attestry.notification;
 
-import io.attestry.userauth.application.port.InvitationNotificationPort;
+import io.attestry.userauth.application.port.notification.InvitationNotificationPort;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.boot.autoconfigure.condition.ConditionalOnProperty;

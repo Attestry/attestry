@@ -1,15 +1,18 @@
 package io.attestry.workflow.domain;
 
-public class WorkflowDomainException extends RuntimeException {
+import io.attestry.commonlib.domain.exception.DomainException;
 
-    private final WorkflowErrorCode errorCode;
+public class WorkflowDomainException extends DomainException {
 
-    public WorkflowDomainException(WorkflowErrorCode errorCode, String message) {
-        super(message);
-        this.errorCode = errorCode;
+    public WorkflowDomainException(WorkflowErrorCode errorCode) {
+        super(errorCode);
     }
 
-    public WorkflowErrorCode getErrorCode() {
-        return errorCode;
+    public WorkflowDomainException(WorkflowErrorCode errorCode, String message) {
+        super(errorCode, message);
+    }
+
+    public WorkflowDomainException(WorkflowErrorCode errorCode, String message, Throwable cause) {
+        super(errorCode, message, cause);
     }
 }

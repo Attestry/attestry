@@ -1,16 +1,22 @@
 package io.attestry.workflow.interfaces.claim;
 
+import io.attestry.commonlib.infrastructure.ApiResponse;
 import io.attestry.userauth.security.AuthPrincipal;
 import io.attestry.workflow.application.claim.command.CompleteClaimEvidenceCommand;
 import io.attestry.workflow.application.claim.command.PresignClaimEvidenceCommand;
 import io.attestry.workflow.application.claim.command.SubmitPurchaseClaimCommand;
-import io.attestry.workflow.application.claim.result.ClaimEvidenceView;
-import io.attestry.workflow.application.claim.result.MyClaimView;
 import io.attestry.workflow.application.claim.result.SubmitPurchaseClaimResult;
-import io.attestry.workflow.application.shipment.result.PresignedEvidenceUploadResult;
 import io.attestry.workflow.application.shipment.result.EvidenceCompleteResult;
+import io.attestry.workflow.application.shipment.result.PresignedEvidenceUploadResult;
 import io.attestry.workflow.application.usecase.PurchaseClaimSubmitUseCase;
-import java.time.Instant;
+import io.attestry.workflow.interfaces.claim.dto.request.CompleteEvidenceRequest;
+import io.attestry.workflow.interfaces.claim.dto.request.PresignEvidenceRequest;
+import io.attestry.workflow.interfaces.claim.dto.request.SubmitClaimRequest;
+import io.attestry.workflow.interfaces.claim.dto.response.ClaimEvidenceResponse;
+import io.attestry.workflow.interfaces.claim.dto.response.CompleteEvidenceResponse;
+import io.attestry.workflow.interfaces.claim.dto.response.MyClaimResponse;
+import io.attestry.workflow.interfaces.claim.dto.response.PresignEvidenceResponse;
+import io.attestry.workflow.interfaces.claim.dto.response.SubmitClaimResponse;
 import java.util.List;
 import org.springframework.http.HttpStatus;
 import org.springframework.security.access.prepost.PreAuthorize;
@@ -36,7 +42,7 @@ public class PurchaseClaimHttp {
     @PostMapping("/evidence/presign")
     @ResponseStatus(HttpStatus.CREATED)
     @PreAuthorize("isAuthenticated()")
-    public PresignEvidenceResponse presignEvidence(
+    public ApiResponse<PresignEvidenceResponse> presignEvidence(
         @AuthenticationPrincipal AuthPrincipal principal,
         @RequestBody PresignEvidenceRequest request
     ) {
@@ -46,12 +52,12 @@ public class PurchaseClaimHttp {
                 request.evidenceGroupId(), request.fileName(), request.contentType()
             )
         );
-        return PresignEvidenceResponse.from(result);
+        return ApiResponse.success(PresignEvidenceResponse.from(result));
     }
 
     @PostMapping("/evidence/complete")
     @PreAuthorize("isAuthenticated()")
-    public CompleteEvidenceResponse completeEvidence(
+    public ApiResponse<CompleteEvidenceResponse> completeEvidence(
         @AuthenticationPrincipal AuthPrincipal principal,
         @RequestBody CompleteEvidenceRequest request
     ) {
@@ -62,13 +68,13 @@ public class PurchaseClaimHttp {
                 request.sizeBytes(), request.fileHash()
             )
         );
-        return CompleteEvidenceResponse.from(result);
+        return ApiResponse.success(CompleteEvidenceResponse.from(result));
     }
 
     @PostMapping
     @ResponseStatus(HttpStatus.CREATED)
     @PreAuthorize("isAuthenticated()")
-    public SubmitClaimResponse submit(
+    public ApiResponse<SubmitClaimResponse> submit(
         @AuthenticationPrincipal AuthPrincipal principal,
         @RequestBody SubmitClaimRequest request
     ) {
@@ -79,100 +85,25 @@ public class PurchaseClaimHttp {
                 request.evidenceGroupId(), request.note()
             )
         );
-        return SubmitClaimResponse.from(result);
+        return ApiResponse.success(SubmitClaimResponse.from(result));
     }
 
     @GetMapping("/me")
     @PreAuthorize("isAuthenticated()")
-    public List<MyClaimResponse> listMyClaims(@AuthenticationPrincipal AuthPrincipal principal) {
-        return purchaseClaimSubmitUseCase.listMyClaims(principal).stream()
+    public ApiResponse<List<MyClaimResponse>> listMyClaims(@AuthenticationPrincipal AuthPrincipal principal) {
+        return ApiResponse.success(purchaseClaimSubmitUseCase.listMyClaims(principal).stream()
             .map(MyClaimResponse::from)
-            .toList();
+            .toList());
     }
 
     @GetMapping("/{claimId}/evidences")
     @PreAuthorize("isAuthenticated()")
-    public List<ClaimEvidenceResponse> listMyClaimEvidences(
+    public ApiResponse<List<ClaimEvidenceResponse>> listMyClaimEvidences(
         @AuthenticationPrincipal AuthPrincipal principal,
         @PathVariable("claimId") String claimId
     ) {
-        return purchaseClaimSubmitUseCase.listMyClaimEvidences(principal, claimId).stream()
+        return ApiResponse.success(purchaseClaimSubmitUseCase.listMyClaimEvidences(principal, claimId).stream()
             .map(ClaimEvidenceResponse::from)
-            .toList();
-    }
-
-    public record PresignEvidenceRequest(
-        String evidenceGroupId, String fileName, String contentType
-    ) {
-    }
-
-    public record CompleteEvidenceRequest(
-        String evidenceGroupId, String evidenceId,
-        long sizeBytes, String fileHash
-    ) {
-    }
-
-    public record SubmitClaimRequest(
-        String serialNumber, String modelName,
-        String evidenceGroupId, String note
-    ) {
-    }
-
-    public record PresignEvidenceResponse(
-        String evidenceGroupId, String evidenceId,
-        String objectKey, String uploadUrl, Instant expiresAt
-    ) {
-        static PresignEvidenceResponse from(PresignedEvidenceUploadResult result) {
-            return new PresignEvidenceResponse(
-                result.evidenceGroupId(), result.evidenceId(),
-                result.objectKey(), result.uploadUrl(), result.expiresAt()
-            );
-        }
-    }
-
-    public record CompleteEvidenceResponse(String evidenceGroupId, String evidenceId, String status) {
-        static CompleteEvidenceResponse from(EvidenceCompleteResult result) {
-            return new CompleteEvidenceResponse(result.evidenceGroupId(), result.evidenceId(), result.status());
-        }
-    }
-
-    public record SubmitClaimResponse(String claimId, String status, Instant submittedAt) {
-        static SubmitClaimResponse from(SubmitPurchaseClaimResult result) {
-            return new SubmitClaimResponse(result.claimId(), result.status(), result.submittedAt());
-        }
-    }
-
-    public record MyClaimResponse(
-        String claimId,
-        String serialNumber, String modelName,
-        String status, Instant submittedAt,
-        String rejectionReason, String passportId, String assetId,
-        List<ClaimEvidenceResponse> evidences
-    ) {
-        static MyClaimResponse from(MyClaimView view) {
-            return new MyClaimResponse(
-                view.claimId(),
-                view.serialNumber(), view.modelName(),
-                view.status(), view.submittedAt(),
-                view.rejectionReason(), view.passportId(), view.assetId(),
-                view.evidences() == null ? List.of() : view.evidences().stream().map(ClaimEvidenceResponse::from).toList()
-            );
-        }
-    }
-
-    public record ClaimEvidenceResponse(
-        String evidenceId,
-        String status,
-        String downloadUrl,
-        Instant expiresAt
-    ) {
-        static ClaimEvidenceResponse from(ClaimEvidenceView view) {
-            return new ClaimEvidenceResponse(
-                view.evidenceId(),
-                view.status(),
-                view.downloadUrl(),
-                view.expiresAt()
-            );
-        }
+            .toList());
     }
 }

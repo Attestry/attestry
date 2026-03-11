@@ -2,14 +2,12 @@ package io.attestry.userauth.domain.membership.service;
 
 import io.attestry.userauth.domain.membership.policy.RoleAssignmentDecisionPolicy;
 import java.util.Set;
+import lombok.RequiredArgsConstructor;
 
+@RequiredArgsConstructor
 public class RoleAssignmentDomainService {
 
     private final RoleAssignmentDecisionPolicy roleAssignmentDecisionPolicy;
-
-    public RoleAssignmentDomainService(RoleAssignmentDecisionPolicy roleAssignmentDecisionPolicy) {
-        this.roleAssignmentDecisionPolicy = roleAssignmentDecisionPolicy;
-    }
 
     public Evaluation evaluate(
         Set<String> actorRoleCodes,

@@ -7,13 +7,12 @@ import java.util.List;
 import java.util.Locale;
 import java.util.Set;
 import java.util.stream.Collectors;
+import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Component;
 
 @Component
+@RequiredArgsConstructor
 public class TemplateCommandValidator {
-
-    public TemplateCommandValidator() {
-    }
 
     public String normalizeTemplateCode(String code) {
         return normalizeRequired(code, "templateCode").toUpperCase(Locale.ROOT);

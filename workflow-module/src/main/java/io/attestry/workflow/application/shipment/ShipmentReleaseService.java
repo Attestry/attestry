@@ -4,9 +4,9 @@ import static io.attestry.workflow.domain.WorkflowValidation.requireText;
 
 import io.attestry.userauth.security.AuthPrincipal;
 import io.attestry.userauth.domain.authorization.model.PermissionCodes;
-import io.attestry.workflow.application.port.WorkflowEvidencePort;
-import io.attestry.workflow.application.port.WorkflowLedgerOutboxPort;
-import io.attestry.workflow.application.port.ShipmentProductReadPort;
+import io.attestry.workflow.application.port.common.WorkflowEvidencePort;
+import io.attestry.workflow.application.port.common.WorkflowLedgerOutboxPort;
+import io.attestry.workflow.application.port.shipment.ShipmentProductReadPort;
 import io.attestry.workflow.application.shipment.command.ReleaseShipmentCommand;
 import io.attestry.workflow.application.shipment.command.ReturnShipmentCommand;
 import io.attestry.workflow.application.shipment.result.ReleaseShipmentResult;
@@ -26,9 +26,12 @@ import java.time.Clock;
 import java.time.Instant;
 import java.util.List;
 import java.util.UUID;
+
+import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
+@RequiredArgsConstructor
 @Service
 public class ShipmentReleaseService implements ShipmentReleaseUseCase {
 
@@ -41,25 +44,6 @@ public class ShipmentReleaseService implements ShipmentReleaseUseCase {
     private final ShipmentReleasePolicy releasePolicy;
     private final Clock clock;
 
-    public ShipmentReleaseService(
-        ShipmentRepository shipmentRepository,
-        WorkflowEvidencePort evidencePort,
-        ShipmentProductReadPort shipmentProductReadPort,
-        WorkflowLedgerOutboxPort shipmentLedgerOutboxPort,
-        WorkflowAuthorizationSupport authorizationSupport,
-        EvidenceUploadSupport evidenceUploadSupport,
-        ShipmentReleasePolicy releasePolicy,
-        Clock clock
-    ) {
-        this.shipmentRepository = shipmentRepository;
-        this.evidencePort = evidencePort;
-        this.shipmentProductReadPort = shipmentProductReadPort;
-        this.shipmentLedgerOutboxPort = shipmentLedgerOutboxPort;
-        this.authorizationSupport = authorizationSupport;
-        this.evidenceUploadSupport = evidenceUploadSupport;
-        this.releasePolicy = releasePolicy;
-        this.clock = clock;
-    }
 
     @Override
     @Transactional

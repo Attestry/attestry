@@ -1,7 +1,7 @@
 package io.attestry.notification;
 
 import com.fasterxml.jackson.databind.ObjectMapper;
-import io.attestry.userauth.application.port.NotificationPayloadSerializerPort;
+import io.attestry.userauth.application.port.notification.NotificationPayloadSerializerPort;
 import io.attestry.userauth.domain.membership.model.InvitationNotificationPayload;
 import io.attestry.userauth.domain.membership.model.NotificationType;
 import org.springframework.stereotype.Component;

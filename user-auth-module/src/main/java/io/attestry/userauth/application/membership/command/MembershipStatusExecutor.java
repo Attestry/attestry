@@ -1,0 +1,48 @@
+package io.attestry.userauth.application.membership.command;
+
+import io.attestry.userauth.application.dto.command.ActorContext;
+import io.attestry.userauth.application.dto.command.UpdateMembershipStatusCommand;
+import io.attestry.userauth.application.dto.result.MembershipResult;
+import io.attestry.userauth.application.membership.assembler.MembershipResultAssembler;
+import io.attestry.userauth.application.membership.policy.MembershipAccessPolicy;
+import io.attestry.userauth.application.port.membership.MembershipPort;
+import io.attestry.userauth.domain.authorization.model.PermissionCodes;
+import io.attestry.userauth.domain.membership.model.Membership;
+import lombok.RequiredArgsConstructor;
+import org.springframework.stereotype.Component;
+
+@Component
+@RequiredArgsConstructor
+public class MembershipStatusExecutor {
+
+    private final MembershipPort membershipPort;
+    private final MembershipAccessPolicy accessPolicy;
+    private final MembershipResultAssembler resultAssembler;
+
+    public MembershipResult updateStatus(
+        ActorContext actor,
+        String membershipId,
+        UpdateMembershipStatusCommand command
+    ) {
+        String tenantId = actor.tenantId();
+        Membership current = accessPolicy.loadTenantMembership(membershipId, tenantId);
+        if (command.status() == null || command.status() == current.status()) {
+            return resultAssembler.toMembershipResult(current);
+        }
+
+        accessPolicy.assertLivePermission(
+            actor,
+            tenantId,
+            PermissionCodes.TENANT_MEMBERSHIP_ENFORCE,
+            "membership:" + membershipId
+        );
+
+        Membership updated = membershipPort.updateMembership(
+            tenantId,
+            current.membershipId(),
+            current.role(),
+            command.status()
+        );
+        return resultAssembler.toMembershipResult(updated);
+    }
+}

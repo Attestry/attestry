@@ -6,6 +6,7 @@ public record TenantResponse(
         String tenantId,
         String name,
         String region,
+        String address,
         String type,
         String status) {
 
@@ -14,6 +15,7 @@ public record TenantResponse(
                 result.tenantId(),
                 result.name(),
                 result.region(),
+                result.address(),
                 result.type(),
                 result.status());
     }

@@ -2,7 +2,7 @@ package io.attestry.notification;
 
 import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.databind.ObjectMapper;
-import io.attestry.userauth.application.port.InvitationNotificationPort;
+import io.attestry.userauth.application.port.notification.InvitationNotificationPort;
 import java.net.URI;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.boot.autoconfigure.condition.ConditionalOnProperty;

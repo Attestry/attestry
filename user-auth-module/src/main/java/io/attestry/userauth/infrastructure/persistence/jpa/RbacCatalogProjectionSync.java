@@ -3,12 +3,13 @@ package io.attestry.userauth.infrastructure.persistence.jpa;
 import io.attestry.userauth.domain.authorization.policy.PermissionCatalog;
 import io.attestry.userauth.domain.authorization.policy.SystemPermissionTemplateCatalog;
 import io.attestry.userauth.domain.authorization.policy.SystemPermissionTemplateCatalog.TemplateDefinition;
-import io.attestry.userauth.infrastructure.persistence.jpa.repository.adapter.MembershipEffectivePermissionProjectionRefresher;
+import io.attestry.userauth.infrastructure.persistence.jpa.membership.MembershipEffectivePermissionProjectionRefresher;
 import java.time.OffsetDateTime;
 import java.time.ZoneOffset;
 import java.util.List;
 import java.util.Map;
 import java.util.stream.Collectors;
+import lombok.RequiredArgsConstructor;
 import org.springframework.boot.ApplicationArguments;
 import org.springframework.boot.ApplicationRunner;
 import org.springframework.jdbc.core.JdbcTemplate;
@@ -16,21 +17,12 @@ import org.springframework.stereotype.Component;
 import org.springframework.transaction.annotation.Transactional;
 
 @Component
+@RequiredArgsConstructor
 public class RbacCatalogProjectionSync implements ApplicationRunner {
 
     private final JdbcTemplate jdbcTemplate;
     private final PermissionCatalog permissionCatalog;
     private final MembershipEffectivePermissionProjectionRefresher permissionProjectionRefresher;
-
-    public RbacCatalogProjectionSync(
-        JdbcTemplate jdbcTemplate,
-        PermissionCatalog permissionCatalog,
-        MembershipEffectivePermissionProjectionRefresher permissionProjectionRefresher
-    ) {
-        this.jdbcTemplate = jdbcTemplate;
-        this.permissionCatalog = permissionCatalog;
-        this.permissionProjectionRefresher = permissionProjectionRefresher;
-    }
 
     @Override
     @Transactional

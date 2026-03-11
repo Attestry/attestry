@@ -18,7 +18,7 @@ app:
       provider: REDIS
   bootstrap:
     platform-admin:
-      enabled: true
+      enabled: ${APP_BOOTSTRAP_PLATFORM_ADMIN_ENABLED:true}
   storage:
     provider: MINIO
     bucket: ${MINIO_BUCKET:attestry-onboarding}

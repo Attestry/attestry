@@ -7,6 +7,7 @@ import io.attestry.userauth.application.dto.command.ActorContext;
 import io.attestry.userauth.application.dto.command.PolicyDecisionMode;
 import io.attestry.userauth.application.dto.result.AuthzEvaluateResult;
 import io.attestry.userauth.application.usecase.policy.EvaluateAuthorizationUseCase;
+import lombok.RequiredArgsConstructor;
 import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RequestMapping;
@@ -14,13 +15,10 @@ import org.springframework.web.bind.annotation.RestController;
 
 @RestController
 @RequestMapping("/authz")
+@RequiredArgsConstructor
 public class AuthorizationHttp {
 
     private final EvaluateAuthorizationUseCase evaluateAuthorizationService;
-
-    public AuthorizationHttp(EvaluateAuthorizationUseCase evaluateAuthorizationService) {
-        this.evaluateAuthorizationService = evaluateAuthorizationService;
-    }
 
     @PostMapping("/evaluate")
     public ApiResponse<AuthzEvaluateResponse> evaluate(

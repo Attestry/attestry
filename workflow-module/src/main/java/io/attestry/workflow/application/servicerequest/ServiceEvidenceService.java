@@ -3,7 +3,7 @@ package io.attestry.workflow.application.servicerequest;
 import io.attestry.commonlib.application.port.ObjectStoragePort;
 import io.attestry.userauth.domain.authorization.model.PermissionCodes;
 import io.attestry.userauth.security.AuthPrincipal;
-import io.attestry.workflow.application.port.WorkflowEvidencePort;
+import io.attestry.workflow.application.port.common.WorkflowEvidencePort;
 import io.attestry.workflow.application.shipment.command.CompleteShipmentEvidenceUploadCommand;
 import io.attestry.workflow.application.shipment.command.PresignShipmentEvidenceUploadCommand;
 import io.attestry.workflow.application.shipment.result.PresignedEvidenceUploadResult;
@@ -14,10 +14,13 @@ import io.attestry.workflow.application.usecase.ServiceEvidenceUseCase;
 import java.time.Clock;
 import java.time.Duration;
 import java.time.Instant;
+
+import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
 @Service
+@RequiredArgsConstructor
 public class ServiceEvidenceService implements ServiceEvidenceUseCase {
 
     private static final String OBJECT_KEY_PREFIX = "workflow/service/";
@@ -29,19 +32,6 @@ public class ServiceEvidenceService implements ServiceEvidenceUseCase {
     private final EvidenceUploadSupport evidenceUploadSupport;
     private final Clock clock;
 
-    public ServiceEvidenceService(
-        WorkflowEvidencePort evidencePort,
-        ObjectStoragePort objectStoragePort,
-        WorkflowAuthorizationSupport authorizationSupport,
-        EvidenceUploadSupport evidenceUploadSupport,
-        Clock clock
-    ) {
-        this.evidencePort = evidencePort;
-        this.objectStoragePort = objectStoragePort;
-        this.authorizationSupport = authorizationSupport;
-        this.evidenceUploadSupport = evidenceUploadSupport;
-        this.clock = clock;
-    }
 
     @Override
     @Transactional

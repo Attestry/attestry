@@ -2,6 +2,8 @@ package io.attestry.workflow.domain.servicerequest.policy;
 
 import io.attestry.workflow.domain.WorkflowDomainException;
 import io.attestry.workflow.domain.WorkflowErrorCode;
+import io.attestry.workflow.domain.passport.model.WorkflowAssetState;
+import io.attestry.workflow.domain.passport.model.WorkflowRiskFlag;
 import org.springframework.stereotype.Component;
 
 @Component
@@ -14,7 +16,7 @@ public class ServiceConsentPolicy {
     }
 
     private void assertPassportActive(ServiceConsentContext context) {
-        if (!"ACTIVE".equals(context.assetState())) {
+        if (context.assetState() != WorkflowAssetState.ACTIVE) {
             throw new WorkflowDomainException(
                 WorkflowErrorCode.INVALID_STATE,
                 "Passport asset must be ACTIVE"
@@ -23,7 +25,7 @@ public class ServiceConsentPolicy {
     }
 
     private void assertNoRiskFlag(ServiceConsentContext context) {
-        if (!"NONE".equals(context.riskFlag())) {
+        if (context.riskFlag() != WorkflowRiskFlag.NONE) {
             throw new WorkflowDomainException(
                 WorkflowErrorCode.INVALID_STATE,
                 "Risk flagged passport cannot grant service consent"
@@ -43,8 +45,21 @@ public class ServiceConsentPolicy {
     public record ServiceConsentContext(
         String requestingUserId,
         String currentOwnerId,
-        String assetState,
-        String riskFlag
+        WorkflowAssetState assetState,
+        WorkflowRiskFlag riskFlag
     ) {
+        public ServiceConsentContext(
+            String requestingUserId,
+            String currentOwnerId,
+            String assetState,
+            String riskFlag
+        ) {
+            this(
+                requestingUserId,
+                currentOwnerId,
+                WorkflowAssetState.from(assetState),
+                WorkflowRiskFlag.from(riskFlag)
+            );
+        }
     }
 }

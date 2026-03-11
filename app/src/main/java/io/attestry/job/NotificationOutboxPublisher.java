@@ -1,7 +1,7 @@
 package io.attestry.job;
 
-import io.attestry.userauth.application.port.InvitationNotificationPort;
-import io.attestry.userauth.application.port.NotificationOutboxRepositoryPort;
+import io.attestry.userauth.application.port.notification.InvitationNotificationPort;
+import io.attestry.userauth.application.port.notification.NotificationOutboxRepositoryPort;
 import io.attestry.userauth.domain.membership.model.InvitationNotificationPayload;
 import io.attestry.userauth.domain.membership.model.NotificationOutbox;
 import java.time.Clock;

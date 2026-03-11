@@ -11,7 +11,7 @@ import static org.springframework.security.test.web.servlet.setup.SecurityMockMv
 import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.fasterxml.jackson.databind.node.ObjectNode;
-import io.attestry.userauth.application.port.PasswordHasherPort;
+import io.attestry.userauth.application.port.auth.PasswordHasherPort;
 import io.attestry.userauth.domain.tenant.model.TenantType;
 import io.attestry.userauth.domain.membership.model.MembershipRole;
 import io.attestry.userauth.domain.membership.model.MembershipStatus;
@@ -30,7 +30,7 @@ import io.attestry.userauth.infrastructure.persistence.jpa.repository.Organizati
 import io.attestry.userauth.infrastructure.persistence.jpa.repository.RoleAssignmentAuditJpaRepository;
 import io.attestry.userauth.infrastructure.persistence.jpa.repository.TenantJpaRepository;
 import io.attestry.userauth.infrastructure.persistence.jpa.repository.UserAccountJpaRepository;
-import io.attestry.userauth.infrastructure.persistence.jpa.repository.adapter.MembershipEffectivePermissionProjectionRefresher;
+import io.attestry.userauth.infrastructure.persistence.jpa.membership.MembershipEffectivePermissionProjectionRefresher;
 import java.util.Map;
 import java.util.UUID;
 import java.time.Instant;
@@ -153,7 +153,7 @@ class UserAuthApiIntegrationTests {
         String tenantId = UUID.randomUUID().toString();
         String adminUserId = UUID.randomUUID().toString();
 
-        tenantRepository.save(new TenantJpaEntity(tenantId, "Tenant A", "KR", TenantType.BRAND, TenantStatus.ACTIVE));
+        tenantRepository.save(new TenantJpaEntity(tenantId, "Tenant A", "KR", null, TenantType.BRAND, TenantStatus.ACTIVE));
 
         String adminEmail = "tenant-admin@test.com";
         userAccountRepository.save(new UserAccountJpaEntity(
@@ -281,7 +281,7 @@ class UserAuthApiIntegrationTests {
         String adminEmail = "operator-invite-admin@test.com";
         String adminPassword = "AdminPw123";
 
-        tenantRepository.save(new TenantJpaEntity(tenantId, "Tenant C", "KR", TenantType.BRAND, TenantStatus.ACTIVE));
+        tenantRepository.save(new TenantJpaEntity(tenantId, "Tenant C", "KR", null, TenantType.BRAND, TenantStatus.ACTIVE));
 
         userAccountRepository.save(new UserAccountJpaEntity(
             adminUserId,
@@ -346,7 +346,7 @@ class UserAuthApiIntegrationTests {
         String adminUserId = UUID.randomUUID().toString();
         String targetUserId = UUID.randomUUID().toString();
 
-        tenantRepository.save(new TenantJpaEntity(tenantId, "Tenant B", "KR", TenantType.BRAND, TenantStatus.ACTIVE));
+        tenantRepository.save(new TenantJpaEntity(tenantId, "Tenant B", "KR", null, TenantType.BRAND, TenantStatus.ACTIVE));
 
         userAccountRepository.save(new UserAccountJpaEntity(
             adminUserId,
@@ -421,7 +421,7 @@ class UserAuthApiIntegrationTests {
         String adminUserId = UUID.randomUUID().toString();
         String targetUserId = UUID.randomUUID().toString();
 
-        tenantRepository.save(new TenantJpaEntity(tenantId, "Tenant D", "KR", TenantType.BRAND, TenantStatus.ACTIVE));
+        tenantRepository.save(new TenantJpaEntity(tenantId, "Tenant D", "KR", null, TenantType.BRAND, TenantStatus.ACTIVE));
 
         userAccountRepository.save(new UserAccountJpaEntity(
             adminUserId,
@@ -489,7 +489,7 @@ class UserAuthApiIntegrationTests {
         String adminUserId = UUID.randomUUID().toString();
         String targetUserId = UUID.randomUUID().toString();
 
-        tenantRepository.save(new TenantJpaEntity(tenantId, "Tenant E", "KR", TenantType.BRAND, TenantStatus.ACTIVE));
+        tenantRepository.save(new TenantJpaEntity(tenantId, "Tenant E", "KR", null, TenantType.BRAND, TenantStatus.ACTIVE));
 
         userAccountRepository.save(new UserAccountJpaEntity(
             adminUserId,

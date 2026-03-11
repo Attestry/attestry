@@ -1,6 +1,6 @@
 package io.attestry.notification;
 
-import io.attestry.userauth.application.port.InvitationNotificationPort;
+import io.attestry.userauth.application.port.notification.InvitationNotificationPort;
 import org.springframework.boot.autoconfigure.condition.ConditionalOnProperty;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.mail.SimpleMailMessage;

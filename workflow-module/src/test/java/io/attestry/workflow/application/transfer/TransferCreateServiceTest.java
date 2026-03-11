@@ -130,7 +130,7 @@ class TransferCreateServiceTest {
         WorkflowDomainException ex = assertThrows(WorkflowDomainException.class, () ->
             service.createC2C(OWNER_PRINCIPAL, "p1", new CreateC2CTransferCommand(AcceptMethod.QR, null, EXPIRES))
         );
-        assertEquals("TRANSFER_ALREADY_PENDING", ex.getErrorCode().name());
+        assertEquals("TRANSFER_ALREADY_PENDING", ex.getErrorCode().getCode());
     }
 
     @Test

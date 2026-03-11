@@ -13,6 +13,7 @@ import io.attestry.userauth.interfaces.template.dto.request.UpdatePermissionTemp
 import io.attestry.userauth.interfaces.template.dto.response.PermissionResponse;
 import io.attestry.userauth.interfaces.template.dto.response.PermissionTemplateResponse;
 import java.util.List;
+import lombok.RequiredArgsConstructor;
 import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.web.bind.annotation.DeleteMapping;
 import org.springframework.web.bind.annotation.GetMapping;
@@ -27,13 +28,10 @@ import org.springframework.web.bind.annotation.RestController;
 @RestController
 @PreAuthorize("hasAuthority('SCOPE_PLATFORM_ADMIN')")
 @RequestMapping("/admin/permission-templates")
+@RequiredArgsConstructor
 public class PlatformTemplateManagementHttp {
 
     private final TemplateManagementUseCase templateManagementUseCase;
-
-    public PlatformTemplateManagementHttp(TemplateManagementUseCase templateManagementUseCase) {
-        this.templateManagementUseCase = templateManagementUseCase;
-    }
 
     @PostMapping("/permissions")
     public ApiResponse<PermissionResponse> createPermission(

@@ -13,9 +13,12 @@ import io.attestry.workflow.domain.transfer.model.TransferType;
 import io.attestry.workflow.domain.transfer.repository.TokenTransferRepository;
 import java.time.Clock;
 import java.time.Instant;
+
+import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
+@RequiredArgsConstructor
 @Service
 public class TransferCancelService implements TransferCancelUseCase {
 
@@ -23,15 +26,6 @@ public class TransferCancelService implements TransferCancelUseCase {
     private final WorkflowAuthorizationSupport authorizationSupport;
     private final Clock clock;
 
-    public TransferCancelService(
-        TokenTransferRepository transferRepository,
-        WorkflowAuthorizationSupport authorizationSupport,
-        Clock clock
-    ) {
-        this.transferRepository = transferRepository;
-        this.authorizationSupport = authorizationSupport;
-        this.clock = clock;
-    }
 
     @Override
     @Transactional

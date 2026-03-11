@@ -2,7 +2,7 @@ package io.attestry.workflow.application.servicerequest;
 
 import io.attestry.userauth.domain.authorization.model.PermissionCodes;
 import io.attestry.userauth.security.AuthPrincipal;
-import io.attestry.workflow.application.port.ServicePermissionPort;
+import io.attestry.workflow.application.port.servicerequest.ServicePermissionPort;
 import io.attestry.workflow.application.servicerequest.result.CancelServiceRequestResult;
 import io.attestry.workflow.application.support.WorkflowAuthorizationSupport;
 import io.attestry.workflow.application.usecase.ServiceCancelUseCase;
@@ -13,10 +13,13 @@ import io.attestry.workflow.domain.servicerequest.model.ServiceRequestStatus;
 import io.attestry.workflow.domain.servicerequest.repository.ServiceRequestRepository;
 import java.time.Clock;
 import java.time.Instant;
+
+import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
 @Service
+@RequiredArgsConstructor
 public class ServiceCancelService implements ServiceCancelUseCase {
 
     private final ServiceRequestRepository serviceRequestRepository;
@@ -24,17 +27,6 @@ public class ServiceCancelService implements ServiceCancelUseCase {
     private final WorkflowAuthorizationSupport authorizationSupport;
     private final Clock clock;
 
-    public ServiceCancelService(
-        ServiceRequestRepository serviceRequestRepository,
-        ServicePermissionPort servicePermissionPort,
-        WorkflowAuthorizationSupport authorizationSupport,
-        Clock clock
-    ) {
-        this.serviceRequestRepository = serviceRequestRepository;
-        this.servicePermissionPort = servicePermissionPort;
-        this.authorizationSupport = authorizationSupport;
-        this.clock = clock;
-    }
 
     @Override
     @Transactional

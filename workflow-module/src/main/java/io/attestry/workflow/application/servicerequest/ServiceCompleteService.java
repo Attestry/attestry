@@ -2,10 +2,10 @@ package io.attestry.workflow.application.servicerequest;
 
 import io.attestry.userauth.domain.authorization.model.PermissionCodes;
 import io.attestry.userauth.security.AuthPrincipal;
-import io.attestry.workflow.application.port.WorkflowLedgerOutboxPort;
-import io.attestry.workflow.application.port.ServicePermissionPort;
-import io.attestry.workflow.application.port.ServiceProductReadPort;
-import io.attestry.workflow.application.port.WorkflowEvidencePort;
+import io.attestry.workflow.application.port.common.WorkflowLedgerOutboxPort;
+import io.attestry.workflow.application.port.servicerequest.ServicePermissionPort;
+import io.attestry.workflow.application.port.servicerequest.ServiceProductReadPort;
+import io.attestry.workflow.application.port.common.WorkflowEvidencePort;
 import io.attestry.workflow.application.servicerequest.command.CompleteServiceRequestCommand;
 import io.attestry.workflow.application.servicerequest.result.CompleteServiceRequestResult;
 import io.attestry.workflow.application.shipment.result.WorkflowLedgerEventEnvelope;
@@ -21,10 +21,13 @@ import io.attestry.workflow.domain.servicerequest.repository.ServiceRequestRepos
 import java.time.Clock;
 import java.time.Instant;
 import java.util.List;
+
+import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
 @Service
+@RequiredArgsConstructor
 public class ServiceCompleteService implements ServiceCompleteUseCase {
 
     private final ServiceRequestRepository serviceRequestRepository;
@@ -35,26 +38,6 @@ public class ServiceCompleteService implements ServiceCompleteUseCase {
     private final WorkflowAuthorizationSupport authorizationSupport;
     private final ServiceCompletePolicy completePolicy;
     private final Clock clock;
-
-    public ServiceCompleteService(
-        ServiceRequestRepository serviceRequestRepository,
-        ServiceProductReadPort serviceProductReadPort,
-        ServicePermissionPort servicePermissionPort,
-        WorkflowLedgerOutboxPort serviceLedgerOutboxPort,
-        WorkflowEvidencePort evidencePort,
-        WorkflowAuthorizationSupport authorizationSupport,
-        ServiceCompletePolicy completePolicy,
-        Clock clock
-    ) {
-        this.serviceRequestRepository = serviceRequestRepository;
-        this.serviceProductReadPort = serviceProductReadPort;
-        this.servicePermissionPort = servicePermissionPort;
-        this.serviceLedgerOutboxPort = serviceLedgerOutboxPort;
-        this.evidencePort = evidencePort;
-        this.authorizationSupport = authorizationSupport;
-        this.completePolicy = completePolicy;
-        this.clock = clock;
-    }
 
     @Override
     @Transactional

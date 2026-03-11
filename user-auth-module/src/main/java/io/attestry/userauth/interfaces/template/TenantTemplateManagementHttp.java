@@ -15,6 +15,7 @@ import io.attestry.userauth.interfaces.template.dto.response.PermissionResponse;
 import io.attestry.userauth.interfaces.template.dto.response.PermissionTemplateResponse;
 import io.attestry.userauth.interfaces.template.dto.response.TenantRoleTemplateBindingResponse;
 import java.util.List;
+import lombok.RequiredArgsConstructor;
 import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.web.bind.annotation.DeleteMapping;
 import org.springframework.web.bind.annotation.GetMapping;
@@ -29,13 +30,10 @@ import org.springframework.web.bind.annotation.RestController;
 @RestController
 @PreAuthorize("hasAuthority('SCOPE_TENANT_ROLE_ASSIGN')")
 @RequestMapping("/admin/tenants/{tenantId}")
+@RequiredArgsConstructor
 public class TenantTemplateManagementHttp {
 
     private final TemplateManagementUseCase templateManagementUseCase;
-
-    public TenantTemplateManagementHttp(TemplateManagementUseCase templateManagementUseCase) {
-        this.templateManagementUseCase = templateManagementUseCase;
-    }
 
     @PostMapping("/permission-templates")
     public ApiResponse<PermissionTemplateResponse> createTenantTemplate(

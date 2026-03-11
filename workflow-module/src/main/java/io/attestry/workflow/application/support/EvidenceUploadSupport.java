@@ -1,7 +1,7 @@
 package io.attestry.workflow.application.support;
 
 import io.attestry.commonlib.application.port.ObjectStoragePort;
-import io.attestry.workflow.application.port.WorkflowEvidencePort;
+import io.attestry.workflow.application.port.common.WorkflowEvidencePort;
 import io.attestry.workflow.application.shipment.result.PresignedEvidenceUploadResult;
 import io.attestry.workflow.application.shipment.result.EvidenceCompleteResult;
 import io.attestry.workflow.domain.WorkflowDomainException;
@@ -94,7 +94,7 @@ public class EvidenceUploadSupport {
         String evidenceGroupId, String evidenceId,
         long sizeBytes, String fileHash, Instant now
     ) {
-        WorkflowEvidencePort.EvidenceView evidence = evidencePort.findEvidenceById(
+        WorkflowEvidencePort.EvidenceRecord evidence = evidencePort.findEvidenceById(
             evidenceGroupId, evidenceId
         ).orElseThrow(() -> new WorkflowDomainException(WorkflowErrorCode.EVIDENCE_NOT_FOUND, "Evidence file not found"));
 
@@ -111,7 +111,7 @@ public class EvidenceUploadSupport {
         WorkflowEvidencePort evidencePort,
         String evidenceGroupId, String tenantId
     ) {
-        WorkflowEvidencePort.EvidenceGroupScopeView scope = evidencePort
+        WorkflowEvidencePort.EvidenceGroupScopeRecord scope = evidencePort
             .findEvidenceGroupScope(evidenceGroupId)
             .orElseThrow(() -> new WorkflowDomainException(
                 WorkflowErrorCode.EVIDENCE_NOT_FOUND, "Evidence group not found"));

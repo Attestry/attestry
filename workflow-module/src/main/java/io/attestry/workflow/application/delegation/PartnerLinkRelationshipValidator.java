@@ -5,16 +5,15 @@ import io.attestry.workflow.domain.WorkflowErrorCode;
 import io.attestry.workflow.domain.partner.model.PartnerLink;
 import io.attestry.workflow.domain.partner.model.PartnerLinkStatus;
 import io.attestry.workflow.domain.partner.repository.PartnerLinkRepository;
+import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Component;
 
 @Component
+@RequiredArgsConstructor
 public class PartnerLinkRelationshipValidator implements RelationshipValidator {
 
     private final PartnerLinkRepository partnerLinkRepository;
 
-    public PartnerLinkRelationshipValidator(PartnerLinkRepository partnerLinkRepository) {
-        this.partnerLinkRepository = partnerLinkRepository;
-    }
 
     @Override
     public PartnerLink assertEligibleBySource(String partnerLinkId, String sourceTenantId) {

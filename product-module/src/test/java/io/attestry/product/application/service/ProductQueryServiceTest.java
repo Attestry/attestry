@@ -4,15 +4,16 @@ import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 
-import io.attestry.product.application.port.DistributedPassportQueryPort;
-import io.attestry.product.application.port.GroupPassportQueryPort;
-import io.attestry.product.application.port.MyPassportQueryPort;
-import io.attestry.product.application.port.PassportDistributionQueryPort;
-import io.attestry.product.application.port.PassportOwnershipPort;
-import io.attestry.product.application.port.PassportPermissionPort;
-import io.attestry.product.application.port.PassportPort;
-import io.attestry.product.application.port.PassportShipmentQueryPort;
-import io.attestry.product.application.dto.result.DistributedPassportDetailResult;
+import io.attestry.product.application.port.query.DistributedPassportQueryPort;
+import io.attestry.product.application.port.query.GroupPassportQueryPort;
+import io.attestry.product.application.port.query.MyPassportQueryPort;
+import io.attestry.product.application.port.query.PassportDistributionQueryPort;
+import io.attestry.product.application.port.ownership.PassportOwnershipPort;
+import io.attestry.product.application.port.permission.PassportPermissionPort;
+import io.attestry.product.application.port.passport.PassportPort;
+import io.attestry.product.application.port.query.PassportShipmentQueryPort;
+import io.attestry.product.application.dto.view.DistributedPassportView;
+import io.attestry.product.application.dto.view.DistributedPassportDetailView;
 import java.time.Instant;
 import java.util.List;
 import org.junit.jupiter.api.BeforeEach;
@@ -54,7 +55,7 @@ class ProductQueryServiceTest {
     void listDistributedPassports_returnsPagedPermissionBackedProducts() {
         when(distributedPassportQueryPort.findByTargetTenant("retail-tenant", 0, 20, "SN", null)).thenReturn(
             new DistributedPassportQueryPort.PagedResult(
-                List.of(new DistributedPassportQueryPort.DistributedPassportView(
+                List.of(new DistributedPassportView(
                     "passport-1",
                     "QR-001",
                     "asset-1",
@@ -92,7 +93,7 @@ class ProductQueryServiceTest {
     void getDistributedPassportDetail_returnsRetailReadableProductDetail() {
         Instant manufacturedAt = Instant.parse("2025-02-01T10:00:00Z");
         when(distributedPassportQueryPort.findDetailByRetailAccess("retail-tenant", "passport-1")).thenReturn(
-            new DistributedPassportQueryPort.DistributedPassportDetailView(
+            new DistributedPassportDetailView(
                 "passport-1",
                 "QR-001",
                 "SN-001",
@@ -106,7 +107,7 @@ class ProductQueryServiceTest {
             )
         );
 
-        DistributedPassportDetailResult result = service.getDistributedPassportDetail(
+        DistributedPassportDetailView result = service.getDistributedPassportDetail(
             "retail-tenant",
             "passport-1"
         );

@@ -2,8 +2,8 @@ package io.attestry.userauth.application.auth;
 
 import io.attestry.userauth.application.dto.command.UpdateMyAccountCommand;
 import io.attestry.userauth.application.dto.view.MyAccountView;
-import io.attestry.userauth.application.port.PasswordHasherPort;
-import io.attestry.userauth.application.port.UserAccountRepositoryPort;
+import io.attestry.userauth.application.port.auth.PasswordHasherPort;
+import io.attestry.userauth.application.port.identity.UserAccountRepositoryPort;
 import io.attestry.userauth.application.usecase.auth.MyAccountQueryUseCase;
 import io.attestry.userauth.domain.UserAuthErrorCode;
 import io.attestry.userauth.domain.UserAuthDomainException;

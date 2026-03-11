@@ -2,6 +2,8 @@ package io.attestry.workflow.domain.transfer.policy;
 
 import io.attestry.workflow.domain.WorkflowDomainException;
 import io.attestry.workflow.domain.WorkflowErrorCode;
+import io.attestry.workflow.domain.passport.model.WorkflowAssetState;
+import io.attestry.workflow.domain.passport.model.WorkflowRiskFlag;
 import org.springframework.stereotype.Component;
 
 @Component
@@ -24,10 +26,10 @@ public class TransferCreatePolicy {
         if (context.passportAssetState() == null) {
             throw new WorkflowDomainException(WorkflowErrorCode.INVALID_REQUEST, "Passport not found");
         }
-        if (!"ACTIVE".equals(context.passportAssetState())) {
+        if (context.passportAssetState() != WorkflowAssetState.ACTIVE) {
             throw new WorkflowDomainException(WorkflowErrorCode.INVALID_STATE, "Passport asset must be ACTIVE");
         }
-        if (!"NONE".equals(context.passportRiskFlag())) {
+        if (context.passportRiskFlag() != WorkflowRiskFlag.NONE) {
             throw new WorkflowDomainException(WorkflowErrorCode.INVALID_STATE, "Risk flagged passport cannot be transferred");
         }
     }
@@ -62,12 +64,33 @@ public class TransferCreatePolicy {
     public record TransferCreateContext(
         String actorUserId,
         String requestTenantId,
-        String passportAssetState,
-        String passportRiskFlag,
+        WorkflowAssetState passportAssetState,
+        WorkflowRiskFlag passportRiskFlag,
         String passportTenantId,
         String currentOwnerId,
         boolean hasRetailPermission,
         boolean pendingTransferExists
     ) {
+        public TransferCreateContext(
+            String actorUserId,
+            String requestTenantId,
+            String passportAssetState,
+            String passportRiskFlag,
+            String passportTenantId,
+            String currentOwnerId,
+            boolean hasRetailPermission,
+            boolean pendingTransferExists
+        ) {
+            this(
+                actorUserId,
+                requestTenantId,
+                WorkflowAssetState.from(passportAssetState),
+                WorkflowRiskFlag.from(passportRiskFlag),
+                passportTenantId,
+                currentOwnerId,
+                hasRetailPermission,
+                pendingTransferExists
+            );
+        }
     }
 }

@@ -4,14 +4,12 @@ import io.attestry.userauth.domain.UserAuthDomainException;
 import io.attestry.userauth.domain.UserAuthErrorCode;
 import io.attestry.userauth.domain.authorization.policy.TemplateApplicationPolicy;
 import java.util.Set;
+import lombok.RequiredArgsConstructor;
 
+@RequiredArgsConstructor
 public class TemplateApplicationDomainService {
 
     private final TemplateApplicationPolicy templateApplicationPolicy;
-
-    public TemplateApplicationDomainService(TemplateApplicationPolicy templateApplicationPolicy) {
-        this.templateApplicationPolicy = templateApplicationPolicy;
-    }
 
     public String assertCanMutateTemplate(Set<String> actorRoleCodes, String requestedTemplateCode, boolean templateEnabled) {
         Evaluation evaluation = evaluate(actorRoleCodes, requestedTemplateCode, templateEnabled);

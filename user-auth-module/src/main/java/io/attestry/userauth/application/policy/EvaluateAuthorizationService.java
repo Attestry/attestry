@@ -4,8 +4,8 @@ import io.attestry.userauth.application.dto.command.AuthzEvaluateCommand;
 import io.attestry.userauth.application.dto.command.ActorContext;
 import io.attestry.userauth.application.dto.command.PolicyDecisionMode;
 import io.attestry.userauth.application.dto.result.AuthzEvaluateResult;
-import io.attestry.userauth.application.port.MembershipPort;
-import io.attestry.userauth.application.port.MembershipProjectionPort;
+import io.attestry.userauth.application.port.membership.MembershipPort;
+import io.attestry.userauth.application.port.membership.MembershipProjectionPort;
 import io.attestry.userauth.application.usecase.policy.EvaluateAuthorizationUseCase;
 import io.attestry.userauth.domain.UserAuthErrorCode;
 import io.attestry.userauth.domain.authorization.model.RoleCodes;
@@ -13,21 +13,15 @@ import io.attestry.userauth.domain.membership.model.Membership;
 import io.attestry.userauth.domain.authorization.policy.TenantIsolationPolicy;
 import java.util.LinkedHashSet;
 import java.util.Set;
+import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
 
 @Service
+@RequiredArgsConstructor
 public class EvaluateAuthorizationService implements EvaluateAuthorizationUseCase {
 
     private final MembershipPort membershipPort;
     private final MembershipProjectionPort membershipProjectionPort;
-
-    public EvaluateAuthorizationService(
-        MembershipPort membershipPort,
-        MembershipProjectionPort membershipProjectionPort
-    ) {
-        this.membershipPort = membershipPort;
-        this.membershipProjectionPort = membershipProjectionPort;
-    }
 
     @Override
     public AuthzEvaluateResult evaluate(ActorContext actor, AuthzEvaluateCommand command) {

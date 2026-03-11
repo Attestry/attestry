@@ -1,7 +1,7 @@
 package io.attestry.workflow.application.delegation;
 
 import io.attestry.workflow.application.delegation.result.DelegationEvaluateResult;
-import io.attestry.workflow.application.port.DelegationPermissionProjectionPort;
+import io.attestry.workflow.application.port.delegation.DelegationPermissionProjectionPort;
 import io.attestry.workflow.application.usecase.DelegationLifecycleUseCase;
 import io.attestry.workflow.domain.delegation.model.Delegation;
 import io.attestry.workflow.domain.delegation.repository.DelegationRepository;

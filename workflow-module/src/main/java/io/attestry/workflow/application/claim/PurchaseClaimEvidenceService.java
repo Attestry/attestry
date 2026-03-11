@@ -4,17 +4,20 @@ import io.attestry.commonlib.application.port.ObjectStoragePort;
 import io.attestry.userauth.security.AuthPrincipal;
 import io.attestry.workflow.application.claim.command.CompleteClaimEvidenceCommand;
 import io.attestry.workflow.application.claim.command.PresignClaimEvidenceCommand;
-import io.attestry.workflow.application.port.WorkflowEvidencePort;
+import io.attestry.workflow.application.port.common.WorkflowEvidencePort;
 import io.attestry.workflow.application.shipment.result.PresignedEvidenceUploadResult;
 import io.attestry.workflow.application.shipment.result.EvidenceCompleteResult;
 import io.attestry.workflow.application.support.EvidenceUploadSupport;
 import java.time.Clock;
 import java.time.Duration;
 import java.time.Instant;
+
+import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
 @Service
+@RequiredArgsConstructor
 public class PurchaseClaimEvidenceService {
 
     private static final String OBJECT_KEY_PREFIX = "workflow/purchase-claim/";
@@ -25,16 +28,6 @@ public class PurchaseClaimEvidenceService {
     private final EvidenceUploadSupport evidenceUploadSupport;
     private final Clock clock;
 
-    public PurchaseClaimEvidenceService(
-            WorkflowEvidencePort evidencePort,
-            ObjectStoragePort objectStoragePort,
-            EvidenceUploadSupport evidenceUploadSupport,
-            Clock clock) {
-        this.evidencePort = evidencePort;
-        this.objectStoragePort = objectStoragePort;
-        this.evidenceUploadSupport = evidenceUploadSupport;
-        this.clock = clock;
-    }
 
     @Transactional
     public PresignedEvidenceUploadResult presignEvidence(

@@ -3,10 +3,10 @@ package io.attestry.workflow.application.delegation;
 import io.attestry.userauth.security.AuthPrincipal;
 import io.attestry.userauth.domain.authorization.model.PermissionCodes;
 import io.attestry.workflow.application.delegation.command.GrantDelegationCommand;
-import io.attestry.workflow.application.port.PassportAuthorityQueryPort;
+import io.attestry.workflow.application.port.delegation.PassportAuthorityQueryPort;
 import io.attestry.workflow.application.delegation.result.DelegationResult;
-import io.attestry.workflow.application.port.DelegationPermissionProjectionPort;
-import io.attestry.workflow.application.port.TenantReadPort;
+import io.attestry.workflow.application.port.delegation.DelegationPermissionProjectionPort;
+import io.attestry.workflow.application.port.common.TenantReadPort;
 import io.attestry.workflow.application.support.WorkflowAuthorizationSupport;
 import io.attestry.workflow.application.usecase.DelegationUseCase;
 import io.attestry.workflow.domain.WorkflowDomainException;
@@ -18,9 +18,12 @@ import io.attestry.workflow.domain.partner.model.PartnerLink;
 import java.time.Clock;
 import java.time.Instant;
 import java.util.Optional;
+
+import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
+@RequiredArgsConstructor
 @Service
 public class DelegationService implements DelegationUseCase {
 
@@ -33,25 +36,6 @@ public class DelegationService implements DelegationUseCase {
     private final WorkflowAuthorizationSupport authorizationSupport;
     private final Clock clock;
 
-    public DelegationService(
-        DelegationRepository delegationRepository,
-        TenantReadPort tenantReadPort,
-        PassportAuthorityQueryPort passportAuthorityQueryPort,
-        DelegationPermissionProjectionPort permissionProjectionPort,
-        RelationshipValidator relationshipValidator,
-        DelegationGrantPolicy delegationGrantPolicy,
-        WorkflowAuthorizationSupport authorizationSupport,
-        Clock clock
-    ) {
-        this.delegationRepository = delegationRepository;
-        this.tenantReadPort = tenantReadPort;
-        this.passportAuthorityQueryPort = passportAuthorityQueryPort;
-        this.permissionProjectionPort = permissionProjectionPort;
-        this.relationshipValidator = relationshipValidator;
-        this.delegationGrantPolicy = delegationGrantPolicy;
-        this.authorizationSupport = authorizationSupport;
-        this.clock = clock;
-    }
 
     @Override
     @Transactional
@@ -90,7 +74,7 @@ public class DelegationService implements DelegationUseCase {
     private DelegationGrantPolicy.DelegationGrantContext resolveGrantContext(
         String sourceTenantId, String targetTenantId, GrantDelegationCommand command, Instant now
     ) {
-        Optional<PassportAuthorityQueryPort.PassportAuthorityView> passport =
+        Optional<PassportAuthorityQueryPort.PassportAuthorityRecord> passport =
             "PASSPORT".equals(command.resourceType())
                 ? passportAuthorityQueryPort.findPassportAuthority(command.resourceId())
                 : Optional.empty();
@@ -105,8 +89,8 @@ public class DelegationService implements DelegationUseCase {
             command.resourceType(),
             command.permissionCode(),
             command.expiresAt(),
-            passport.map(PassportAuthorityQueryPort.PassportAuthorityView::tenantId).orElse(null),
-            passport.map(PassportAuthorityQueryPort.PassportAuthorityView::assetState).orElse(null),
+            passport.map(PassportAuthorityQueryPort.PassportAuthorityRecord::tenantId).orElse(null),
+            passport.map(PassportAuthorityQueryPort.PassportAuthorityRecord::assetState).orElse(null),
             activeDelegationExists,
             now
         );

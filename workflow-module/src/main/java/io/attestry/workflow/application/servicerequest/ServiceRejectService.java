@@ -13,25 +13,19 @@ import io.attestry.workflow.domain.servicerequest.model.ServiceRequestStatus;
 import io.attestry.workflow.domain.servicerequest.repository.ServiceRequestRepository;
 import java.time.Clock;
 import java.time.Instant;
+
+import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
 @Service
+@RequiredArgsConstructor
 public class ServiceRejectService implements ServiceRejectUseCase {
 
     private final ServiceRequestRepository serviceRequestRepository;
     private final WorkflowAuthorizationSupport authorizationSupport;
     private final Clock clock;
 
-    public ServiceRejectService(
-        ServiceRequestRepository serviceRequestRepository,
-        WorkflowAuthorizationSupport authorizationSupport,
-        Clock clock
-    ) {
-        this.serviceRequestRepository = serviceRequestRepository;
-        this.authorizationSupport = authorizationSupport;
-        this.clock = clock;
-    }
 
     @Override
     @Transactional

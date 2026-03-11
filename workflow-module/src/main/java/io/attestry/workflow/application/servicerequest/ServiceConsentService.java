@@ -2,9 +2,8 @@ package io.attestry.workflow.application.servicerequest;
 
 import io.attestry.userauth.domain.authorization.model.PermissionCodes;
 import io.attestry.userauth.security.AuthPrincipal;
-import io.attestry.workflow.application.port.ServicePermissionPort;
-import io.attestry.workflow.application.port.ServiceProductReadPort;
-import io.attestry.workflow.application.port.TenantReadPort;
+import io.attestry.workflow.application.port.servicerequest.ServicePermissionPort;
+import io.attestry.workflow.application.port.servicerequest.ServiceProductReadPort;
 import io.attestry.workflow.application.servicerequest.command.GrantServiceConsentCommand;
 import io.attestry.workflow.application.servicerequest.command.SubmitServiceRequestCommand;
 import io.attestry.workflow.application.servicerequest.result.GrantServiceConsentResult;
@@ -18,38 +17,25 @@ import io.attestry.workflow.domain.servicerequest.policy.ServiceConsentPolicy;
 import io.attestry.workflow.domain.servicerequest.policy.ServiceConsentPolicy.ServiceConsentContext;
 import java.time.Clock;
 import java.time.Instant;
-import java.util.List;
+
+import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
+@RequiredArgsConstructor
 @Service
 public class ServiceConsentService implements ServiceConsentUseCase {
 
+    private static final String CONSENT_STATUS_ACTIVE = "ACTIVE";
+    private static final String CONSENT_STATUS_REVOKED = "REVOKED";
+
     private final ServiceProductReadPort serviceProductReadPort;
     private final ServicePermissionPort servicePermissionPort;
-    private final TenantReadPort tenantReadPort;
     private final ServiceSubmitUseCase serviceSubmitUseCase;
     private final WorkflowAuthorizationSupport authorizationSupport;
     private final ServiceConsentPolicy consentPolicy;
     private final Clock clock;
 
-    public ServiceConsentService(
-        ServiceProductReadPort serviceProductReadPort,
-        ServicePermissionPort servicePermissionPort,
-        TenantReadPort tenantReadPort,
-        ServiceSubmitUseCase serviceSubmitUseCase,
-        WorkflowAuthorizationSupport authorizationSupport,
-        ServiceConsentPolicy consentPolicy,
-        Clock clock
-    ) {
-        this.serviceProductReadPort = serviceProductReadPort;
-        this.servicePermissionPort = servicePermissionPort;
-        this.tenantReadPort = tenantReadPort;
-        this.serviceSubmitUseCase = serviceSubmitUseCase;
-        this.authorizationSupport = authorizationSupport;
-        this.consentPolicy = consentPolicy;
-        this.clock = clock;
-    }
 
     @Override
     @Transactional
@@ -100,7 +86,7 @@ public class ServiceConsentService implements ServiceConsentUseCase {
             serviceRequest.serviceRequestId(),
             passportId,
             command.providerTenantId(),
-            "ACTIVE",
+            CONSENT_STATUS_ACTIVE,
             serviceRequest.status(),
             now
         );
@@ -124,45 +110,6 @@ public class ServiceConsentService implements ServiceConsentUseCase {
 
         servicePermissionPort.revokeConsentByPassportAndTenant(passportId, providerTenantId);
 
-        return new RevokeServiceConsentResult(passportId, providerTenantId, "REVOKED");
-    }
-
-    @Override
-    @Transactional(readOnly = true)
-    public PagedServiceProviderResult listServiceProviders(String name, int page, int size) {
-        TenantReadPort.PagedTenantSummary paged = tenantReadPort.searchActiveTenantsByTypeAndName("SERVICE", name,
-            page, size);
-        List<ServiceProviderResult> content = paged.content().stream()
-            .map(tenant -> new ServiceProviderResult(
-                tenant.tenantId(),
-                tenant.name(),
-                tenant.region(),
-                tenant.address(),
-                tenant.type()
-            ))
-            .toList();
-        return new PagedServiceProviderResult(
-            content,
-            paged.page(),
-            paged.size(),
-            paged.totalElements(),
-            paged.totalPages()
-        );
-    }
-
-    @Override
-    @Transactional(readOnly = true)
-    public ServiceProviderResult getServiceProvider(String tenantId) {
-        TenantReadPort.TenantSummary tenant = tenantReadPort.findTenantSummary(tenantId);
-        if (tenant == null || !"SERVICE".equalsIgnoreCase(tenant.type())) {
-            throw new WorkflowDomainException(WorkflowErrorCode.INVALID_REQUEST, "Service provider not found");
-        }
-        return new ServiceProviderResult(
-            tenant.tenantId(),
-            tenant.name(),
-            tenant.region(),
-            tenant.address(),
-            tenant.type()
-        );
+        return new RevokeServiceConsentResult(passportId, providerTenantId, CONSENT_STATUS_REVOKED);
     }
 }

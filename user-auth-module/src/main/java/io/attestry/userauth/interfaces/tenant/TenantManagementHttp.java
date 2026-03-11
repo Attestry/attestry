@@ -7,7 +7,6 @@ import io.attestry.userauth.application.usecase.tenant.TenantQueryUseCase;
 import io.attestry.userauth.interfaces.tenant.dto.response.TenantPageResponse;
 import io.attestry.userauth.interfaces.tenant.dto.response.TenantResponse;
 import lombok.RequiredArgsConstructor;
-import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.PathVariable;
 import org.springframework.web.bind.annotation.RequestMapping;
@@ -31,9 +30,10 @@ public class TenantManagementHttp {
     public ApiResponse<TenantPageResponse> listTenants(
             @RequestParam(value = "type", required = false) String type,
             @RequestParam(value = "status", required = false) String status,
+            @RequestParam(value = "name", required = false) String name,
             @RequestParam(value = "page", defaultValue = "0") int page,
             @RequestParam(value = "size", defaultValue = "20") int size) {
-        TenantPageResult result = tenantQueryUseCase.listTenants(type, status, page, size);
+        TenantPageResult result = tenantQueryUseCase.listTenants(type, status, name, page, size);
         return ApiResponse.success(TenantPageResponse.from(result));
     }
 }

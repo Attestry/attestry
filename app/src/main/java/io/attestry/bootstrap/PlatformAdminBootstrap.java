@@ -1,6 +1,6 @@
 package io.attestry.bootstrap;
 
-import io.attestry.userauth.application.port.PasswordHasherPort;
+import io.attestry.userauth.application.port.auth.PasswordHasherPort;
 import java.sql.Timestamp;
 import java.time.Clock;
 import java.time.Instant;

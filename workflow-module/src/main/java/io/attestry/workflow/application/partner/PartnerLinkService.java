@@ -4,8 +4,7 @@ import io.attestry.userauth.security.AuthPrincipal;
 import io.attestry.userauth.domain.authorization.model.PermissionCodes;
 import io.attestry.workflow.application.partner.command.CreatePartnerLinkCommand;
 import io.attestry.workflow.application.partner.result.PartnerLinkResult;
-import io.attestry.workflow.application.partner.result.TenantSearchResult;
-import io.attestry.workflow.application.port.TenantReadPort;
+import io.attestry.workflow.application.port.common.TenantReadPort;
 import io.attestry.workflow.application.support.WorkflowAuthorizationSupport;
 import io.attestry.workflow.application.usecase.PartnerLinkUseCase;
 import io.attestry.workflow.domain.WorkflowDomainException;
@@ -16,9 +15,12 @@ import io.attestry.workflow.domain.partner.repository.PartnerLinkRepository;
 import java.time.Clock;
 import java.time.Instant;
 import java.util.List;
+
+import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
+@RequiredArgsConstructor
 @Service
 public class PartnerLinkService implements PartnerLinkUseCase {
 
@@ -27,16 +29,6 @@ public class PartnerLinkService implements PartnerLinkUseCase {
     private final WorkflowAuthorizationSupport authorizationSupport;
     private final Clock clock;
 
-    public PartnerLinkService(
-            PartnerLinkRepository repository,
-            TenantReadPort tenantReadPort,
-            WorkflowAuthorizationSupport authorizationSupport,
-            Clock clock) {
-        this.repository = repository;
-        this.tenantReadPort = tenantReadPort;
-        this.authorizationSupport = authorizationSupport;
-        this.clock = clock;
-    }
 
     @Override
     @Transactional
@@ -131,23 +123,6 @@ public class PartnerLinkService implements PartnerLinkUseCase {
                 ? repository.findByTenantId(tenantId)
                 : repository.findByTenantIdAndStatus(tenantId, status);
         return links.stream().map(this::toResult).toList();
-    }
-
-    @Override
-    @Transactional(readOnly = true)
-    public List<TenantSearchResult> searchActiveTenantsByName(AuthPrincipal principal, String name) {
-        String tenantId = requireTenantId(principal);
-        authorizationSupport.assertTenantContext(principal, tenantId);
-        authorizationSupport.assertLivePermission(principal, tenantId, PermissionCodes.PARTNER_LINK_READ,
-                "partner-link:tenant-search");
-
-        if (name == null || name.isBlank()) {
-            throw new WorkflowDomainException(WorkflowErrorCode.INVALID_REQUEST, "name is required");
-        }
-
-        return tenantReadPort.searchActiveTenantsByName(name.trim()).stream()
-                .map(tenant -> new TenantSearchResult(tenant.tenantId(), tenant.name(), tenant.region(), tenant.type()))
-                .toList();
     }
 
     private String requireTenantId(AuthPrincipal principal) {

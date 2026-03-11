@@ -1,7 +1,7 @@
 package io.attestry.userauth.application.auth;
 
-import io.attestry.userauth.application.port.MembershipPort;
-import io.attestry.userauth.application.port.MembershipProjectionPort;
+import io.attestry.userauth.application.port.membership.MembershipPort;
+import io.attestry.userauth.application.port.membership.MembershipProjectionPort;
 import io.attestry.userauth.domain.authorization.model.LoginContext;
 import io.attestry.userauth.domain.authorization.model.RoleCodes;
 import io.attestry.userauth.domain.membership.model.Membership;

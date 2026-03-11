@@ -14,7 +14,6 @@ import io.attestry.userauth.security.AuthPrincipal;
 import io.attestry.workflow.application.port.ServicePermissionPort;
 import io.attestry.workflow.application.port.ServiceProductReadPort;
 import io.attestry.workflow.application.port.ServiceProductReadPort.ServicePassportState;
-import io.attestry.workflow.application.port.TenantReadPort;
 import io.attestry.workflow.application.servicerequest.command.GrantServiceConsentCommand;
 import io.attestry.workflow.application.servicerequest.result.GrantServiceConsentResult;
 import io.attestry.workflow.application.servicerequest.result.RevokeServiceConsentResult;
@@ -39,7 +38,6 @@ class ServiceConsentServiceTest {
 
     @Mock ServiceProductReadPort serviceProductReadPort;
     @Mock ServicePermissionPort servicePermissionPort;
-    @Mock TenantReadPort tenantReadPort;
     @Mock ServiceSubmitUseCase serviceSubmitUseCase;
     @Mock WorkflowAuthorizationSupport authorizationSupport;
 
@@ -55,7 +53,7 @@ class ServiceConsentServiceTest {
     @BeforeEach
     void setUp() {
         service = new ServiceConsentService(
-            serviceProductReadPort, servicePermissionPort, tenantReadPort, serviceSubmitUseCase, authorizationSupport, consentPolicy, clock
+            serviceProductReadPort, servicePermissionPort, serviceSubmitUseCase, authorizationSupport, consentPolicy, clock
         );
     }
 
