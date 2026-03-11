@@ -70,7 +70,7 @@ class ServiceCompleteServiceTest {
         ServiceRequest accepted = ServiceRequest.submit(
             "sr1", "p1", "REPAIR", "owner1",
             "provT1", "desc", "beforeEg", "ONLINE", "화면 불량", null, "연락처", "perm1", "owner1", SUBMITTED_AT, SUBMITTED_AT
-        ).accept("REPAIR", "desc", Instant.parse("2026-03-01T09:30:00Z"));
+        ).accept("desc", Instant.parse("2026-03-01T09:30:00Z"));
 
         doNothing().when(authorizationSupport).assertTenantContext(any(), anyString());
         doNothing().when(authorizationSupport).assertLivePermission(any(), anyString(), anyString(), anyString());
@@ -85,7 +85,7 @@ class ServiceCompleteServiceTest {
 
         CompleteServiceRequestResult result = service.complete(
             PROVIDER, "provT1", "sr1",
-            new CompleteServiceRequestCommand("afterEg", "Repaired successfully", "작업 메모")
+            new CompleteServiceRequestCommand("REPAIR", "afterEg", "Repaired successfully", "작업 메모")
         );
 
         assertEquals("COMPLETED", result.status());
@@ -102,7 +102,7 @@ class ServiceCompleteServiceTest {
         when(serviceRequestRepository.findById("missing")).thenReturn(Optional.empty());
 
         WorkflowDomainException ex = assertThrows(WorkflowDomainException.class, () ->
-            service.complete(PROVIDER, "provT1", "missing", new CompleteServiceRequestCommand(null, null, null))
+            service.complete(PROVIDER, "provT1", "missing", new CompleteServiceRequestCommand(null, null, null, null))
         );
         assertEquals(WorkflowErrorCode.SERVICE_REQUEST_NOT_FOUND, ex.getErrorCode());
     }
@@ -112,14 +112,14 @@ class ServiceCompleteServiceTest {
         ServiceRequest accepted = ServiceRequest.submit(
             "sr1", "p1", "REPAIR", "owner1",
             "otherTenant", "desc", "beforeEg", "ONLINE", "화면 불량", null, "연락처", null, "owner1", SUBMITTED_AT, SUBMITTED_AT
-        ).accept("REPAIR", "desc", Instant.parse("2026-03-01T09:30:00Z"));
+        ).accept("desc", Instant.parse("2026-03-01T09:30:00Z"));
 
         doNothing().when(authorizationSupport).assertTenantContext(any(), anyString());
         doNothing().when(authorizationSupport).assertLivePermission(any(), anyString(), anyString(), anyString());
         when(serviceRequestRepository.findById("sr1")).thenReturn(Optional.of(accepted));
 
         WorkflowDomainException ex = assertThrows(WorkflowDomainException.class, () ->
-            service.complete(PROVIDER, "provT1", "sr1", new CompleteServiceRequestCommand(null, null, null))
+            service.complete(PROVIDER, "provT1", "sr1", new CompleteServiceRequestCommand(null, null, null, null))
         );
         assertEquals(WorkflowErrorCode.TENANT_ISOLATION_VIOLATION, ex.getErrorCode());
     }
@@ -129,7 +129,7 @@ class ServiceCompleteServiceTest {
         ServiceRequest accepted = ServiceRequest.submit(
             "sr1", "p1", "REPAIR", "owner1",
             "provT1", "desc", "beforeEg", "ONLINE", "화면 불량", null, "연락처", null, "owner1", SUBMITTED_AT, SUBMITTED_AT
-        ).accept("REPAIR", "desc", Instant.parse("2026-03-01T09:30:00Z"));
+        ).accept("desc", Instant.parse("2026-03-01T09:30:00Z"));
 
         doNothing().when(authorizationSupport).assertTenantContext(any(), anyString());
         doNothing().when(authorizationSupport).assertLivePermission(any(), anyString(), anyString(), anyString());
@@ -139,7 +139,7 @@ class ServiceCompleteServiceTest {
         when(servicePermissionPort.hasActiveServiceRepairPermission("p1", "provT1")).thenReturn(false);
 
         WorkflowDomainException ex = assertThrows(WorkflowDomainException.class, () ->
-            service.complete(PROVIDER, "provT1", "sr1", new CompleteServiceRequestCommand(null, null, null))
+            service.complete(PROVIDER, "provT1", "sr1", new CompleteServiceRequestCommand(null, null, null, null))
         );
         assertEquals(WorkflowErrorCode.FORBIDDEN_SCOPE, ex.getErrorCode());
     }

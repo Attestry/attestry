@@ -60,7 +60,7 @@ class ServiceRequestTest {
             "tenant1", "desc", "eg1", "ONLINE", "화면 불량", null, "연락처", "perm1", "owner1", NOW, NOW
         );
 
-        ServiceRequest accepted = request.accept("REPAIR", "desc", NOW);
+        ServiceRequest accepted = request.accept("desc", NOW);
 
         assertEquals(ServiceRequestStatus.ACCEPTED, accepted.status());
     }
@@ -70,10 +70,10 @@ class ServiceRequestTest {
         ServiceRequest request = ServiceRequest.submit(
             "sr1", "p1", "REPAIR", "owner1",
             "tenant1", "desc", "eg1", "ONLINE", "화면 불량", null, "연락처", "perm1", "owner1", NOW, NOW
-        ).accept("REPAIR", "desc", NOW);
+        ).accept("desc", NOW);
 
         Instant completedAt = Instant.parse("2026-03-01T12:00:00Z");
-        ServiceRequest completed = request.complete("provider1", "afterEg1", "수리 완료", "메모", completedAt);
+        ServiceRequest completed = request.complete("provider1", "REPAIR", "afterEg1", "수리 완료", "메모", completedAt);
 
         assertEquals(ServiceRequestStatus.COMPLETED, completed.status());
         assertEquals("provider1", completed.completedByUserId());
@@ -90,7 +90,7 @@ class ServiceRequestTest {
         );
 
         WorkflowDomainException ex = assertThrows(WorkflowDomainException.class, () ->
-            request.complete("provider1", "afterEg1", "수리 완료", "메모", NOW)
+            request.complete("provider1", "REPAIR", "afterEg1", "수리 완료", "메모", NOW)
         );
         assertEquals(WorkflowErrorCode.SERVICE_REQUEST_INVALID_STATE, ex.getErrorCode());
     }

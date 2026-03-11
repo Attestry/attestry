@@ -108,11 +108,7 @@ class ServiceCancelServiceTest {
         ServiceRequest accepted = ServiceRequest.submit(
             "sr1", "p1", "REPAIR", "owner1",
             "provT1", "desc", "eg1", "ONLINE", "화면 불량", null, "연락처", null, "owner1", SUBMITTED_AT, SUBMITTED_AT
-        ).accept(
-            "REPAIR",
-            "담당자 확인",
-            Instant.parse("2026-03-01T09:30:00Z")
-        );
+        ).accept("담당자 확인", Instant.parse("2026-03-01T09:30:00Z"));
 
         doNothing().when(authorizationSupport).assertPermissionOnly(any(), anyString(), anyString());
         when(serviceRequestRepository.findById("sr1")).thenReturn(Optional.of(accepted));

@@ -92,8 +92,7 @@ public record ServiceRequest(
         );
     }
 
-    public ServiceRequest accept(String serviceType, String description, Instant now) {
-        String normalizedServiceType = ServiceTypes.normalize(serviceType);
+    public ServiceRequest accept(String description, Instant now) {
         requireNonNull(now, "now");
         if (status != ServiceRequestStatus.PENDING) {
             throw new WorkflowDomainException(WorkflowErrorCode.SERVICE_REQUEST_INVALID_STATE,
@@ -102,7 +101,7 @@ public record ServiceRequest(
         return new ServiceRequest(
             serviceRequestId,
             passportId,
-            normalizedServiceType,
+            serviceType,
             ownerUserId,
             providerTenantId,
             ServiceRequestStatus.ACCEPTED,
@@ -161,12 +160,14 @@ public record ServiceRequest(
 
     public ServiceRequest complete(
         String completedByUserId,
+        String serviceType,
         String afterEvidenceGroupId,
         String serviceResultDetail,
         String completionMemo,
         Instant now
     ) {
         requireText(completedByUserId, "completedByUserId");
+        String normalizedServiceType = ServiceTypes.normalize(serviceType);
         requireText(afterEvidenceGroupId, "afterEvidenceGroupId");
         requireText(serviceResultDetail, "serviceResultDetail");
         requireText(completionMemo, "completionMemo");
@@ -178,7 +179,7 @@ public record ServiceRequest(
         return new ServiceRequest(
             serviceRequestId,
             passportId,
-            serviceType,
+            normalizedServiceType,
             ownerUserId,
             providerTenantId,
             ServiceRequestStatus.COMPLETED,

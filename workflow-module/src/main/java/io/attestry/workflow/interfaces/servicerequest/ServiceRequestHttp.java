@@ -202,7 +202,7 @@ public class ServiceRequestHttp {
             principal,
             tenantId,
             serviceRequestId,
-            new AcceptServiceRequestCommand(request.serviceType(), request.description())
+            new AcceptServiceRequestCommand(request.description())
         );
         return AcceptServiceRequestResponse.from(result);
     }
@@ -237,6 +237,7 @@ public class ServiceRequestHttp {
             tenantId,
             serviceRequestId,
             new CompleteServiceRequestCommand(
+                request.serviceType(),
                 request.afterEvidenceGroupId(),
                 request.serviceResult(),
                 request.completionMemo()
@@ -424,12 +425,12 @@ public class ServiceRequestHttp {
     }
 
     public record AcceptServiceRequestRequest(
-        String serviceType,
         String description
     ) {
     }
 
     public record CompleteServiceRequestRequest(
+        String serviceType,
         String afterEvidenceGroupId,
         String serviceResult,
         String completionMemo
