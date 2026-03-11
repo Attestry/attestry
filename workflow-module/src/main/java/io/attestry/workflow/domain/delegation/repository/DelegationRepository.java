@@ -9,8 +9,6 @@ public interface DelegationRepository {
 
     Optional<Delegation> findById(String delegationId);
 
-    List<Delegation> findByTenantId(String tenantId);
-
     Optional<Delegation> findActive(
         String sourceTenantId,
         String targetTenantId,

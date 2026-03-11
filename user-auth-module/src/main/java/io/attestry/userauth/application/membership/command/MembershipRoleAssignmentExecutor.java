@@ -3,6 +3,7 @@ package io.attestry.userauth.application.membership.command;
 import io.attestry.userauth.application.dto.command.ActorContext;
 import io.attestry.userauth.application.dto.result.MembershipRoleAssignmentsResult;
 import io.attestry.userauth.application.membership.policy.MembershipAccessPolicy;
+import io.attestry.userauth.application.port.auth.AccessTokenPort;
 import io.attestry.userauth.application.port.membership.MembershipPort;
 import io.attestry.userauth.domain.authorization.model.PermissionCodes;
 import io.attestry.userauth.domain.membership.model.Membership;
@@ -21,6 +22,7 @@ public class MembershipRoleAssignmentExecutor {
     private final MembershipAccessPolicy accessPolicy;
     private final RoleAssignmentDomainService roleAssignmentDomainService;
     private final ApplicationEventPublisher eventPublisher;
+    private final AccessTokenPort accessTokenPort;
     private final Clock clock;
 
     public MembershipRoleAssignmentsResult assign(ActorContext actor, String membershipId, String roleCode) {
@@ -60,6 +62,9 @@ public class MembershipRoleAssignmentExecutor {
 
         membershipPort.save(target);
         target.harvestEvents().forEach(eventPublisher::publishEvent);
+
+        accessTokenPort.revokeByUserId(target.userId());
+
         return new MembershipRoleAssignmentsResult(membershipId, target.currentRoleCodes().stream().sorted().toList());
     }
 }

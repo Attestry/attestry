@@ -2,21 +2,26 @@ package io.attestry.workflow.application.distribution;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.mockito.ArgumentMatchers.any;
+import static org.mockito.Mockito.doNothing;
 import static org.mockito.Mockito.never;
 import static org.mockito.Mockito.times;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 
+import io.attestry.userauth.domain.authorization.model.PermissionCodes;
 import io.attestry.userauth.domain.identity.model.VerificationLevel;
 import io.attestry.userauth.security.AuthPrincipal;
 import io.attestry.workflow.application.delegation.command.GrantDelegationCommand;
 import io.attestry.workflow.application.delegation.result.DelegationResult;
 import io.attestry.workflow.application.distribution.assembler.DistributionViewAssembler;
+import io.attestry.workflow.application.port.common.TenantReadPort;
 import io.attestry.workflow.application.port.distribution.DistributionCandidateQueryPort;
 import io.attestry.workflow.application.port.distribution.DistributionQueryPort;
+import io.attestry.workflow.application.support.WorkflowAuthorizationSupport;
 import io.attestry.workflow.application.usecase.DelegationUseCase;
 import io.attestry.workflow.application.usecase.DistributionUseCase.BatchDistributeResult;
 import io.attestry.workflow.application.usecase.DistributionUseCase.DistributeCommand;
+import io.attestry.workflow.application.usecase.DistributionUseCase.DistributionView;
 import io.attestry.workflow.domain.WorkflowDomainException;
 import io.attestry.workflow.domain.WorkflowErrorCode;
 import io.attestry.workflow.domain.distribution.model.Distribution;
@@ -39,7 +44,9 @@ class DistributionServiceTest {
     @Mock DistributionRepository distributionRepository;
     @Mock DistributionCandidateQueryPort distributionCandidateQueryPort;
     @Mock DistributionQueryPort distributionQueryPort;
+    @Mock TenantReadPort tenantReadPort;
     @Mock DistributionViewAssembler viewAssembler;
+    @Mock WorkflowAuthorizationSupport authorizationSupport;
 
     private final Clock clock = Clock.fixed(Instant.parse("2026-03-01T10:00:00Z"), ZoneOffset.UTC);
 
@@ -57,11 +64,21 @@ class DistributionServiceTest {
 
     @BeforeEach
     void setUp() {
-        service = new DistributionService(delegationUseCase, distributionRepository, distributionCandidateQueryPort, distributionQueryPort, viewAssembler, clock);
+        service = new DistributionService(
+            delegationUseCase,
+            distributionRepository,
+            distributionCandidateQueryPort,
+            distributionQueryPort,
+            tenantReadPort,
+            viewAssembler,
+            authorizationSupport,
+            clock
+        );
     }
 
     @Test
     void distribute_allSuccess() {
+        stubDistributionGrantAuthorization();
         when(delegationUseCase.grant(any(), any(), any())).thenAnswer(inv -> {
             GrantDelegationCommand cmd = inv.getArgument(2);
             return delegationResultFor(cmd.resourceId());
@@ -70,52 +87,174 @@ class DistributionServiceTest {
 
         BatchDistributeResult result = service.distribute(
             PRINCIPAL, SOURCE_TENANT, PARTNER_LINK_ID,
-            new DistributeCommand(List.of("p1", "p2"), EXPIRES, "batch note")
+            new DistributeCommand(List.of("p1"), EXPIRES, "batch note")
         );
 
-        assertEquals(2, result.totalRequested());
-        assertEquals(2, result.totalDistributed());
-        assertEquals("DISTRIBUTED", result.results().get(0).status());
-        assertEquals("DISTRIBUTED", result.results().get(1).status());
-        verify(delegationUseCase, times(2)).grant(any(), any(), any());
-        verify(distributionRepository, times(2)).save(any(Distribution.class));
-    }
-
-    @Test
-    void distribute_partialSuccess_delegationFails() {
-        when(delegationUseCase.grant(any(), any(), any())).thenAnswer(inv -> {
-            GrantDelegationCommand cmd = inv.getArgument(2);
-            if ("p2".equals(cmd.resourceId())) {
-                throw new WorkflowDomainException(WorkflowErrorCode.DELEGATION_ALREADY_ACTIVE, "Already active");
-            }
-            return delegationResultFor(cmd.resourceId());
-        });
-        when(distributionRepository.save(any(Distribution.class))).thenAnswer(inv -> inv.getArgument(0));
-
-        BatchDistributeResult result = service.distribute(
-            PRINCIPAL, SOURCE_TENANT, PARTNER_LINK_ID,
-            new DistributeCommand(List.of("p1", "p2"), EXPIRES, "note")
-        );
-
-        assertEquals(2, result.totalRequested());
+        assertEquals(1, result.totalRequested());
         assertEquals(1, result.totalDistributed());
         assertEquals("DISTRIBUTED", result.results().get(0).status());
-        assertEquals("FAILED", result.results().get(1).status());
-        assertEquals("DELEGATION_ALREADY_ACTIVE", result.results().get(1).error());
+        verify(delegationUseCase, times(1)).grant(any(), any(), any());
         verify(distributionRepository, times(1)).save(any(Distribution.class));
     }
 
     @Test
-    void distribute_emptyList_returnsEmpty() {
-        BatchDistributeResult result = service.distribute(
-            PRINCIPAL, SOURCE_TENANT, PARTNER_LINK_ID,
-            new DistributeCommand(List.of(), EXPIRES, "note")
+    void distribute_failure_propagatesDelegationException() {
+        stubDistributionGrantAuthorization();
+        when(delegationUseCase.grant(any(), any(), any()))
+            .thenThrow(new WorkflowDomainException(WorkflowErrorCode.DELEGATION_ALREADY_ACTIVE, "Already active"));
+
+        WorkflowDomainException ex = org.junit.jupiter.api.Assertions.assertThrows(
+            WorkflowDomainException.class,
+            () -> service.distribute(
+                PRINCIPAL,
+                SOURCE_TENANT,
+                PARTNER_LINK_ID,
+                new DistributeCommand(List.of("p1"), EXPIRES, "note")
+            )
         );
 
-        assertEquals(0, result.totalRequested());
-        assertEquals(0, result.totalDistributed());
+        assertEquals(WorkflowErrorCode.DELEGATION_ALREADY_ACTIVE, ex.getErrorCode());
+        verify(distributionRepository, never()).save(any(Distribution.class));
+    }
+
+    @Test
+    void distribute_rejectsNonSingleRequest() {
+        stubDistributionGrantAuthorization();
+        WorkflowDomainException ex = org.junit.jupiter.api.Assertions.assertThrows(
+            WorkflowDomainException.class,
+            () -> service.distribute(
+                PRINCIPAL,
+                SOURCE_TENANT,
+                PARTNER_LINK_ID,
+                new DistributeCommand(List.of(), EXPIRES, "note")
+            )
+        );
+
+        assertEquals(WorkflowErrorCode.INVALID_REQUEST, ex.getErrorCode());
         verify(delegationUseCase, never()).grant(any(), any(), any());
         verify(distributionRepository, never()).save(any(Distribution.class));
+    }
+
+    @Test
+    void listByTenant_enrichesTargetTenantWithBatchLookup() {
+        DistributionQueryPort.DistributionRow row = new DistributionQueryPort.DistributionRow(
+            "dist-1",
+            "passport-1",
+            SOURCE_TENANT,
+            TARGET_TENANT,
+            PARTNER_LINK_ID,
+            "delegation-1",
+            "DISTRIBUTED",
+            "SN-1",
+            "Model X",
+            "user-1",
+            EXPIRES,
+            null,
+            null,
+            null
+        );
+        DistributionView view = new DistributionView(
+            "dist-1",
+            "passport-1",
+            SOURCE_TENANT,
+            TARGET_TENANT,
+            "Target Tenant",
+            "RETAIL",
+            PARTNER_LINK_ID,
+            "delegation-1",
+            "DISTRIBUTED",
+            "SN-1",
+            "Model X",
+            "user-1",
+            EXPIRES,
+            null,
+            null,
+            null
+        );
+
+        stubTenantReadAuthorization(SOURCE_TENANT, "distribution:list:" + SOURCE_TENANT);
+        when(distributionQueryPort.findBySourceTenantId(SOURCE_TENANT, 0, 20, "abc"))
+            .thenReturn(new DistributionQueryPort.PagedDistributionResult(List.of(row), 0, 20, 1, 1));
+        when(tenantReadPort.findTenantSummariesByIds(List.of(TARGET_TENANT)))
+            .thenReturn(java.util.Map.of(
+                TARGET_TENANT,
+                new TenantReadPort.TenantSummary(TARGET_TENANT, "Target Tenant", "KR", "addr", "RETAIL")
+            ));
+        when(viewAssembler.toPagedDistributionResponse(any(), any()))
+            .thenReturn(new io.attestry.workflow.application.usecase.DistributionUseCase.PagedDistributionResponse(
+                List.of(view), 0, 20, 1, 1
+            ));
+
+        var result = service.listByTenant(PRINCIPAL, SOURCE_TENANT, 0, 20, "abc");
+
+        assertEquals(1, result.content().size());
+        verify(tenantReadPort).findTenantSummariesByIds(List.of(TARGET_TENANT));
+        verify(viewAssembler).toPagedDistributionResponse(any(), any());
+    }
+
+    @Test
+    void recall_checksSourceTenantAuthorizationBeforeRevokingDelegation() {
+        Distribution distribution = Distribution.create(
+            "passport-1",
+            SOURCE_TENANT,
+            TARGET_TENANT,
+            PARTNER_LINK_ID,
+            "delegation-1",
+            "admin1",
+            Instant.parse("2026-03-01T09:00:00Z")
+        );
+        Distribution recalled = distribution.recall("admin1", "reason", Instant.parse("2026-03-01T10:00:00Z"));
+        DistributionQueryPort.DistributionRow row = new DistributionQueryPort.DistributionRow(
+            recalled.distributionId(),
+            recalled.passportId(),
+            recalled.sourceTenantId(),
+            recalled.targetTenantId(),
+            recalled.partnerLinkId(),
+            recalled.delegationId(),
+            recalled.status().name(),
+            "SN-1",
+            "Model X",
+            recalled.distributedByUserId(),
+            recalled.distributedAt(),
+            recalled.recalledByUserId(),
+            recalled.recalledAt(),
+            recalled.recallReason()
+        );
+        when(distributionRepository.findById(recalled.distributionId())).thenReturn(java.util.Optional.of(distribution));
+        when(distributionRepository.save(any(Distribution.class))).thenReturn(recalled);
+        stubDistributionGrantAuthorization(SOURCE_TENANT, "distribution:recall:" + recalled.distributionId());
+        when(delegationUseCase.revoke(PRINCIPAL, "delegation-1", "reason"))
+            .thenReturn(new DelegationResult("delegation-1", PARTNER_LINK_ID, SOURCE_TENANT, TARGET_TENANT, "PASSPORT", "passport-1", "RETAIL_TRANSFER_CREATE", "REVOKED", null, "reason"));
+        when(distributionQueryPort.findById(recalled.distributionId())).thenReturn(java.util.Optional.of(row));
+        when(tenantReadPort.findTenantSummariesByIds(List.of(TARGET_TENANT)))
+            .thenReturn(java.util.Map.of(
+                TARGET_TENANT,
+                new TenantReadPort.TenantSummary(TARGET_TENANT, "Target Tenant", "KR", "addr", "RETAIL")
+            ));
+        when(viewAssembler.toView(any(), any())).thenReturn(new DistributionView(
+            recalled.distributionId(),
+            recalled.passportId(),
+            SOURCE_TENANT,
+            TARGET_TENANT,
+            "Target Tenant",
+            "RETAIL",
+            PARTNER_LINK_ID,
+            "delegation-1",
+            "RECALLED",
+            "SN-1",
+            "Model X",
+            "admin1",
+            recalled.distributedAt(),
+            "admin1",
+            recalled.recalledAt(),
+            "reason"
+        ));
+
+        DistributionView result = service.recall(PRINCIPAL, recalled.distributionId(), new io.attestry.workflow.application.usecase.DistributionUseCase.RecallCommand("reason"));
+
+        assertEquals("RECALLED", result.status());
+        verify(authorizationSupport).assertTenantContext(PRINCIPAL, SOURCE_TENANT);
+        verify(authorizationSupport).assertLivePermission(PRINCIPAL, SOURCE_TENANT, PermissionCodes.DELEGATION_GRANT, "distribution:recall:" + recalled.distributionId());
     }
 
     private DelegationResult delegationResultFor(String passportId) {
@@ -125,5 +264,21 @@ class DistributionServiceTest {
             "PASSPORT", passportId, "RETAIL_TRANSFER_CREATE",
             "ACTIVE", EXPIRES, null
         );
+    }
+
+    private void stubDistributionGrantAuthorization() {
+        stubDistributionGrantAuthorization(SOURCE_TENANT, "distribution:distribute:" + PARTNER_LINK_ID);
+    }
+
+    private void stubDistributionGrantAuthorization(String tenantId, String resourceRef) {
+        doNothing().when(authorizationSupport).assertTenantContext(PRINCIPAL, tenantId);
+        doNothing().when(authorizationSupport)
+            .assertLivePermission(PRINCIPAL, tenantId, PermissionCodes.DELEGATION_GRANT, resourceRef);
+    }
+
+    private void stubTenantReadAuthorization(String tenantId, String resourceRef) {
+        doNothing().when(authorizationSupport).assertTenantContext(PRINCIPAL, tenantId);
+        doNothing().when(authorizationSupport)
+            .assertLivePermission(PRINCIPAL, tenantId, PermissionCodes.TENANT_READ_ONLY, resourceRef);
     }
 }

@@ -11,20 +11,19 @@ import io.attestry.workflow.infrastructure.persistence.jpa.mapper.PartnerLinkMap
 import io.attestry.workflow.infrastructure.persistence.jpa.repository.PartnerLinkJpaRepository;
 import java.util.List;
 import java.util.Optional;
+
+import lombok.RequiredArgsConstructor;
 import org.springframework.core.NestedExceptionUtils;
 import org.springframework.dao.DataIntegrityViolationException;
 import org.springframework.stereotype.Repository;
 
 @Repository
+@RequiredArgsConstructor
 public class JpaPartnerLinkRepositoryAdapter implements PartnerLinkRepository {
 
     private final PartnerLinkJpaRepository repository;
     private final PartnerLinkMapper mapper;
 
-    public JpaPartnerLinkRepositoryAdapter(PartnerLinkJpaRepository repository, PartnerLinkMapper mapper) {
-        this.repository = repository;
-        this.mapper = mapper;
-    }
 
     @Override
     public PartnerLink save(PartnerLink partnerLink) {
@@ -50,17 +49,13 @@ public class JpaPartnerLinkRepositoryAdapter implements PartnerLinkRepository {
     }
 
     @Override
-    public List<PartnerLink> findByTenantId(String tenantId) {
-        return repository.findBySourceTenantIdOrTargetTenantId(tenantId, tenantId).stream().map(mapper::toDomain).toList();
-    }
-
-    @Override
-    public List<PartnerLink> findByTenantIdAndStatus(String tenantId, PartnerLinkStatus status) {
+    public List<PartnerLink> findByTenantId(String tenantId, PartnerLinkStatus status) {
+        if (status == null) {
+            return repository.findBySourceTenantIdOrTargetTenantId(tenantId, tenantId)
+                .stream().map(mapper::toDomain).toList();
+        }
         return repository.findBySourceTenantIdAndStatusOrTargetTenantIdAndStatus(
-            tenantId,
-            status,
-            tenantId,
-            status
+            tenantId, status, tenantId, status
         ).stream().map(mapper::toDomain).toList();
     }
 

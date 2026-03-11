@@ -3,7 +3,7 @@ package io.attestry.kafka.workflow;
 import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import io.attestry.config.KafkaProperties;
-import io.attestry.workflow.infrastructure.persistence.jpa.projection.WorkflowPassportProjectionWriter;
+import io.attestry.workflow.application.port.projection.WorkflowPassportProjectionWritePort;
 import io.micrometer.core.instrument.Counter;
 import io.micrometer.core.instrument.MeterRegistry;
 import java.nio.charset.StandardCharsets;
@@ -23,14 +23,14 @@ public class WorkflowProductProjectionConsumer {
     private static final Logger log = LoggerFactory.getLogger(WorkflowProductProjectionConsumer.class);
 
     private final ObjectMapper objectMapper;
-    private final WorkflowPassportProjectionWriter projectionWriter;
+    private final WorkflowPassportProjectionWritePort projectionWriter;
     private final KafkaTemplate<String, String> kafkaTemplate;
     private final KafkaProperties kafkaProperties;
     private final Counter dlqCounter;
 
     public WorkflowProductProjectionConsumer(
         ObjectMapper objectMapper,
-        WorkflowPassportProjectionWriter projectionWriter,
+        WorkflowPassportProjectionWritePort projectionWriter,
         KafkaTemplate<String, String> kafkaTemplate,
         KafkaProperties kafkaProperties,
         MeterRegistry meterRegistry

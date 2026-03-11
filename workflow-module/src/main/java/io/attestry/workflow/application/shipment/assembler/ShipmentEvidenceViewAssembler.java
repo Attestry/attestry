@@ -1,8 +1,8 @@
 package io.attestry.workflow.application.shipment.assembler;
 
 import io.attestry.commonlib.application.port.ObjectStoragePort;
-import io.attestry.product.application.port.query.PassportShipmentQueryPort.EvidenceFileRecord;
 import io.attestry.workflow.application.port.common.WorkflowEvidencePort;
+import io.attestry.workflow.application.port.shipment.WorkflowShipmentHistoryPort.EvidenceFileRecord;
 import io.attestry.workflow.application.shipment.result.ShipmentDetailResult.EvidenceFileResult;
 import java.time.Duration;
 import java.util.List;

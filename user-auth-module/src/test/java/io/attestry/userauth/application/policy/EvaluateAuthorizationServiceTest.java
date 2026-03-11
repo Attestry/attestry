@@ -8,6 +8,7 @@ import io.attestry.userauth.application.dto.command.ActorContext;
 import io.attestry.userauth.application.dto.command.AuthzEvaluateCommand;
 import io.attestry.userauth.application.dto.command.PolicyDecisionMode;
 import io.attestry.userauth.application.dto.result.AuthzEvaluateResult;
+import io.attestry.userauth.application.auth.UserEffectiveScopeResolver;
 import io.attestry.userauth.application.port.membership.MembershipPort;
 import io.attestry.userauth.application.port.membership.MembershipProjectionPort;
 import io.attestry.userauth.domain.authorization.model.PermissionCodes;
@@ -27,8 +28,10 @@ import org.junit.jupiter.api.Test;
 class EvaluateAuthorizationServiceTest {
 
     private final EvaluateAuthorizationService service = new EvaluateAuthorizationService(
-        new EmptyMembershipPort(),
-        new EmptyMembershipProjectionPort()
+        new UserEffectiveScopeResolver(
+            new EmptyMembershipPort(),
+            new EmptyMembershipProjectionPort()
+        )
     );
 
     @Test
@@ -73,34 +76,36 @@ class EvaluateAuthorizationServiceTest {
     @Test
     void liveRecheckShouldUseTenantMembership() {
         EvaluateAuthorizationService liveService = new EvaluateAuthorizationService(
-            new SingleMembershipPort(
-                Membership.reconstitute(
-                    "membership-1", "user-1", "tenant-a",
-                    TenantType.BRAND, MembershipRole.ADMIN, MembershipStatus.ACTIVE,
-                    TenantStatus.ACTIVE, java.util.Set.of()
-                )
-            ),
-            new MembershipProjectionPort() {
-                @Override
-                public Set<String> findPermissionCodesByMembershipId(String membershipId) {
-                    return Set.of(PermissionCodes.TENANT_ROLE_ASSIGN);
-                }
+            new UserEffectiveScopeResolver(
+                new SingleMembershipPort(
+                    Membership.reconstitute(
+                        "membership-1", "user-1", "tenant-a",
+                        TenantType.BRAND, MembershipRole.ADMIN, MembershipStatus.ACTIVE,
+                        TenantStatus.ACTIVE, java.util.Set.of()
+                    )
+                ),
+                new MembershipProjectionPort() {
+                    @Override
+                    public Set<String> findPermissionCodesByMembershipId(String membershipId) {
+                        return Set.of(PermissionCodes.TENANT_ROLE_ASSIGN);
+                    }
 
-                @Override
-                public Set<String> findPermissionCodesByGlobalRoleCode(String roleCode) {
-                    return Set.of();
-                }
+                    @Override
+                    public Set<String> findPermissionCodesByGlobalRoleCode(String roleCode) {
+                        return Set.of();
+                    }
 
-                @Override
-                public Set<String> findRoleCodesByMembershipId(String membershipId) {
-                    return Set.of(RoleCodes.TENANT_OWNER);
-                }
+                    @Override
+                    public Set<String> findRoleCodesByMembershipId(String membershipId) {
+                        return Set.of(RoleCodes.TENANT_OWNER);
+                    }
 
-                @Override
-                public Set<String> findGlobalEnabledRoleCodes() {
-                    return Set.of();
+                    @Override
+                    public Set<String> findGlobalEnabledRoleCodes() {
+                        return Set.of();
+                    }
                 }
-            }
+            )
         );
 
         ActorContext actor = new ActorContext(

@@ -3,6 +3,7 @@ package io.attestry.userauth.application.membership.command;
 import io.attestry.userauth.application.dto.command.ActorContext;
 import io.attestry.userauth.application.dto.result.MembershipPermissionTemplateResult;
 import io.attestry.userauth.application.membership.policy.MembershipAccessPolicy;
+import io.attestry.userauth.application.port.auth.AccessTokenPort;
 import io.attestry.userauth.application.port.membership.MembershipPort;
 import io.attestry.userauth.application.port.template.PermissionTemplatePort;
 import io.attestry.userauth.domain.UserAuthDomainException;
@@ -27,6 +28,7 @@ public class MembershipTemplateExecutor {
     private final MembershipAccessPolicy accessPolicy;
     private final TemplateApplicationDomainService templateApplicationDomainService;
     private final ApplicationEventPublisher eventPublisher;
+    private final AccessTokenPort accessTokenPort;
     private final Clock clock;
 
     public MembershipPermissionTemplateResult apply(
@@ -55,7 +57,7 @@ public class MembershipTemplateExecutor {
         boolean apply
     ) {
         String tenantId = actor.tenantId();
-        accessPolicy.loadTenantMembership(membershipId, tenantId);
+        Membership targetMembership = accessPolicy.loadTenantMembership(membershipId, tenantId);
         Membership actorMembership = accessPolicy.resolveActiveActorMembership(actor.userId(), tenantId);
 
         PermissionTemplatePort.PermissionTemplateView template = permissionTemplatePort.findTemplateByCode(templateCode)
@@ -91,6 +93,8 @@ public class MembershipTemplateExecutor {
             now,
             effectiveReason
         ));
+
+        accessTokenPort.revokeByUserId(targetMembership.userId());
 
         return new MembershipPermissionTemplateResult(
             membershipId,

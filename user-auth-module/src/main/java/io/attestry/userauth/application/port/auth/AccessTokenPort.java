@@ -9,4 +9,6 @@ public interface AccessTokenPort {
     Optional<AuthPrincipal> parse(String token);
 
     void revoke(String token);
+
+    void revokeByUserId(String userId);
 }

@@ -2,10 +2,10 @@ package io.attestry.workflow.infrastructure.persistence.jpa.delegation;
 
 import io.attestry.userauth.domain.authorization.model.PermissionCodes;
 import io.attestry.workflow.application.port.delegation.DelegationPermissionProjectionPort;
+import io.attestry.workflow.application.port.projection.WorkflowPassportProjectionWritePort;
 import io.attestry.workflow.domain.delegation.model.Delegation;
 import io.attestry.workflow.domain.delegation.model.DelegationStatus;
 import io.attestry.workflow.domain.partner.model.PartnerLinkStatus;
-import io.attestry.workflow.infrastructure.persistence.jpa.projection.WorkflowPassportProjectionWriter;
 import java.sql.Timestamp;
 import java.time.Clock;
 import java.time.Instant;
@@ -26,12 +26,12 @@ public class JdbcDelegationPermissionProjectionAdapter implements DelegationPerm
 
     private final JdbcTemplate jdbcTemplate;
     private final Clock clock;
-    private final WorkflowPassportProjectionWriter projectionWriter;
+    private final WorkflowPassportProjectionWritePort projectionWriter;
 
     public JdbcDelegationPermissionProjectionAdapter(
         JdbcTemplate jdbcTemplate,
         Clock clock,
-        WorkflowPassportProjectionWriter projectionWriter
+        WorkflowPassportProjectionWritePort projectionWriter
     ) {
         this.jdbcTemplate = jdbcTemplate;
         this.clock = clock;
@@ -43,9 +43,6 @@ public class JdbcDelegationPermissionProjectionAdapter implements DelegationPerm
         if (!isSupportedPassportDelegation(delegation)) {
             return;
         }
-        if (!existsPassport(delegation.resourceId())) {
-            return;
-        }
         String status = resolveStatus(delegation, partnerLinkStatus, Instant.now(clock));
         upsert(delegation, status);
     }
@@ -55,18 +52,20 @@ public class JdbcDelegationPermissionProjectionAdapter implements DelegationPerm
         if (!isSupportedPassportDelegation(delegation)) {
             return;
         }
-        if (!existsPassport(delegation.resourceId())) {
+        upsert(delegation, STATUS_REVOKED);
+    }
+
+    @Override
+    public void onDelegationExpired(Delegation delegation) {
+        if (!isSupportedPassportDelegation(delegation)) {
             return;
         }
-        upsert(delegation, STATUS_REVOKED);
+        upsert(delegation, STATUS_EXPIRED);
     }
 
     @Override
     public void onDelegationConsumed(Delegation delegation) {
         if (!isSupportedPassportDelegation(delegation)) {
-            return;
-        }
-        if (!existsPassport(delegation.resourceId())) {
             return;
         }
         upsert(delegation, STATUS_CONSUMED);
@@ -145,14 +144,5 @@ public class JdbcDelegationPermissionProjectionAdapter implements DelegationPerm
             null,
             now
         );
-    }
-
-    private boolean existsPassport(String passportId) {
-        Integer count = jdbcTemplate.queryForObject(
-            "SELECT COUNT(1) FROM workflow_passport_state_projection WHERE passport_id = ?",
-            Integer.class,
-            passportId
-        );
-        return count != null && count > 0;
     }
 }

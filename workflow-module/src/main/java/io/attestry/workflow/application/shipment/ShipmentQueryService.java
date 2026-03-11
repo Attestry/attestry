@@ -77,15 +77,8 @@ public class ShipmentQueryService implements ShipmentQueryUseCase {
         List<ShipmentDetailResult.EvidenceFileResult> returnFiles =
             evidenceViewAssembler.toDetailEvidenceFiles(shipment.returnEvidenceGroupId());
 
-        ShipmentProductReadPort.PassportAssetInfo assetInfo = shipmentProductReadPort
-            .findPassportAssetInfoByIds(List.of(shipment.passportId()))
-            .get(shipment.passportId());
-
-        List<String> userIds = Stream.of(shipment.releasedByUserId(), shipment.returnedByUserId())
-            .filter(Objects::nonNull)
-            .distinct()
-            .toList();
-        Map<String, String> emailMap = userReadPort.findEmailsByUserIds(userIds);
+        ShipmentProductReadPort.PassportAssetInfo assetInfo = loadAssetInfo(shipment.passportId());
+        Map<String, String> emailMap = loadUserEmails(shipment);
 
         return viewAssembler.toShipmentDetailResult(shipment, assetInfo, emailMap, releaseFiles, returnFiles);
     }
@@ -112,5 +105,17 @@ public class ShipmentQueryService implements ShipmentQueryUseCase {
         Map<String, ShipmentProductReadPort.PassportAssetInfo> assetMap =
             shipmentProductReadPort.findPassportAssetInfoByIds(passportIds);
         return viewAssembler.toShipmentViewResults(shipments, assetMap);
+    }
+
+    private ShipmentProductReadPort.PassportAssetInfo loadAssetInfo(String passportId) {
+        return shipmentProductReadPort.findPassportAssetInfoByIds(List.of(passportId)).get(passportId);
+    }
+
+    private Map<String, String> loadUserEmails(Shipment shipment) {
+        List<String> userIds = Stream.of(shipment.releasedByUserId(), shipment.returnedByUserId())
+            .filter(Objects::nonNull)
+            .distinct()
+            .toList();
+        return userReadPort.findEmailsByUserIds(userIds);
     }
 }

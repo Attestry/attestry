@@ -39,8 +39,7 @@ public class ShipmentEvidenceService implements ShipmentEvidenceUseCase {
         PresignShipmentEvidenceUploadCommand command
     ) {
         String tenantId = principal.tenantId();
-        authorizationSupport.assertTenantContext(principal, tenantId);
-        authorizationSupport.assertLivePermission(principal, tenantId, PermissionCodes.BRAND_RELEASE, "shipment:evidence:presign");
+        assertEvidenceWriteAccess(principal, tenantId, "shipment:evidence:presign");
 
         return evidenceUploadSupport.doPresign(
             evidencePort, objectStoragePort,
@@ -58,14 +57,23 @@ public class ShipmentEvidenceService implements ShipmentEvidenceUseCase {
         CompleteShipmentEvidenceUploadCommand command
     ) {
         String tenantId = principal.tenantId();
-        authorizationSupport.assertTenantContext(principal, tenantId);
-        authorizationSupport.assertLivePermission(principal, tenantId, PermissionCodes.BRAND_RELEASE, "shipment:evidence:complete");
+        assertEvidenceWriteAccess(principal, tenantId, "shipment:evidence:complete");
         evidenceUploadSupport.assertEvidenceGroupScope(evidencePort, command.evidenceGroupId(), tenantId);
 
         return evidenceUploadSupport.doComplete(
             evidencePort, objectStoragePort,
             command.evidenceGroupId(), command.evidenceId(),
             command.sizeBytes(), command.fileHash(), Instant.now(clock)
+        );
+    }
+
+    private void assertEvidenceWriteAccess(AuthPrincipal principal, String tenantId, String resourceRef) {
+        authorizationSupport.assertTenantContext(principal, tenantId);
+        authorizationSupport.assertLivePermission(
+            principal,
+            tenantId,
+            PermissionCodes.BRAND_RELEASE,
+            resourceRef
         );
     }
 }

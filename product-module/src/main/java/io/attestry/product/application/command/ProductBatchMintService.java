@@ -29,7 +29,6 @@ public class ProductBatchMintService {
     }
 
     public BatchMintResult batchMint(ProductActor actor, String tenantId, List<MintProductCommand> commands) {
-        mintAccessPolicy.assertBatchMintAllowed(actor, tenantId);
         LedgerActor ledgerActor = mintAccessPolicy.resolveLedgerActor(actor, tenantId);
 
         List<BatchMintError> errors = new ArrayList<>();
@@ -39,6 +38,7 @@ public class ProductBatchMintService {
             MintProductCommand command = commands.get(i);
             int row = i + 1;
             try {
+                mintAccessPolicy.assertMintAllowed(actor, tenantId, command.serialNumber());
                 transactionTemplate.executeWithoutResult(status -> mintSingle(tenantId, command, ledgerActor));
                 minted++;
             } catch (Exception ex) {

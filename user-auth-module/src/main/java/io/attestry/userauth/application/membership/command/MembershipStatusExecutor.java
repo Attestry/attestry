@@ -5,9 +5,11 @@ import io.attestry.userauth.application.dto.command.UpdateMembershipStatusComman
 import io.attestry.userauth.application.dto.result.MembershipResult;
 import io.attestry.userauth.application.membership.assembler.MembershipResultAssembler;
 import io.attestry.userauth.application.membership.policy.MembershipAccessPolicy;
+import io.attestry.userauth.application.port.auth.AccessTokenPort;
 import io.attestry.userauth.application.port.membership.MembershipPort;
 import io.attestry.userauth.domain.authorization.model.PermissionCodes;
 import io.attestry.userauth.domain.membership.model.Membership;
+import io.attestry.userauth.domain.membership.model.MembershipStatus;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Component;
 
@@ -18,6 +20,7 @@ public class MembershipStatusExecutor {
     private final MembershipPort membershipPort;
     private final MembershipAccessPolicy accessPolicy;
     private final MembershipResultAssembler resultAssembler;
+    private final AccessTokenPort accessTokenPort;
 
     public MembershipResult updateStatus(
         ActorContext actor,
@@ -43,6 +46,11 @@ public class MembershipStatusExecutor {
             current.role(),
             command.status()
         );
+
+        if (command.status() == MembershipStatus.SUSPENDED) {
+            accessTokenPort.revokeByUserId(current.userId());
+        }
+
         return resultAssembler.toMembershipResult(updated);
     }
 }

@@ -1,9 +1,5 @@
 package io.attestry.workflow.application.claim;
 
-import io.attestry.product.application.dto.command.MintProductCommand;
-import io.attestry.product.application.dto.command.ProductActor;
-import io.attestry.product.application.dto.result.MintedProductResult;
-import io.attestry.product.application.usecase.ProductMintUseCase;
 import io.attestry.commonlib.application.port.ObjectStoragePort;
 import io.attestry.userauth.domain.authorization.model.PermissionCodes;
 import io.attestry.userauth.security.AuthPrincipal;
@@ -12,6 +8,7 @@ import io.attestry.workflow.application.claim.result.ApprovePurchaseClaimResult;
 import io.attestry.workflow.application.claim.result.ClaimEvidenceView;
 import io.attestry.workflow.application.claim.result.PendingClaimView;
 import io.attestry.workflow.application.claim.result.RejectPurchaseClaimResult;
+import io.attestry.workflow.application.port.claim.PurchaseClaimProductMintPort;
 import io.attestry.workflow.application.port.common.WorkflowEvidencePort;
 import io.attestry.workflow.application.port.transfer.TransferOwnershipUpdatePort;
 import io.attestry.workflow.application.port.common.WorkflowLedgerOutboxPort;
@@ -38,7 +35,7 @@ public class PurchaseClaimAdminService implements PurchaseClaimAdminUseCase {
     private static final Duration DOWNLOAD_TTL = Duration.ofDays(3);
 
     private final PurchaseClaimRepository purchaseClaimRepository;
-    private final ProductMintUseCase productMintUseCase;
+    private final PurchaseClaimProductMintPort productMintPort;
     private final TransferOwnershipUpdatePort ownershipUpdatePort;
     private final WorkflowLedgerOutboxPort ledgerOutboxPort;
     private final WorkflowEvidencePort evidencePort;
@@ -85,17 +82,18 @@ public class PurchaseClaimAdminService implements PurchaseClaimAdminUseCase {
 
         PurchaseClaim claim = findSubmittedClaim(claimId);
 
-        MintedProductResult mintResult = productMintUseCase.mint(
-            new ProductActor(
+        PurchaseClaimProductMintPort.MintResult mintResult = productMintPort.mint(
+            new PurchaseClaimProductMintPort.MintRequest(
                 principal.userId(),
                 principal.tenantId(),
                 principal.scopes(),
-                principal.scopes() != null && principal.scopes().contains(PermissionCodes.PLATFORM_ADMIN)
-            ),
-            new MintProductCommand(
+                principal.scopes() != null && principal.scopes().contains(PermissionCodes.PLATFORM_ADMIN),
                 principal.tenantId(),
-                claim.serialNumber(), null, claim.modelName(),
-                command.manufacturedAt(), command.productionBatch(), command.factoryCode(), null
+                claim.serialNumber(),
+                claim.modelName(),
+                command.manufacturedAt(),
+                command.productionBatch(),
+                command.factoryCode()
             )
         );
 

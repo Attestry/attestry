@@ -9,7 +9,11 @@ import io.attestry.userauth.domain.UserAuthErrorCode;
 import io.attestry.userauth.domain.tenant.model.Tenant;
 import io.attestry.userauth.domain.tenant.model.TenantStatus;
 import io.attestry.userauth.domain.tenant.model.TenantType;
+import java.util.LinkedHashMap;
+import java.util.List;
 import java.util.Locale;
+import java.util.Map;
+import java.util.Objects;
 import lombok.RequiredArgsConstructor;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.PageRequest;
@@ -28,6 +32,25 @@ public class TenantQueryService implements TenantQueryUseCase {
         Tenant tenant = tenantRepositoryPort.findById(tenantId)
                 .orElseThrow(() -> new UserAuthDomainException(UserAuthErrorCode.TENANT_NOT_FOUND, "Tenant not found"));
         return toResult(tenant);
+    }
+
+    @Override
+    @Transactional(readOnly = true)
+    public Map<String, TenantResult> getTenants(List<String> tenantIds) {
+        if (tenantIds == null || tenantIds.isEmpty()) {
+            return Map.of();
+        }
+        List<String> distinctTenantIds = tenantIds.stream()
+            .filter(Objects::nonNull)
+            .distinct()
+            .toList();
+        if (distinctTenantIds.isEmpty()) {
+            return Map.of();
+        }
+        return tenantRepositoryPort.findByIds(distinctTenantIds).stream()
+            .collect(LinkedHashMap::new,
+                (map, tenant) -> map.put(tenant.tenantId(), toResult(tenant)),
+                LinkedHashMap::putAll);
     }
 
     @Override

@@ -28,7 +28,7 @@ public class ProductMintService implements ProductMintUseCase {
     @Transactional
     public MintedProductResult mint(ProductActor actor, MintProductCommand command) {
         MintProductInput input = toInput(command.tenantId(), command);
-        mintAccessPolicy.assertSingleMintAllowed(actor, input.tenantId(), input.serialNumber());
+        mintAccessPolicy.assertMintAllowed(actor, input.tenantId(), input.serialNumber());
         MintExecution execution = mintExecutor.execute(
             input,
             mintAccessPolicy.resolveLedgerActor(actor, input.tenantId())
@@ -39,11 +39,6 @@ public class ProductMintService implements ProductMintUseCase {
     @Override
     public BatchMintResult batchMintFromCsv(ProductActor actor, String tenantId, InputStream csvStream) {
         return batchMintService.batchMintFromCsv(actor, tenantId, csvStream);
-    }
-
-    @Override
-    public BatchMintResult batchMint(ProductActor actor, String tenantId, List<MintProductCommand> commands) {
-        return batchMintService.batchMint(actor, tenantId, commands);
     }
 
     private MintedProductResult toMintedProductResult(MintExecution execution) {

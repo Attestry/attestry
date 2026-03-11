@@ -66,7 +66,7 @@ public class DistributionHttp {
         @RequestParam(value = "size", defaultValue = "20") int size,
         @RequestParam(value = "keyword", required = false) String keyword
     ) {
-        return ApiResponse.success(distributionUseCase.listByTenant(tenantId, page, size, keyword));
+        return ApiResponse.success(distributionUseCase.listByTenant(principal, tenantId, page, size, keyword));
     }
 
     @GetMapping("/distributions/candidates")

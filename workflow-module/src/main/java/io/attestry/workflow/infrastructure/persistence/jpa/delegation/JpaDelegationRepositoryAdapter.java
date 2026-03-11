@@ -8,18 +8,17 @@ import io.attestry.workflow.infrastructure.persistence.jpa.mapper.DelegationMapp
 import io.attestry.workflow.infrastructure.persistence.jpa.repository.DelegationJpaRepository;
 import java.util.List;
 import java.util.Optional;
+
+import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Repository;
 
 @Repository
+@RequiredArgsConstructor
 public class JpaDelegationRepositoryAdapter implements DelegationRepository {
 
     private final DelegationJpaRepository repository;
     private final DelegationMapper mapper;
 
-    public JpaDelegationRepositoryAdapter(DelegationJpaRepository repository, DelegationMapper mapper) {
-        this.repository = repository;
-        this.mapper = mapper;
-    }
 
     @Override
     public Delegation save(Delegation delegation) {
@@ -34,10 +33,6 @@ public class JpaDelegationRepositoryAdapter implements DelegationRepository {
         return repository.findById(delegationId).map(mapper::toDomain);
     }
 
-    @Override
-    public List<Delegation> findByTenantId(String tenantId) {
-        return repository.findBySourceTenantIdOrTargetTenantId(tenantId, tenantId).stream().map(mapper::toDomain).toList();
-    }
 
     @Override
     public Optional<Delegation> findActive(

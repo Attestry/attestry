@@ -4,6 +4,7 @@ import io.attestry.userauth.application.port.identity.UserAccountRepositoryPort;
 import io.attestry.userauth.domain.identity.model.UserAccount;
 import io.attestry.userauth.infrastructure.persistence.jpa.mapper.UserAccountMapper;
 import io.attestry.userauth.infrastructure.persistence.jpa.repository.UserAccountJpaRepository;
+import java.util.List;
 import java.util.Optional;
 
 import lombok.RequiredArgsConstructor;
@@ -27,6 +28,14 @@ public class JpaUserAccountRepositoryAdapter implements UserAccountRepositoryPor
     @Transactional(readOnly = true)
     public Optional<UserAccount> findById(String userId) {
         return repository.findById(userId).map(userAccountMapper::toDomain);
+    }
+
+    @Override
+    @Transactional(readOnly = true)
+    public List<UserAccount> findByIds(List<String> userIds) {
+        return repository.findAllById(userIds).stream()
+            .map(userAccountMapper::toDomain)
+            .toList();
     }
 
     @Override

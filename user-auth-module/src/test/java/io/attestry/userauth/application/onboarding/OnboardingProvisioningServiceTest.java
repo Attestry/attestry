@@ -115,6 +115,14 @@ class OnboardingProvisioningServiceTest {
         }
 
         @Override
+        public List<Tenant> findByIds(List<String> tenantIds) {
+            return tenantIds.stream()
+                .map(byTenantId::get)
+                .filter(java.util.Objects::nonNull)
+                .toList();
+        }
+
+        @Override
         public Page<Tenant> findPage(
                 io.attestry.userauth.domain.tenant.model.TenantType type,
                 io.attestry.userauth.domain.tenant.model.TenantStatus status,

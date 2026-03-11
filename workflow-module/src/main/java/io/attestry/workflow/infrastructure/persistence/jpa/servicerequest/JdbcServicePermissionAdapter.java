@@ -1,7 +1,7 @@
 package io.attestry.workflow.infrastructure.persistence.jpa.servicerequest;
 
 import io.attestry.workflow.application.port.servicerequest.ServicePermissionPort;
-import io.attestry.workflow.infrastructure.persistence.jpa.projection.WorkflowPassportProjectionWriter;
+import io.attestry.workflow.application.port.projection.WorkflowPassportProjectionWritePort;
 import java.sql.Timestamp;
 import java.time.Instant;
 import java.util.List;
@@ -20,11 +20,11 @@ public class JdbcServicePermissionAdapter implements ServicePermissionPort {
         "scope = '" + SCOPE_SERVICE_REPAIR + "' AND status = '" + STATUS_ACTIVE + "'";
 
     private final JdbcTemplate jdbcTemplate;
-    private final WorkflowPassportProjectionWriter projectionWriter;
+    private final WorkflowPassportProjectionWritePort projectionWriter;
 
     public JdbcServicePermissionAdapter(
         JdbcTemplate jdbcTemplate,
-        WorkflowPassportProjectionWriter projectionWriter
+        WorkflowPassportProjectionWritePort projectionWriter
     ) {
         this.jdbcTemplate = jdbcTemplate;
         this.projectionWriter = projectionWriter;

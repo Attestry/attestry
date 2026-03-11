@@ -1,12 +1,13 @@
 package io.attestry.workflow.infrastructure.persistence.jpa.projection;
 
+import io.attestry.workflow.application.port.projection.WorkflowPassportProjectionWritePort;
 import java.sql.Timestamp;
 import java.time.Instant;
 import org.springframework.jdbc.core.JdbcTemplate;
 import org.springframework.stereotype.Component;
 
 @Component
-public class WorkflowPassportProjectionWriter {
+public class WorkflowPassportProjectionWriter implements WorkflowPassportProjectionWritePort {
 
     private final JdbcTemplate jdbcTemplate;
 
@@ -14,6 +15,7 @@ public class WorkflowPassportProjectionWriter {
         this.jdbcTemplate = jdbcTemplate;
     }
 
+    @Override
     public void refreshStateAndCatalog(String passportId, String sourceEventId, Long sourceEventVersion, Instant updatedAt) {
         Timestamp timestamp = Timestamp.from(updatedAt);
 
@@ -107,6 +109,7 @@ public class WorkflowPassportProjectionWriter {
         );
     }
 
+    @Override
     public void upsertOwnership(String passportId, String ownerId, String sourceEventId, Long sourceEventVersion, Instant updatedAt) {
         jdbcTemplate.update(
             """
@@ -147,6 +150,7 @@ public class WorkflowPassportProjectionWriter {
         );
     }
 
+    @Override
     public void syncPermissionById(String permissionId, String sourceEventId, Long sourceEventVersion, Instant updatedAt) {
         jdbcTemplate.update(
             """
@@ -187,6 +191,7 @@ public class WorkflowPassportProjectionWriter {
         );
     }
 
+    @Override
     public void revokeServiceRequestPermissions(String linkedServiceRequestId, String sourceEventId, Instant updatedAt) {
         jdbcTemplate.update(
             """
@@ -207,6 +212,7 @@ public class WorkflowPassportProjectionWriter {
         );
     }
 
+    @Override
     public void revokeConsentPermissions(String passportId, String providerTenantId, String sourceEventId, Instant updatedAt) {
         jdbcTemplate.update(
             """

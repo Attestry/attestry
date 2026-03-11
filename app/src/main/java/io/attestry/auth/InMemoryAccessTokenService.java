@@ -46,4 +46,9 @@ public class InMemoryAccessTokenService implements AccessTokenPort {
     public void revoke(String token) {
         tokenStore.remove(token);
     }
+
+    @Override
+    public void revokeByUserId(String userId) {
+        tokenStore.entrySet().removeIf(entry -> userId.equals(entry.getValue().userId()));
+    }
 }

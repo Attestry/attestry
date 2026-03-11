@@ -1,17 +1,13 @@
 package io.attestry.userauth.application.policy;
 
+import io.attestry.userauth.application.auth.UserEffectiveScopeResolver;
 import io.attestry.userauth.application.dto.command.AuthzEvaluateCommand;
 import io.attestry.userauth.application.dto.command.ActorContext;
 import io.attestry.userauth.application.dto.command.PolicyDecisionMode;
 import io.attestry.userauth.application.dto.result.AuthzEvaluateResult;
-import io.attestry.userauth.application.port.membership.MembershipPort;
-import io.attestry.userauth.application.port.membership.MembershipProjectionPort;
 import io.attestry.userauth.application.usecase.policy.EvaluateAuthorizationUseCase;
 import io.attestry.userauth.domain.UserAuthErrorCode;
-import io.attestry.userauth.domain.authorization.model.RoleCodes;
-import io.attestry.userauth.domain.membership.model.Membership;
 import io.attestry.userauth.domain.authorization.policy.TenantIsolationPolicy;
-import java.util.LinkedHashSet;
 import java.util.Set;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
@@ -20,8 +16,7 @@ import org.springframework.stereotype.Service;
 @RequiredArgsConstructor
 public class EvaluateAuthorizationService implements EvaluateAuthorizationUseCase {
 
-    private final MembershipPort membershipPort;
-    private final MembershipProjectionPort membershipProjectionPort;
+    private final UserEffectiveScopeResolver userEffectiveScopeResolver;
 
     @Override
     public AuthzEvaluateResult evaluate(ActorContext actor, AuthzEvaluateCommand command) {
@@ -42,19 +37,6 @@ public class EvaluateAuthorizationService implements EvaluateAuthorizationUseCas
     }
 
     private Set<String> resolveLiveScopes(ActorContext actor) {
-        Set<String> scopes = new LinkedHashSet<>(
-            membershipProjectionPort.findPermissionCodesByGlobalRoleCode(RoleCodes.OWNER_DEFAULT)
-        );
-        if (actor.tenantId() == null) {
-            return scopes;
-        }
-        Membership membership = membershipPort.findByUserIdAndTenantId(actor.userId(), actor.tenantId())
-            .orElse(null);
-        if (membership == null || !membership.isActive()) {
-            return scopes;
-        }
-
-        scopes.addAll(membershipProjectionPort.findPermissionCodesByMembershipId(membership.membershipId()));
-        return scopes;
+        return userEffectiveScopeResolver.resolveEffectiveScopes(actor.userId(), actor.tenantId());
     }
 }

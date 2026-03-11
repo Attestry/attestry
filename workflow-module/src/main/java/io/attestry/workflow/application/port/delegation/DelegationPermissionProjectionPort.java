@@ -8,5 +8,7 @@ public interface DelegationPermissionProjectionPort {
 
     void onDelegationRevoked(Delegation delegation);
 
+    void onDelegationExpired(Delegation delegation);
+
     void onDelegationConsumed(Delegation delegation);
 }

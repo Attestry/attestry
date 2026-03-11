@@ -10,10 +10,6 @@ import static org.mockito.Mockito.never;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 
-import io.attestry.product.application.usecase.ProductMintUseCase;
-import io.attestry.product.application.dto.command.MintProductCommand;
-import io.attestry.product.application.dto.command.ProductActor;
-import io.attestry.product.application.dto.result.MintedProductResult;
 import io.attestry.commonlib.application.port.ObjectStoragePort;
 import io.attestry.userauth.application.dto.command.ActorContext;
 import io.attestry.userauth.domain.identity.model.VerificationLevel;
@@ -21,6 +17,7 @@ import io.attestry.userauth.security.AuthPrincipal;
 import io.attestry.workflow.application.claim.command.ApprovePurchaseClaimCommand;
 import io.attestry.workflow.application.claim.result.ApprovePurchaseClaimResult;
 import io.attestry.workflow.application.claim.result.RejectPurchaseClaimResult;
+import io.attestry.workflow.application.port.claim.PurchaseClaimProductMintPort;
 import io.attestry.workflow.application.port.common.WorkflowEvidencePort;
 import io.attestry.workflow.application.port.common.WorkflowLedgerOutboxPort;
 import io.attestry.workflow.application.port.transfer.TransferOwnershipUpdatePort;
@@ -47,7 +44,7 @@ import org.mockito.junit.jupiter.MockitoExtension;
 class PurchaseClaimAdminServiceTest {
 
     @Mock PurchaseClaimRepository purchaseClaimRepository;
-    @Mock ProductMintUseCase productMintUseCase;
+    @Mock PurchaseClaimProductMintPort productMintPort;
     @Mock TransferOwnershipUpdatePort ownershipUpdatePort;
     @Mock WorkflowLedgerOutboxPort ledgerOutboxPort;
     @Mock WorkflowEvidencePort shipmentEvidencePort;
@@ -87,7 +84,7 @@ class PurchaseClaimAdminServiceTest {
     @BeforeEach
     void setUp() {
         service = new PurchaseClaimAdminService(
-            purchaseClaimRepository, productMintUseCase, ownershipUpdatePort,
+            purchaseClaimRepository, productMintPort, ownershipUpdatePort,
             ledgerOutboxPort, shipmentEvidencePort, objectStoragePort, authorizationSupport, clock
         );
     }
@@ -97,8 +94,8 @@ class PurchaseClaimAdminServiceTest {
         PurchaseClaim claim = submittedClaim();
         doNothing().when(authorizationSupport).assertLivePermission(any(), anyString(), anyString(), anyString());
         when(purchaseClaimRepository.findById("claim-1")).thenReturn(Optional.of(claim));
-        when(productMintUseCase.mint(any(ProductActor.class), any(MintProductCommand.class)))
-            .thenReturn(new MintedProductResult("asset-1", "passport-1", "QR-ABC", "outbox-1", "GENESIS", "MINTED"));
+        when(productMintPort.mint(any(PurchaseClaimProductMintPort.MintRequest.class)))
+            .thenReturn(new PurchaseClaimProductMintPort.MintResult("asset-1", "passport-1", "QR-ABC", "outbox-1", "GENESIS", "MINTED"));
         doNothing().when(ownershipUpdatePort).upsertOwner(anyString(), anyString(), any(Instant.class));
         when(purchaseClaimRepository.save(any(PurchaseClaim.class))).thenAnswer(inv -> inv.getArgument(0));
         when(shipmentEvidencePort.findReadyEvidenceHashes("eg-1")).thenReturn(List.of("hash1"));
@@ -127,7 +124,7 @@ class PurchaseClaimAdminServiceTest {
 
         assertEquals("REJECTED", result.status());
         assertEquals("시리얼 번호 불일치", result.rejectionReason());
-        verify(productMintUseCase, never()).mint(any(), any());
+        verify(productMintPort, never()).mint(any());
         verify(ownershipUpdatePort, never()).upsertOwner(anyString(), anyString(), any());
     }
 

@@ -1,7 +1,7 @@
 package io.attestry.workflow.application.shipment;
 
-import io.attestry.product.application.port.query.PassportShipmentQueryPort;
 import io.attestry.workflow.application.port.common.UserReadPort;
+import io.attestry.workflow.application.port.shipment.WorkflowShipmentHistoryPort;
 import io.attestry.workflow.application.shipment.assembler.ShipmentEvidenceViewAssembler;
 import io.attestry.workflow.domain.shipment.repository.ShipmentRepository;
 import java.util.ArrayList;
@@ -17,7 +17,7 @@ import org.springframework.transaction.annotation.Transactional;
 
 @RequiredArgsConstructor
 @Service
-public class ShipmentBridgeQueryAdapter implements PassportShipmentQueryPort {
+public class ShipmentBridgeQueryAdapter implements WorkflowShipmentHistoryPort {
 
     private final ShipmentRepository shipmentRepository;
     private final ShipmentEvidenceViewAssembler evidenceViewAssembler;

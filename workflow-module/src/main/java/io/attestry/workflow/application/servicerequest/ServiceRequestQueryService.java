@@ -1,6 +1,5 @@
 package io.attestry.workflow.application.servicerequest;
 
-import io.attestry.commonlib.application.port.ObjectStoragePort;
 import io.attestry.userauth.domain.authorization.model.PermissionCodes;
 import io.attestry.userauth.security.AuthPrincipal;
 import io.attestry.workflow.application.port.servicerequest.ServiceProductReadPort;
@@ -39,13 +38,13 @@ public class ServiceRequestQueryService implements ServiceRequestQueryUseCase {
         ServiceRequestStatus requestStatus = statusParser.parse(status);
         int safePage = Math.max(page, 0);
         int safeSize = Math.max(size, 1);
-        Map<String, String> providerNameCache = new HashMap<>();
-        Map<String, ServiceProductReadPort.ServicePassportAssetInfo> passportAssetInfoCache = new HashMap<>();
-
-        List<ServiceRequestListItemResult> content = serviceRequestRepository
+        List<ServiceRequest> requests = serviceRequestRepository
             .findByOwnerUserId(principal.userId(), requestStatus, safePage, safeSize)
-            .stream()
-            .map(request -> toListItem(request, providerNameCache, passportAssetInfoCache))
+            .stream().toList();
+        Map<String, String> providerNames = loadProviderNames(requests);
+        Map<String, ServiceProductReadPort.ServicePassportAssetInfo> passportAssetInfoCache = new HashMap<>();
+        List<ServiceRequestListItemResult> content = requests.stream()
+            .map(request -> toListItem(request, providerNames, passportAssetInfoCache))
             .toList();
 
         long totalElements = serviceRequestRepository.countByOwnerUserId(principal.userId(), requestStatus);
@@ -61,13 +60,13 @@ public class ServiceRequestQueryService implements ServiceRequestQueryUseCase {
         ServiceRequestStatus requestStatus = statusParser.parse(status);
         int safePage = Math.max(page, 0);
         int safeSize = Math.max(size, 1);
-        Map<String, String> providerNameCache = new HashMap<>();
-        Map<String, ServiceProductReadPort.ServicePassportAssetInfo> passportAssetInfoCache = new HashMap<>();
-
-        List<ServiceRequestListItemResult> content = serviceRequestRepository
+        List<ServiceRequest> requests = serviceRequestRepository
             .findByProviderTenantId(tenantId, requestStatus, safePage, safeSize)
-            .stream()
-            .map(request -> toListItem(request, providerNameCache, passportAssetInfoCache))
+            .stream().toList();
+        Map<String, String> providerNames = loadProviderNames(requests);
+        Map<String, ServiceProductReadPort.ServicePassportAssetInfo> passportAssetInfoCache = new HashMap<>();
+        List<ServiceRequestListItemResult> content = requests.stream()
+            .map(request -> toListItem(request, providerNames, passportAssetInfoCache))
             .toList();
 
         long totalElements = serviceRequestRepository.countByProviderTenantId(tenantId, requestStatus);
@@ -76,18 +75,24 @@ public class ServiceRequestQueryService implements ServiceRequestQueryUseCase {
 
     private ServiceRequestListItemResult toListItem(
         ServiceRequest request,
-        Map<String, String> providerNameCache,
+        Map<String, String> providerNames,
         Map<String, ServiceProductReadPort.ServicePassportAssetInfo> passportAssetInfoCache
     ) {
-        String providerTenantName = providerNameCache.computeIfAbsent(
-            request.providerTenantId(),
-            tenantReadPort::findTenantName
-        );
+        String providerTenantName = providerNames.get(request.providerTenantId());
         ServiceProductReadPort.ServicePassportAssetInfo passportAssetInfo = passportAssetInfoCache.computeIfAbsent(
             request.passportId(),
             passportId -> serviceProductReadPort.findPassportAssetInfo(passportId)
                 .orElse(viewAssembler.defaultAssetInfo(passportId))
         );
         return viewAssembler.toListItem(request, providerTenantName, passportAssetInfo);
+    }
+
+    private Map<String, String> loadProviderNames(List<ServiceRequest> requests) {
+        return tenantReadPort.findTenantNamesByIds(
+            requests.stream()
+                .map(ServiceRequest::providerTenantId)
+                .distinct()
+                .toList()
+        );
     }
 }

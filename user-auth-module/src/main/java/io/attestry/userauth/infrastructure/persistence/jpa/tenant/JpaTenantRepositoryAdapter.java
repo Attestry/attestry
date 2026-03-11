@@ -7,6 +7,7 @@ import io.attestry.userauth.application.port.tenant.TenantRepositoryPort;
 import io.attestry.userauth.infrastructure.persistence.jpa.mapper.TenantMapper;
 import io.attestry.userauth.infrastructure.persistence.jpa.entity.TenantJpaEntity;
 import io.attestry.userauth.infrastructure.persistence.jpa.repository.TenantJpaRepository;
+import java.util.List;
 import lombok.RequiredArgsConstructor;
 import java.util.Optional;
 import org.springframework.data.domain.Page;
@@ -30,6 +31,13 @@ public class JpaTenantRepositoryAdapter implements TenantRepositoryPort {
     @Override
     public Optional<Tenant> findById(String tenantId) {
         return tenantJpaRepository.findById(tenantId).map(tenantMapper::toDomain);
+    }
+
+    @Override
+    public List<Tenant> findByIds(List<String> tenantIds) {
+        return tenantJpaRepository.findAllById(tenantIds).stream()
+            .map(tenantMapper::toDomain)
+            .toList();
     }
 
     @Override

@@ -107,6 +107,11 @@ class MembershipQueryServiceTest {
             }
 
             @Override
+            public List<io.attestry.userauth.domain.tenant.model.Tenant> findByIds(List<String> tenantIds) {
+                return List.of();
+            }
+
+            @Override
             public Page<io.attestry.userauth.domain.tenant.model.Tenant> findPage(
                     io.attestry.userauth.domain.tenant.model.TenantType type,
                     io.attestry.userauth.domain.tenant.model.TenantStatus status,
@@ -125,6 +130,11 @@ class MembershipQueryServiceTest {
             @Override
             public Optional<io.attestry.userauth.domain.identity.model.UserAccount> findById(String userId) {
                 return Optional.empty();
+            }
+
+            @Override
+            public List<io.attestry.userauth.domain.identity.model.UserAccount> findByIds(List<String> userIds) {
+                return List.of();
             }
 
             @Override

@@ -11,10 +11,13 @@ import io.attestry.workflow.domain.partner.repository.PartnerLinkRepository;
 import java.time.Clock;
 import java.time.Instant;
 import java.util.List;
+
+import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
 @Service
+@RequiredArgsConstructor
 public class DelegationLifecycleService implements DelegationLifecycleUseCase {
 
     private final DelegationRepository delegationRepository;
@@ -22,20 +25,8 @@ public class DelegationLifecycleService implements DelegationLifecycleUseCase {
     private final DelegationPermissionProjectionPort permissionProjectionPort;
     private final Clock clock;
 
-    public DelegationLifecycleService(
-        DelegationRepository delegationRepository,
-        PartnerLinkRepository partnerLinkRepository,
-        DelegationPermissionProjectionPort permissionProjectionPort,
-        Clock clock
-    ) {
-        this.delegationRepository = delegationRepository;
-        this.partnerLinkRepository = partnerLinkRepository;
-        this.permissionProjectionPort = permissionProjectionPort;
-        this.clock = clock;
-    }
-
     @Override
-    @Transactional(readOnly = true)
+    @Transactional
     public DelegationEvaluateResult evaluate(
         String sourceTenantId,
         String targetTenantId,
@@ -55,7 +46,12 @@ public class DelegationLifecycleService implements DelegationLifecycleUseCase {
         if (delegation == null) {
             return new DelegationEvaluateResult(false, "DELEGATION_NOT_FOUND");
         }
-        if (delegation.isExpired(Instant.now(clock))) {
+        Instant now = Instant.now(clock);
+        if (delegation.isExpired(now)) {
+            Delegation expired = delegationRepository.save(delegation.expire(now));
+            if (expired.isPassportPermissionGrant()) {
+                permissionProjectionPort.onDelegationExpired(expired);
+            }
             return new DelegationEvaluateResult(false, "DELEGATION_EXPIRED");
         }
         PartnerLink link = partnerLinkRepository.findById(delegation.partnerLinkId()).orElse(null);

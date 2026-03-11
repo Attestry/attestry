@@ -64,8 +64,10 @@ class AuthApplicationServiceTest {
         ));
         Clock clock = Clock.fixed(Instant.parse("2026-02-25T00:00:00Z"), ZoneOffset.UTC);
         LoginContextResolver loginContextResolver = new LoginContextResolver(
-            membershipRepo,
-            permissionQueryPort
+            new UserEffectiveScopeResolver(
+                membershipRepo,
+                permissionQueryPort
+            )
         );
 
         AuthTokenIssuer authTokenIssuer = new AuthTokenIssuer(tokenPort, clock);
@@ -248,6 +250,14 @@ class AuthApplicationServiceTest {
         }
 
         @Override
+        public List<UserAccount> findByIds(List<String> userIds) {
+            return userIds.stream()
+                .map(byUserId::get)
+                .filter(java.util.Objects::nonNull)
+                .toList();
+        }
+
+        @Override
         public UserAccount save(UserAccount userAccount) {
             byUserId.put(userAccount.userId(), userAccount);
             userIdByEmail.put(userAccount.email().value(), userAccount.userId());
@@ -362,6 +372,11 @@ class AuthApplicationServiceTest {
         @Override
         public void revoke(String token) {
             tokens.remove(token);
+        }
+
+        @Override
+        public void revokeByUserId(String userId) {
+            tokens.entrySet().removeIf(entry -> userId.equals(entry.getValue().userId()));
         }
     }
 

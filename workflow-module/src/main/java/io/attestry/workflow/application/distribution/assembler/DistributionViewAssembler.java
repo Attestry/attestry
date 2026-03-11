@@ -1,5 +1,6 @@
 package io.attestry.workflow.application.distribution.assembler;
 
+import io.attestry.workflow.application.port.common.TenantReadPort;
 import io.attestry.workflow.application.port.distribution.DistributionCandidateQueryPort;
 import io.attestry.workflow.application.port.distribution.DistributionQueryPort;
 import io.attestry.workflow.application.usecase.DistributionUseCase.DistributionCandidateView;
@@ -12,14 +13,17 @@ import org.springframework.stereotype.Component;
 @Component
 public class DistributionViewAssembler {
 
-    public DistributionView toView(DistributionQueryPort.DistributionRow row) {
+    public DistributionView toView(
+        DistributionQueryPort.DistributionRow row,
+        TenantReadPort.TenantSummary targetTenant
+    ) {
         return new DistributionView(
             row.distributionId(),
             row.passportId(),
             row.sourceTenantId(),
             row.targetTenantId(),
-            row.targetTenantName(),
-            row.targetTenantType(),
+            targetTenant != null ? targetTenant.name() : null,
+            targetTenant != null ? targetTenant.type() : null,
             row.partnerLinkId(),
             row.delegationId(),
             row.status(),
@@ -33,9 +37,12 @@ public class DistributionViewAssembler {
         );
     }
 
-    public PagedDistributionResponse toPagedDistributionResponse(DistributionQueryPort.PagedDistributionResult result) {
+    public PagedDistributionResponse toPagedDistributionResponse(
+        DistributionQueryPort.PagedDistributionResult result,
+        java.util.Map<String, TenantReadPort.TenantSummary> targetTenants
+    ) {
         List<DistributionView> content = result.content().stream()
-            .map(this::toView)
+            .map(row -> toView(row, targetTenants.get(row.targetTenantId())))
             .toList();
         return new PagedDistributionResponse(
             content,

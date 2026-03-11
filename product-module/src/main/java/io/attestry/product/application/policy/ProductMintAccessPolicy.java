@@ -14,22 +14,16 @@ public class ProductMintAccessPolicy {
 
     private static final String PLATFORM_ADMIN_ROLE = "ADMIN";
     private static final String BRAND_ROLE = "BRAND";
-    private static final String BATCH_RESOURCE_REF = "batch";
 
     private final TenantContextAccessPort tenantContextAccessPort;
     private final ProductAuthorizationPort productAuthorizationPort;
 
-    public void assertSingleMintAllowed(ProductActor actor, String tenantId, String serialNumber) {
+    public void assertMintAllowed(ProductActor actor, String tenantId, String serialNumber) {
         if (actor.platformAdmin()) {
             return;
         }
         tenantContextAccessPort.assertActiveTenantMembership(actor.userId(), tenantId, ProductTenantType.BRAND);
         productAuthorizationPort.assertBrandMintAllowed(actor, tenantId, serialNumber);
-    }
-
-    public void assertBatchMintAllowed(ProductActor actor, String tenantId) {
-        tenantContextAccessPort.assertActiveTenantMembership(actor.userId(), tenantId, ProductTenantType.BRAND);
-        productAuthorizationPort.assertBrandMintAllowed(actor, tenantId, BATCH_RESOURCE_REF);
     }
 
     public LedgerActor resolveLedgerActor(ProductActor actor, String tenantId) {
