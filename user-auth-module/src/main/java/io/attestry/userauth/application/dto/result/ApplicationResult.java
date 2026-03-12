@@ -7,6 +7,7 @@ public record ApplicationResult(
     String tenantId,
     String orgName,
     String country,
+    String address,
     String bizRegNo,
     String evidenceBundleId,
     String status,

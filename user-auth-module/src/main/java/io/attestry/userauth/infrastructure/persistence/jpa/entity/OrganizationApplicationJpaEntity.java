@@ -35,6 +35,9 @@ public class OrganizationApplicationJpaEntity {
     @Column(name = "country", nullable = false, length = 10)
     private String country;
 
+    @Column(name = "address", nullable = false)
+    private String address;
+
     @Column(name = "biz_reg_no")
     private String bizRegNo;
 
@@ -68,6 +71,7 @@ public class OrganizationApplicationJpaEntity {
         String tenantId,
         String orgName,
         String country,
+        String address,
         String bizRegNo,
         String evidenceBundleId,
         ApplicationStatus status,
@@ -82,6 +86,7 @@ public class OrganizationApplicationJpaEntity {
         this.tenantId = tenantId;
         this.orgName = orgName;
         this.country = country;
+        this.address = address;
         this.bizRegNo = bizRegNo;
         this.evidenceBundleId = evidenceBundleId;
         this.status = status;
@@ -113,6 +118,10 @@ public class OrganizationApplicationJpaEntity {
 
     public String getCountry() {
         return country;
+    }
+
+    public String getAddress() {
+        return address;
     }
 
     public String getBizRegNo() {

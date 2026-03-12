@@ -19,6 +19,7 @@ public interface TenantReadPort {
         String tenantId,
         String name,
         String region,
+        String address,
         String type
     ) {
     }

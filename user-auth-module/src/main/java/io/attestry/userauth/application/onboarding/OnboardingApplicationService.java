@@ -70,6 +70,7 @@ public class OnboardingApplicationService implements OnboardingUseCase {
                         actor.userId(),
                         command.orgName(),
                         command.country(),
+                        command.address(),
                         command.bizRegNo(),
                         command.evidenceBundleId());
             }
@@ -79,15 +80,18 @@ public class OnboardingApplicationService implements OnboardingUseCase {
                         actor.userId(),
                         command.orgName(),
                         command.country(),
+                        command.address(),
                         command.bizRegNo(),
                         command.evidenceBundleId());
             }
             case SERVICE -> {
+                requireText(command.address(), "address");
                 uniquenessPolicy.assertUniqueService(command.orgName(), command.country(), command.bizRegNo());
                 yield OrganizationApplication.createService(
                         actor.userId(),
                         command.orgName(),
                         command.country(),
+                        command.address(),
                         command.bizRegNo(),
                         command.evidenceBundleId());
             }
@@ -143,7 +147,7 @@ public class OnboardingApplicationService implements OnboardingUseCase {
         app.assertPending();
 
         ProvisioningResult result = provisioningService.provision(
-                app.type(), app.applicantUserId(), app.orgName(), app.country(), actor.userId());
+                app.type(), app.applicantUserId(), app.orgName(), app.country(), app.address(), actor.userId());
 
         app.approve(actor.userId(), result.tenantId(), Instant.now(clock));
         applicationRepository.save(app);
@@ -233,6 +237,7 @@ public class OnboardingApplicationService implements OnboardingUseCase {
                 app.tenantId(),
                 app.orgName(),
                 app.country(),
+                app.address(),
                 app.bizRegNo(),
                 app.evidenceBundleId(),
                 app.status().name(),
@@ -248,6 +253,7 @@ public class OnboardingApplicationService implements OnboardingUseCase {
                 app.tenantId(),
                 app.orgName(),
                 app.country(),
+                app.address(),
                 app.bizRegNo(),
                 app.evidenceBundleId(),
                 evidenceFiles,

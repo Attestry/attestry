@@ -23,6 +23,9 @@ public class TenantJpaEntity {
     @Column(name = "region", nullable = false, length = 10)
     private String region;
 
+    @Column(name = "address", nullable = false)
+    private String address;
+
     @Enumerated(EnumType.STRING)
     @Column(name = "type", nullable = false)
     private TenantType type;
@@ -34,10 +37,11 @@ public class TenantJpaEntity {
     protected TenantJpaEntity() {
     }
 
-    public TenantJpaEntity(String tenantId, String name, String region, TenantType type, TenantStatus status) {
+    public TenantJpaEntity(String tenantId, String name, String region, String address, TenantType type, TenantStatus status) {
         this.tenantId = tenantId;
         this.name = name;
         this.region = region;
+        this.address = address;
         this.type = type;
         this.status = status;
     }
@@ -52,6 +56,10 @@ public class TenantJpaEntity {
 
     public String getRegion() {
         return region;
+    }
+
+    public String getAddress() {
+        return address;
     }
 
     public TenantType getType() {

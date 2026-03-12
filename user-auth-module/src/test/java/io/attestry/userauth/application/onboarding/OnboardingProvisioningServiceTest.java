@@ -44,6 +44,7 @@ class OnboardingProvisioningServiceTest {
             "user-1",
             "brand-org",
             "KR",
+            null,
             "admin-1"
         );
 
@@ -61,6 +62,7 @@ class OnboardingProvisioningServiceTest {
             "user-2",
             "retail-org",
             "KR",
+            null,
             "admin-1"
         );
 
@@ -74,6 +76,7 @@ class OnboardingProvisioningServiceTest {
             "user-3",
             "service-org",
             "KR",
+            "서울시 강남구 테헤란로 1",
             "admin-1"
         );
 

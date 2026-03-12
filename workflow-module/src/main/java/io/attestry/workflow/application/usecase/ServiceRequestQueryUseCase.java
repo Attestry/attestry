@@ -19,8 +19,30 @@ public interface ServiceRequestQueryUseCase {
         String providerTenantName,
         String serviceType,
         String description,
+        String serviceRequestMethod,
+        String symptomDescription,
+        Instant requestedReservationAt,
+        String contactMemo,
+        String beforeEvidenceGroupId,
+        List<EvidenceFileResult> beforeEvidenceFiles,
+        String afterEvidenceGroupId,
+        List<EvidenceFileResult> afterEvidenceFiles,
+        String serviceResultDetail,
+        String completionMemo,
+        String rejectReason,
+        String cancelReason,
         String status,
-        Instant submittedAt
+        Instant submittedAt,
+        Instant completedAt
+    ) {
+    }
+
+    record EvidenceFileResult(
+        String evidenceId,
+        String originalFileName,
+        String contentType,
+        long sizeBytes,
+        String downloadUrl
     ) {
     }
 

@@ -14,6 +14,7 @@ import io.attestry.userauth.security.AuthPrincipal;
 import io.attestry.workflow.application.port.ServicePermissionPort;
 import io.attestry.workflow.application.port.ServiceProductReadPort;
 import io.attestry.workflow.application.port.ServiceProductReadPort.ServicePassportState;
+import io.attestry.workflow.application.port.TenantReadPort;
 import io.attestry.workflow.application.port.WorkflowEvidencePort;
 import io.attestry.workflow.application.servicerequest.command.SubmitServiceRequestCommand;
 import io.attestry.workflow.application.servicerequest.result.SubmitServiceRequestResult;
@@ -41,6 +42,7 @@ class ServiceSubmitServiceTest {
     @Mock ServiceRequestRepository serviceRequestRepository;
     @Mock ServiceProductReadPort serviceProductReadPort;
     @Mock ServicePermissionPort servicePermissionPort;
+    @Mock TenantReadPort tenantReadPort;
     @Mock WorkflowEvidencePort shipmentEvidencePort;
     @Mock WorkflowAuthorizationSupport authorizationSupport;
 
@@ -57,7 +59,7 @@ class ServiceSubmitServiceTest {
     void setUp() {
         service = new ServiceSubmitService(
             serviceRequestRepository, serviceProductReadPort, servicePermissionPort,
-            shipmentEvidencePort, authorizationSupport, submitPolicy, clock
+            tenantReadPort, shipmentEvidencePort, authorizationSupport, submitPolicy, clock
         );
     }
 
@@ -70,12 +72,14 @@ class ServiceSubmitServiceTest {
         when(servicePermissionPort.hasActiveServiceRepairPermission("p1", "provT1")).thenReturn(true);
         when(serviceRequestRepository.existsOpenByPassportId("p1")).thenReturn(false);
         when(servicePermissionPort.findActivePermissionId("p1", "provT1")).thenReturn(Optional.of("perm1"));
+        when(tenantReadPort.findTenantSummary("provT1"))
+            .thenReturn(new TenantReadPort.TenantSummary("provT1", "Provider", "SEOUL", "서울시 강남구", "SERVICE"));
         when(shipmentEvidencePort.findReadyEvidenceHashes("eg1")).thenReturn(List.of("hash1"));
         when(serviceRequestRepository.save(any(ServiceRequest.class))).thenAnswer(inv -> inv.getArgument(0));
 
         SubmitServiceRequestResult result = service.approve(
             OWNER,
-            new SubmitServiceRequestCommand("p1", "provT1", "eg1")
+            new SubmitServiceRequestCommand("p1", "provT1", "eg1", "ONLINE", "화면 불량", null, "010-0000-0000 / 평일 오후")
         );
 
         assertEquals("PENDING", result.status());
@@ -95,9 +99,11 @@ class ServiceSubmitServiceTest {
         when(serviceProductReadPort.findCurrentOwnerId("p1")).thenReturn(Optional.of("owner1"));
         when(servicePermissionPort.hasActiveServiceRepairPermission("p1", "provT1")).thenReturn(false);
         when(serviceRequestRepository.existsOpenByPassportId("p1")).thenReturn(false);
+        when(tenantReadPort.findTenantSummary("provT1"))
+            .thenReturn(new TenantReadPort.TenantSummary("provT1", "Provider", "SEOUL", "서울시 강남구", "SERVICE"));
 
         WorkflowDomainException ex = assertThrows(WorkflowDomainException.class, () ->
-            service.approve(OWNER, new SubmitServiceRequestCommand("p1", "provT1", null))
+            service.approve(OWNER, new SubmitServiceRequestCommand("p1", "provT1", "eg1", "ONLINE", "화면 불량", null, "010-0000-0000 / 평일 오후"))
         );
         assertEquals(WorkflowErrorCode.FORBIDDEN_SCOPE, ex.getErrorCode());
     }
@@ -110,9 +116,11 @@ class ServiceSubmitServiceTest {
         when(serviceProductReadPort.findCurrentOwnerId("p1")).thenReturn(Optional.of("owner1"));
         when(servicePermissionPort.hasActiveServiceRepairPermission("p1", "provT1")).thenReturn(true);
         when(serviceRequestRepository.existsOpenByPassportId("p1")).thenReturn(true);
+        when(tenantReadPort.findTenantSummary("provT1"))
+            .thenReturn(new TenantReadPort.TenantSummary("provT1", "Provider", "SEOUL", "서울시 강남구", "SERVICE"));
 
         WorkflowDomainException ex = assertThrows(WorkflowDomainException.class, () ->
-            service.approve(OWNER, new SubmitServiceRequestCommand("p1", "provT1", null))
+            service.approve(OWNER, new SubmitServiceRequestCommand("p1", "provT1", "eg1", "ONLINE", "화면 불량", null, "010-0000-0000 / 평일 오후"))
         );
         assertEquals(WorkflowErrorCode.SERVICE_REQUEST_ALREADY_SUBMITTED, ex.getErrorCode());
     }
@@ -123,9 +131,11 @@ class ServiceSubmitServiceTest {
         when(serviceProductReadPort.findPassportState("p1"))
             .thenReturn(Optional.of(new ServicePassportState("p1", "t1", "ACTIVE", "NONE")));
         when(serviceProductReadPort.findCurrentOwnerId("p1")).thenReturn(Optional.of("otherOwner"));
+        when(tenantReadPort.findTenantSummary("provT1"))
+            .thenReturn(new TenantReadPort.TenantSummary("provT1", "Provider", "SEOUL", "서울시 강남구", "SERVICE"));
 
         WorkflowDomainException ex = assertThrows(WorkflowDomainException.class, () ->
-            service.approve(OWNER, new SubmitServiceRequestCommand("p1", "provT1", null))
+            service.approve(OWNER, new SubmitServiceRequestCommand("p1", "provT1", "eg1", "ONLINE", "화면 불량", null, "010-0000-0000 / 평일 오후"))
         );
         assertEquals(WorkflowErrorCode.FORBIDDEN_SCOPE, ex.getErrorCode());
     }

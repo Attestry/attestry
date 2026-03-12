@@ -55,7 +55,7 @@ public class ServiceAcceptService implements ServiceAcceptUseCase {
         }
 
         Instant now = Instant.now(clock);
-        ServiceRequest accepted = request.accept(command.serviceType(), command.description(), now);
+        ServiceRequest accepted = request.accept(command.description(), now);
         ServiceRequest saved = serviceRequestRepository.save(accepted);
 
         return new AcceptServiceRequestResult(

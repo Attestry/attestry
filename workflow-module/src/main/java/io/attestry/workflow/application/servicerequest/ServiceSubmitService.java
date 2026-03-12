@@ -4,6 +4,7 @@ import io.attestry.userauth.domain.authorization.model.PermissionCodes;
 import io.attestry.userauth.security.AuthPrincipal;
 import io.attestry.workflow.application.port.ServicePermissionPort;
 import io.attestry.workflow.application.port.ServiceProductReadPort;
+import io.attestry.workflow.application.port.TenantReadPort;
 import io.attestry.workflow.application.port.WorkflowEvidencePort;
 import io.attestry.workflow.application.servicerequest.command.SubmitServiceRequestCommand;
 import io.attestry.workflow.application.servicerequest.result.SubmitServiceRequestResult;
@@ -28,6 +29,7 @@ public class ServiceSubmitService implements ServiceSubmitUseCase {
     private final ServiceRequestRepository serviceRequestRepository;
     private final ServiceProductReadPort serviceProductReadPort;
     private final ServicePermissionPort servicePermissionPort;
+    private final TenantReadPort tenantReadPort;
     private final WorkflowEvidencePort evidencePort;
     private final WorkflowAuthorizationSupport authorizationSupport;
     private final ServiceSubmitPolicy submitPolicy;
@@ -37,6 +39,7 @@ public class ServiceSubmitService implements ServiceSubmitUseCase {
         ServiceRequestRepository serviceRequestRepository,
         ServiceProductReadPort serviceProductReadPort,
         ServicePermissionPort servicePermissionPort,
+        TenantReadPort tenantReadPort,
         WorkflowEvidencePort evidencePort,
         WorkflowAuthorizationSupport authorizationSupport,
         ServiceSubmitPolicy submitPolicy,
@@ -45,6 +48,7 @@ public class ServiceSubmitService implements ServiceSubmitUseCase {
         this.serviceRequestRepository = serviceRequestRepository;
         this.serviceProductReadPort = serviceProductReadPort;
         this.servicePermissionPort = servicePermissionPort;
+        this.tenantReadPort = tenantReadPort;
         this.evidencePort = evidencePort;
         this.authorizationSupport = authorizationSupport;
         this.submitPolicy = submitPolicy;
@@ -61,6 +65,10 @@ public class ServiceSubmitService implements ServiceSubmitUseCase {
 
         String passportId = command.passportId();
         String providerTenantId = command.providerTenantId();
+        TenantReadPort.TenantSummary provider = tenantReadPort.findTenantSummary(providerTenantId);
+        if (provider == null || provider.address() == null || provider.address().isBlank()) {
+            throw new WorkflowDomainException(WorkflowErrorCode.INVALID_REQUEST, "providerAddress is required");
+        }
 
         ServiceProductReadPort.ServicePassportState state = serviceProductReadPort.findPassportState(passportId)
             .orElseThrow(() -> new WorkflowDomainException(WorkflowErrorCode.INVALID_REQUEST, "Passport not found"));
@@ -103,6 +111,10 @@ public class ServiceSubmitService implements ServiceSubmitUseCase {
             providerTenantId,
             null,
             beforeEvidenceGroupId,
+            command.serviceRequestMethod(),
+            command.symptomDescription(),
+            command.requestedReservationAt(),
+            command.contactMemo(),
             permissionId,
             principal.userId(),
             now,

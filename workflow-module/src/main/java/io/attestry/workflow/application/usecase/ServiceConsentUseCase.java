@@ -14,10 +14,13 @@ public interface ServiceConsentUseCase {
 
     PagedServiceProviderResult listServiceProviders(String name, int page, int size);
 
+    ServiceProviderResult getServiceProvider(String tenantId);
+
     record ServiceProviderResult(
         String tenantId,
         String name,
         String region,
+        String address,
         String type
     ) {
     }

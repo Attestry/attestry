@@ -104,7 +104,14 @@ public class ServiceCompleteService implements ServiceCompleteUseCase {
         }
 
         Instant now = Instant.now(clock);
-        ServiceRequest completed = request.complete(principal.userId(), afterEvidenceGroupId, now);
+        ServiceRequest completed = request.complete(
+            principal.userId(),
+            command.serviceType(),
+            afterEvidenceGroupId,
+            command.serviceResult(),
+            command.completionMemo(),
+            now
+        );
         ServiceRequest saved = serviceRequestRepository.save(completed);
 
         servicePermissionPort.revokeByServiceRequestId(serviceRequestId);
