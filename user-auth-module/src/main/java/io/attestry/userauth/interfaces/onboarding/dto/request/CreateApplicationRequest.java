@@ -10,7 +10,6 @@ public record CreateApplicationRequest(
         String orgName,
         @NotBlank(message = "country is required")
         String country,
-        @NotBlank(message = "address is required")
         String address,
         @NotBlank(message = "bizRegNo is required")
         String bizRegNo,
