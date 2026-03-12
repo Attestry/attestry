@@ -6,13 +6,16 @@ import io.attestry.product.application.port.query.DistributedPassportQueryPort;
 import io.attestry.product.application.port.projection.ProductRetailAccessProjectionPort;
 import io.attestry.product.domain.ProductDomainException;
 import io.attestry.product.domain.ProductErrorCode;
-import io.attestry.product.infrastructure.persistence.jpa.repository.RetailAccessProjectionJpaRepository;
-import io.attestry.product.infrastructure.persistence.jpa.repository.RetailAccessProjectionJpaRepository.RetailAccessDetailProjection;
 import java.sql.Timestamp;
 import java.time.Instant;
+import java.util.HashMap;
 import java.util.List;
+import java.util.Locale;
+import java.util.Map;
 import java.util.Optional;
 import lombok.RequiredArgsConstructor;
+import org.springframework.jdbc.core.namedparam.MapSqlParameterSource;
+import org.springframework.jdbc.core.namedparam.NamedParameterJdbcTemplate;
 import org.springframework.stereotype.Repository;
 
 @Repository
@@ -20,7 +23,7 @@ import org.springframework.stereotype.Repository;
 public class JdbcProductRetailAccessProjectionAdapter
     implements ProductRetailAccessProjectionPort, DistributedPassportQueryPort {
 
-    private final RetailAccessProjectionJpaRepository retailAccessRepository;
+    private final NamedParameterJdbcTemplate jdbcTemplate;
 
     @Override
     public PagedRetailAccessResult findAccessiblePassports(
@@ -30,9 +33,76 @@ public class JdbcProductRetailAccessProjectionAdapter
         String keyword,
         String sourceTenantId
     ) {
-        return retailAccessRepository.findAccessiblePassportsWithFilters(
-            tenantId, page, size, keyword, sourceTenantId
+        StringBuilder whereClause = new StringBuilder("""
+            WHERE prap.tenant_id = :tenantId
+              AND prap.access_status = 'ACTIVE'
+        """);
+        Map<String, Object> params = new HashMap<>();
+        params.put("tenantId", tenantId);
+
+        if (sourceTenantId != null && !sourceTenantId.isBlank()) {
+            whereClause.append(" AND prap.source_tenant_id = :sourceTenantId ");
+            params.put("sourceTenantId", sourceTenantId);
+        }
+        if (keyword != null && !keyword.isBlank()) {
+            whereClause.append(" AND (LOWER(pa.serial_number) LIKE :keyword OR LOWER(pa.model_name) LIKE :keyword) ");
+            params.put("keyword", "%" + keyword.toLowerCase(Locale.ROOT) + "%");
+        }
+
+        String fromClause = """
+            FROM product_retail_access_projection prap
+            JOIN product_passports pp ON pp.passport_id = prap.passport_id
+            JOIN product_assets pa ON pa.asset_id = pp.asset_id
+        """;
+        MapSqlParameterSource parameterSource = new MapSqlParameterSource(params);
+
+        Long total = jdbcTemplate.queryForObject(
+            "SELECT COUNT(*) " + fromClause + whereClause,
+            parameterSource,
+            Long.class
         );
+        long totalElements = total == null ? 0L : total;
+        int totalPages = size <= 0 ? 0 : (int) Math.ceil((double) totalElements / size);
+
+        List<RetailAccessRow> content = jdbcTemplate.query(
+            """
+                SELECT prap.passport_id,
+                       pp.qr_public_code,
+                       pa.asset_id,
+                       pa.serial_number,
+                       pa.model_id,
+                       pa.model_name,
+                       pa.asset_state,
+                       pa.risk_flag,
+                       prap.access_source_type,
+                       prap.access_source_id,
+                       prap.expires_at,
+                       prap.source_tenant_id,
+                       prap.tenant_id,
+                       prap.access_status,
+                       prap.granted_at
+            """ + fromClause + whereClause + " ORDER BY prap.granted_at DESC LIMIT :limit OFFSET :offset",
+            parameterSource.addValue("limit", size).addValue("offset", page * size),
+            (rs, rowNum) -> new RetailAccessRow(
+                rs.getString("passport_id"),
+                rs.getString("qr_public_code"),
+                rs.getString("asset_id"),
+                rs.getString("serial_number"),
+                rs.getString("model_id"),
+                rs.getString("model_name"),
+                rs.getString("asset_state"),
+                rs.getString("risk_flag"),
+                rs.getString("access_source_type"),
+                rs.getString("access_source_id"),
+                toInstant(rs.getTimestamp("expires_at")),
+                rs.getString("source_tenant_id"),
+                rs.getString("tenant_id"),
+                rs.getString("access_status"),
+                toInstant(rs.getTimestamp("granted_at"))
+            )
+        );
+
+        return new PagedRetailAccessResult(content, page, size, totalElements, totalPages);
     }
 
     @Override
@@ -61,25 +131,51 @@ public class JdbcProductRetailAccessProjectionAdapter
 
     @Override
     public Optional<RetailAccessDetailView> findAccessiblePassportDetail(String tenantId, String passportId) {
-        List<RetailAccessDetailProjection> rows =
-            retailAccessRepository.findAccessiblePassportDetailByTenantAndPassport(tenantId, passportId);
+        List<RetailAccessDetailView> rows = jdbcTemplate.query(
+            """
+                SELECT pp.passport_id,
+                       pp.qr_public_code,
+                       pa.serial_number,
+                       pa.model_id,
+                       pa.model_name,
+                       pa.asset_state,
+                       pa.risk_flag,
+                       pa.manufactured_at,
+                       pa.production_batch,
+                       pa.factory_code,
+                       prap.access_source_type,
+                       prap.access_source_id,
+                       prap.updated_at
+                FROM product_retail_access_projection prap
+                JOIN product_passports pp ON pp.passport_id = prap.passport_id
+                JOIN product_assets pa ON pa.asset_id = pp.asset_id
+                WHERE prap.tenant_id = :tenantId
+                  AND prap.passport_id = :passportId
+                  AND prap.access_status = 'ACTIVE'
+                ORDER BY prap.granted_at DESC
+                LIMIT 1
+            """,
+            new MapSqlParameterSource()
+                .addValue("tenantId", tenantId)
+                .addValue("passportId", passportId),
+            (rs, rowNum) -> new RetailAccessDetailView(
+                rs.getString("passport_id"),
+                rs.getString("qr_public_code"),
+                rs.getString("serial_number"),
+                rs.getString("model_id"),
+                rs.getString("model_name"),
+                rs.getString("asset_state"),
+                rs.getString("risk_flag"),
+                toInstant(rs.getTimestamp("manufactured_at")),
+                rs.getString("production_batch"),
+                rs.getString("factory_code"),
+                rs.getString("access_source_type"),
+                rs.getString("access_source_id"),
+                toInstant(rs.getTimestamp("updated_at"))
+            )
+        );
 
-        return rows.stream().findFirst()
-            .map(p -> new RetailAccessDetailView(
-                p.getPassportId(),
-                p.getQrPublicCode(),
-                p.getSerialNumber(),
-                p.getModelId(),
-                p.getModelName(),
-                p.getAssetState(),
-                p.getRiskFlag(),
-                toInstant(p.getManufacturedAt()),
-                p.getProductionBatch(),
-                p.getFactoryCode(),
-                p.getAccessSourceType(),
-                p.getAccessSourceId(),
-                p.getUpdatedAt().toInstant()
-            ));
+        return rows.stream().findFirst();
     }
 
     @Override

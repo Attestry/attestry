@@ -1,5 +1,7 @@
 package io.attestry.workflow.infrastructure.persistence.jpa.servicerequest;
 
+import io.attestry.workflow.domain.WorkflowDomainException;
+import io.attestry.workflow.domain.WorkflowErrorCode;
 import io.attestry.workflow.domain.servicerequest.model.ServiceRequest;
 import io.attestry.workflow.domain.servicerequest.model.ServiceRequestStatus;
 import io.attestry.workflow.domain.servicerequest.repository.ServiceRequestRepository;
@@ -8,7 +10,9 @@ import java.sql.SQLException;
 import java.sql.Timestamp;
 import java.util.List;
 import java.util.Optional;
-import org.springframework.jdbc.core.JdbcTemplate;
+import org.springframework.core.NestedExceptionUtils;
+import org.springframework.dao.DataIntegrityViolationException;
+import org.springframework.jdbc.core.namedparam.NamedParameterJdbcTemplate;
 import org.springframework.stereotype.Repository;
 
 @Repository
@@ -16,69 +20,80 @@ public class JdbcServiceRequestRepositoryAdapter implements ServiceRequestReposi
 
     private static final String OPEN_STATUS_PENDING = ServiceRequestStatus.PENDING.name();
     private static final String OPEN_STATUS_ACCEPTED = ServiceRequestStatus.ACCEPTED.name();
+    private static final String OPEN_REQUEST_CONSTRAINT = "uq_workflow_service_requests_open_passport";
 
-    private final JdbcTemplate jdbcTemplate;
+    private final NamedParameterJdbcTemplate jdbcTemplate;
 
-    public JdbcServiceRequestRepositoryAdapter(JdbcTemplate jdbcTemplate) {
+    public JdbcServiceRequestRepositoryAdapter(NamedParameterJdbcTemplate jdbcTemplate) {
         this.jdbcTemplate = jdbcTemplate;
     }
 
     @Override
     public ServiceRequest save(ServiceRequest request) {
-        jdbcTemplate.update(
-            """
-                INSERT INTO workflow_service_requests (
-                    service_request_id, passport_id, service_type,
-                    owner_user_id, provider_tenant_id,
-                    status, description, service_request_method, symptom_description, requested_reservation_at, contact_memo,
-                    before_evidence_group_id, after_evidence_group_id,
-                    service_result_detail, completion_memo,
-                    permission_id, submitted_by_user_id,
-                    submitted_at, completed_at, completed_by_user_id,
-                    cancelled_at, cancel_reason, created_at
-                ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
-                ON CONFLICT (service_request_id) DO UPDATE
-                SET service_type = EXCLUDED.service_type,
-                    description = EXCLUDED.description,
-                    service_request_method = EXCLUDED.service_request_method,
-                    symptom_description = EXCLUDED.symptom_description,
-                    requested_reservation_at = EXCLUDED.requested_reservation_at,
-                    contact_memo = EXCLUDED.contact_memo,
-                    status = EXCLUDED.status,
-                    after_evidence_group_id = EXCLUDED.after_evidence_group_id,
-                    service_result_detail = EXCLUDED.service_result_detail,
-                    completion_memo = EXCLUDED.completion_memo,
-                    completed_at = EXCLUDED.completed_at,
-                    completed_by_user_id = EXCLUDED.completed_by_user_id,
-                    cancelled_at = EXCLUDED.cancelled_at,
-                    cancel_reason = EXCLUDED.cancel_reason
-            """,
-            request.serviceRequestId(),
-            request.passportId(),
-            request.serviceType(),
-            request.ownerUserId(),
-            request.providerTenantId(),
-            request.status().name(),
-            request.description(),
-            request.serviceRequestMethod(),
-            request.symptomDescription(),
-            request.requestedReservationAt() == null ? null : Timestamp.from(request.requestedReservationAt()),
-            request.contactMemo(),
-            request.beforeEvidenceGroupId(),
-            request.afterEvidenceGroupId(),
-            request.serviceResultDetail(),
-            request.completionMemo(),
-            request.permissionId(),
-            request.submittedByUserId(),
-            Timestamp.from(request.submittedAt()),
-            request.completedAt() == null ? null : Timestamp.from(request.completedAt()),
-            request.completedByUserId(),
-            request.cancelledAt() == null ? null : Timestamp.from(request.cancelledAt()),
-            request.cancelReason(),
-            Timestamp.from(request.createdAt())
-        );
+        try {
+            jdbcTemplate.getJdbcOperations().update(
+                """
+                    INSERT INTO workflow_service_requests (
+                        service_request_id, passport_id, service_type,
+                        owner_user_id, provider_tenant_id,
+                        status, description, service_request_method, symptom_description, requested_reservation_at, contact_memo,
+                        before_evidence_group_id, after_evidence_group_id,
+                        service_result_detail, completion_memo,
+                        permission_id, submitted_by_user_id,
+                        submitted_at, completed_at, completed_by_user_id,
+                        cancelled_at, cancel_reason, created_at
+                    ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+                    ON CONFLICT (service_request_id) DO UPDATE
+                    SET service_type = EXCLUDED.service_type,
+                        description = EXCLUDED.description,
+                        service_request_method = EXCLUDED.service_request_method,
+                        symptom_description = EXCLUDED.symptom_description,
+                        requested_reservation_at = EXCLUDED.requested_reservation_at,
+                        contact_memo = EXCLUDED.contact_memo,
+                        status = EXCLUDED.status,
+                        after_evidence_group_id = EXCLUDED.after_evidence_group_id,
+                        service_result_detail = EXCLUDED.service_result_detail,
+                        completion_memo = EXCLUDED.completion_memo,
+                        completed_at = EXCLUDED.completed_at,
+                        completed_by_user_id = EXCLUDED.completed_by_user_id,
+                        cancelled_at = EXCLUDED.cancelled_at,
+                        cancel_reason = EXCLUDED.cancel_reason
+                """,
+                request.serviceRequestId(),
+                request.passportId(),
+                request.serviceType(),
+                request.ownerUserId(),
+                request.providerTenantId(),
+                request.status().name(),
+                request.description(),
+                request.serviceRequestMethod(),
+                request.symptomDescription(),
+                request.requestedReservationAt() == null ? null : Timestamp.from(request.requestedReservationAt()),
+                request.contactMemo(),
+                request.beforeEvidenceGroupId(),
+                request.afterEvidenceGroupId(),
+                request.serviceResultDetail(),
+                request.completionMemo(),
+                request.permissionId(),
+                request.submittedByUserId(),
+                Timestamp.from(request.submittedAt()),
+                request.completedAt() == null ? null : Timestamp.from(request.completedAt()),
+                request.completedByUserId(),
+                request.cancelledAt() == null ? null : Timestamp.from(request.cancelledAt()),
+                request.cancelReason(),
+                Timestamp.from(request.createdAt())
+            );
+        } catch (DataIntegrityViolationException ex) {
+            if (isDuplicateOpenRequestConstraint(ex)) {
+                throw new WorkflowDomainException(
+                    WorkflowErrorCode.SERVICE_REQUEST_ALREADY_SUBMITTED,
+                    "An open service request already exists for this passport"
+                );
+            }
+            throw ex;
+        }
 
-        return jdbcTemplate.queryForObject(
+        return jdbcTemplate.getJdbcOperations().queryForObject(
             "SELECT * FROM workflow_service_requests WHERE service_request_id = ?",
             (rs, rowNum) -> mapServiceRequest(rs),
             request.serviceRequestId()
@@ -87,7 +102,7 @@ public class JdbcServiceRequestRepositoryAdapter implements ServiceRequestReposi
 
     @Override
     public Optional<ServiceRequest> findById(String serviceRequestId) {
-        List<ServiceRequest> rows = jdbcTemplate.query(
+        List<ServiceRequest> rows = jdbcTemplate.getJdbcOperations().query(
             "SELECT * FROM workflow_service_requests WHERE service_request_id = ?",
             (rs, rowNum) -> mapServiceRequest(rs),
             serviceRequestId
@@ -97,7 +112,7 @@ public class JdbcServiceRequestRepositoryAdapter implements ServiceRequestReposi
 
     @Override
     public boolean existsOpenByPassportId(String passportId) {
-        Integer count = jdbcTemplate.queryForObject(
+        Integer count = jdbcTemplate.getJdbcOperations().queryForObject(
             """
                 SELECT COUNT(1) FROM workflow_service_requests
                 WHERE passport_id = ?
@@ -117,7 +132,7 @@ public class JdbcServiceRequestRepositoryAdapter implements ServiceRequestReposi
         int safeSize = Math.max(size, 1);
         int offset = safePage * safeSize;
         if (status == null) {
-            return jdbcTemplate.query(
+            return jdbcTemplate.getJdbcOperations().query(
                 """
                     SELECT * FROM workflow_service_requests
                     WHERE owner_user_id = ?
@@ -130,7 +145,7 @@ public class JdbcServiceRequestRepositoryAdapter implements ServiceRequestReposi
                 offset
             );
         }
-        return jdbcTemplate.query(
+        return jdbcTemplate.getJdbcOperations().query(
             """
                 SELECT * FROM workflow_service_requests
                 WHERE owner_user_id = ?
@@ -149,14 +164,14 @@ public class JdbcServiceRequestRepositoryAdapter implements ServiceRequestReposi
     @Override
     public long countByOwnerUserId(String ownerUserId, ServiceRequestStatus status) {
         if (status == null) {
-            Long count = jdbcTemplate.queryForObject(
+            Long count = jdbcTemplate.getJdbcOperations().queryForObject(
                 "SELECT COUNT(1) FROM workflow_service_requests WHERE owner_user_id = ?",
                 Long.class,
                 ownerUserId
             );
             return count == null ? 0L : count;
         }
-        Long count = jdbcTemplate.queryForObject(
+        Long count = jdbcTemplate.getJdbcOperations().queryForObject(
             "SELECT COUNT(1) FROM workflow_service_requests WHERE owner_user_id = ? AND status = ?",
             Long.class,
             ownerUserId,
@@ -171,7 +186,7 @@ public class JdbcServiceRequestRepositoryAdapter implements ServiceRequestReposi
         int safeSize = Math.max(size, 1);
         int offset = safePage * safeSize;
         if (status == null) {
-            return jdbcTemplate.query(
+            return jdbcTemplate.getJdbcOperations().query(
                 """
                     SELECT * FROM workflow_service_requests
                     WHERE provider_tenant_id = ?
@@ -184,7 +199,7 @@ public class JdbcServiceRequestRepositoryAdapter implements ServiceRequestReposi
                 offset
             );
         }
-        return jdbcTemplate.query(
+        return jdbcTemplate.getJdbcOperations().query(
             """
                 SELECT * FROM workflow_service_requests
                 WHERE provider_tenant_id = ?
@@ -203,14 +218,14 @@ public class JdbcServiceRequestRepositoryAdapter implements ServiceRequestReposi
     @Override
     public long countByProviderTenantId(String providerTenantId, ServiceRequestStatus status) {
         if (status == null) {
-            Long count = jdbcTemplate.queryForObject(
+            Long count = jdbcTemplate.getJdbcOperations().queryForObject(
                 "SELECT COUNT(1) FROM workflow_service_requests WHERE provider_tenant_id = ?",
                 Long.class,
                 providerTenantId
             );
             return count == null ? 0L : count;
         }
-        Long count = jdbcTemplate.queryForObject(
+        Long count = jdbcTemplate.getJdbcOperations().queryForObject(
             "SELECT COUNT(1) FROM workflow_service_requests WHERE provider_tenant_id = ? AND status = ?",
             Long.class,
             providerTenantId,
@@ -247,5 +262,11 @@ public class JdbcServiceRequestRepositoryAdapter implements ServiceRequestReposi
             rs.getString("cancel_reason"),
             rs.getTimestamp("created_at").toInstant()
         );
+    }
+
+    private boolean isDuplicateOpenRequestConstraint(DataIntegrityViolationException ex) {
+        Throwable root = NestedExceptionUtils.getMostSpecificCause(ex);
+        String message = root != null ? root.getMessage() : ex.getMessage();
+        return message != null && message.contains(OPEN_REQUEST_CONSTRAINT);
     }
 }

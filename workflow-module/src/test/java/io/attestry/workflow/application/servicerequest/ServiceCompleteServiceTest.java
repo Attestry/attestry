@@ -18,6 +18,7 @@ import io.attestry.workflow.application.port.common.WorkflowEvidencePort;
 import io.attestry.workflow.application.port.common.WorkflowLedgerOutboxPort;
 import io.attestry.workflow.application.servicerequest.command.CompleteServiceRequestCommand;
 import io.attestry.workflow.application.servicerequest.result.CompleteServiceRequestResult;
+import io.attestry.workflow.application.servicerequest.support.ServiceRequestContextResolver;
 import io.attestry.workflow.application.shipment.result.WorkflowLedgerEventEnvelope;
 import io.attestry.workflow.application.support.WorkflowAuthorizationSupport;
 import io.attestry.workflow.domain.WorkflowDomainException;
@@ -59,9 +60,24 @@ class ServiceCompleteServiceTest {
 
     @BeforeEach
     void setUp() {
+        ServiceRequestContextResolver contextResolver = new ServiceRequestContextResolver(
+            serviceRequestRepository,
+            serviceProductReadPort,
+            servicePermissionPort,
+            null
+        );
+        ServiceCompleteExecutor completeExecutor = new ServiceCompleteExecutor(
+            serviceRequestRepository,
+            servicePermissionPort,
+            serviceLedgerOutboxPort,
+            shipmentEvidencePort,
+            clock
+        );
         service = new ServiceCompleteService(
-            serviceRequestRepository, serviceProductReadPort, servicePermissionPort,
-            serviceLedgerOutboxPort, shipmentEvidencePort, authorizationSupport, completePolicy, clock
+            authorizationSupport,
+            contextResolver,
+            completePolicy,
+            completeExecutor
         );
     }
 

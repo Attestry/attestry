@@ -5,7 +5,7 @@ import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.boot.ApplicationArguments;
 import org.springframework.boot.ApplicationRunner;
-import org.springframework.jdbc.core.JdbcTemplate;
+import org.springframework.jdbc.core.namedparam.NamedParameterJdbcTemplate;
 import org.springframework.stereotype.Component;
 import org.springframework.transaction.annotation.Transactional;
 
@@ -14,11 +14,11 @@ public class WorkflowReadProjectionBackfillRunner implements ApplicationRunner {
 
     private static final Logger log = LoggerFactory.getLogger(WorkflowReadProjectionBackfillRunner.class);
 
-    private final JdbcTemplate jdbcTemplate;
+    private final NamedParameterJdbcTemplate jdbcTemplate;
     private final boolean enabled;
 
     public WorkflowReadProjectionBackfillRunner(
-        JdbcTemplate jdbcTemplate,
+        NamedParameterJdbcTemplate jdbcTemplate,
         @Value("${app.workflow.read-projection.backfill.enabled:false}") boolean enabled
     ) {
         this.jdbcTemplate = jdbcTemplate;
@@ -41,8 +41,8 @@ public class WorkflowReadProjectionBackfillRunner implements ApplicationRunner {
     }
 
     private void backfillPassportStateProjection() {
-        jdbcTemplate.update("DELETE FROM workflow_passport_state_projection");
-        jdbcTemplate.update(
+        jdbcTemplate.getJdbcOperations().update("DELETE FROM workflow_passport_state_projection");
+        jdbcTemplate.getJdbcOperations().update(
             """
             INSERT INTO workflow_passport_state_projection (
                 passport_id,
@@ -72,8 +72,8 @@ public class WorkflowReadProjectionBackfillRunner implements ApplicationRunner {
     }
 
     private void backfillPassportCatalogProjection() {
-        jdbcTemplate.update("DELETE FROM workflow_passport_catalog_projection");
-        jdbcTemplate.update(
+        jdbcTemplate.getJdbcOperations().update("DELETE FROM workflow_passport_catalog_projection");
+        jdbcTemplate.getJdbcOperations().update(
             """
             INSERT INTO workflow_passport_catalog_projection (
                 passport_id,
@@ -106,8 +106,8 @@ public class WorkflowReadProjectionBackfillRunner implements ApplicationRunner {
     }
 
     private void backfillPassportPermissionProjection() {
-        jdbcTemplate.update("DELETE FROM workflow_passport_permission_projection");
-        jdbcTemplate.update(
+        jdbcTemplate.getJdbcOperations().update("DELETE FROM workflow_passport_permission_projection");
+        jdbcTemplate.getJdbcOperations().update(
             """
             INSERT INTO workflow_passport_permission_projection (
                 permission_id,
@@ -134,8 +134,8 @@ public class WorkflowReadProjectionBackfillRunner implements ApplicationRunner {
     }
 
     private void backfillPassportOwnershipProjection() {
-        jdbcTemplate.update("DELETE FROM workflow_passport_ownership_projection");
-        jdbcTemplate.update(
+        jdbcTemplate.getJdbcOperations().update("DELETE FROM workflow_passport_ownership_projection");
+        jdbcTemplate.getJdbcOperations().update(
             """
             INSERT INTO workflow_passport_ownership_projection (
                 passport_id,

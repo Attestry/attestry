@@ -7,7 +7,7 @@ import java.time.Instant;
 import java.util.List;
 import java.util.Optional;
 import java.util.UUID;
-import org.springframework.jdbc.core.JdbcTemplate;
+import org.springframework.jdbc.core.namedparam.NamedParameterJdbcTemplate;
 import org.springframework.stereotype.Repository;
 
 @Repository
@@ -19,11 +19,11 @@ public class JdbcServicePermissionAdapter implements ServicePermissionPort {
     private static final String ACTIVE_SERVICE_REPAIR_CONFLICT_TARGET =
         "scope = '" + SCOPE_SERVICE_REPAIR + "' AND status = '" + STATUS_ACTIVE + "'";
 
-    private final JdbcTemplate jdbcTemplate;
+    private final NamedParameterJdbcTemplate jdbcTemplate;
     private final WorkflowPassportProjectionWritePort projectionWriter;
 
     public JdbcServicePermissionAdapter(
-        JdbcTemplate jdbcTemplate,
+        NamedParameterJdbcTemplate jdbcTemplate,
         WorkflowPassportProjectionWritePort projectionWriter
     ) {
         this.jdbcTemplate = jdbcTemplate;
@@ -39,7 +39,7 @@ public class JdbcServicePermissionAdapter implements ServicePermissionPort {
         Instant now
     ) {
         String permissionId = UUID.randomUUID().toString();
-        jdbcTemplate.update(
+        jdbcTemplate.getJdbcOperations().update(
             """
                 INSERT INTO passport_permissions (
                     permission_id, passport_id, seller_tenant_id,
@@ -68,7 +68,7 @@ public class JdbcServicePermissionAdapter implements ServicePermissionPort {
 
     @Override
     public void revokeByServiceRequestId(String linkedServiceRequestId) {
-        jdbcTemplate.update(
+        jdbcTemplate.getJdbcOperations().update(
             """
                 UPDATE passport_permissions
                 SET status = ?
@@ -87,7 +87,7 @@ public class JdbcServicePermissionAdapter implements ServicePermissionPort {
 
     @Override
     public boolean hasActiveServiceRepairPermission(String passportId, String providerTenantId) {
-        Integer count = jdbcTemplate.queryForObject(
+        Integer count = jdbcTemplate.getJdbcOperations().queryForObject(
             """
                 SELECT COUNT(1) FROM passport_permissions
                 WHERE passport_id = ?
@@ -112,7 +112,7 @@ public class JdbcServicePermissionAdapter implements ServicePermissionPort {
         Instant now
     ) {
         String permissionId = UUID.randomUUID().toString();
-        jdbcTemplate.update(
+        jdbcTemplate.getJdbcOperations().update(
             ("""
                 INSERT INTO passport_permissions (
                     permission_id, passport_id, seller_tenant_id,
@@ -144,7 +144,7 @@ public class JdbcServicePermissionAdapter implements ServicePermissionPort {
 
     @Override
     public void revokeConsentByPassportAndTenant(String passportId, String providerTenantId) {
-        jdbcTemplate.update(
+        jdbcTemplate.getJdbcOperations().update(
             """
                 UPDATE passport_permissions
                 SET status = ?
@@ -170,7 +170,7 @@ public class JdbcServicePermissionAdapter implements ServicePermissionPort {
 
     @Override
     public void linkServiceRequest(String permissionId, String serviceRequestId) {
-        jdbcTemplate.update(
+        jdbcTemplate.getJdbcOperations().update(
             """
                 UPDATE passport_permissions
                 SET linked_service_request_id = ?
@@ -184,7 +184,7 @@ public class JdbcServicePermissionAdapter implements ServicePermissionPort {
 
     @Override
     public Optional<String> findActivePermissionId(String passportId, String providerTenantId) {
-        List<String> ids = jdbcTemplate.queryForList(
+        List<String> ids = jdbcTemplate.getJdbcOperations().queryForList(
             """
                 SELECT permission_id FROM passport_permissions
                 WHERE passport_id = ?

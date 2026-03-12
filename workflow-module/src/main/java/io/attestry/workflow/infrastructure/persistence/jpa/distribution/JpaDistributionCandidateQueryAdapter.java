@@ -1,7 +1,7 @@
 package io.attestry.workflow.infrastructure.persistence.jpa.distribution;
 
 import io.attestry.workflow.application.port.distribution.DistributionCandidateQueryPort;
-import io.attestry.workflow.infrastructure.persistence.jpa.repository.DistributionJpaRepository;
+import io.attestry.workflow.infrastructure.persistence.jpa.distribution.repository.DistributionJpaRepository;
 import lombok.RequiredArgsConstructor;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.PageRequest;

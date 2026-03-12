@@ -7,7 +7,7 @@ import java.sql.Timestamp;
 import java.time.Instant;
 import java.util.List;
 import java.util.Optional;
-import org.springframework.jdbc.core.JdbcTemplate;
+import org.springframework.jdbc.core.namedparam.NamedParameterJdbcTemplate;
 import org.springframework.stereotype.Repository;
 
 @Repository
@@ -15,9 +15,9 @@ public class JdbcWorkflowEvidenceAdapter implements WorkflowEvidencePort {
 
     private static final String PLACEHOLDER_HASH = "0000000000000000000000000000000000000000000000000000000000000000";
 
-    private final JdbcTemplate jdbcTemplate;
+    private final NamedParameterJdbcTemplate jdbcTemplate;
 
-    public JdbcWorkflowEvidenceAdapter(JdbcTemplate jdbcTemplate) {
+    public JdbcWorkflowEvidenceAdapter(NamedParameterJdbcTemplate jdbcTemplate) {
         this.jdbcTemplate = jdbcTemplate;
     }
 
@@ -28,7 +28,7 @@ public class JdbcWorkflowEvidenceAdapter implements WorkflowEvidencePort {
         String ownerUserId,
         Instant now
     ) {
-        Integer count = jdbcTemplate.queryForObject(
+        Integer count = jdbcTemplate.getJdbcOperations().queryForObject(
             "SELECT COUNT(1) FROM workflow_evidence_groups WHERE evidence_group_id = ?",
             Integer.class,
             evidenceGroupId
@@ -36,7 +36,7 @@ public class JdbcWorkflowEvidenceAdapter implements WorkflowEvidencePort {
         if (count != null && count > 0) {
             return;
         }
-        jdbcTemplate.update(
+        jdbcTemplate.getJdbcOperations().update(
             """
                 INSERT INTO workflow_evidence_groups (
                     evidence_group_id, tenant_id, owner_user_id, created_at
@@ -58,7 +58,7 @@ public class JdbcWorkflowEvidenceAdapter implements WorkflowEvidencePort {
         String contentType,
         Instant now
     ) {
-        jdbcTemplate.update(
+        jdbcTemplate.getJdbcOperations().update(
             """
                 INSERT INTO workflow_evidences (
                     evidence_id,
@@ -83,7 +83,7 @@ public class JdbcWorkflowEvidenceAdapter implements WorkflowEvidencePort {
 
     @Override
     public Optional<EvidenceRecord> findEvidenceById(String evidenceGroupId, String evidenceId) {
-        List<EvidenceRecord> rows = jdbcTemplate.query(
+        List<EvidenceRecord> rows = jdbcTemplate.getJdbcOperations().query(
             """
                 SELECT evidence_id, evidence_group_id, file_hash, object_key,
                        original_file_name, content_type, COALESCE(size_bytes, 0) AS size_bytes, status
@@ -100,7 +100,7 @@ public class JdbcWorkflowEvidenceAdapter implements WorkflowEvidencePort {
 
     @Override
     public void markEvidenceReady(String evidenceGroupId, String evidenceId, long sizeBytes, String fileHash, Instant now) {
-        jdbcTemplate.update(
+        jdbcTemplate.getJdbcOperations().update(
             """
                 UPDATE workflow_evidences
                 SET file_hash = ?,
@@ -120,7 +120,7 @@ public class JdbcWorkflowEvidenceAdapter implements WorkflowEvidencePort {
 
     @Override
     public Optional<EvidenceGroupScopeRecord> findEvidenceGroupScope(String evidenceGroupId) {
-        List<EvidenceGroupScopeRecord> rows = jdbcTemplate.query(
+        List<EvidenceGroupScopeRecord> rows = jdbcTemplate.getJdbcOperations().query(
             """
                 SELECT evidence_group_id, tenant_id, owner_user_id
                 FROM workflow_evidence_groups
@@ -138,7 +138,7 @@ public class JdbcWorkflowEvidenceAdapter implements WorkflowEvidencePort {
 
     @Override
     public List<String> findReadyEvidenceHashes(String evidenceGroupId) {
-        return jdbcTemplate.query(
+        return jdbcTemplate.getJdbcOperations().query(
             """
                 SELECT file_hash
                 FROM workflow_evidences
@@ -153,7 +153,7 @@ public class JdbcWorkflowEvidenceAdapter implements WorkflowEvidencePort {
 
     @Override
     public List<EvidenceRecord> findEvidenceByEvidenceGroupId(String evidenceGroupId) {
-        return jdbcTemplate.query(
+        return jdbcTemplate.getJdbcOperations().query(
             """
                 SELECT evidence_id, evidence_group_id, file_hash, object_key,
                        original_file_name, content_type, COALESCE(size_bytes, 0) AS size_bytes, status

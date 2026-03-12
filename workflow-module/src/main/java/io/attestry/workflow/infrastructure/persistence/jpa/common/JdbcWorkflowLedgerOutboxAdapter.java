@@ -10,17 +10,17 @@ import java.sql.Timestamp;
 import java.time.Clock;
 import java.time.Instant;
 import java.util.UUID;
-import org.springframework.jdbc.core.JdbcTemplate;
+import org.springframework.jdbc.core.namedparam.NamedParameterJdbcTemplate;
 import org.springframework.stereotype.Component;
 
 @Component
 public class JdbcWorkflowLedgerOutboxAdapter implements WorkflowLedgerOutboxPort {
 
-    private final JdbcTemplate jdbcTemplate;
+    private final NamedParameterJdbcTemplate jdbcTemplate;
     private final ObjectMapper objectMapper;
     private final Clock clock;
 
-    public JdbcWorkflowLedgerOutboxAdapter(JdbcTemplate jdbcTemplate, ObjectMapper objectMapper, Clock clock) {
+    public JdbcWorkflowLedgerOutboxAdapter(NamedParameterJdbcTemplate jdbcTemplate, ObjectMapper objectMapper, Clock clock) {
         this.jdbcTemplate = jdbcTemplate;
         this.objectMapper = objectMapper;
         this.clock = clock;
@@ -37,7 +37,7 @@ public class JdbcWorkflowLedgerOutboxAdapter implements WorkflowLedgerOutboxPort
 
         String eventId = UUID.randomUUID().toString();
         Instant now = Instant.now(clock);
-        jdbcTemplate.update(
+        jdbcTemplate.getJdbcOperations().update(
             """
                 INSERT INTO outbox_event (
                     event_id,

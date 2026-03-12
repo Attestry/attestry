@@ -3,9 +3,9 @@ package io.attestry.workflow.infrastructure.persistence.jpa.delegation;
 import io.attestry.workflow.domain.delegation.model.Delegation;
 import io.attestry.workflow.domain.delegation.model.DelegationStatus;
 import io.attestry.workflow.domain.delegation.repository.DelegationRepository;
-import io.attestry.workflow.infrastructure.persistence.jpa.entity.DelegationJpaEntity;
-import io.attestry.workflow.infrastructure.persistence.jpa.mapper.DelegationMapper;
-import io.attestry.workflow.infrastructure.persistence.jpa.repository.DelegationJpaRepository;
+import io.attestry.workflow.infrastructure.persistence.jpa.delegation.entity.DelegationJpaEntity;
+import io.attestry.workflow.infrastructure.persistence.jpa.delegation.mapper.DelegationMapper;
+import io.attestry.workflow.infrastructure.persistence.jpa.delegation.repository.DelegationJpaRepository;
 import java.util.List;
 import java.util.Optional;
 

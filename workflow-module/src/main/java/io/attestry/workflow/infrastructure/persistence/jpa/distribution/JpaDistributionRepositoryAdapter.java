@@ -2,9 +2,9 @@ package io.attestry.workflow.infrastructure.persistence.jpa.distribution;
 
 import io.attestry.workflow.domain.distribution.model.Distribution;
 import io.attestry.workflow.domain.distribution.repository.DistributionRepository;
-import io.attestry.workflow.infrastructure.persistence.jpa.entity.DistributionJpaEntity;
-import io.attestry.workflow.infrastructure.persistence.jpa.mapper.DistributionMapper;
-import io.attestry.workflow.infrastructure.persistence.jpa.repository.DistributionJpaRepository;
+import io.attestry.workflow.infrastructure.persistence.jpa.distribution.entity.DistributionJpaEntity;
+import io.attestry.workflow.infrastructure.persistence.jpa.distribution.mapper.DistributionMapper;
+import io.attestry.workflow.infrastructure.persistence.jpa.distribution.repository.DistributionJpaRepository;
 import java.util.List;
 import java.util.Optional;
 import org.springframework.stereotype.Repository;

@@ -5,7 +5,7 @@ import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.boot.ApplicationArguments;
 import org.springframework.boot.ApplicationRunner;
-import org.springframework.jdbc.core.JdbcTemplate;
+import org.springframework.jdbc.core.namedparam.NamedParameterJdbcTemplate;
 import org.springframework.stereotype.Component;
 import org.springframework.transaction.annotation.Transactional;
 
@@ -14,11 +14,11 @@ public class ProductReadProjectionBackfillRunner implements ApplicationRunner {
 
     private static final Logger log = LoggerFactory.getLogger(ProductReadProjectionBackfillRunner.class);
 
-    private final JdbcTemplate jdbcTemplate;
+    private final NamedParameterJdbcTemplate jdbcTemplate;
     private final boolean enabled;
 
     public ProductReadProjectionBackfillRunner(
-        JdbcTemplate jdbcTemplate,
+        NamedParameterJdbcTemplate jdbcTemplate,
         @Value("${app.product.read-projection.backfill.enabled:false}") boolean enabled
     ) {
         this.jdbcTemplate = jdbcTemplate;
@@ -41,8 +41,8 @@ public class ProductReadProjectionBackfillRunner implements ApplicationRunner {
     }
 
     private void backfillDistributionProjection() {
-        jdbcTemplate.update("DELETE FROM product_passport_distribution_projection");
-        jdbcTemplate.update(
+        jdbcTemplate.getJdbcOperations().update("DELETE FROM product_passport_distribution_projection");
+        jdbcTemplate.getJdbcOperations().update(
             """
             INSERT INTO product_passport_distribution_projection (
                 passport_id,
@@ -86,8 +86,8 @@ public class ProductReadProjectionBackfillRunner implements ApplicationRunner {
     }
 
     private void backfillShipmentProjection() {
-        jdbcTemplate.update("DELETE FROM product_passport_shipment_projection");
-        jdbcTemplate.update(
+        jdbcTemplate.getJdbcOperations().update("DELETE FROM product_passport_shipment_projection");
+        jdbcTemplate.getJdbcOperations().update(
             """
             INSERT INTO product_passport_shipment_projection (
                 passport_id,
@@ -133,8 +133,8 @@ public class ProductReadProjectionBackfillRunner implements ApplicationRunner {
     }
 
     private void backfillShipmentEvidenceProjection() {
-        jdbcTemplate.update("DELETE FROM product_passport_shipment_evidence_projection");
-        jdbcTemplate.update(
+        jdbcTemplate.getJdbcOperations().update("DELETE FROM product_passport_shipment_evidence_projection");
+        jdbcTemplate.getJdbcOperations().update(
             """
             INSERT INTO product_passport_shipment_evidence_projection (
                 shipment_id,
@@ -161,9 +161,9 @@ public class ProductReadProjectionBackfillRunner implements ApplicationRunner {
     }
 
     private void backfillRetailAccessProjection() {
-        jdbcTemplate.update("DELETE FROM product_retail_access_projection");
+        jdbcTemplate.getJdbcOperations().update("DELETE FROM product_retail_access_projection");
 
-        jdbcTemplate.update(
+        jdbcTemplate.getJdbcOperations().update(
             """
             INSERT INTO product_retail_access_projection (
                 tenant_id,
@@ -199,7 +199,7 @@ public class ProductReadProjectionBackfillRunner implements ApplicationRunner {
             """
         );
 
-        jdbcTemplate.update(
+        jdbcTemplate.getJdbcOperations().update(
             """
             INSERT INTO product_retail_access_projection (
                 tenant_id,

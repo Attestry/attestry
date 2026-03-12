@@ -1,33 +1,48 @@
 package io.attestry.product.infrastructure.persistence.jpa.query;
 
 import io.attestry.product.application.port.query.PassportDistributionQueryPort;
-import io.attestry.product.infrastructure.persistence.jpa.entity.PassportDistributionProjectionJpaEntity;
-import io.attestry.product.infrastructure.persistence.jpa.repository.PassportDistributionProjectionJpaRepository;
+import java.sql.Timestamp;
 import java.util.Optional;
 import lombok.RequiredArgsConstructor;
+import org.springframework.jdbc.core.namedparam.NamedParameterJdbcTemplate;
 import org.springframework.stereotype.Repository;
 
 @Repository
 @RequiredArgsConstructor
 public class JdbcPassportDistributionProjectionQueryAdapter implements PassportDistributionQueryPort {
 
-    private final PassportDistributionProjectionJpaRepository repository;
+    private final NamedParameterJdbcTemplate jdbcTemplate;
 
     @Override
     public Optional<DistributionRecord> findLatestDistribution(String passportId) {
-        return repository.findById(passportId)
-            .map(this::toView);
+        return jdbcTemplate.getJdbcOperations().query(
+            """
+                SELECT distribution_id,
+                       target_tenant_id,
+                       target_tenant_name,
+                       target_tenant_type,
+                       partner_link_id,
+                       status,
+                       distributed_at
+                FROM product_passport_distribution_projection
+                WHERE passport_id = ?
+            """,
+            rs -> rs.next()
+                ? Optional.of(new DistributionRecord(
+                    rs.getString("distribution_id"),
+                    rs.getString("target_tenant_id"),
+                    rs.getString("target_tenant_name"),
+                    rs.getString("target_tenant_type"),
+                    rs.getString("partner_link_id"),
+                    rs.getString("status"),
+                    toInstant(rs.getTimestamp("distributed_at"))
+                ))
+                : Optional.empty(),
+            passportId
+        );
     }
 
-    private DistributionRecord toView(PassportDistributionProjectionJpaEntity entity) {
-        return new DistributionRecord(
-            entity.getDistributionId(),
-            entity.getTargetTenantId(),
-            entity.getTargetTenantName(),
-            entity.getTargetTenantType(),
-            entity.getPartnerLinkId(),
-            entity.getStatus(),
-            entity.getDistributedAt()
-        );
+    private java.time.Instant toInstant(Timestamp timestamp) {
+        return timestamp == null ? null : timestamp.toInstant();
     }
 }

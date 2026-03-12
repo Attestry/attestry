@@ -12,7 +12,7 @@ import java.util.stream.Collectors;
 import lombok.RequiredArgsConstructor;
 import org.springframework.boot.ApplicationArguments;
 import org.springframework.boot.ApplicationRunner;
-import org.springframework.jdbc.core.JdbcTemplate;
+import org.springframework.jdbc.core.namedparam.NamedParameterJdbcTemplate;
 import org.springframework.stereotype.Component;
 import org.springframework.transaction.annotation.Transactional;
 
@@ -20,7 +20,7 @@ import org.springframework.transaction.annotation.Transactional;
 @RequiredArgsConstructor
 public class RbacCatalogProjectionSync implements ApplicationRunner {
 
-    private final JdbcTemplate jdbcTemplate;
+    private final NamedParameterJdbcTemplate jdbcTemplate;
     private final PermissionCatalog permissionCatalog;
     private final MembershipEffectivePermissionProjectionRefresher permissionProjectionRefresher;
 
@@ -34,7 +34,7 @@ public class RbacCatalogProjectionSync implements ApplicationRunner {
 
     private void syncPermissions() {
         for (PermissionCatalog.PermissionDefinition definition : permissionCatalog.all()) {
-            int updated = jdbcTemplate.update(
+            int updated = jdbcTemplate.getJdbcOperations().update(
                 """
                     UPDATE permissions
                     SET name = ?,
@@ -52,7 +52,7 @@ public class RbacCatalogProjectionSync implements ApplicationRunner {
                 definition.code()
             );
             if (updated == 0) {
-                jdbcTemplate.update(
+                jdbcTemplate.getJdbcOperations().update(
                     """
                         INSERT INTO permissions (permission_id, code, name, description, resource_type, action, enabled)
                         VALUES (?, ?, ?, ?, ?, ?, ?)
@@ -79,7 +79,7 @@ public class RbacCatalogProjectionSync implements ApplicationRunner {
     }
 
     private String upsertTemplate(TemplateDefinition definition, OffsetDateTime now) {
-        int updated = jdbcTemplate.update(
+        int updated = jdbcTemplate.getJdbcOperations().update(
             """
                 UPDATE permission_templates
                 SET name = ?,
@@ -94,7 +94,7 @@ public class RbacCatalogProjectionSync implements ApplicationRunner {
             definition.code()
         );
         if (updated == 0) {
-            jdbcTemplate.update(
+            jdbcTemplate.getJdbcOperations().update(
                 """
                     INSERT INTO permission_templates (template_id, code, name, description, enabled, created_by_user_id, created_at)
                     VALUES (?, ?, ?, ?, TRUE, NULL, ?)
@@ -106,7 +106,7 @@ public class RbacCatalogProjectionSync implements ApplicationRunner {
                 now
             );
         }
-        return jdbcTemplate.queryForObject(
+        return jdbcTemplate.getJdbcOperations().queryForObject(
             "SELECT template_id FROM permission_templates WHERE code = ?",
             String.class,
             definition.code()
@@ -116,7 +116,7 @@ public class RbacCatalogProjectionSync implements ApplicationRunner {
     private void syncTemplatePermissions(String templateId, List<String> permissionCodes) {
         // Batch resolve permission IDs
         List<String> desiredPermissionIds = permissionCodes.stream()
-            .map(code -> jdbcTemplate.queryForObject(
+            .map(code -> jdbcTemplate.getJdbcOperations().queryForObject(
                 "SELECT permission_id FROM permissions WHERE code = ? AND enabled = TRUE",
                 String.class,
                 code
@@ -126,7 +126,7 @@ public class RbacCatalogProjectionSync implements ApplicationRunner {
 
         // Insert missing bindings (PK conflict = already exists, skip)
         for (String permissionId : desiredPermissionIds) {
-            jdbcTemplate.update(
+            jdbcTemplate.getJdbcOperations().update(
                 """
                     INSERT INTO template_permissions (template_id, permission_id)
                     SELECT ?, ?
@@ -146,7 +146,7 @@ public class RbacCatalogProjectionSync implements ApplicationRunner {
 
         // Remove orphan bindings
         if (desiredPermissionIds.isEmpty()) {
-            jdbcTemplate.update(
+            jdbcTemplate.getJdbcOperations().update(
                 "DELETE FROM template_permissions WHERE template_id = ?",
                 templateId
             );
@@ -159,7 +159,7 @@ public class RbacCatalogProjectionSync implements ApplicationRunner {
             for (int i = 0; i < desiredPermissionIds.size(); i++) {
                 params[i + 1] = desiredPermissionIds.get(i);
             }
-            jdbcTemplate.update(
+            jdbcTemplate.getJdbcOperations().update(
                 "DELETE FROM template_permissions WHERE template_id = ? AND permission_id NOT IN (" + placeholders + ")",
                 params
             );

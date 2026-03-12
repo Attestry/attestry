@@ -3,8 +3,6 @@ package io.attestry.workflow.application.transfer;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.junit.jupiter.api.Assertions.assertTrue;
-import static org.mockito.ArgumentMatchers.any;
-import static org.mockito.ArgumentMatchers.eq;
 import static org.mockito.Mockito.doNothing;
 import static org.mockito.Mockito.doThrow;
 import static org.mockito.Mockito.verify;
@@ -12,7 +10,6 @@ import static org.mockito.Mockito.when;
 
 import io.attestry.userauth.domain.identity.model.VerificationLevel;
 import io.attestry.userauth.security.AuthPrincipal;
-import io.attestry.workflow.application.port.transfer.TransferProductReadPort;
 import io.attestry.workflow.application.transfer.command.CreateB2CTransferCommand;
 import io.attestry.workflow.application.transfer.command.CreateC2CTransferCommand;
 import io.attestry.workflow.application.transfer.policy.TransferAccessPolicy;
@@ -41,7 +38,6 @@ import org.mockito.junit.jupiter.MockitoExtension;
 class TransferCreateServiceTest {
 
     @Mock TokenTransferRepository transferRepository;
-    @Mock TransferProductReadPort productReadPort;
     @Mock TransferAccessPolicy accessPolicy;
     @Mock TransferContextResolver contextResolver;
     @Mock TransferCreateExecutor createExecutor;
@@ -60,10 +56,7 @@ class TransferCreateServiceTest {
 
     @BeforeEach
     void setUp() {
-        service = new TransferCreateService(
-            transferRepository, productReadPort, accessPolicy,
-            contextResolver, createExecutor, clock
-        );
+        service = new TransferCreateService(transferRepository, accessPolicy, contextResolver, createExecutor, clock);
     }
 
     @Test
@@ -177,7 +170,12 @@ class TransferCreateServiceTest {
     @Test
     void findLatestActivePendingB2CByPassportId_returnsRetailPendingTransfer() {
         doNothing().when(accessPolicy).assertFindPendingB2CAccess(RETAIL_PRINCIPAL, "tenant1", "p1");
-        when(transferRepository.findLatestActivePendingByPassportId("p1", Instant.parse("2026-03-01T10:00:00Z")))
+        when(transferRepository.findLatestActivePendingByPassportId(
+            "p1",
+            Instant.parse("2026-03-01T10:00:00Z"),
+            TransferType.B2C,
+            "tenant1"
+        ))
             .thenReturn(Optional.of(new TokenTransfer(
                 "t1",
                 "p1",

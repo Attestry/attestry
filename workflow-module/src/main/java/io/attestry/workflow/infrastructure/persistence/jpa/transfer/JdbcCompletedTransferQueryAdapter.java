@@ -4,7 +4,7 @@ import io.attestry.workflow.application.port.transfer.CompletedTransferQueryPort
 import java.util.ArrayList;
 import java.sql.Timestamp;
 import java.util.List;
-import org.springframework.jdbc.core.JdbcTemplate;
+import org.springframework.jdbc.core.namedparam.NamedParameterJdbcTemplate;
 import org.springframework.stereotype.Repository;
 
 @Repository
@@ -20,9 +20,9 @@ public class JdbcCompletedTransferQueryAdapter implements CompletedTransferQuery
           AND tt.status = ?
         """;
 
-    private final JdbcTemplate jdbcTemplate;
+    private final NamedParameterJdbcTemplate jdbcTemplate;
 
-    public JdbcCompletedTransferQueryAdapter(JdbcTemplate jdbcTemplate) {
+    public JdbcCompletedTransferQueryAdapter(NamedParameterJdbcTemplate jdbcTemplate) {
         this.jdbcTemplate = jdbcTemplate;
     }
 
@@ -42,7 +42,7 @@ public class JdbcCompletedTransferQueryAdapter implements CompletedTransferQuery
             filterParams.add(sourceTenantId);
         }
 
-        Long totalElements = jdbcTemplate.queryForObject(
+        Long totalElements = jdbcTemplate.getJdbcOperations().queryForObject(
             """
                 SELECT COUNT(*)
                 FROM token_transfers tt
@@ -59,7 +59,7 @@ public class JdbcCompletedTransferQueryAdapter implements CompletedTransferQuery
         contentParams.add(size);
         contentParams.add(page * size);
 
-        List<CompletedTransferRow> content = jdbcTemplate.query(
+        List<CompletedTransferRow> content = jdbcTemplate.getJdbcOperations().query(
             """
                 SELECT tt.transfer_id,
                        tt.passport_id,
@@ -98,7 +98,7 @@ public class JdbcCompletedTransferQueryAdapter implements CompletedTransferQuery
 
     @Override
     public boolean existsCompletedB2CByTenantAndPassportId(String tenantId, String passportId) {
-        Long count = jdbcTemplate.queryForObject(
+        Long count = jdbcTemplate.getJdbcOperations().queryForObject(
             "SELECT COUNT(*) FROM token_transfers tt " + COMPLETED_B2C_WHERE,
             Long.class,
             tenantId,

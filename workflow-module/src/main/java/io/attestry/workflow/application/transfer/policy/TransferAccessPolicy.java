@@ -6,6 +6,8 @@ import io.attestry.workflow.application.port.transfer.TransferProductReadPort;
 import io.attestry.workflow.application.support.WorkflowAuthorizationSupport;
 import io.attestry.workflow.domain.WorkflowDomainException;
 import io.attestry.workflow.domain.WorkflowErrorCode;
+import io.attestry.workflow.domain.transfer.model.TokenTransfer;
+import io.attestry.workflow.domain.transfer.model.TransferType;
 import org.springframework.stereotype.Component;
 
 @Component
@@ -55,5 +57,25 @@ public class TransferAccessPolicy {
 
     public void assertAcceptAccess(AuthPrincipal principal, String transferId) {
         authorizationSupport.assertPermissionOnly(principal, PermissionCodes.OWNER_TRANSFER_ACCEPT, "transfer:accept:" + transferId);
+    }
+
+    public void assertCancelAccess(AuthPrincipal principal, String transferId, TokenTransfer transfer) {
+        if (transfer.transferType() == TransferType.C2C) {
+            if (!principal.userId().equals(transfer.createdByUserId())) {
+                throw new WorkflowDomainException(
+                    WorkflowErrorCode.FORBIDDEN_SCOPE,
+                    "Only the transfer creator can cancel a C2C transfer"
+                );
+            }
+            return;
+        }
+
+        authorizationSupport.assertTenantContext(principal, transfer.tenantId());
+        authorizationSupport.assertLivePermission(
+            principal,
+            transfer.tenantId(),
+            PermissionCodes.RETAIL_TRANSFER_CREATE,
+            "transfer:cancel:" + transferId
+        );
     }
 }

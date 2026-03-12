@@ -1,7 +1,6 @@
 package io.attestry.workflow.application.transfer;
 
 import io.attestry.userauth.security.AuthPrincipal;
-import io.attestry.workflow.application.port.transfer.TransferProductReadPort;
 import io.attestry.workflow.application.transfer.policy.TransferAccessPolicy;
 import io.attestry.workflow.application.transfer.support.TransferContextResolver;
 import io.attestry.workflow.application.transfer.command.CreateB2CTransferCommand;
@@ -9,6 +8,8 @@ import io.attestry.workflow.application.transfer.command.CreateC2CTransferComman
 import io.attestry.workflow.application.transfer.result.CreateTransferResult;
 import io.attestry.workflow.domain.transfer.policy.TransferCreatePolicy.TransferCreateContext;
 import io.attestry.workflow.application.usecase.TransferCreateUseCase;
+import io.attestry.workflow.domain.transfer.model.TokenTransfer;
+import io.attestry.workflow.domain.transfer.model.TransferType;
 import io.attestry.workflow.domain.transfer.repository.TokenTransferRepository;
 import java.time.Clock;
 import java.time.Instant;
@@ -23,7 +24,6 @@ import org.springframework.transaction.annotation.Transactional;
 public class TransferCreateService implements TransferCreateUseCase {
 
     private final TokenTransferRepository transferRepository;
-    private final TransferProductReadPort productReadPort;
     private final TransferAccessPolicy accessPolicy;
     private final TransferContextResolver contextResolver;
     private final TransferCreateExecutor createExecutor;
@@ -61,13 +61,7 @@ public class TransferCreateService implements TransferCreateUseCase {
         String passportId
     ) {
         accessPolicy.assertFindPendingC2CAccess(principal, passportId);
-        Instant now = Instant.now(clock);
-        return transferRepository.findLatestActivePendingByPassportId(passportId, now)
-            .map(saved -> new CreateTransferResult(
-                saved.transferId(), saved.passportId(),
-                saved.transferType().name(), saved.status().name(),
-                saved.acceptMethod().name(), saved.qrNonce(), saved.expiresAt()
-            ));
+        return findLatestActivePending(passportId).map(this::toResult);
     }
 
     @Override
@@ -78,14 +72,36 @@ public class TransferCreateService implements TransferCreateUseCase {
         String passportId
     ) {
         accessPolicy.assertFindPendingB2CAccess(principal, tenantId, passportId);
-        Instant now = Instant.now(clock);
-        return transferRepository.findLatestActivePendingByPassportId(passportId, now)
-            .filter(transfer -> transfer.transferType() == io.attestry.workflow.domain.transfer.model.TransferType.B2C)
-            .filter(transfer -> tenantId.equals(transfer.tenantId()))
-            .map(saved -> new CreateTransferResult(
-                saved.transferId(), saved.passportId(),
-                saved.transferType().name(), saved.status().name(),
-                saved.acceptMethod().name(), saved.qrNonce(), saved.expiresAt()
-            ));
+        return findLatestActivePending(passportId, TransferType.B2C, tenantId)
+            .map(this::toResult);
+    }
+
+    private Optional<TokenTransfer> findLatestActivePending(String passportId) {
+        return findLatestActivePending(passportId, null, null);
+    }
+
+    private Optional<TokenTransfer> findLatestActivePending(
+        String passportId,
+        TransferType transferType,
+        String tenantId
+    ) {
+        return transferRepository.findLatestActivePendingByPassportId(
+            passportId,
+            Instant.now(clock),
+            transferType,
+            tenantId
+        );
+    }
+
+    private CreateTransferResult toResult(TokenTransfer saved) {
+        return new CreateTransferResult(
+            saved.transferId(),
+            saved.passportId(),
+            saved.transferType().name(),
+            saved.status().name(),
+            saved.acceptMethod().name(),
+            saved.qrNonce(),
+            saved.expiresAt()
+        );
     }
 }

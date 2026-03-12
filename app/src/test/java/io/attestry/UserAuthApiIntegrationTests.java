@@ -39,7 +39,7 @@ import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.context.SpringBootTest;
 import org.springframework.http.MediaType;
-import org.springframework.jdbc.core.JdbcTemplate;
+import org.springframework.jdbc.core.namedparam.NamedParameterJdbcTemplate;
 import org.springframework.test.web.servlet.setup.MockMvcBuilders;
 import org.springframework.test.web.servlet.MockMvc;
 import org.springframework.test.web.servlet.MvcResult;
@@ -86,7 +86,7 @@ class UserAuthApiIntegrationTests {
     private RoleAssignmentAuditJpaRepository roleAssignmentAuditRepository;
 
     @Autowired
-    private JdbcTemplate jdbcTemplate;
+    private NamedParameterJdbcTemplate jdbcTemplate;
 
     @Autowired
     private MembershipEffectivePermissionProjectionRefresher permissionProjectionRefresher;
@@ -100,8 +100,8 @@ class UserAuthApiIntegrationTests {
     }
 
     private void clearData() {
-        jdbcTemplate.update("DELETE FROM membership_effective_permissions");
-        jdbcTemplate.update("DELETE FROM tenant_role_template_bindings");
+        jdbcTemplate.getJdbcOperations().update("DELETE FROM membership_effective_permissions");
+        jdbcTemplate.getJdbcOperations().update("DELETE FROM tenant_role_template_bindings");
         roleAssignmentAuditRepository.deleteAll();
         membershipRoleAssignmentRepository.deleteAll();
         membershipRepository.deleteAll();
@@ -613,7 +613,7 @@ class UserAuthApiIntegrationTests {
     }
 
     private void bindTenantOwnerTemplate(String tenantId, String actorUserId) {
-        jdbcTemplate.update(
+        jdbcTemplate.getJdbcOperations().update(
             """
                 INSERT INTO tenant_role_template_bindings (
                     binding_id,

@@ -4,24 +4,24 @@ import java.time.OffsetDateTime;
 import java.time.ZoneOffset;
 import java.util.List;
 import lombok.RequiredArgsConstructor;
-import org.springframework.jdbc.core.JdbcTemplate;
+import org.springframework.jdbc.core.namedparam.NamedParameterJdbcTemplate;
 import org.springframework.stereotype.Component;
 
 @Component
 @RequiredArgsConstructor
 public class MembershipEffectivePermissionProjectionRefresher {
 
-    private final JdbcTemplate jdbcTemplate;
+    private final NamedParameterJdbcTemplate jdbcTemplate;
 
     public void refreshMembership(String membershipId) {
         if (membershipId == null || membershipId.isBlank()) {
             return;
         }
-        jdbcTemplate.update(
+        jdbcTemplate.getJdbcOperations().update(
             "DELETE FROM membership_effective_permissions WHERE membership_id = ?",
             membershipId
         );
-        jdbcTemplate.update(
+        jdbcTemplate.getJdbcOperations().update(
             """
                 INSERT INTO membership_effective_permissions (
                     membership_id,
@@ -100,7 +100,7 @@ public class MembershipEffectivePermissionProjectionRefresher {
         if (tenantId == null || tenantId.isBlank()) {
             return;
         }
-        List<String> membershipIds = jdbcTemplate.queryForList(
+        List<String> membershipIds = jdbcTemplate.getJdbcOperations().queryForList(
             "SELECT membership_id FROM memberships WHERE tenant_id = ?",
             String.class,
             tenantId
@@ -111,7 +111,7 @@ public class MembershipEffectivePermissionProjectionRefresher {
     }
 
     public void refreshAll() {
-        List<String> membershipIds = jdbcTemplate.queryForList(
+        List<String> membershipIds = jdbcTemplate.getJdbcOperations().queryForList(
             "SELECT membership_id FROM memberships",
             String.class
         );
@@ -124,7 +124,7 @@ public class MembershipEffectivePermissionProjectionRefresher {
         if (templateId == null || templateId.isBlank()) {
             return;
         }
-        List<String> membershipIds = jdbcTemplate.queryForList(
+        List<String> membershipIds = jdbcTemplate.getJdbcOperations().queryForList(
             """
                 SELECT DISTINCT m.membership_id
                 FROM memberships m

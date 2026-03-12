@@ -11,7 +11,7 @@ import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.boot.ApplicationArguments;
 import org.springframework.boot.ApplicationRunner;
-import org.springframework.jdbc.core.JdbcTemplate;
+import org.springframework.jdbc.core.namedparam.NamedParameterJdbcTemplate;
 import org.springframework.stereotype.Component;
 import org.springframework.transaction.annotation.Transactional;
 
@@ -26,7 +26,7 @@ public class PlatformAdminBootstrap implements ApplicationRunner {
     private static final String DEFAULT_ASSIGNMENT_ID = "00000000-0000-0000-0000-000000000501";
     private static final String PLATFORM_SUPER_ADMIN_ROLE_ID = "role-platform-super-admin";
 
-    private final JdbcTemplate jdbcTemplate;
+    private final NamedParameterJdbcTemplate jdbcTemplate;
     private final PasswordHasherPort passwordHasher;
     private final Clock clock;
     private final boolean enabled;
@@ -35,7 +35,7 @@ public class PlatformAdminBootstrap implements ApplicationRunner {
     private final String adminPhone;
 
     public PlatformAdminBootstrap(
-        JdbcTemplate jdbcTemplate,
+        NamedParameterJdbcTemplate jdbcTemplate,
         PasswordHasherPort passwordHasher,
         Clock clock,
         @Value("${app.bootstrap.platform-admin.enabled:false}") boolean enabled,
@@ -78,7 +78,7 @@ public class PlatformAdminBootstrap implements ApplicationRunner {
             return existingUserId;
         }
 
-        jdbcTemplate.update(
+        jdbcTemplate.getJdbcOperations().update(
             """
             INSERT INTO user_accounts (user_id, email, password_hash, phone, status, verification_level)
             VALUES (?, ?, ?, ?, 'ACTIVE', 'PHONE_VERIFIED')
@@ -95,7 +95,7 @@ public class PlatformAdminBootstrap implements ApplicationRunner {
         if (exists("SELECT 1 FROM tenants WHERE tenant_id = ?", DEFAULT_TENANT_ID)) {
             return;
         }
-        jdbcTemplate.update(
+        jdbcTemplate.getJdbcOperations().update(
             """
             INSERT INTO tenants (tenant_id, name, region, type, status)
             VALUES (?, ?, ?, 'INTERNAL', 'ACTIVE')
@@ -117,7 +117,7 @@ public class PlatformAdminBootstrap implements ApplicationRunner {
             DEFAULT_TENANT_ID
         );
         if (existingMembershipId != null) {
-            jdbcTemplate.update(
+            jdbcTemplate.getJdbcOperations().update(
                 """
                 UPDATE memberships
                 SET group_type = 'INTERNAL',
@@ -135,7 +135,7 @@ public class PlatformAdminBootstrap implements ApplicationRunner {
             membershipId = UUID.randomUUID().toString();
         }
 
-        jdbcTemplate.update(
+        jdbcTemplate.getJdbcOperations().update(
             """
             INSERT INTO memberships (
                 membership_id, user_id, tenant_id, group_type,
@@ -160,7 +160,7 @@ public class PlatformAdminBootstrap implements ApplicationRunner {
             assignmentId = UUID.randomUUID().toString();
         }
 
-        jdbcTemplate.update(
+        jdbcTemplate.getJdbcOperations().update(
             """
             INSERT INTO membership_role_assignments (
                 assignment_id, membership_id, role_id, assigned_by_user_id, assigned_at
@@ -176,7 +176,7 @@ public class PlatformAdminBootstrap implements ApplicationRunner {
     }
 
     private boolean exists(String sql, Object... args) {
-        Integer count = jdbcTemplate.queryForObject(
+        Integer count = jdbcTemplate.getJdbcOperations().queryForObject(
             "SELECT COUNT(*) FROM (" + sql + ") t",
             Integer.class,
             args
@@ -185,6 +185,6 @@ public class PlatformAdminBootstrap implements ApplicationRunner {
     }
 
     private String querySingle(String sql, Object... args) {
-        return jdbcTemplate.query(sql, rs -> rs.next() ? rs.getString(1) : null, args);
+        return jdbcTemplate.getJdbcOperations().query(sql, rs -> rs.next() ? rs.getString(1) : null, args);
     }
 }

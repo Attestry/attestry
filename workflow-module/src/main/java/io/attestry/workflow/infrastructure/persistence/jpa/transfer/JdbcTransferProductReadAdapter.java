@@ -4,21 +4,21 @@ import io.attestry.workflow.application.port.delegation.PassportAuthorityQueryPo
 import io.attestry.workflow.application.port.transfer.TransferProductReadPort;
 import java.util.List;
 import java.util.Optional;
-import org.springframework.jdbc.core.JdbcTemplate;
+import org.springframework.jdbc.core.namedparam.NamedParameterJdbcTemplate;
 import org.springframework.stereotype.Repository;
 
 @Repository
 public class JdbcTransferProductReadAdapter implements TransferProductReadPort, PassportAuthorityQueryPort {
 
-    private final JdbcTemplate jdbcTemplate;
+    private final NamedParameterJdbcTemplate jdbcTemplate;
 
-    public JdbcTransferProductReadAdapter(JdbcTemplate jdbcTemplate) {
+    public JdbcTransferProductReadAdapter(NamedParameterJdbcTemplate jdbcTemplate) {
         this.jdbcTemplate = jdbcTemplate;
     }
 
     @Override
     public Optional<TransferPassportState> findPassportState(String passportId) {
-        List<TransferPassportState> rows = jdbcTemplate.query(
+        List<TransferPassportState> rows = jdbcTemplate.getJdbcOperations().query(
             """
                 SELECT passport_id, tenant_id, asset_state, risk_flag
                 FROM workflow_passport_state_projection
@@ -48,7 +48,7 @@ public class JdbcTransferProductReadAdapter implements TransferProductReadPort, 
 
     @Override
     public Optional<String> findCurrentOwnerId(String passportId) {
-        List<String> rows = jdbcTemplate.query(
+        List<String> rows = jdbcTemplate.getJdbcOperations().query(
             "SELECT owner_id FROM workflow_passport_ownership_projection WHERE passport_id = ?",
             (rs, rowNum) -> rs.getString("owner_id"),
             passportId
@@ -58,7 +58,7 @@ public class JdbcTransferProductReadAdapter implements TransferProductReadPort, 
 
     @Override
     public boolean hasRetailPermission(String passportId, String sellerTenantId) {
-        Integer count = jdbcTemplate.queryForObject(
+        Integer count = jdbcTemplate.getJdbcOperations().queryForObject(
             """
                 SELECT COUNT(1)
                 FROM workflow_passport_permission_projection

@@ -3,15 +3,15 @@ package io.attestry.workflow.infrastructure.persistence.jpa.projection;
 import io.attestry.workflow.application.port.projection.WorkflowPassportProjectionWritePort;
 import java.sql.Timestamp;
 import java.time.Instant;
-import org.springframework.jdbc.core.JdbcTemplate;
+import org.springframework.jdbc.core.namedparam.NamedParameterJdbcTemplate;
 import org.springframework.stereotype.Component;
 
 @Component
 public class WorkflowPassportProjectionWriter implements WorkflowPassportProjectionWritePort {
 
-    private final JdbcTemplate jdbcTemplate;
+    private final NamedParameterJdbcTemplate jdbcTemplate;
 
-    public WorkflowPassportProjectionWriter(JdbcTemplate jdbcTemplate) {
+    public WorkflowPassportProjectionWriter(NamedParameterJdbcTemplate jdbcTemplate) {
         this.jdbcTemplate = jdbcTemplate;
     }
 
@@ -19,7 +19,7 @@ public class WorkflowPassportProjectionWriter implements WorkflowPassportProject
     public void refreshStateAndCatalog(String passportId, String sourceEventId, Long sourceEventVersion, Instant updatedAt) {
         Timestamp timestamp = Timestamp.from(updatedAt);
 
-        jdbcTemplate.update(
+        jdbcTemplate.getJdbcOperations().update(
             """
                 INSERT INTO workflow_passport_state_projection (
                     passport_id,
@@ -61,7 +61,7 @@ public class WorkflowPassportProjectionWriter implements WorkflowPassportProject
             passportId
         );
 
-        jdbcTemplate.update(
+        jdbcTemplate.getJdbcOperations().update(
             """
                 INSERT INTO workflow_passport_catalog_projection (
                     passport_id,
@@ -111,7 +111,7 @@ public class WorkflowPassportProjectionWriter implements WorkflowPassportProject
 
     @Override
     public void upsertOwnership(String passportId, String ownerId, String sourceEventId, Long sourceEventVersion, Instant updatedAt) {
-        jdbcTemplate.update(
+        jdbcTemplate.getJdbcOperations().update(
             """
                 INSERT INTO workflow_passport_ownership_projection (
                     passport_id,
@@ -133,7 +133,7 @@ public class WorkflowPassportProjectionWriter implements WorkflowPassportProject
             Timestamp.from(updatedAt)
         );
 
-        jdbcTemplate.update(
+        jdbcTemplate.getJdbcOperations().update(
             """
                 UPDATE workflow_passport_state_projection
                 SET current_owner_id = ?,
@@ -152,7 +152,7 @@ public class WorkflowPassportProjectionWriter implements WorkflowPassportProject
 
     @Override
     public void syncPermissionById(String permissionId, String sourceEventId, Long sourceEventVersion, Instant updatedAt) {
-        jdbcTemplate.update(
+        jdbcTemplate.getJdbcOperations().update(
             """
                 INSERT INTO workflow_passport_permission_projection (
                     permission_id,
@@ -193,7 +193,7 @@ public class WorkflowPassportProjectionWriter implements WorkflowPassportProject
 
     @Override
     public void revokeServiceRequestPermissions(String linkedServiceRequestId, String sourceEventId, Instant updatedAt) {
-        jdbcTemplate.update(
+        jdbcTemplate.getJdbcOperations().update(
             """
                 UPDATE workflow_passport_permission_projection
                 SET status = 'REVOKED',
@@ -214,7 +214,7 @@ public class WorkflowPassportProjectionWriter implements WorkflowPassportProject
 
     @Override
     public void revokeConsentPermissions(String passportId, String providerTenantId, String sourceEventId, Instant updatedAt) {
-        jdbcTemplate.update(
+        jdbcTemplate.getJdbcOperations().update(
             """
                 UPDATE workflow_passport_permission_projection
                 SET status = 'REVOKED',

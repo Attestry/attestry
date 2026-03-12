@@ -3,21 +3,21 @@ package io.attestry.workflow.infrastructure.persistence.jpa.servicerequest;
 import io.attestry.workflow.application.port.servicerequest.ServiceProductReadPort;
 import java.util.List;
 import java.util.Optional;
-import org.springframework.jdbc.core.JdbcTemplate;
+import org.springframework.jdbc.core.namedparam.NamedParameterJdbcTemplate;
 import org.springframework.stereotype.Repository;
 
 @Repository
 public class JdbcServiceProductReadAdapter implements ServiceProductReadPort {
 
-    private final JdbcTemplate jdbcTemplate;
+    private final NamedParameterJdbcTemplate jdbcTemplate;
 
-    public JdbcServiceProductReadAdapter(JdbcTemplate jdbcTemplate) {
+    public JdbcServiceProductReadAdapter(NamedParameterJdbcTemplate jdbcTemplate) {
         this.jdbcTemplate = jdbcTemplate;
     }
 
     @Override
     public Optional<ServicePassportState> findPassportState(String passportId) {
-        List<ServicePassportState> rows = jdbcTemplate.query(
+        List<ServicePassportState> rows = jdbcTemplate.getJdbcOperations().query(
             """
                 SELECT passport_id, tenant_id, asset_state, risk_flag
                 FROM workflow_passport_state_projection
@@ -36,7 +36,7 @@ public class JdbcServiceProductReadAdapter implements ServiceProductReadPort {
 
     @Override
     public Optional<String> findCurrentOwnerId(String passportId) {
-        List<String> rows = jdbcTemplate.query(
+        List<String> rows = jdbcTemplate.getJdbcOperations().query(
             """
                 SELECT owner_id FROM workflow_passport_ownership_projection
                 WHERE passport_id = ?
@@ -49,7 +49,7 @@ public class JdbcServiceProductReadAdapter implements ServiceProductReadPort {
 
     @Override
     public Optional<ServicePassportAssetInfo> findPassportAssetInfo(String passportId) {
-        List<ServicePassportAssetInfo> rows = jdbcTemplate.query(
+        List<ServicePassportAssetInfo> rows = jdbcTemplate.getJdbcOperations().query(
             """
                 SELECT passport_id, serial_number, model_name
                 FROM workflow_passport_catalog_projection

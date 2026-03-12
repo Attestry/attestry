@@ -12,6 +12,7 @@ import static org.mockito.Mockito.when;
 import io.attestry.userauth.domain.identity.model.VerificationLevel;
 import io.attestry.userauth.security.AuthPrincipal;
 import io.attestry.workflow.application.port.servicerequest.ServicePermissionPort;
+import io.attestry.workflow.application.servicerequest.policy.ServiceRequestAccessPolicy;
 import io.attestry.workflow.application.servicerequest.result.CancelServiceRequestResult;
 import io.attestry.workflow.application.support.WorkflowAuthorizationSupport;
 import io.attestry.workflow.domain.WorkflowDomainException;
@@ -47,8 +48,9 @@ class ServiceCancelServiceTest {
 
     @BeforeEach
     void setUp() {
+        ServiceRequestAccessPolicy accessPolicy = new ServiceRequestAccessPolicy(authorizationSupport);
         service = new ServiceCancelService(
-            serviceRequestRepository, servicePermissionPort, authorizationSupport, clock
+            serviceRequestRepository, servicePermissionPort, accessPolicy, clock
         );
     }
 

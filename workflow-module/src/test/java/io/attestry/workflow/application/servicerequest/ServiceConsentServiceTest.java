@@ -15,6 +15,7 @@ import io.attestry.workflow.application.port.servicerequest.ServicePermissionPor
 import io.attestry.workflow.application.port.servicerequest.ServiceProductReadPort;
 import io.attestry.workflow.application.port.servicerequest.ServiceProductReadPort.ServicePassportState;
 import io.attestry.workflow.application.servicerequest.command.GrantServiceConsentCommand;
+import io.attestry.workflow.application.servicerequest.policy.ServiceRequestAccessPolicy;
 import io.attestry.workflow.application.servicerequest.result.GrantServiceConsentResult;
 import io.attestry.workflow.application.servicerequest.result.RevokeServiceConsentResult;
 import io.attestry.workflow.application.support.WorkflowAuthorizationSupport;
@@ -52,8 +53,17 @@ class ServiceConsentServiceTest {
 
     @BeforeEach
     void setUp() {
+        ServiceRequestAccessPolicy accessPolicy = new ServiceRequestAccessPolicy(authorizationSupport);
+        ServiceConsentExecutor consentExecutor = new ServiceConsentExecutor(
+            servicePermissionPort,
+            serviceSubmitUseCase,
+            clock
+        );
         service = new ServiceConsentService(
-            serviceProductReadPort, servicePermissionPort, serviceSubmitUseCase, authorizationSupport, consentPolicy, clock
+            serviceProductReadPort,
+            accessPolicy,
+            consentPolicy,
+            consentExecutor
         );
     }
 
@@ -65,7 +75,7 @@ class ServiceConsentServiceTest {
         when(serviceProductReadPort.findCurrentOwnerId("p1")).thenReturn(Optional.of("owner1"));
         when(servicePermissionPort.grantServiceRepairConsent(anyString(), anyString(), anyString(), any(Instant.class)))
             .thenReturn("perm1");
-        when(serviceSubmitUseCase.approve(any(), any())).thenReturn(
+        when(serviceSubmitUseCase.submit(any(), any())).thenReturn(
             new io.attestry.workflow.application.servicerequest.result.SubmitServiceRequestResult(
                 "sr1", "p1", "provG1", "REPAIR", "PENDING", "perm1", Instant.parse("2026-03-01T10:00:00Z")
             )

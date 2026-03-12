@@ -16,7 +16,7 @@ import java.util.Optional;
 import java.util.Set;
 import java.util.UUID;
 import lombok.RequiredArgsConstructor;
-import org.springframework.jdbc.core.JdbcTemplate;
+import org.springframework.jdbc.core.namedparam.NamedParameterJdbcTemplate;
 import org.springframework.stereotype.Repository;
 
 @Repository
@@ -24,12 +24,12 @@ import org.springframework.stereotype.Repository;
 public class JpaTemplateAdminRepositoryAdapter
         implements PermissionTemplatePort, PermissionCatalogPort, TenantRoleTemplateBindingPort {
 
-    private final JdbcTemplate jdbcTemplate;
+    private final NamedParameterJdbcTemplate jdbcTemplate;
     private final MembershipEffectivePermissionProjectionRefresher permissionProjectionRefresher;
 
     @Override
     public Optional<PermissionTemplateView> findTemplateByCode(String templateCode) {
-        List<PermissionTemplateView> rows = jdbcTemplate.query(
+        List<PermissionTemplateView> rows = jdbcTemplate.getJdbcOperations().query(
             """
                 SELECT template_id, tenant_id, code, name, description, enabled
                 FROM permission_templates
@@ -44,7 +44,7 @@ public class JpaTemplateAdminRepositoryAdapter
 
     @Override
     public Optional<PermissionTemplateView> findTemplateByCodeAndTenantId(String templateCode, String tenantId) {
-        List<PermissionTemplateView> rows = jdbcTemplate.query(
+        List<PermissionTemplateView> rows = jdbcTemplate.getJdbcOperations().query(
             """
                 SELECT template_id, tenant_id, code, name, description, enabled
                 FROM permission_templates
@@ -60,7 +60,7 @@ public class JpaTemplateAdminRepositoryAdapter
 
     @Override
     public Optional<PermissionTemplateView> findTemplateVisibleToTenant(String templateCode, String tenantId) {
-        List<PermissionTemplateView> rows = jdbcTemplate.query(
+        List<PermissionTemplateView> rows = jdbcTemplate.getJdbcOperations().query(
             """
                 SELECT template_id, tenant_id, code, name, description, enabled
                 FROM permission_templates
@@ -79,7 +79,7 @@ public class JpaTemplateAdminRepositoryAdapter
 
     @Override
     public List<PermissionTemplateView> findAllTemplates() {
-        return jdbcTemplate.query(
+        return jdbcTemplate.getJdbcOperations().query(
             """
                 SELECT template_id, tenant_id, code, name, description, enabled
                 FROM permission_templates
@@ -92,7 +92,7 @@ public class JpaTemplateAdminRepositoryAdapter
 
     @Override
     public List<PermissionTemplateView> findTemplatesVisibleToTenant(String tenantId) {
-        return jdbcTemplate.query(
+        return jdbcTemplate.getJdbcOperations().query(
             """
                 SELECT template_id, tenant_id, code, name, description, enabled
                 FROM permission_templates
@@ -121,7 +121,7 @@ public class JpaTemplateAdminRepositoryAdapter
             throw new UserAuthDomainException(UserAuthErrorCode.DUPLICATE_TEMPLATE_CODE, "Template code already exists");
         }
         String templateId = UUID.randomUUID().toString();
-        jdbcTemplate.update(
+        jdbcTemplate.getJdbcOperations().update(
             """
                 INSERT INTO permission_templates (
                     template_id,
@@ -159,7 +159,7 @@ public class JpaTemplateAdminRepositoryAdapter
             ? findTemplateByCode(code)
             : findTemplateByCodeAndTenantId(code, tenantId))
             .orElseThrow(() -> new UserAuthDomainException(UserAuthErrorCode.TEMPLATE_NOT_FOUND, "Template not found"));
-        jdbcTemplate.update(
+        jdbcTemplate.getJdbcOperations().update(
             """
                 UPDATE permission_templates
                 SET name = COALESCE(?, name),
@@ -195,7 +195,7 @@ public class JpaTemplateAdminRepositoryAdapter
         String resourceType,
         String action
     ) {
-        Integer count = jdbcTemplate.queryForObject(
+        Integer count = jdbcTemplate.getJdbcOperations().queryForObject(
             "SELECT COUNT(1) FROM permissions WHERE code = ?",
             Integer.class,
             code
@@ -204,7 +204,7 @@ public class JpaTemplateAdminRepositoryAdapter
             throw new UserAuthDomainException(UserAuthErrorCode.INVALID_REQUEST, "Permission code already exists: " + code);
         }
         String permissionId = UUID.randomUUID().toString();
-        jdbcTemplate.update(
+        jdbcTemplate.getJdbcOperations().update(
             """
                 INSERT INTO permissions (
                     permission_id,
@@ -229,7 +229,7 @@ public class JpaTemplateAdminRepositoryAdapter
 
     @Override
     public List<PermissionView> findAllPermissions() {
-        return jdbcTemplate.query(
+        return jdbcTemplate.getJdbcOperations().query(
             """
                 SELECT permission_id, code, name, description, resource_type, action, enabled
                 FROM permissions
@@ -243,9 +243,9 @@ public class JpaTemplateAdminRepositoryAdapter
     public Set<String> replaceTemplatePermissions(String templateCode, String tenantId, Set<String> permissionCodes) {
         String templateId = getTemplateId(templateCode, tenantId);
         ensurePermissionCodesExist(permissionCodes);
-        jdbcTemplate.update("DELETE FROM template_permissions WHERE template_id = ?", templateId);
+        jdbcTemplate.getJdbcOperations().update("DELETE FROM template_permissions WHERE template_id = ?", templateId);
         for (String permissionCode : permissionCodes) {
-            jdbcTemplate.update(
+            jdbcTemplate.getJdbcOperations().update(
                 """
                     INSERT INTO template_permissions (template_id, permission_id)
                     SELECT ?, p.permission_id
@@ -266,7 +266,7 @@ public class JpaTemplateAdminRepositoryAdapter
         String templateId = getTemplateId(templateCode, tenantId);
         ensurePermissionCodesExist(permissionCodes);
         for (String permissionCode : permissionCodes) {
-            jdbcTemplate.update(
+            jdbcTemplate.getJdbcOperations().update(
                 """
                     INSERT INTO template_permissions (template_id, permission_id)
                     SELECT ?, p.permission_id
@@ -291,7 +291,7 @@ public class JpaTemplateAdminRepositoryAdapter
     @Override
     public Set<String> removeTemplatePermission(String templateCode, String tenantId, String permissionCode) {
         String templateId = getTemplateId(templateCode, tenantId);
-        jdbcTemplate.update(
+        jdbcTemplate.getJdbcOperations().update(
             """
                 DELETE FROM template_permissions
                 WHERE template_id = ?
@@ -320,7 +320,7 @@ public class JpaTemplateAdminRepositoryAdapter
         String templateId = getBindableTemplateId(tenantId, templateCode);
         TenantRoleTemplateBindingView existing = findBinding(tenantId, roleCode, templateCode).orElse(null);
         if (existing == null) {
-            jdbcTemplate.update(
+            jdbcTemplate.getJdbcOperations().update(
                 """
                     INSERT INTO tenant_role_template_bindings (
                         binding_id,
@@ -340,7 +340,7 @@ public class JpaTemplateAdminRepositoryAdapter
                 Timestamp.from(now)
             );
         } else {
-            jdbcTemplate.update(
+            jdbcTemplate.getJdbcOperations().update(
                 """
                     UPDATE tenant_role_template_bindings
                     SET enabled = TRUE,
@@ -363,7 +363,7 @@ public class JpaTemplateAdminRepositoryAdapter
     @Override
     public List<TenantRoleTemplateBindingView> findTenantRoleTemplateBindings(String tenantId) {
         ensureTenantExists(tenantId);
-        return jdbcTemplate.query(
+        return jdbcTemplate.getJdbcOperations().query(
             """
                 SELECT trtb.binding_id, trtb.tenant_id, trtb.role_code, t.code AS template_code, trtb.enabled
                 FROM tenant_role_template_bindings trtb
@@ -380,7 +380,7 @@ public class JpaTemplateAdminRepositoryAdapter
     public void disableTenantRoleTemplateBinding(String tenantId, String roleCode, String templateCode, Instant now) {
         ensureTenantExists(tenantId);
         String templateId = getBindableTemplateId(tenantId, templateCode);
-        int updated = jdbcTemplate.update(
+        int updated = jdbcTemplate.getJdbcOperations().update(
             """
                 UPDATE tenant_role_template_bindings
                 SET enabled = FALSE,
@@ -401,7 +401,7 @@ public class JpaTemplateAdminRepositoryAdapter
     }
 
     private Optional<TenantRoleTemplateBindingView> findBinding(String tenantId, String roleCode, String templateCode) {
-        List<TenantRoleTemplateBindingView> rows = jdbcTemplate.query(
+        List<TenantRoleTemplateBindingView> rows = jdbcTemplate.getJdbcOperations().query(
             """
                 SELECT trtb.binding_id, trtb.tenant_id, trtb.role_code, t.code AS template_code, trtb.enabled
                 FROM tenant_role_template_bindings trtb
@@ -434,7 +434,7 @@ public class JpaTemplateAdminRepositoryAdapter
     }
 
     private Set<String> findPermissionCodesByTemplateId(String templateId) {
-        return new LinkedHashSet<>(jdbcTemplate.query(
+        return new LinkedHashSet<>(jdbcTemplate.getJdbcOperations().query(
             """
                 SELECT p.code
                 FROM template_permissions tp
@@ -450,7 +450,7 @@ public class JpaTemplateAdminRepositoryAdapter
 
     private void ensurePermissionCodesExist(Set<String> permissionCodes) {
         for (String permissionCode : permissionCodes) {
-            Integer count = jdbcTemplate.queryForObject(
+            Integer count = jdbcTemplate.getJdbcOperations().queryForObject(
                 "SELECT COUNT(1) FROM permissions WHERE code = ? AND enabled = TRUE",
                 Integer.class,
                 permissionCode
@@ -462,7 +462,7 @@ public class JpaTemplateAdminRepositoryAdapter
     }
 
     private Optional<PermissionView> findPermissionByCode(String code) {
-        List<PermissionView> rows = jdbcTemplate.query(
+        List<PermissionView> rows = jdbcTemplate.getJdbcOperations().query(
             """
                 SELECT permission_id, code, name, description, resource_type, action, enabled
                 FROM permissions
@@ -475,7 +475,7 @@ public class JpaTemplateAdminRepositoryAdapter
     }
 
     private void ensureTenantExists(String tenantId) {
-        Integer count = jdbcTemplate.queryForObject(
+        Integer count = jdbcTemplate.getJdbcOperations().queryForObject(
             "SELECT COUNT(1) FROM tenants WHERE tenant_id = ?",
             Integer.class,
             tenantId

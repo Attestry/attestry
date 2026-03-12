@@ -116,11 +116,11 @@ public class ServiceRequestHttp {
     @PostMapping("/service-requests")
     @ResponseStatus(HttpStatus.CREATED)
     @PreAuthorize("hasAuthority('SCOPE_OWNER_SERVICE_CREATE')")
-    public ApiResponse<SubmitServiceRequestResponse> approve(
+    public ApiResponse<SubmitServiceRequestResponse> submitRequest(
         @AuthenticationPrincipal AuthPrincipal principal,
         @RequestBody SubmitServiceRequestRequest request
     ) {
-        SubmitServiceRequestResult result = serviceSubmitUseCase.approve(
+        SubmitServiceRequestResult result = serviceSubmitUseCase.submit(
             principal,
             new SubmitServiceRequestCommand(
                 request.passportId(),

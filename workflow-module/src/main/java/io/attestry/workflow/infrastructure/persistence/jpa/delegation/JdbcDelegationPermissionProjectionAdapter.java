@@ -9,7 +9,7 @@ import io.attestry.workflow.domain.partner.model.PartnerLinkStatus;
 import java.sql.Timestamp;
 import java.time.Clock;
 import java.time.Instant;
-import org.springframework.jdbc.core.JdbcTemplate;
+import org.springframework.jdbc.core.namedparam.NamedParameterJdbcTemplate;
 import org.springframework.stereotype.Repository;
 
 @Repository
@@ -24,12 +24,12 @@ public class JdbcDelegationPermissionProjectionAdapter implements DelegationPerm
     private static final String STATUS_LINK_INACTIVE = "LINK_INACTIVE";
     private static final String STATUS_CONSUMED = "CONSUMED";
 
-    private final JdbcTemplate jdbcTemplate;
+    private final NamedParameterJdbcTemplate jdbcTemplate;
     private final Clock clock;
     private final WorkflowPassportProjectionWritePort projectionWriter;
 
     public JdbcDelegationPermissionProjectionAdapter(
-        JdbcTemplate jdbcTemplate,
+        NamedParameterJdbcTemplate jdbcTemplate,
         Clock clock,
         WorkflowPassportProjectionWritePort projectionWriter
     ) {
@@ -91,7 +91,7 @@ public class JdbcDelegationPermissionProjectionAdapter implements DelegationPerm
 
     private void upsert(Delegation delegation, String status) {
         Instant now = Instant.now(clock);
-        jdbcTemplate.update(
+        jdbcTemplate.getJdbcOperations().update(
             """
                 INSERT INTO passport_permissions (
                     permission_id,

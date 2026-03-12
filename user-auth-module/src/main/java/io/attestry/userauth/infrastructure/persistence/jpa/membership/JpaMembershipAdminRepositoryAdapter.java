@@ -24,7 +24,7 @@ import java.util.UUID;
 import java.util.stream.Collectors;
 
 import lombok.RequiredArgsConstructor;
-import org.springframework.jdbc.core.JdbcTemplate;
+import org.springframework.jdbc.core.namedparam.NamedParameterJdbcTemplate;
 import org.springframework.stereotype.Repository;
 
 @RequiredArgsConstructor
@@ -35,7 +35,7 @@ public class JpaMembershipAdminRepositoryAdapter implements MembershipPort {
     private final MembershipRoleAssignmentJpaRepository membershipRoleAssignmentRepository;
     private final RoleJpaRepository roleRepository;
     private final TenantRepositoryPort tenantRepository;
-    private final JdbcTemplate jdbcTemplate;
+    private final NamedParameterJdbcTemplate jdbcTemplate;
     private final MembershipEffectivePermissionProjectionRefresher permissionProjectionRefresher;
 
 
@@ -75,7 +75,7 @@ public class JpaMembershipAdminRepositoryAdapter implements MembershipPort {
         Instant now
     ) {
         for (String permissionCode : permissionCodes) {
-            String permissionId = jdbcTemplate.queryForObject(
+            String permissionId = jdbcTemplate.getJdbcOperations().queryForObject(
                 """
                     SELECT permission_id
                     FROM permissions
@@ -88,7 +88,7 @@ public class JpaMembershipAdminRepositoryAdapter implements MembershipPort {
             if (permissionId == null) {
                 throw new UserAuthDomainException(UserAuthErrorCode.ROLE_NOT_FOUND, "Permission not found: " + permissionCode);
             }
-            int updated = jdbcTemplate.update(
+            int updated = jdbcTemplate.getJdbcOperations().update(
                 """
                     UPDATE membership_permission_overrides
                     SET effect = 'ALLOW',
@@ -107,7 +107,7 @@ public class JpaMembershipAdminRepositoryAdapter implements MembershipPort {
                 permissionId
             );
             if (updated == 0) {
-                jdbcTemplate.update(
+                jdbcTemplate.getJdbcOperations().update(
                     """
                         INSERT INTO membership_permission_overrides (
                             override_id,
@@ -137,7 +137,7 @@ public class JpaMembershipAdminRepositoryAdapter implements MembershipPort {
     @Override
     public void deletePermissionOverrides(String membershipId, Set<String> permissionCodes) {
         for (String permissionCode : permissionCodes) {
-            jdbcTemplate.update(
+            jdbcTemplate.getJdbcOperations().update(
                 """
                     DELETE FROM membership_permission_overrides
                     WHERE membership_id = ?
@@ -164,7 +164,7 @@ public class JpaMembershipAdminRepositoryAdapter implements MembershipPort {
     ) {
         Set<String> permissionCodes = findEnabledPermissionCodesByTemplateCode(templateCode);
         for (String permissionCode : permissionCodes) {
-            String permissionId = jdbcTemplate.queryForObject(
+            String permissionId = jdbcTemplate.getJdbcOperations().queryForObject(
                 """
                     SELECT permission_id
                     FROM permissions
@@ -177,7 +177,7 @@ public class JpaMembershipAdminRepositoryAdapter implements MembershipPort {
             if (permissionId == null) {
                 throw new UserAuthDomainException(UserAuthErrorCode.PERMISSION_NOT_FOUND, "Permission not found: " + permissionCode);
             }
-            int updated = jdbcTemplate.update(
+            int updated = jdbcTemplate.getJdbcOperations().update(
                 """
                     UPDATE membership_permission_overrides
                     SET effect = 'ALLOW',
@@ -195,7 +195,7 @@ public class JpaMembershipAdminRepositoryAdapter implements MembershipPort {
                 permissionId
             );
             if (updated == 0) {
-                jdbcTemplate.update(
+                jdbcTemplate.getJdbcOperations().update(
                     """
                         INSERT INTO membership_permission_overrides (
                             override_id,
@@ -236,7 +236,7 @@ public class JpaMembershipAdminRepositoryAdapter implements MembershipPort {
     }
 
     private Set<String> findEnabledPermissionCodesByTemplateCode(String templateCode) {
-        List<String> codes = jdbcTemplate.queryForList(
+        List<String> codes = jdbcTemplate.getJdbcOperations().queryForList(
             """
                 SELECT p.code
                 FROM permission_templates pt
@@ -251,7 +251,7 @@ public class JpaMembershipAdminRepositoryAdapter implements MembershipPort {
             templateCode
         );
         if (codes.isEmpty()) {
-            boolean exists = Boolean.TRUE.equals(jdbcTemplate.queryForObject(
+            boolean exists = Boolean.TRUE.equals(jdbcTemplate.getJdbcOperations().queryForObject(
                 """
                     SELECT EXISTS(
                         SELECT 1

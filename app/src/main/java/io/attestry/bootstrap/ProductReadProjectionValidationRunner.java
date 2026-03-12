@@ -5,7 +5,7 @@ import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.boot.ApplicationArguments;
 import org.springframework.boot.ApplicationRunner;
-import org.springframework.jdbc.core.JdbcTemplate;
+import org.springframework.jdbc.core.namedparam.NamedParameterJdbcTemplate;
 import org.springframework.stereotype.Component;
 
 @Component
@@ -13,11 +13,11 @@ public class ProductReadProjectionValidationRunner implements ApplicationRunner 
 
     private static final Logger log = LoggerFactory.getLogger(ProductReadProjectionValidationRunner.class);
 
-    private final JdbcTemplate jdbcTemplate;
+    private final NamedParameterJdbcTemplate jdbcTemplate;
     private final boolean enabled;
 
     public ProductReadProjectionValidationRunner(
-        JdbcTemplate jdbcTemplate,
+        NamedParameterJdbcTemplate jdbcTemplate,
         @Value("${app.product.read-projection.validation.enabled:false}") boolean enabled
     ) {
         this.jdbcTemplate = jdbcTemplate;
@@ -149,7 +149,7 @@ public class ProductReadProjectionValidationRunner implements ApplicationRunner 
     }
 
     private long count(String sql) {
-        Long result = jdbcTemplate.queryForObject(sql, Long.class);
+        Long result = jdbcTemplate.getJdbcOperations().queryForObject(sql, Long.class);
         return result != null ? result : 0L;
     }
 }
