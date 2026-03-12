@@ -92,10 +92,9 @@ public class OnboardingHttp {
 
     @GetMapping("/applications/{applicationId}")
     public ApiResponse<ApplicationResponse> getApplication(
-        @CurrentActor ActorContext actor,
         @PathVariable(name = "applicationId") String applicationId
     ) {
-        return ApiResponse.success(ApplicationResponse.from(onboardingQueryUseCase.getMyApplication(actor, applicationId)));
+        return ApiResponse.success(ApplicationResponse.from(onboardingQueryUseCase.getApplication(applicationId)));
     }
 
 
