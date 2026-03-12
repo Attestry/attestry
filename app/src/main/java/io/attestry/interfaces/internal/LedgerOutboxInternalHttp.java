@@ -1,6 +1,6 @@
 package io.attestry.interfaces.internal;
 
-import io.attestry.kafka.ledger.LedgerOutboxEventPayload;
+import io.attestry.commonlib.outbox.OutboxEventEnvelope;
 import io.attestry.kafka.outbox.LedgerOutboxEnqueueService;
 import java.time.Instant;
 import java.util.Map;
@@ -24,7 +24,8 @@ public class LedgerOutboxInternalHttp {
     @PostMapping
     @ResponseStatus(HttpStatus.CREATED)
     public EnqueueResponse enqueue(@RequestBody EnqueueRequest request) {
-        String eventId = enqueueService.enqueue(new LedgerOutboxEventPayload(
+        String eventId = enqueueService.enqueue(new OutboxEventEnvelope(
+            request.aggregateType(),
             request.passportId(),
             request.eventCategory(),
             request.eventAction(),
@@ -38,6 +39,7 @@ public class LedgerOutboxInternalHttp {
     }
 
     public record EnqueueRequest(
+        String aggregateType,
         String passportId,
         String eventCategory,
         String eventAction,

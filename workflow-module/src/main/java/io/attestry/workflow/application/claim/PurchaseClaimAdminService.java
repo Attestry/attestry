@@ -12,7 +12,7 @@ import io.attestry.workflow.application.port.claim.PurchaseClaimProductMintPort;
 import io.attestry.workflow.application.port.common.WorkflowEvidencePort;
 import io.attestry.workflow.application.port.transfer.TransferOwnershipUpdatePort;
 import io.attestry.workflow.application.port.common.WorkflowLedgerOutboxPort;
-import io.attestry.workflow.application.shipment.result.WorkflowLedgerEventEnvelope;
+import io.attestry.workflow.domain.event.WorkflowLedgerEvents;
 import io.attestry.workflow.application.support.WorkflowAuthorizationSupport;
 import io.attestry.workflow.application.usecase.PurchaseClaimAdminUseCase;
 import io.attestry.workflow.domain.WorkflowDomainException;
@@ -105,7 +105,7 @@ public class PurchaseClaimAdminService implements PurchaseClaimAdminUseCase {
 
         List<String> evidenceHashes = evidencePort.findReadyEvidenceHashes(claim.evidenceGroupId());
         ledgerOutboxPort.enqueue(
-            WorkflowLedgerEventEnvelope.purchaseClaimApproved(
+            WorkflowLedgerEvents.purchaseClaimApproved(
                 approved,
                 evidenceHashes,
                 "ADMIN",

@@ -5,10 +5,9 @@ plugins {
 }
 
 dependencies {
-    implementation(project(":common-lib-module"))
+    implementation("${rootProject.group}:attestry-common-lib:${rootProject.version}")
     implementation(project(":user-auth-module"))
     implementation(project(":workflow-module"))
-    implementation(project(":ledger-module"))
     implementation(project(":product-module"))
 
     implementation("org.springframework.boot:spring-boot-starter")

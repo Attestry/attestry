@@ -27,6 +27,8 @@ app:
       access-key: ${MINIO_ACCESS_KEY:minioadmin}
       secret-key: ${MINIO_SECRET_KEY:minioadmin}
   kafka:
+    topic-auto-create:
+      enabled: ${APP_KAFKA_TOPIC_AUTO_CREATE_ENABLED:true}
     client-id: ${KAFKA_CLIENT_ID:attestry-local}
     consumer-group-id: ${KAFKA_CONSUMER_GROUP:attestry-ledger-local}
     outbox:

@@ -2,6 +2,7 @@ package io.attestry.kafka.outbox.persistence;
 
 import java.time.Instant;
 import java.util.List;
+import java.util.Optional;
 import org.springframework.data.domain.Pageable;
 import org.springframework.data.jpa.repository.JpaRepository;
 import org.springframework.data.jpa.repository.Modifying;
@@ -19,6 +20,10 @@ public interface OutboxEventJpaRepository extends JpaRepository<OutboxEventJpaEn
         @Param("now") Instant now,
         Pageable pageable
     );
+
+    long countByStatus(OutboxStatus status);
+
+    Optional<OutboxEventJpaEntity> findFirstByStatusOrderByCreatedAtAsc(OutboxStatus status);
 
     @Modifying
     @Query("DELETE FROM OutboxEventJpaEntity e " +

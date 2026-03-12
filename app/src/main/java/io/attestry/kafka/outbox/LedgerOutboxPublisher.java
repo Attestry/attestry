@@ -11,6 +11,7 @@ import java.time.Clock;
 import java.time.Duration;
 import java.time.Instant;
 import java.util.List;
+import java.util.concurrent.atomic.AtomicLong;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.boot.autoconfigure.condition.ConditionalOnProperty;
@@ -35,6 +36,9 @@ public class LedgerOutboxPublisher {
     private final Counter publishSuccessCounter;
     private final Counter publishFailureCounter;
     private final Timer publishTimer;
+    private final AtomicLong pendingSizeGauge;
+    private final AtomicLong failedSizeGauge;
+    private final AtomicLong oldestPendingAgeSecondsGauge;
 
     public LedgerOutboxPublisher(
         OutboxEventJpaRepository repository,
@@ -55,12 +59,17 @@ public class LedgerOutboxPublisher {
             .register(meterRegistry);
         this.publishTimer = Timer.builder("outbox.publish.duration")
             .register(meterRegistry);
+        this.pendingSizeGauge = meterRegistry.gauge("outbox.pending.size", new AtomicLong(0));
+        this.failedSizeGauge = meterRegistry.gauge("outbox.failed.size", new AtomicLong(0));
+        this.oldestPendingAgeSecondsGauge = meterRegistry.gauge("outbox.pending.oldest.age", new AtomicLong(0));
     }
 
     @Scheduled(fixedDelayString = "${app.kafka.outbox.publish-interval-ms:2000}")
     @Transactional
     public void publishPending() {
+        refreshBacklogMetrics();
         publishTimer.record(this::doPublishPending);
+        refreshBacklogMetrics();
     }
 
     private void doPublishPending() {
@@ -136,6 +145,16 @@ public class LedgerOutboxPublisher {
 
         log.debug("outbox publish batch: batchSize={}, publishedCount={}, failedCount={}",
             pending.size(), publishedCount, failedCount);
+    }
+
+    private void refreshBacklogMetrics() {
+        Instant now = Instant.now(clock);
+        pendingSizeGauge.set(repository.countByStatus(OutboxStatus.PENDING));
+        failedSizeGauge.set(repository.countByStatus(OutboxStatus.FAILED));
+        long oldestAgeSeconds = repository.findFirstByStatusOrderByCreatedAtAsc(OutboxStatus.PENDING)
+            .map(event -> Math.max(0L, Duration.between(event.getCreatedAt(), now).getSeconds()))
+            .orElse(0L);
+        oldestPendingAgeSecondsGauge.set(oldestAgeSeconds);
     }
 
     private Instant computeNextRetryAt(Instant now, int retryCount) {

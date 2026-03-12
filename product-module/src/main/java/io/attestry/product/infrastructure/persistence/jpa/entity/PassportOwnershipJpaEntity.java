@@ -20,21 +20,16 @@ public class PassportOwnershipJpaEntity {
     @Column(name = "updated_at", nullable = false)
     private Instant updatedAt;
 
-    @Column(name = "last_ledger_seq")
-    private Integer lastLedgerSeq;
-
     protected PassportOwnershipJpaEntity() {
     }
 
-    public PassportOwnershipJpaEntity(String passportId, String ownerId, Instant updatedAt, Integer lastLedgerSeq) {
+    public PassportOwnershipJpaEntity(String passportId, String ownerId, Instant updatedAt) {
         this.passportId = passportId;
         this.ownerId = ownerId;
         this.updatedAt = updatedAt;
-        this.lastLedgerSeq = lastLedgerSeq;
     }
 
     public String getPassportId() { return passportId; }
     public String getOwnerId() { return ownerId; }
     public Instant getUpdatedAt() { return updatedAt; }
-    public Integer getLastLedgerSeq() { return lastLedgerSeq; }
 }

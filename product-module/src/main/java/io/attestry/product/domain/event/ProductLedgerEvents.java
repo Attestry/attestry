@@ -1,5 +1,6 @@
 package io.attestry.product.domain.event;
 
+import io.attestry.commonlib.outbox.OutboxEventEnvelope;
 import io.attestry.product.domain.passport.model.ProductAsset;
 import io.attestry.product.domain.passport.model.ProductPassport;
 import io.attestry.product.domain.passport.model.RiskFlag;
@@ -7,21 +8,14 @@ import java.time.Instant;
 import java.util.HashMap;
 import java.util.Map;
 
-public record LedgerEventEnvelope(
-    String aggregateType,
-    String passportId,
-    String eventCategory,
-    String eventAction,
-    String actorRole,
-    String actorId,
-    Instant occurredAt,
-    Map<String, Object> payload,
-    String idempotencyKey
-) {
+public final class ProductLedgerEvents {
 
-    public static LedgerEventEnvelope minted(ProductPassport passport, String actorRole, String actorId, Instant occurredAt) {
+    private ProductLedgerEvents() {
+    }
+
+    public static OutboxEventEnvelope minted(ProductPassport passport, String actorRole, String actorId, Instant occurredAt) {
         ProductAsset asset = passport.getAsset();
-        return new LedgerEventEnvelope(
+        return new OutboxEventEnvelope(
             "PRODUCT",
             passport.getPassportId(),
             "GENESIS",
@@ -44,8 +38,8 @@ public record LedgerEventEnvelope(
         );
     }
 
-    public static LedgerEventEnvelope voided(ProductPassport passport, String actorId, Instant occurredAt) {
-        return new LedgerEventEnvelope(
+    public static OutboxEventEnvelope voided(ProductPassport passport, String actorId, Instant occurredAt) {
+        return new OutboxEventEnvelope(
             "PRODUCT",
             passport.getPassportId(),
             "LIFECYCLE",
@@ -62,7 +56,7 @@ public record LedgerEventEnvelope(
         );
     }
 
-    public static LedgerEventEnvelope riskFlagged(ProductPassport passport, String actorId, Instant occurredAt) {
+    public static OutboxEventEnvelope riskFlagged(ProductPassport passport, String actorId, Instant occurredAt) {
         ProductAsset asset = passport.getAsset();
         String action = asset.getRiskFlag() == RiskFlag.STOLEN ? "STOLEN_FLAGGED" : "LOST_FLAGGED";
 
@@ -74,7 +68,7 @@ public record LedgerEventEnvelope(
             payloadMap.put("policeReportNo", asset.getPoliceReportNo());
         }
 
-        return new LedgerEventEnvelope(
+        return new OutboxEventEnvelope(
             "PRODUCT",
             passport.getPassportId(),
             "RISK",
@@ -87,8 +81,8 @@ public record LedgerEventEnvelope(
         );
     }
 
-    public static LedgerEventEnvelope riskCleared(ProductPassport passport, String actorId, Instant occurredAt, RiskFlag clearedRiskFlag) {
-        return new LedgerEventEnvelope(
+    public static OutboxEventEnvelope riskCleared(ProductPassport passport, String actorId, Instant occurredAt, RiskFlag clearedRiskFlag) {
+        return new OutboxEventEnvelope(
             "PRODUCT",
             passport.getPassportId(),
             "RISK",

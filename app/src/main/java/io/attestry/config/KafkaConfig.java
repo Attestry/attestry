@@ -39,7 +39,7 @@ public class KafkaConfig {
     }
 
     @Bean
-    @ConditionalOnProperty(prefix = "app.kafka", name = "enabled", havingValue = "true", matchIfMissing = true)
+    @ConditionalOnProperty(prefix = "app.kafka.topic-auto-create", name = "enabled", havingValue = "true")
     public NewTopic ledgerOutboxTopic(KafkaProperties properties) {
         return TopicBuilder.name(properties.getTopics().getLedgerOutbox())
             .partitions(properties.getTopics().getPartitions())
@@ -48,7 +48,7 @@ public class KafkaConfig {
     }
 
     @Bean
-    @ConditionalOnProperty(prefix = "app.kafka", name = "enabled", havingValue = "true", matchIfMissing = true)
+    @ConditionalOnProperty(prefix = "app.kafka.topic-auto-create", name = "enabled", havingValue = "true")
     public NewTopic ledgerDlqTopic(KafkaProperties properties) {
         return TopicBuilder.name(properties.getTopics().getLedgerDlq())
             .partitions(properties.getTopics().getPartitions())

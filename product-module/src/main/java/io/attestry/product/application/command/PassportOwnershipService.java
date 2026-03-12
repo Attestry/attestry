@@ -22,7 +22,7 @@ public class PassportOwnershipService implements OwnershipUpdatePort {
         Instant now = Instant.now(clock);
         PassportOwnership ownership = ownershipPort.findByPassportId(passportId)
             .orElseGet(() -> PassportOwnership.empty(passportId));
-        ownership.updateOwner(newOwnerId, 0, now);
+        ownership.updateOwner(newOwnerId, now);
         ownershipPort.save(ownership);
     }
 }

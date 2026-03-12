@@ -7,7 +7,7 @@ import io.attestry.product.application.dto.result.MintedProductResult;
 import io.attestry.product.application.command.dto.MintExecution;
 import io.attestry.product.application.policy.ProductMintAccessPolicy;
 import io.attestry.product.application.usecase.ProductMintUseCase;
-import io.attestry.product.domain.event.LedgerEventEnvelope;
+import io.attestry.commonlib.outbox.OutboxEventEnvelope;
 import io.attestry.product.domain.passport.model.MintProductInput;
 import io.attestry.product.domain.passport.model.ProductPassport;
 import java.io.InputStream;
@@ -43,7 +43,7 @@ public class ProductMintService implements ProductMintUseCase {
 
     private MintedProductResult toMintedProductResult(MintExecution execution) {
         ProductPassport passport = execution.passport();
-        LedgerEventEnvelope event = execution.event();
+        OutboxEventEnvelope event = execution.event();
         return new MintedProductResult(
             passport.getAsset().getAssetId(),
             passport.getPassportId(),

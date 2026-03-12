@@ -5,7 +5,8 @@ import io.attestry.product.application.port.passport.PassportPort;
 import io.attestry.product.application.command.dto.RiskExecution;
 import io.attestry.product.domain.ProductDomainException;
 import io.attestry.product.domain.ProductErrorCode;
-import io.attestry.product.domain.event.LedgerEventEnvelope;
+import io.attestry.commonlib.outbox.OutboxEventEnvelope;
+import io.attestry.product.domain.event.ProductLedgerEvents;
 import io.attestry.product.domain.passport.model.ProductPassport;
 import io.attestry.product.domain.passport.model.RiskFlag;
 import java.time.Clock;
@@ -26,7 +27,7 @@ public class ProductRiskExecutor {
         ProductPassport passport = findPassport(passportId);
         passport.flagStolen(actorId, policeReportNo, now);
         passportPort.save(passport);
-        return new RiskExecution(passport, enqueueSafe(LedgerEventEnvelope.riskFlagged(passport, actorId, now)));
+        return new RiskExecution(passport, enqueueSafe(ProductLedgerEvents.riskFlagged(passport, actorId, now)));
     }
 
     public RiskExecution flagLost(String passportId, String actorId) {
@@ -34,7 +35,7 @@ public class ProductRiskExecutor {
         ProductPassport passport = findPassport(passportId);
         passport.flagLost(actorId, now);
         passportPort.save(passport);
-        return new RiskExecution(passport, enqueueSafe(LedgerEventEnvelope.riskFlagged(passport, actorId, now)));
+        return new RiskExecution(passport, enqueueSafe(ProductLedgerEvents.riskFlagged(passport, actorId, now)));
     }
 
     public RiskExecution clearRisk(String passportId, String actorId) {
@@ -50,6 +51,7 @@ public class ProductRiskExecutor {
         passport.clearRisk();
         passportPort.save(passport);
         return new RiskExecution(passport, enqueueSafe(LedgerEventEnvelope.riskCleared(passport, actorId, now, currentRiskFlag)));
+        return new RiskExecution(passport, enqueueSafe(ProductLedgerEvents.riskCleared(passport, actorId, now, currentRiskFlag)));
     }
 
     private ProductPassport findPassport(String passportId) {
@@ -60,7 +62,7 @@ public class ProductRiskExecutor {
             ));
     }
 
-    private String enqueueSafe(LedgerEventEnvelope event) {
+    private String enqueueSafe(OutboxEventEnvelope event) {
         try {
             return ledgerOutboxPort.enqueue(event);
         } catch (RuntimeException ex) {

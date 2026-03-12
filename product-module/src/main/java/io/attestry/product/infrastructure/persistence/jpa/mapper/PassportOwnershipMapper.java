@@ -16,8 +16,7 @@ public class PassportOwnershipMapper implements DomainMapper<PassportOwnership, 
         return PassportOwnership.reconstitute(
             entity.getPassportId(),
             entity.getOwnerId(),
-            entity.getUpdatedAt(),
-            entity.getLastLedgerSeq()
+            entity.getUpdatedAt()
         );
     }
 
@@ -29,8 +28,7 @@ public class PassportOwnershipMapper implements DomainMapper<PassportOwnership, 
         return new PassportOwnershipJpaEntity(
             ownership.getPassportId(),
             ownership.getOwnerId(),
-            ownership.getUpdatedAt(),
-            ownership.getLastLedgerSeq()
+            ownership.getUpdatedAt()
         );
     }
 }

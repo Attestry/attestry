@@ -2,10 +2,10 @@ package io.attestry.workflow.infrastructure.persistence.jpa.common;
 
 import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.databind.ObjectMapper;
+import io.attestry.commonlib.outbox.OutboxEventEnvelope;
 import io.attestry.workflow.domain.WorkflowDomainException;
 import io.attestry.workflow.domain.WorkflowErrorCode;
 import io.attestry.workflow.application.port.common.WorkflowLedgerOutboxPort;
-import io.attestry.workflow.application.shipment.result.WorkflowLedgerEventEnvelope;
 import java.sql.Timestamp;
 import java.time.Clock;
 import java.time.Instant;
@@ -27,7 +27,7 @@ public class JdbcWorkflowLedgerOutboxAdapter implements WorkflowLedgerOutboxPort
     }
 
     @Override
-    public String enqueue(WorkflowLedgerEventEnvelope event) {
+    public String enqueue(OutboxEventEnvelope event) {
         String payload;
         try {
             payload = objectMapper.writeValueAsString(event);

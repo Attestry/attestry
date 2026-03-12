@@ -6,7 +6,9 @@ import io.attestry.config.KafkaProperties;
 import io.attestry.workflow.application.port.projection.WorkflowPassportProjectionWritePort;
 import io.micrometer.core.instrument.Counter;
 import io.micrometer.core.instrument.MeterRegistry;
+import io.micrometer.core.instrument.Timer;
 import java.nio.charset.StandardCharsets;
+import java.time.Duration;
 import java.time.Instant;
 import org.apache.kafka.clients.producer.ProducerRecord;
 import org.slf4j.Logger;
@@ -27,6 +29,11 @@ public class WorkflowProductProjectionConsumer {
     private final KafkaTemplate<String, String> kafkaTemplate;
     private final KafkaProperties kafkaProperties;
     private final Counter dlqCounter;
+    private final Counter consumeSuccessCounter;
+    private final Counter consumeIgnoredCounter;
+    private final Counter consumeFailureCounter;
+    private final Timer projectionRefreshTimer;
+    private final Timer projectionLagTimer;
 
     public WorkflowProductProjectionConsumer(
         ObjectMapper objectMapper,
@@ -41,21 +48,37 @@ public class WorkflowProductProjectionConsumer {
         this.kafkaProperties = kafkaProperties;
         this.dlqCounter = Counter.builder("workflow.projection.dlq.count")
             .register(meterRegistry);
+        this.consumeSuccessCounter = Counter.builder("workflow.projection.consume.count")
+            .tag("result", "success")
+            .register(meterRegistry);
+        this.consumeIgnoredCounter = Counter.builder("workflow.projection.consume.count")
+            .tag("result", "ignored")
+            .register(meterRegistry);
+        this.consumeFailureCounter = Counter.builder("workflow.projection.consume.count")
+            .tag("result", "failure")
+            .register(meterRegistry);
+        this.projectionRefreshTimer = Timer.builder("workflow.projection.refresh.duration")
+            .register(meterRegistry);
+        this.projectionLagTimer = Timer.builder("workflow.projection.lag")
+            .register(meterRegistry);
     }
 
     @KafkaListener(
         topics = "${app.kafka.topics.ledger-outbox}",
-        groupId = "${app.workflow.read-projection.consumer-group-id:workflow-product-read-projection-consumer}"
+        groupId = "${app.workflow.read-projection.consumer-group-id:workflow-product-read-projection-consumer}",
+        concurrency = "${app.workflow.read-projection.listener-concurrency:1}"
     )
     public void consume(String payload) {
         try {
             JsonNode root = objectMapper.readTree(payload);
             if (!"PRODUCT".equals(root.path("aggregateType").asText())) {
+                consumeIgnoredCounter.increment();
                 return;
             }
 
             String passportId = text(root, "passportId");
             if (passportId == null || passportId.isBlank()) {
+                consumeIgnoredCounter.increment();
                 return;
             }
 
@@ -65,14 +88,26 @@ public class WorkflowProductProjectionConsumer {
                 ? Instant.parse(root.get("occurredAt").asText())
                 : Instant.now();
             String idempotencyKey = text(root, "idempotencyKey");
+            projectionLagTimer.record(Duration.between(occurredAt, Instant.now()).abs());
 
             if (shouldRefreshStateAndCatalog(eventCategory, eventAction)) {
-                projectionWriter.refreshStateAndCatalog(passportId, safeEventId(idempotencyKey, passportId, eventAction), null, occurredAt);
+                projectionRefreshTimer.record(() ->
+                    projectionWriter.refreshStateAndCatalog(
+                        passportId,
+                        safeEventId(idempotencyKey, passportId, eventAction),
+                        null,
+                        occurredAt
+                    )
+                );
+                consumeSuccessCounter.increment();
                 log.debug("workflow product projection refreshed: passportId={}, eventCategory={}, eventAction={}",
                     passportId, eventCategory, eventAction);
+                return;
             }
+            consumeIgnoredCounter.increment();
         } catch (Exception ex) {
             dlqCounter.increment();
+            consumeFailureCounter.increment();
             ProducerRecord<String, String> dlqRecord = new ProducerRecord<>(
                 kafkaProperties.getTopics().getLedgerDlq(), payload);
             dlqRecord.headers()

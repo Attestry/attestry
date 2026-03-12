@@ -70,6 +70,8 @@ app:
     bucket: ${STORAGE_BUCKET:attestry-onboarding}
   kafka:
     enabled: ${APP_KAFKA_ENABLED:true}
+    topic-auto-create:
+      enabled: ${APP_KAFKA_TOPIC_AUTO_CREATE_ENABLED:false}
     client-id: ${KAFKA_CLIENT_ID:attestry}
     consumer-group-id: ${KAFKA_CONSUMER_GROUP:attestry-ledger-consumer}
     topics:
@@ -99,6 +101,7 @@ app:
   workflow:
     read-projection:
       consumer-group-id: ${WORKFLOW_READ_PROJECTION_CONSUMER_GROUP_ID:workflow-product-read-projection-consumer}
+      listener-concurrency: ${WORKFLOW_READ_PROJECTION_LISTENER_CONCURRENCY:1}
       backfill:
         enabled: ${WORKFLOW_READ_PROJECTION_BACKFILL_ENABLED:false}
       validation:

@@ -2,8 +2,8 @@ package io.attestry.product.infrastructure.persistence.jpa.ledger;
 
 import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.databind.ObjectMapper;
+import io.attestry.commonlib.outbox.OutboxEventEnvelope;
 import io.attestry.product.application.port.ledger.LedgerOutboxPort;
-import io.attestry.product.domain.event.LedgerEventEnvelope;
 import io.attestry.product.domain.ProductDomainException;
 import io.attestry.product.domain.ProductErrorCode;
 import jakarta.persistence.EntityManager;
@@ -22,7 +22,7 @@ public class JdbcLedgerOutboxAdapter implements LedgerOutboxPort {
     private final Clock clock;
 
     @Override
-    public String enqueue(LedgerEventEnvelope event) {
+    public String enqueue(OutboxEventEnvelope event) {
         String payload;
         try {
             payload = objectMapper.writeValueAsString(event);

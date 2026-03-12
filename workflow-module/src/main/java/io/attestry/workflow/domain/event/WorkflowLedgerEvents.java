@@ -1,29 +1,22 @@
-package io.attestry.workflow.application.shipment.result;
+package io.attestry.workflow.domain.event;
 
+import io.attestry.commonlib.outbox.OutboxEventEnvelope;
 import io.attestry.workflow.domain.claim.model.PurchaseClaim;
 import io.attestry.workflow.domain.servicerequest.model.ServiceRequest;
 import io.attestry.workflow.domain.shipment.model.Shipment;
 import io.attestry.workflow.domain.transfer.model.TokenTransfer;
 import io.attestry.workflow.domain.transfer.model.TransferType;
 import java.util.HashMap;
-import java.time.Instant;
 import java.util.List;
 import java.util.Map;
 
-public record WorkflowLedgerEventEnvelope(
-    String aggregateType,
-    String passportId,
-    String eventCategory,
-    String eventAction,
-    String actorRole,
-    String actorId,
-    Instant occurredAt,
-    Map<String, Object> payload,
-    String idempotencyKey
-) {
+public final class WorkflowLedgerEvents {
 
-    public static WorkflowLedgerEventEnvelope shipmentReleased(Shipment shipment, List<String> evidenceHashes) {
-        return new WorkflowLedgerEventEnvelope(
+    private WorkflowLedgerEvents() {
+    }
+
+    public static OutboxEventEnvelope shipmentReleased(Shipment shipment, List<String> evidenceHashes) {
+        return new OutboxEventEnvelope(
             "SHIPMENT",
             shipment.passportId(),
             "SHIPMENT",
@@ -42,8 +35,8 @@ public record WorkflowLedgerEventEnvelope(
         );
     }
 
-    public static WorkflowLedgerEventEnvelope shipmentReturned(Shipment shipment, List<String> evidenceHashes, String reason) {
-        return new WorkflowLedgerEventEnvelope(
+    public static OutboxEventEnvelope shipmentReturned(Shipment shipment, List<String> evidenceHashes, String reason) {
+        return new OutboxEventEnvelope(
             "SHIPMENT",
             shipment.passportId(),
             "SHIPMENT",
@@ -63,8 +56,8 @@ public record WorkflowLedgerEventEnvelope(
         );
     }
 
-    public static WorkflowLedgerEventEnvelope ownershipClaimed(TokenTransfer transfer) {
-        return new WorkflowLedgerEventEnvelope(
+    public static OutboxEventEnvelope ownershipClaimed(TokenTransfer transfer) {
+        return new OutboxEventEnvelope(
             "TRANSFER",
             transfer.passportId(),
             "OWNERSHIP",
@@ -82,8 +75,8 @@ public record WorkflowLedgerEventEnvelope(
         );
     }
 
-    public static WorkflowLedgerEventEnvelope ownershipTransferCompleted(TokenTransfer transfer) {
-        return new WorkflowLedgerEventEnvelope(
+    public static OutboxEventEnvelope ownershipTransferCompleted(TokenTransfer transfer) {
+        return new OutboxEventEnvelope(
             "TRANSFER",
             transfer.passportId(),
             "OWNERSHIP",
@@ -101,13 +94,13 @@ public record WorkflowLedgerEventEnvelope(
         );
     }
 
-    public static WorkflowLedgerEventEnvelope purchaseClaimApproved(
+    public static OutboxEventEnvelope purchaseClaimApproved(
         PurchaseClaim claim,
         List<String> evidenceHashes,
         String actorRole,
         String actorId
     ) {
-        return new WorkflowLedgerEventEnvelope(
+        return new OutboxEventEnvelope(
             "PURCHASE_CLAIM",
             claim.passportId(),
             "OWNERSHIP",
@@ -127,7 +120,7 @@ public record WorkflowLedgerEventEnvelope(
         );
     }
 
-    public static WorkflowLedgerEventEnvelope serviceConfirmed(
+    public static OutboxEventEnvelope serviceConfirmed(
         ServiceRequest request,
         List<String> beforeEvidenceHashes,
         List<String> afterEvidenceHashes,
@@ -142,7 +135,7 @@ public record WorkflowLedgerEventEnvelope(
         payload.put("afterEvidenceHashes", afterEvidenceHashes);
         payload.put("completedAt", request.completedAt().toString());
 
-        return new WorkflowLedgerEventEnvelope(
+        return new OutboxEventEnvelope(
             "SERVICE_REQUEST",
             request.passportId(),
             "SERVICE",

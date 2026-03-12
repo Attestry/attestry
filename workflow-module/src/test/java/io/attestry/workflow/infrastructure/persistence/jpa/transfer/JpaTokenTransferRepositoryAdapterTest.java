@@ -3,11 +3,8 @@ package io.attestry.workflow.infrastructure.persistence.jpa.transfer;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.junit.jupiter.api.Assertions.assertTrue;
-import static org.mockito.ArgumentMatchers.any;
-import static org.mockito.ArgumentMatchers.anyString;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
-import static org.mockito.Mockito.lenient;
 
 import io.attestry.workflow.domain.WorkflowDomainException;
 import io.attestry.workflow.domain.WorkflowErrorCode;
@@ -16,36 +13,30 @@ import io.attestry.workflow.domain.transfer.model.AcceptMethod;
 import io.attestry.workflow.domain.transfer.model.TokenTransfer;
 import io.attestry.workflow.domain.transfer.model.TransferStatus;
 import io.attestry.workflow.domain.transfer.model.TransferType;
-import java.sql.Timestamp;
+import io.attestry.workflow.infrastructure.persistence.jpa.transfer.entity.WorkflowTokenTransferJpaEntity;
+import io.attestry.workflow.infrastructure.persistence.jpa.transfer.mapper.TokenTransferMapper;
+import io.attestry.workflow.infrastructure.persistence.jpa.transfer.repository.TokenTransferJpaRepository;
 import java.time.Instant;
-import java.util.List;
 import java.util.Optional;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
-import org.mockito.ArgumentCaptor;
 import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
 import org.springframework.dao.DataIntegrityViolationException;
-import org.springframework.jdbc.core.JdbcOperations;
-import org.springframework.jdbc.core.RowMapper;
-import org.springframework.jdbc.core.namedparam.MapSqlParameterSource;
-import org.springframework.jdbc.core.namedparam.NamedParameterJdbcTemplate;
 
 @ExtendWith(MockitoExtension.class)
-class JdbcTokenTransferRepositoryAdapterTest {
+class JpaTokenTransferRepositoryAdapterTest {
 
     private static final Instant NOW = Instant.parse("2026-03-12T10:00:00Z");
 
-    @Mock NamedParameterJdbcTemplate jdbcTemplate;
-    @Mock JdbcOperations jdbcOperations;
+    @Mock TokenTransferJpaRepository repository;
 
-    private JdbcTokenTransferRepositoryAdapter adapter;
+    private JpaTokenTransferRepositoryAdapter adapter;
 
     @BeforeEach
     void setUp() {
-        adapter = new JdbcTokenTransferRepositoryAdapter(jdbcTemplate);
-        lenient().when(jdbcTemplate.getJdbcOperations()).thenReturn(jdbcOperations);
+        adapter = new JpaTokenTransferRepositoryAdapter(repository, new TokenTransferMapper());
     }
 
     @Test
@@ -60,7 +51,7 @@ class JdbcTokenTransferRepositoryAdapterTest {
             "retail-user-1"
         );
 
-        when(jdbcOperations.update(anyString(), any(Object[].class)))
+        when(repository.save(org.mockito.ArgumentMatchers.any()))
             .thenThrow(new DataIntegrityViolationException(
                 "duplicate key value violates unique constraint \"uq_token_transfers_pending_passport\""
             ));
@@ -71,8 +62,8 @@ class JdbcTokenTransferRepositoryAdapterTest {
     }
 
     @Test
-    void findLatestActivePendingByPassportId_withB2cConditions_bindsTransferTypeAndTenantId() {
-        TokenTransfer pending = new TokenTransfer(
+    void findLatestActivePendingByPassportId_withB2cConditions_usesTypedRepositoryMethod() {
+        WorkflowTokenTransferJpaEntity entity = new WorkflowTokenTransferJpaEntity(
             "t1",
             "p1",
             TransferType.B2C,
@@ -92,9 +83,13 @@ class JdbcTokenTransferRepositoryAdapterTest {
             null,
             null
         );
-
-        when(jdbcTemplate.query(anyString(), any(MapSqlParameterSource.class), anyRowMapper()))
-            .thenReturn(List.of(pending));
+        when(repository.findFirstByPassportIdAndStatusAndExpiresAtAfterAndTransferTypeAndTenantIdOrderByCreatedAtDesc(
+            "p1",
+            TransferStatus.PENDING,
+            NOW,
+            TransferType.B2C,
+            "tenant-1"
+        )).thenReturn(Optional.of(entity));
 
         Optional<TokenTransfer> result = adapter.findLatestActivePendingByPassportId(
             "p1",
@@ -105,25 +100,12 @@ class JdbcTokenTransferRepositoryAdapterTest {
 
         assertTrue(result.isPresent());
         assertEquals("t1", result.get().transferId());
-
-        ArgumentCaptor<String> sqlCaptor = ArgumentCaptor.forClass(String.class);
-        ArgumentCaptor<MapSqlParameterSource> paramsCaptor = ArgumentCaptor.forClass(MapSqlParameterSource.class);
-        verify(jdbcTemplate).query(sqlCaptor.capture(), paramsCaptor.capture(), anyRowMapper());
-
-        String sql = sqlCaptor.getValue();
-        MapSqlParameterSource params = paramsCaptor.getValue();
-
-        assertTrue(sql.contains("transfer_type = :transferType"));
-        assertTrue(sql.contains("tenant_id = :tenantId"));
-        assertEquals("p1", params.getValue("passportId"));
-        assertEquals("PENDING", params.getValue("status"));
-        assertEquals("B2C", params.getValue("transferType"));
-        assertEquals("tenant-1", params.getValue("tenantId"));
-        assertEquals(Timestamp.from(NOW), params.getValue("now"));
-    }
-
-    @SuppressWarnings("unchecked")
-    private static <T> RowMapper<T> anyRowMapper() {
-        return (RowMapper<T>) any(RowMapper.class);
+        verify(repository).findFirstByPassportIdAndStatusAndExpiresAtAfterAndTransferTypeAndTenantIdOrderByCreatedAtDesc(
+            "p1",
+            TransferStatus.PENDING,
+            NOW,
+            TransferType.B2C,
+            "tenant-1"
+        );
     }
 }

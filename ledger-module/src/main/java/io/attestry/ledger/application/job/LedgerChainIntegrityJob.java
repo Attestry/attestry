@@ -1,4 +1,4 @@
-package io.attestry.job;
+package io.attestry.ledger.application.job;
 
 import io.attestry.ledger.application.port.LedgerQueryRepositoryPort;
 import io.attestry.ledger.domain.ledger.model.LedgerChainVerification;

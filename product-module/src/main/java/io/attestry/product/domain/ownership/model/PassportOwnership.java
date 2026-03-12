@@ -7,36 +7,31 @@ public class PassportOwnership {
     private final String passportId;
     private String ownerId;
     private Instant updatedAt;
-    private Integer lastLedgerSeq;
 
-    private PassportOwnership(String passportId, String ownerId, Instant updatedAt, Integer lastLedgerSeq) {
+    private PassportOwnership(String passportId, String ownerId, Instant updatedAt) {
         this.passportId = passportId;
         this.ownerId = ownerId;
         this.updatedAt = updatedAt;
-        this.lastLedgerSeq = lastLedgerSeq;
     }
 
     public static PassportOwnership empty(String passportId) {
-        return new PassportOwnership(passportId, null, Instant.now(), null);
+        return new PassportOwnership(passportId, null, Instant.now());
     }
 
     public static PassportOwnership reconstitute(
         String passportId,
         String ownerId,
-        Instant updatedAt,
-        Integer lastLedgerSeq
+        Instant updatedAt
     ) {
-        return new PassportOwnership(passportId, ownerId, updatedAt, lastLedgerSeq);
+        return new PassportOwnership(passportId, ownerId, updatedAt);
     }
 
-    public void updateOwner(String newOwnerId, int ledgerSeq, Instant now) {
+    public void updateOwner(String newOwnerId, Instant now) {
         this.ownerId = newOwnerId;
-        this.lastLedgerSeq = ledgerSeq;
         this.updatedAt = now;
     }
 
     public String getPassportId() { return passportId; }
     public String getOwnerId() { return ownerId; }
     public Instant getUpdatedAt() { return updatedAt; }
-    public Integer getLastLedgerSeq() { return lastLedgerSeq; }
 }

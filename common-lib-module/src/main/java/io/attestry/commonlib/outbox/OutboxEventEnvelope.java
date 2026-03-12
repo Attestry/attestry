@@ -1,11 +1,10 @@
-package io.attestry.kafka.ledger;
+package io.attestry.commonlib.outbox;
 
-import com.fasterxml.jackson.annotation.JsonIgnoreProperties;
 import java.time.Instant;
 import java.util.Map;
 
-@JsonIgnoreProperties(ignoreUnknown = true)
-public record LedgerOutboxEventPayload(
+public record OutboxEventEnvelope(
+    String aggregateType,
     String passportId,
     String eventCategory,
     String eventAction,

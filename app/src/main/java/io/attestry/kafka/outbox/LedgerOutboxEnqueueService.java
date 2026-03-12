@@ -2,7 +2,7 @@ package io.attestry.kafka.outbox;
 
 import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.databind.ObjectMapper;
-import io.attestry.kafka.ledger.LedgerOutboxEventPayload;
+import io.attestry.commonlib.outbox.OutboxEventEnvelope;
 import io.attestry.kafka.outbox.persistence.OutboxEventJpaEntity;
 import io.attestry.kafka.outbox.persistence.OutboxEventJpaRepository;
 import io.attestry.kafka.outbox.persistence.OutboxStatus;
@@ -26,7 +26,7 @@ public class LedgerOutboxEnqueueService {
     }
 
     @Transactional
-    public String enqueue(LedgerOutboxEventPayload payload) {
+    public String enqueue(OutboxEventEnvelope payload) {
         validate(payload);
         String eventId = UUID.randomUUID().toString();
         String idempotencyKey = normalizeBlank(payload.idempotencyKey());
@@ -48,7 +48,7 @@ public class LedgerOutboxEnqueueService {
         return eventId;
     }
 
-    private String write(LedgerOutboxEventPayload payload) {
+    private String write(OutboxEventEnvelope payload) {
         try {
             return objectMapper.writeValueAsString(payload);
         } catch (JsonProcessingException ex) {
@@ -56,7 +56,7 @@ public class LedgerOutboxEnqueueService {
         }
     }
 
-    private void validate(LedgerOutboxEventPayload payload) {
+    private void validate(OutboxEventEnvelope payload) {
         if (payload == null) {
             throw new IllegalArgumentException("payload is required");
         }
