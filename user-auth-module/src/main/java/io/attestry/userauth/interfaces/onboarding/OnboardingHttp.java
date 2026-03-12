@@ -90,13 +90,25 @@ public class OnboardingHttp {
             .toList());
     }
 
-    @GetMapping("/applications/{applicationId}")
-    public ApiResponse<ApplicationResponse> getApplication(
-        @PathVariable(name = "applicationId") String applicationId
+    @GetMapping("/applications/me/{applicationId}")
+    public ApiResponse<ApplicationResponse> getMyApplication(
+            @CurrentActor ActorContext actor,
+            @PathVariable(name = "applicationId") String applicationId
     ) {
-        return ApiResponse.success(ApplicationResponse.from(onboardingQueryUseCase.getApplication(applicationId)));
+        return ApiResponse.success(
+                ApplicationResponse.from(onboardingQueryUseCase.getMyApplication(actor, applicationId))
+        );
     }
 
+    @GetMapping("/applications/{applicationId}")
+    @PreAuthorize("hasAuthority('SCOPE_TENANT_CREATE_APPROVE')")
+    public ApiResponse<ApplicationResponse> getApplication(
+            @PathVariable(name = "applicationId") String applicationId
+    ) {
+        return ApiResponse.success(
+                ApplicationResponse.from(onboardingQueryUseCase.getApplication(applicationId))
+        );
+    }
 
     @GetMapping("/applications")
     @PreAuthorize("hasAuthority('SCOPE_TENANT_CREATE_APPROVE')")

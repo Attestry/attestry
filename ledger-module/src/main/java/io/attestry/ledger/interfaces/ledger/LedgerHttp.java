@@ -1,5 +1,6 @@
 package io.attestry.ledger.interfaces.ledger;
 
+import io.attestry.commonlib.infrastructure.ApiResponse;
 import io.attestry.ledger.application.ledger.query.LedgerEntryView;
 import io.attestry.ledger.application.ledger.verification.LedgerVerificationResult;
 import io.attestry.ledger.application.usecase.LedgerQueryUseCase;
@@ -28,30 +29,36 @@ public class LedgerHttp {
     }
 
     @GetMapping("/passports/{passportId}/entries")
-    public List<LedgerEntryResponse> listByPassport(@PathVariable("passportId") String passportId) {
-        return ledgerQueryUseCase.listByPassportId(passportId).stream()
-            .map(LedgerEntryResponse::from)
-            .toList();
+    public ApiResponse<List<LedgerEntryResponse>> listByPassport(@PathVariable("passportId") String passportId) {
+        return ApiResponse.success(
+            ledgerQueryUseCase.listByPassportId(passportId).stream()
+                .map(LedgerEntryResponse::from)
+                .toList()
+        );
     }
 
     @GetMapping("/passports/{passportId}/entries/{ledgerId}")
-    public LedgerEntryResponse getById(
+    public ApiResponse<LedgerEntryResponse> getById(
         @PathVariable("passportId") String passportId,
         @PathVariable("ledgerId") String ledgerId
     ) {
-        return LedgerEntryResponse.from(ledgerQueryUseCase.getByPassportIdAndLedgerId(passportId, ledgerId));
+        return ApiResponse.success(
+            LedgerEntryResponse.from(ledgerQueryUseCase.getByPassportIdAndLedgerId(passportId, ledgerId))
+        );
     }
 
     @GetMapping("/passports/{passportId}/verify")
-    public LedgerVerificationResponse verify(@PathVariable("passportId") String passportId) {
+    public ApiResponse<LedgerVerificationResponse> verify(@PathVariable("passportId") String passportId) {
         LedgerVerificationResult result = ledgerVerificationUseCase.verifyChain(passportId);
-        return new LedgerVerificationResponse(
-            result.passportId(),
-            result.valid(),
-            result.totalEntries(),
-            result.failedSeq(),
-            result.reason(),
-            result.latestEntryHash()
+        return ApiResponse.success(
+            new LedgerVerificationResponse(
+                result.passportId(),
+                result.valid(),
+                result.totalEntries(),
+                result.failedSeq(),
+                result.reason(),
+                result.latestEntryHash()
+            )
         );
     }
 
