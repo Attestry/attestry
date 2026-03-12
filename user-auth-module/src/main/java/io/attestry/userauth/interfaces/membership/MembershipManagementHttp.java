@@ -40,7 +40,7 @@ import org.springframework.web.bind.annotation.RestController;
 
 @RequiredArgsConstructor
 @RestController
-@RequestMapping("/admin")
+@RequestMapping
 public class MembershipManagementHttp {
 
     private final MembershipQueryUseCase membershipQueryUseCase;

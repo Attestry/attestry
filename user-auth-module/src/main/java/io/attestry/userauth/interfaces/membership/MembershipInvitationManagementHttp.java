@@ -23,7 +23,7 @@ import org.springframework.web.bind.annotation.RestController;
 
 @RequiredArgsConstructor
 @RestController
-@RequestMapping("/admin")
+@RequestMapping
 public class MembershipInvitationManagementHttp {
 
     private final MembershipCommandUseCase membershipCommandUseCase;
