@@ -13,6 +13,7 @@ import io.attestry.userauth.infrastructure.persistence.jpa.entity.MembershipRole
 import io.attestry.userauth.infrastructure.persistence.jpa.repository.MembershipJpaRepository;
 import io.attestry.userauth.infrastructure.persistence.jpa.repository.MembershipRoleAssignmentJpaRepository;
 import io.attestry.userauth.infrastructure.persistence.jpa.repository.RoleJpaRepository;
+import jakarta.persistence.EntityManager;
 import java.sql.Timestamp;
 import java.time.Instant;
 import java.util.HashSet;
@@ -37,6 +38,7 @@ public class JpaMembershipAdminRepositoryAdapter implements MembershipPort {
     private final TenantRepositoryPort tenantRepository;
     private final NamedParameterJdbcTemplate jdbcTemplate;
     private final MembershipEffectivePermissionProjectionRefresher permissionProjectionRefresher;
+    private final EntityManager entityManager;
 
 
     @Override
@@ -62,6 +64,7 @@ public class JpaMembershipAdminRepositoryAdapter implements MembershipPort {
             status,
             current.getTenantStatus()
         ));
+        flushPendingJpaChanges();
         permissionProjectionRefresher.refreshMembership(saved.getMembershipId());
         return toMembershipDomainWithRoles(saved);
     }
@@ -286,6 +289,7 @@ public class JpaMembershipAdminRepositoryAdapter implements MembershipPort {
             membership.tenantStatus()
         ));
         syncRoleAssignments(membership);
+        flushPendingJpaChanges();
         permissionProjectionRefresher.refreshMembership(saved.getMembershipId());
         return membership;
     }
@@ -317,7 +321,12 @@ public class JpaMembershipAdminRepositoryAdapter implements MembershipPort {
             assignedByUserId,
             Instant.now()
         ));
+        flushPendingJpaChanges();
         permissionProjectionRefresher.refreshMembership(membershipId);
+    }
+
+    private void flushPendingJpaChanges() {
+        entityManager.flush();
     }
 
     private void syncRoleAssignments(Membership membership) {
