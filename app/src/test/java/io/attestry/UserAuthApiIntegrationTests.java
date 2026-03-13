@@ -139,7 +139,7 @@ class UserAuthApiIntegrationTests {
 
         String applicationId = readJson(created).get("applicationId").asText();
 
-        mockMvc.perform(get("/onboarding/applications/{id}", applicationId)
+        mockMvc.perform(get("/onboarding/applications/me/{id}", applicationId)
                 .header("Authorization", bearer(token)))
             .andExpect(status().isOk())
             .andExpect(jsonPath("$.data.applicationId").value(applicationId))
@@ -247,7 +247,7 @@ class UserAuthApiIntegrationTests {
         String inviteePassword = "StaffPw123";
         signUp(inviteeEmail, inviteePassword, "010-3333-4444");
 
-        MvcResult invitationCreated = mockMvc.perform(post("/admin/invitations")
+        MvcResult invitationCreated = mockMvc.perform(post("/invitations")
                 .header("Authorization", bearer(retailAdminToken))
                 .contentType(MediaType.APPLICATION_JSON)
                 .content(json(Map.of(
@@ -261,12 +261,12 @@ class UserAuthApiIntegrationTests {
         String invitationId = readJson(invitationCreated).get("invitationId").asText();
         String inviteeToken = login(inviteeEmail, inviteePassword, null);
 
-        mockMvc.perform(post("/admin/invitations/{invitationId}/accept", invitationId)
+        mockMvc.perform(post("/invitations/{invitationId}/accept", invitationId)
                 .header("Authorization", bearer(inviteeToken)))
             .andExpect(status().isOk())
             .andExpect(jsonPath("$.data.status").value("ACTIVE"));
 
-        mockMvc.perform(get("/admin/memberships")
+        mockMvc.perform(get("/memberships")
                 .header("Authorization", bearer(retailAdminToken)))
             .andExpect(status().isOk());
 
@@ -309,7 +309,7 @@ class UserAuthApiIntegrationTests {
         signUp(inviteeEmail, inviteePassword, "010-7777-2222");
 
         String adminToken = login(adminEmail, adminPassword, tenantId);
-        MvcResult invitationCreated = mockMvc.perform(post("/admin/invitations")
+        MvcResult invitationCreated = mockMvc.perform(post("/invitations")
                 .header("Authorization", bearer(adminToken))
                 .contentType(MediaType.APPLICATION_JSON)
                 .content(json(Map.of(
@@ -324,7 +324,7 @@ class UserAuthApiIntegrationTests {
         String invitationId = readJson(invitationCreated).get("invitationId").asText();
         String inviteeToken = login(inviteeEmail, inviteePassword, null);
 
-        mockMvc.perform(post("/admin/invitations/{invitationId}/accept", invitationId)
+        mockMvc.perform(post("/invitations/{invitationId}/accept", invitationId)
                 .header("Authorization", bearer(inviteeToken)))
             .andExpect(status().isOk())
             .andExpect(jsonPath("$.data.status").value("ACTIVE"))
@@ -393,19 +393,19 @@ class UserAuthApiIntegrationTests {
 
         String adminToken = login("membership-admin@test.com", "AdminPw123", tenantId);
 
-        mockMvc.perform(post("/admin/memberships/{id}/roles/{roleCode}",targetMembership.getMembershipId(), "TENANT_OPERATOR")
+        mockMvc.perform(post("/memberships/{id}/roles/{roleCode}",targetMembership.getMembershipId(), "TENANT_OPERATOR")
                 .header("Authorization", bearer(adminToken)))
             .andExpect(status().isOk())
             .andExpect(jsonPath("$.data.membershipId").value(targetMembership.getMembershipId()))
             .andExpect(jsonPath("$.data.roleCodes[?(@ == 'TENANT_OPERATOR')]").exists());
 
-        mockMvc.perform(patch("/admin/memberships/{id}/role",targetMembership.getMembershipId())
+        mockMvc.perform(patch("/memberships/{id}/role",targetMembership.getMembershipId())
                 .header("Authorization", bearer(adminToken))
                 .contentType(MediaType.APPLICATION_JSON)
                 .content(json(Map.of("role", "OPERATOR"))))
             .andExpect(status().isNotFound());
 
-        mockMvc.perform(patch("/admin/memberships/{id}/status",targetMembership.getMembershipId())
+        mockMvc.perform(patch("/memberships/{id}/status",targetMembership.getMembershipId())
                 .header("Authorization", bearer(adminToken))
                 .contentType(MediaType.APPLICATION_JSON)
                 .content(json(Map.of(
@@ -465,19 +465,19 @@ class UserAuthApiIntegrationTests {
 
         String adminToken = login("assign-admin@test.com", "AdminPw123", tenantId);
 
-        mockMvc.perform(post("/admin/memberships/{id}/roles/{roleCode}",targetMembership.getMembershipId(), "TENANT_OPERATOR")
+        mockMvc.perform(post("/memberships/{id}/roles/{roleCode}",targetMembership.getMembershipId(), "TENANT_OPERATOR")
                 .header("Authorization", bearer(adminToken)))
             .andExpect(status().isOk())
             .andExpect(jsonPath("$.data.membershipId").value(targetMembership.getMembershipId()))
             .andExpect(jsonPath("$.data.roleCodes").isArray())
             .andExpect(jsonPath("$.data.roleCodes[?(@ == 'TENANT_OPERATOR')]").exists());
 
-        mockMvc.perform(get("/admin/memberships/{id}/roles",targetMembership.getMembershipId())
+        mockMvc.perform(get("/memberships/{id}/roles",targetMembership.getMembershipId())
                 .header("Authorization", bearer(adminToken)))
             .andExpect(status().isOk())
             .andExpect(jsonPath("$.data.roleCodes[?(@ == 'TENANT_OPERATOR')]").exists());
 
-        mockMvc.perform(delete("/admin/memberships/{id}/roles/{roleCode}",targetMembership.getMembershipId(), "TENANT_OPERATOR")
+        mockMvc.perform(delete("/memberships/{id}/roles/{roleCode}",targetMembership.getMembershipId(), "TENANT_OPERATOR")
                 .header("Authorization", bearer(adminToken)))
             .andExpect(status().isOk())
             .andExpect(jsonPath("$.data.roleCodes[?(@ == 'TENANT_OPERATOR')]").doesNotExist());
@@ -532,7 +532,7 @@ class UserAuthApiIntegrationTests {
 
         String adminToken = login("sensitive-admin@test.com", "AdminPw123", tenantId);
 
-        mockMvc.perform(post("/admin/memberships/{id}/roles/{roleCode}",targetMembership.getMembershipId(), "TENANT_OWNER")
+        mockMvc.perform(post("/memberships/{id}/roles/{roleCode}",targetMembership.getMembershipId(), "TENANT_OWNER")
                 .header("Authorization", bearer(adminToken)))
             .andExpect(status().isOk())
             .andExpect(jsonPath("$.data.membershipId").value(targetMembership.getMembershipId()))
