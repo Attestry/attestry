@@ -50,7 +50,6 @@ public class ProductRiskExecutor {
         }
         passport.clearRisk();
         passportPort.save(passport);
-        return new RiskExecution(passport, enqueueSafe(LedgerEventEnvelope.riskCleared(passport, actorId, now, currentRiskFlag)));
         return new RiskExecution(passport, enqueueSafe(ProductLedgerEvents.riskCleared(passport, actorId, now, currentRiskFlag)));
     }
 
