@@ -52,8 +52,7 @@ app:
   product:
     public-base-url: ${PRODUCT_PUBLIC_BASE_URL:https://dev.attestry.local}
   kafka:
-    client-id: ${KAFKA_CLIENT_ID:attestry-dev}
-    consumer-group-id: ${KAFKA_CONSUMER_GROUP:attestry-ledger-dev}
+    enabled: ${APP_KAFKA_ENABLED:true}
     outbox:
       batch-size: ${KAFKA_OUTBOX_BATCH_SIZE:100}
       max-retries: ${KAFKA_OUTBOX_MAX_RETRIES:10}

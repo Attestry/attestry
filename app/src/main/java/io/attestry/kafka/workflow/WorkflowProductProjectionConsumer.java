@@ -2,7 +2,6 @@ package io.attestry.kafka.workflow;
 
 import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
-import io.attestry.config.KafkaProperties;
 import io.attestry.workflow.application.port.projection.WorkflowPassportProjectionWritePort;
 import io.micrometer.core.instrument.Counter;
 import io.micrometer.core.instrument.MeterRegistry;
@@ -27,7 +26,7 @@ public class WorkflowProductProjectionConsumer {
     private final ObjectMapper objectMapper;
     private final WorkflowPassportProjectionWritePort projectionWriter;
     private final KafkaTemplate<String, String> kafkaTemplate;
-    private final KafkaProperties kafkaProperties;
+    private final WorkflowReadProjectionKafkaProperties kafkaProperties;
     private final Counter dlqCounter;
     private final Counter consumeSuccessCounter;
     private final Counter consumeIgnoredCounter;
@@ -39,7 +38,7 @@ public class WorkflowProductProjectionConsumer {
         ObjectMapper objectMapper,
         WorkflowPassportProjectionWritePort projectionWriter,
         KafkaTemplate<String, String> kafkaTemplate,
-        KafkaProperties kafkaProperties,
+        WorkflowReadProjectionKafkaProperties kafkaProperties,
         MeterRegistry meterRegistry
     ) {
         this.objectMapper = objectMapper;
@@ -64,7 +63,7 @@ public class WorkflowProductProjectionConsumer {
     }
 
     @KafkaListener(
-        topics = "${app.kafka.topics.ledger-outbox}",
+        topics = "${app.workflow.read-projection.kafka.source-topic:product.projection.v1}",
         groupId = "${app.workflow.read-projection.consumer-group-id:workflow-product-read-projection-consumer}",
         concurrency = "${app.workflow.read-projection.listener-concurrency:1}"
     )
@@ -109,7 +108,7 @@ public class WorkflowProductProjectionConsumer {
             dlqCounter.increment();
             consumeFailureCounter.increment();
             ProducerRecord<String, String> dlqRecord = new ProducerRecord<>(
-                kafkaProperties.getTopics().getLedgerDlq(), payload);
+                kafkaProperties.getDlqTopic(), payload);
             dlqRecord.headers()
                 .add("x-error-message", safeBytes(ex.getMessage()))
                 .add("x-error-type", safeBytes(ex.getClass().getName()))
