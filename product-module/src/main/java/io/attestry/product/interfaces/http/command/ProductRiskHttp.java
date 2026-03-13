@@ -31,11 +31,11 @@ public class ProductRiskHttp {
     public ApiResponse<RiskResponse> flagStolen(
         @CurrentActor ProductActor actor,
         @PathVariable("passportId") String passportId,
-        @RequestBody FlagStolenRequest request
+        @RequestBody(required = false) FlagStolenRequest request
     ) {
         return ApiResponse.success(RiskResponse.from(riskUseCase.flagStolen(
             actor,
-            new FlagStolenCommand(passportId, request.policeReportNo())
+            new FlagStolenCommand(passportId, request != null ? request.policeReportNo() : null)
         )));
     }
 

@@ -87,7 +87,7 @@ public record LedgerEventEnvelope(
         );
     }
 
-    public static LedgerEventEnvelope riskCleared(ProductPassport passport, String actorId, Instant occurredAt) {
+    public static LedgerEventEnvelope riskCleared(ProductPassport passport, String actorId, Instant occurredAt, RiskFlag clearedRiskFlag) {
         return new LedgerEventEnvelope(
             "PRODUCT",
             passport.getPassportId(),
@@ -96,7 +96,10 @@ public record LedgerEventEnvelope(
             "OWNER",
             actorId,
             occurredAt,
-            Map.of("assetId", passport.getAsset().getAssetId()),
+            Map.of(
+                "assetId", passport.getAsset().getAssetId(),
+                "clearedRiskFlag", clearedRiskFlag == null ? "" : clearedRiskFlag.name()
+            ),
             "risk-clear-" + passport.getPassportId() + "-" + occurredAt.toEpochMilli()
         );
     }
