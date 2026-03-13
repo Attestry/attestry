@@ -8,8 +8,6 @@ public interface TenantReadPort {
 
     TenantSummary findTenantSummary(String tenantId);
 
-    Map<String, String> findTenantNamesByIds(List<String> tenantIds);
-
     Map<String, TenantSummary> findTenantSummariesByIds(List<String> tenantIds);
 
     record TenantSummary(

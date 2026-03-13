@@ -1,7 +1,7 @@
 package io.attestry.userauth.infrastructure.persistence.jpa.membership;
 
-import java.time.OffsetDateTime;
-import java.time.ZoneOffset;
+import java.sql.Timestamp;
+import java.time.Instant;
 import java.util.List;
 import lombok.RequiredArgsConstructor;
 import org.springframework.jdbc.core.namedparam.NamedParameterJdbcTemplate;
@@ -88,7 +88,7 @@ public class MembershipEffectivePermissionProjectionRefresher {
                       AND d.code = a.code
                 )
             """,
-            OffsetDateTime.now(ZoneOffset.UTC),
+            Timestamp.from(Instant.now()),
             membershipId,
             membershipId,
             membershipId,

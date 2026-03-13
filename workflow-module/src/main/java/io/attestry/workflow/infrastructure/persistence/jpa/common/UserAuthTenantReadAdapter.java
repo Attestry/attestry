@@ -40,14 +40,6 @@ public class UserAuthTenantReadAdapter implements TenantReadPort {
     }
 
     @Override
-    public Map<String, String> findTenantNamesByIds(List<String> tenantIds) {
-        return tenantQueryUseCase.getTenants(sanitizeIds(tenantIds)).values().stream()
-            .collect(LinkedHashMap::new,
-                (map, tenant) -> map.put(tenant.tenantId(), tenant.name()),
-                java.util.LinkedHashMap::putAll);
-    }
-
-    @Override
     public Map<String, TenantSummary> findTenantSummariesByIds(List<String> tenantIds) {
         return tenantQueryUseCase.getTenants(sanitizeIds(tenantIds)).values().stream()
             .collect(LinkedHashMap::new,

@@ -12,4 +12,6 @@ public interface MembershipJpaRepository extends JpaRepository<MembershipJpaEnti
     Optional<MembershipJpaEntity> findByMembershipIdAndTenantId(String membershipId, String tenantId);
 
     Optional<MembershipJpaEntity> findByUserIdAndTenantId(String userId, String tenantId);
+
+    Optional<MembershipJpaEntity> findByMembershipIdAndUserId(String membershipId, String userId);
 }

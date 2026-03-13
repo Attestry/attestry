@@ -88,11 +88,16 @@ public class ServiceRequestQueryService implements ServiceRequestQueryUseCase {
     }
 
     private Map<String, String> loadProviderNames(List<ServiceRequest> requests) {
-        return tenantReadPort.findTenantNamesByIds(
+        Map<String, TenantReadPort.TenantSummary> summaries = tenantReadPort.findTenantSummariesByIds(
             requests.stream()
                 .map(ServiceRequest::providerTenantId)
                 .distinct()
                 .toList()
         );
+        return summaries.entrySet().stream()
+            .collect(java.util.stream.Collectors.toMap(
+                Map.Entry::getKey,
+                entry -> entry.getValue().name()
+            ));
     }
 }

@@ -67,7 +67,7 @@ public class PartnerLinkService implements PartnerLinkUseCase {
             command.proposedExpiresAt(),
             now
         ));
-        return toResult(created, loadSourceSummary(sourceTenantId), loadTargetTenantNames(List.of(created)));
+        return toResult(created, loadSourceSummary(sourceTenantId), loadTargetSummaries(List.of(created)));
     }
 
     @Override
@@ -76,7 +76,7 @@ public class PartnerLinkService implements PartnerLinkUseCase {
         PartnerLink partnerLink = getById(partnerLinkId);
         assertTargetTenantAccess(principal, partnerLink, PermissionCodes.PARTNER_LINK_APPROVE);
         PartnerLink saved = repository.save(partnerLink.approve(principal.userId(), Instant.now(clock)));
-        return toResult(saved, loadSourceSummary(saved.sourceTenantId()), loadTargetTenantNames(List.of(saved)));
+        return toResult(saved, loadSourceSummary(saved.sourceTenantId()), loadTargetSummaries(List.of(saved)));
     }
 
     @Override
@@ -85,7 +85,7 @@ public class PartnerLinkService implements PartnerLinkUseCase {
         PartnerLink partnerLink = getById(partnerLinkId);
         assertTargetTenantAccess(principal, partnerLink, PermissionCodes.PARTNER_LINK_APPROVE);
         PartnerLink saved = repository.save(partnerLink.reject(principal.userId(), reason, Instant.now(clock)));
-        return toResult(saved, loadSourceSummary(saved.sourceTenantId()), loadTargetTenantNames(List.of(saved)));
+        return toResult(saved, loadSourceSummary(saved.sourceTenantId()), loadTargetSummaries(List.of(saved)));
     }
 
     @Override
@@ -131,9 +131,9 @@ public class PartnerLinkService implements PartnerLinkUseCase {
         authorizationSupport.assertTenantContext(principal, tenantId);
         List<PartnerLink> links = repository.findByTenantId(tenantId, status);
         Map<String, TenantReadPort.TenantSummary> sourceSummaries = loadSourceSummaries(links);
-        Map<String, String> targetTenantNames = loadTargetTenantNames(links);
+        Map<String, TenantReadPort.TenantSummary> targetSummaries = loadTargetSummaries(links);
         return links.stream()
-            .map(link -> toResult(link, sourceSummaries.get(link.sourceTenantId()), targetTenantNames))
+            .map(link -> toResult(link, sourceSummaries.get(link.sourceTenantId()), targetSummaries))
             .toList();
     }
 
@@ -163,7 +163,7 @@ public class PartnerLinkService implements PartnerLinkUseCase {
     ) {
         assertSourceTenantAccess(principal, partnerLink, permissionCode);
         PartnerLink saved = repository.save(transition.apply(partnerLink));
-        return toResult(saved, loadSourceSummary(saved.sourceTenantId()), loadTargetTenantNames(List.of(saved)));
+        return toResult(saved, loadSourceSummary(saved.sourceTenantId()), loadTargetSummaries(List.of(saved)));
     }
 
     private void assertSourceTenantAccess(AuthPrincipal principal, PartnerLink partnerLink, String permissionCode) {
@@ -199,8 +199,8 @@ public class PartnerLinkService implements PartnerLinkUseCase {
         );
     }
 
-    private Map<String, String> loadTargetTenantNames(List<PartnerLink> links) {
-        return tenantReadPort.findTenantNamesByIds(
+    private Map<String, TenantReadPort.TenantSummary> loadTargetSummaries(List<PartnerLink> links) {
+        return tenantReadPort.findTenantSummariesByIds(
             links.stream()
                 .map(PartnerLink::targetTenantId)
                 .distinct()
@@ -211,15 +211,16 @@ public class PartnerLinkService implements PartnerLinkUseCase {
     private PartnerLinkResult toResult(
         PartnerLink link,
         TenantReadPort.TenantSummary source,
-        Map<String, String> targetTenantNames
+        Map<String, TenantReadPort.TenantSummary> targetSummaries
     ) {
+        TenantReadPort.TenantSummary target = targetSummaries.get(link.targetTenantId());
         return new PartnerLinkResult(
             link.partnerLinkId(),
             link.sourceTenantId(),
             source != null ? source.name() : null,
             source != null ? source.type() : null,
             link.targetTenantId(),
-            targetTenantNames.get(link.targetTenantId()),
+            target != null ? target.name() : null,
             link.partnerType().name(),
             link.status().name(),
             link.reason(),

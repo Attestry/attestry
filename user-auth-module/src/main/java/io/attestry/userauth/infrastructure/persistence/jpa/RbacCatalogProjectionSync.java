@@ -4,8 +4,8 @@ import io.attestry.userauth.domain.authorization.policy.PermissionCatalog;
 import io.attestry.userauth.domain.authorization.policy.SystemPermissionTemplateCatalog;
 import io.attestry.userauth.domain.authorization.policy.SystemPermissionTemplateCatalog.TemplateDefinition;
 import io.attestry.userauth.infrastructure.persistence.jpa.membership.MembershipEffectivePermissionProjectionRefresher;
-import java.time.OffsetDateTime;
-import java.time.ZoneOffset;
+import java.sql.Timestamp;
+import java.time.Instant;
 import java.util.List;
 import java.util.Map;
 import java.util.stream.Collectors;
@@ -70,7 +70,7 @@ public class RbacCatalogProjectionSync implements ApplicationRunner {
     }
 
     private void syncDefaultTemplates() {
-        OffsetDateTime now = OffsetDateTime.now(ZoneOffset.UTC);
+        Timestamp now = Timestamp.from(Instant.now());
         Map<String, TemplateDefinition> templates = SystemPermissionTemplateCatalog.defaults();
         for (TemplateDefinition definition : templates.values()) {
             String templateId = upsertTemplate(definition, now);
@@ -78,7 +78,7 @@ public class RbacCatalogProjectionSync implements ApplicationRunner {
         }
     }
 
-    private String upsertTemplate(TemplateDefinition definition, OffsetDateTime now) {
+    private String upsertTemplate(TemplateDefinition definition, Timestamp now) {
         int updated = jdbcTemplate.getJdbcOperations().update(
             """
                 UPDATE permission_templates

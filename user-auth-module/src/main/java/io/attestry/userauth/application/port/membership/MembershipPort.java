@@ -26,6 +26,8 @@ public interface MembershipPort {
 
     Optional<Membership> findMembershipById(String membershipId);
 
+    Optional<Membership> findMembershipByMembershipIdAndUserId(String membershipId, String userId);
+
     Membership updateMembership(String tenantId, String membershipId, MembershipRole role, MembershipStatus status);
 
     void deletePermissionOverrides(String membershipId, Set<String> permissionCodes);

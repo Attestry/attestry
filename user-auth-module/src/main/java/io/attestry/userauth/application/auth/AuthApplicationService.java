@@ -93,8 +93,7 @@ public class AuthApplicationService implements AuthUseCase {
 
         account.checkActiveStatus();
 
-        Membership membership = membershipPort.findMembershipById(membershipId)
-            .filter(candidate -> candidate.userId().equals(userId))
+        Membership membership = membershipPort.findMembershipByMembershipIdAndUserId(membershipId, userId)
             .filter(Membership::isActive)
             .orElseThrow(() -> new UserAuthDomainException(
                 UserAuthErrorCode.MEMBERSHIP_NOT_FOUND,

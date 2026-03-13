@@ -104,8 +104,8 @@ class PartnerLinkServiceTest {
         when(repository.save(any(PartnerLink.class))).thenReturn(saved);
         when(tenantReadPort.findTenantSummary("tenant-source"))
             .thenReturn(new TenantReadPort.TenantSummary("tenant-source", "Source Tenant", "KR", "addr", "BRAND"));
-        when(tenantReadPort.findTenantNamesByIds(List.of("tenant-target")))
-            .thenReturn(Map.of("tenant-target", "Target Tenant"));
+        when(tenantReadPort.findTenantSummariesByIds(List.of("tenant-target")))
+            .thenReturn(Map.of("tenant-target", new TenantReadPort.TenantSummary("tenant-target", "Target Tenant", "KR", "addr", "PARTNER")));
 
         PartnerLinkResult result = service.create(SOURCE_PRINCIPAL, command);
 
@@ -237,8 +237,8 @@ class PartnerLinkServiceTest {
         when(repository.save(any(PartnerLink.class))).thenReturn(approved);
         when(tenantReadPort.findTenantSummary("tenant-source"))
             .thenReturn(new TenantReadPort.TenantSummary("tenant-source", "Source Tenant", "KR", "addr", "BRAND"));
-        when(tenantReadPort.findTenantNamesByIds(List.of("tenant-target")))
-            .thenReturn(Map.of("tenant-target", "Target Tenant"));
+        when(tenantReadPort.findTenantSummariesByIds(List.of("tenant-target")))
+            .thenReturn(Map.of("tenant-target", new TenantReadPort.TenantSummary("tenant-target", "Target Tenant", "KR", "addr", "PARTNER")));
 
         PartnerLinkResult result = service.approve(TARGET_PRINCIPAL, "pl-1");
 
@@ -272,8 +272,8 @@ class PartnerLinkServiceTest {
                 "tenant-source",
                 new TenantReadPort.TenantSummary("tenant-source", "Source Tenant", "KR", "addr", "BRAND")
             ));
-        when(tenantReadPort.findTenantNamesByIds(List.of("tenant-target")))
-            .thenReturn(Map.of("tenant-target", "Target Tenant"));
+        when(tenantReadPort.findTenantSummariesByIds(List.of("tenant-target")))
+            .thenReturn(Map.of("tenant-target", new TenantReadPort.TenantSummary("tenant-target", "Target Tenant", "KR", "addr", "PARTNER")));
 
         List<PartnerLinkResult> results = service.listByTenant(SOURCE_PRINCIPAL, PartnerLinkStatus.ACTIVE);
 
@@ -282,7 +282,7 @@ class PartnerLinkServiceTest {
         assertEquals("Source Tenant", results.get(0).sourceTenantName());
         verify(repository).findByTenantId("tenant-source", PartnerLinkStatus.ACTIVE);
         verify(tenantReadPort).findTenantSummariesByIds(List.of("tenant-source"));
-        verify(tenantReadPort).findTenantNamesByIds(List.of("tenant-target"));
+        verify(tenantReadPort).findTenantSummariesByIds(List.of("tenant-target"));
     }
 
     @Test
@@ -315,8 +315,8 @@ class PartnerLinkServiceTest {
         when(repository.save(any())).thenAnswer(invocation -> invocation.getArgument(0));
         when(tenantReadPort.findTenantSummary("tenant-source"))
             .thenReturn(new TenantReadPort.TenantSummary("tenant-source", "Source Tenant", "KR", "addr", "BRAND"));
-        when(tenantReadPort.findTenantNamesByIds(List.of("tenant-target")))
-            .thenReturn(Map.of("tenant-target", "Target Tenant"));
+        when(tenantReadPort.findTenantSummariesByIds(List.of("tenant-target")))
+            .thenReturn(Map.of("tenant-target", new TenantReadPort.TenantSummary("tenant-target", "Target Tenant", "KR", "addr", "PARTNER")));
 
         service.approve(foreignPrincipal, "pl-1");
 

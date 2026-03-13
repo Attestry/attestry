@@ -52,6 +52,13 @@ public class JpaMembershipAdminRepositoryAdapter implements MembershipPort {
     }
 
     @Override
+    public Optional<Membership> findMembershipByMembershipIdAndUserId(String membershipId, String userId) {
+        return membershipRepository.findByMembershipIdAndUserId(membershipId,userId)
+                .map(this::toMembershipDomainWithRoles);
+
+    }
+
+    @Override
     public Membership updateMembership(String tenantId, String membershipId, MembershipRole role, MembershipStatus status) {
         MembershipJpaEntity current = membershipRepository.findByMembershipIdAndTenantId(membershipId, tenantId)
             .orElseThrow(() -> new UserAuthDomainException(UserAuthErrorCode.MEMBERSHIP_NOT_FOUND, "Membership not found"));
