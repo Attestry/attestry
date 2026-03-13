@@ -1,6 +1,7 @@
 package io.attestry.product.infrastructure.persistence.jpa.repository;
 
 import io.attestry.product.infrastructure.persistence.jpa.entity.PassportOwnershipJpaEntity;
+import java.time.LocalDateTime;
 import java.util.List;
 import org.springframework.data.jpa.repository.JpaRepository;
 import org.springframework.data.jpa.repository.Query;
@@ -30,6 +31,6 @@ public interface PassportOwnershipJpaRepository extends JpaRepository<PassportOw
         String getModelName();
         String getAssetState();
         String getRiskFlag();
-        java.sql.Timestamp getOwnedSince();
+        LocalDateTime getOwnedSince();
     }
 }

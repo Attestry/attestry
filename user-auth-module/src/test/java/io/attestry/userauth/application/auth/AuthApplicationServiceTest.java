@@ -76,7 +76,8 @@ class AuthApplicationServiceTest {
             loginContextResolver,
             passwordHasher,
             authTokenIssuer,
-            tokenPort
+            tokenPort,
+            membershipRepo
         );
     }
 
@@ -228,6 +229,60 @@ class AuthApplicationServiceTest {
         UserAuthDomainException ex = assertThrows(UserAuthDomainException.class, () -> service.verifyPhone("missing"));
 
         assertEquals(UserAuthErrorCode.USER_NOT_FOUND, ex.getErrorCode());
+    }
+
+    @Test
+    void switchTenantShouldIssueTokenForOwnedActiveMembership() {
+        userRepo.seed("u1", "multi@x.com", "hashed:pw", UserStatus.ACTIVE, VerificationLevel.NONE);
+        membershipRepo.seed(Membership.reconstitute(
+            "m1", "u1", "t-brand",
+            TenantType.BRAND, MembershipRole.ADMIN, MembershipStatus.ACTIVE,
+            TenantStatus.ACTIVE, Set.of()
+        ));
+        membershipRepo.seed(Membership.reconstitute(
+            "m2", "u1", "t-service",
+            TenantType.SERVICE, MembershipRole.OPERATOR, MembershipStatus.ACTIVE,
+            TenantStatus.ACTIVE, Set.of()
+        ));
+        permissionQueryPort.seed("m2", Set.of(PermissionCodes.SERVICE_COMPLETE));
+
+        AuthTokenResult result = service.switchTenant("u1", "m2");
+        AuthPrincipal principal = tokenPort.parse(result.accessToken()).orElseThrow();
+
+        assertEquals("t-service", result.tenantId());
+        assertEquals("t-service", principal.tenantId());
+        assertTrue(principal.scopes().contains(PermissionCodes.SERVICE_COMPLETE));
+    }
+
+    @Test
+    void switchTenantShouldFailWhenMembershipBelongsToAnotherUser() {
+        userRepo.seed("u1", "user1@x.com", "hashed:pw", UserStatus.ACTIVE, VerificationLevel.NONE);
+        userRepo.seed("u2", "user2@x.com", "hashed:pw", UserStatus.ACTIVE, VerificationLevel.NONE);
+        membershipRepo.seed(Membership.reconstitute(
+            "m2", "u2", "t-service",
+            TenantType.SERVICE, MembershipRole.OPERATOR, MembershipStatus.ACTIVE,
+            TenantStatus.ACTIVE, Set.of()
+        ));
+
+        UserAuthDomainException ex = assertThrows(UserAuthDomainException.class,
+            () -> service.switchTenant("u1", "m2"));
+
+        assertEquals(UserAuthErrorCode.MEMBERSHIP_NOT_FOUND, ex.getErrorCode());
+    }
+
+    @Test
+    void switchTenantShouldFailWhenMembershipInactive() {
+        userRepo.seed("u1", "user1@x.com", "hashed:pw", UserStatus.ACTIVE, VerificationLevel.NONE);
+        membershipRepo.seed(Membership.reconstitute(
+            "m2", "u1", "t-service",
+            TenantType.SERVICE, MembershipRole.OPERATOR, MembershipStatus.SUSPENDED,
+            TenantStatus.ACTIVE, Set.of()
+        ));
+
+        UserAuthDomainException ex = assertThrows(UserAuthDomainException.class,
+            () -> service.switchTenant("u1", "m2"));
+
+        assertEquals(UserAuthErrorCode.MEMBERSHIP_NOT_FOUND, ex.getErrorCode());
     }
 
     private static class InMemoryUserAccountRepo implements UserAccountRepositoryPort {

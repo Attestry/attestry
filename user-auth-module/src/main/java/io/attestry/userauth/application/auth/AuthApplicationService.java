@@ -8,12 +8,14 @@ import io.attestry.userauth.application.dto.command.SignUpCommand;
 import io.attestry.userauth.application.port.auth.AccessTokenPort;
 import io.attestry.userauth.application.port.auth.PasswordHasherPort;
 import io.attestry.userauth.application.port.identity.UserAccountRepositoryPort;
+import io.attestry.userauth.application.port.membership.MembershipPort;
 import io.attestry.userauth.application.usecase.auth.AuthUseCase;
 import io.attestry.userauth.domain.UserAuthErrorCode;
 import io.attestry.userauth.domain.UserAuthDomainException;
 import io.attestry.userauth.domain.authorization.model.LoginContext;
 import io.attestry.userauth.domain.identity.model.Email;
 import io.attestry.userauth.domain.identity.model.UserAccount;
+import io.attestry.userauth.domain.membership.model.Membership;
 import io.attestry.userauth.security.AuthPrincipal;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
@@ -27,6 +29,7 @@ public class AuthApplicationService implements AuthUseCase {
     private final PasswordHasherPort passwordHasher;
     private final AuthTokenIssuer authTokenIssuer;
     private final AccessTokenPort accessTokenPort;
+    private final MembershipPort membershipPort;
 
     @Override
     public SignUpResult signUp(SignUpCommand command) {
@@ -80,6 +83,25 @@ public class AuthApplicationService implements AuthUseCase {
         account.checkActiveStatus();
 
         LoginContext loginContext = loginContextResolver.resolve(account.userId(), tenantId);
+        return authTokenIssuer.issue(account, loginContext);
+    }
+
+    @Override
+    public AuthTokenResult switchTenant(String userId, String membershipId) {
+        UserAccount account = userAccountRepository.findById(userId)
+            .orElseThrow(() -> new UserAuthDomainException(UserAuthErrorCode.USER_NOT_FOUND, "User not found"));
+
+        account.checkActiveStatus();
+
+        Membership membership = membershipPort.findMembershipById(membershipId)
+            .filter(candidate -> candidate.userId().equals(userId))
+            .filter(Membership::isActive)
+            .orElseThrow(() -> new UserAuthDomainException(
+                UserAuthErrorCode.MEMBERSHIP_NOT_FOUND,
+                "Membership not found"
+            ));
+
+        LoginContext loginContext = loginContextResolver.resolve(account.userId(), membership.tenantId());
         return authTokenIssuer.issue(account, loginContext);
     }
 }

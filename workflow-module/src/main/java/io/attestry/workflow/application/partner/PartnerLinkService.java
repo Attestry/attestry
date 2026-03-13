@@ -74,24 +74,18 @@ public class PartnerLinkService implements PartnerLinkUseCase {
     @Transactional
     public PartnerLinkResult approve(AuthPrincipal principal, String partnerLinkId) {
         PartnerLink partnerLink = getById(partnerLinkId);
-        return saveTransition(
-            principal,
-            partnerLink,
-            PermissionCodes.PARTNER_LINK_APPROVE,
-            link -> link.approve(principal.userId(), Instant.now(clock))
-        );
+        assertTargetTenantAccess(principal, partnerLink, PermissionCodes.PARTNER_LINK_APPROVE);
+        PartnerLink saved = repository.save(partnerLink.approve(principal.userId(), Instant.now(clock)));
+        return toResult(saved, loadSourceSummary(saved.sourceTenantId()), loadTargetTenantNames(List.of(saved)));
     }
 
     @Override
     @Transactional
     public PartnerLinkResult reject(AuthPrincipal principal, String partnerLinkId, String reason) {
         PartnerLink partnerLink = getById(partnerLinkId);
-        return saveTransition(
-            principal,
-            partnerLink,
-            PermissionCodes.PARTNER_LINK_APPROVE,
-            link -> link.reject(principal.userId(), reason, Instant.now(clock))
-        );
+        assertTargetTenantAccess(principal, partnerLink, PermissionCodes.PARTNER_LINK_APPROVE);
+        PartnerLink saved = repository.save(partnerLink.reject(principal.userId(), reason, Instant.now(clock)));
+        return toResult(saved, loadSourceSummary(saved.sourceTenantId()), loadTargetTenantNames(List.of(saved)));
     }
 
     @Override
@@ -136,9 +130,11 @@ public class PartnerLinkService implements PartnerLinkUseCase {
         String tenantId = requireTenantId(principal);
         authorizationSupport.assertTenantContext(principal, tenantId);
         List<PartnerLink> links = repository.findByTenantId(tenantId, status);
-        TenantReadPort.TenantSummary sourceSummary = loadSourceSummary(tenantId);
+        Map<String, TenantReadPort.TenantSummary> sourceSummaries = loadSourceSummaries(links);
         Map<String, String> targetTenantNames = loadTargetTenantNames(links);
-        return links.stream().map(link -> toResult(link, sourceSummary, targetTenantNames)).toList();
+        return links.stream()
+            .map(link -> toResult(link, sourceSummaries.get(link.sourceTenantId()), targetTenantNames))
+            .toList();
     }
 
     private String requireTenantId(AuthPrincipal principal) {
@@ -180,8 +176,27 @@ public class PartnerLinkService implements PartnerLinkUseCase {
         );
     }
 
+    private void assertTargetTenantAccess(AuthPrincipal principal, PartnerLink partnerLink, String permissionCode) {
+        authorizationSupport.assertTenantContext(principal, partnerLink.targetTenantId());
+        authorizationSupport.assertLivePermission(
+            principal,
+            partnerLink.targetTenantId(),
+            permissionCode,
+            "partner-link:" + partnerLink.partnerLinkId()
+        );
+    }
+
     private TenantReadPort.TenantSummary loadSourceSummary(String tenantId) {
         return tenantReadPort.findTenantSummary(tenantId);
+    }
+
+    private Map<String, TenantReadPort.TenantSummary> loadSourceSummaries(List<PartnerLink> links) {
+        return tenantReadPort.findTenantSummariesByIds(
+            links.stream()
+                .map(PartnerLink::sourceTenantId)
+                .distinct()
+                .toList()
+        );
     }
 
     private Map<String, String> loadTargetTenantNames(List<PartnerLink> links) {

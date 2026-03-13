@@ -317,6 +317,7 @@ public class JpaMembershipAdminRepositoryAdapter implements MembershipPort {
             assignedByUserId,
             Instant.now()
         ));
+        permissionProjectionRefresher.refreshMembership(membershipId);
     }
 
     private void syncRoleAssignments(Membership membership) {

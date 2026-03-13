@@ -10,6 +10,7 @@ import io.attestry.userauth.application.usecase.auth.AuthUseCase;
 import io.attestry.userauth.application.dto.command.ActorContext;
 import io.attestry.userauth.interfaces.auth.dto.request.LoginRequest;
 import io.attestry.userauth.interfaces.auth.dto.request.SignUpRequest;
+import io.attestry.userauth.interfaces.auth.dto.request.TenantSwitchRequest;
 import io.attestry.userauth.interfaces.auth.dto.response.LoginResponse;
 import io.attestry.userauth.interfaces.auth.dto.response.SignUpResponse;
 import jakarta.validation.Valid;
@@ -82,5 +83,23 @@ public class AuthHttp {
                 result.expiresAt(),
                 result.userId(),
                 result.tenantId()));
+    }
+
+    @PostMapping("/tenant-switch")
+    public ApiResponse<LoginResponse> switchTenant(
+        @CurrentActor ActorContext actor,
+        @Valid @RequestBody TenantSwitchRequest request
+    ) {
+        AuthTokenResult result = authApplicationService.switchTenant(
+            actor.userId(),
+            request.membershipId()
+        );
+        return ApiResponse.success(new LoginResponse(
+            result.accessToken(),
+            result.tokenType(),
+            result.expiresAt(),
+            result.userId(),
+            result.tenantId()
+        ));
     }
 }

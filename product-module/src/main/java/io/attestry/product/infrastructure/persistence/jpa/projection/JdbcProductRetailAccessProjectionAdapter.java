@@ -24,6 +24,18 @@ public class JdbcProductRetailAccessProjectionAdapter
     implements ProductRetailAccessProjectionPort, DistributedPassportQueryPort {
 
     private final NamedParameterJdbcTemplate jdbcTemplate;
+    private static final String DETAIL_SELECT_COLUMNS = """
+        SELECT pp.passport_id,
+               pp.qr_public_code,
+               pa.serial_number,
+               pa.model_id,
+               pa.model_name,
+               pa.asset_state,
+               pa.risk_flag,
+               pa.manufactured_at,
+               pa.production_batch,
+               pa.factory_code
+        """;
 
     @Override
     public PagedRetailAccessResult findAccessiblePassports(
@@ -132,29 +144,21 @@ public class JdbcProductRetailAccessProjectionAdapter
     @Override
     public Optional<RetailAccessDetailView> findAccessiblePassportDetail(String tenantId, String passportId) {
         List<RetailAccessDetailView> rows = jdbcTemplate.query(
-            """
-                SELECT pp.passport_id,
-                       pp.qr_public_code,
-                       pa.serial_number,
-                       pa.model_id,
-                       pa.model_name,
-                       pa.asset_state,
-                       pa.risk_flag,
-                       pa.manufactured_at,
-                       pa.production_batch,
-                       pa.factory_code,
+            DETAIL_SELECT_COLUMNS
+                + """
+                    ,
                        prap.access_source_type,
                        prap.access_source_id,
                        prap.updated_at
-                FROM product_retail_access_projection prap
-                JOIN product_passports pp ON pp.passport_id = prap.passport_id
-                JOIN product_assets pa ON pa.asset_id = pp.asset_id
-                WHERE prap.tenant_id = :tenantId
-                  AND prap.passport_id = :passportId
-                  AND prap.access_status = 'ACTIVE'
-                ORDER BY prap.granted_at DESC
-                LIMIT 1
-            """,
+                    FROM product_retail_access_projection prap
+                    JOIN product_passports pp ON pp.passport_id = prap.passport_id
+                    JOIN product_assets pa ON pa.asset_id = pp.asset_id
+                    WHERE prap.tenant_id = :tenantId
+                      AND prap.passport_id = :passportId
+                      AND prap.access_status = 'ACTIVE'
+                    ORDER BY prap.granted_at DESC
+                    LIMIT 1
+                """,
             new MapSqlParameterSource()
                 .addValue("tenantId", tenantId)
                 .addValue("passportId", passportId),
@@ -181,22 +185,69 @@ public class JdbcProductRetailAccessProjectionAdapter
     @Override
     public DistributedPassportDetailView findDetailByRetailAccess(String tenantId, String passportId) {
         return findAccessiblePassportDetail(tenantId, passportId)
-            .map(row -> new DistributedPassportDetailView(
-                row.passportId(),
-                row.qrPublicCode(),
-                row.serialNumber(),
-                row.modelId(),
-                row.modelName(),
-                row.assetState(),
-                row.riskFlag(),
-                row.manufacturedAt(),
-                row.productionBatch(),
-                row.factoryCode()
-            ))
+            .map(this::toDistributedPassportDetailView)
             .orElseThrow(() -> new ProductDomainException(
                 ProductErrorCode.ASSET_NOT_FOUND,
                 "Distributed passport not found for tenant: " + passportId
             ));
+    }
+
+    @Override
+    public DistributedPassportDetailView findDetailByCompletedTransfer(String tenantId, String passportId) {
+        List<DistributedPassportDetailView> rows = jdbcTemplate.query(
+            DETAIL_SELECT_COLUMNS
+                + """
+                    FROM token_transfers tt
+                    JOIN product_passports pp ON pp.passport_id = tt.passport_id
+                    JOIN product_assets pa ON pa.asset_id = pp.asset_id
+                    WHERE tt.tenant_id = :tenantId
+                      AND tt.passport_id = :passportId
+                      AND tt.transfer_type = 'B2C'
+                      AND tt.status = 'COMPLETED'
+                    ORDER BY tt.completed_at DESC, tt.created_at DESC
+                    LIMIT 1
+                """,
+            new MapSqlParameterSource()
+                .addValue("tenantId", tenantId)
+                .addValue("passportId", passportId),
+            (rs, rowNum) -> mapDistributedPassportDetailView(rs)
+        );
+
+        return rows.stream().findFirst()
+            .orElseThrow(() -> new ProductDomainException(
+                ProductErrorCode.ASSET_NOT_FOUND,
+                "Completed transfer passport not found for tenant: " + passportId
+            ));
+    }
+
+    private DistributedPassportDetailView toDistributedPassportDetailView(RetailAccessDetailView row) {
+        return new DistributedPassportDetailView(
+            row.passportId(),
+            row.qrPublicCode(),
+            row.serialNumber(),
+            row.modelId(),
+            row.modelName(),
+            row.assetState(),
+            row.riskFlag(),
+            row.manufacturedAt(),
+            row.productionBatch(),
+            row.factoryCode()
+        );
+    }
+
+    private DistributedPassportDetailView mapDistributedPassportDetailView(java.sql.ResultSet rs) throws java.sql.SQLException {
+        return new DistributedPassportDetailView(
+            rs.getString("passport_id"),
+            rs.getString("qr_public_code"),
+            rs.getString("serial_number"),
+            rs.getString("model_id"),
+            rs.getString("model_name"),
+            rs.getString("asset_state"),
+            rs.getString("risk_flag"),
+            toInstant(rs.getTimestamp("manufactured_at")),
+            rs.getString("production_batch"),
+            rs.getString("factory_code")
+        );
     }
 
     private Instant toInstant(Timestamp timestamp) {

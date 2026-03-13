@@ -108,6 +108,11 @@ public class ProductQueryService implements ProductQueryUseCase {
     }
 
     @Override
+    public DistributedPassportDetailView getCompletedTransferDetail(String tenantId, String passportId) {
+        return distributedPassportQueryPort.findDetailByCompletedTransfer(tenantId, passportId);
+    }
+
+    @Override
     public List<MyPassportView> listMyPassports(String ownerId) {
         return myPassportQueryPort.findByOwnerId(ownerId);
     }

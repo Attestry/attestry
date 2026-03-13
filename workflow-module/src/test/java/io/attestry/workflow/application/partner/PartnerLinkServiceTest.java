@@ -55,6 +55,14 @@ class PartnerLinkServiceTest {
         Set.of("SCOPE_PARTNER_LINK_CREATE", "SCOPE_PARTNER_LINK_APPROVE", "SCOPE_TENANT_READ_ONLY"),
         Instant.parse("2026-03-13T00:00:00Z")
     );
+    private static final AuthPrincipal TARGET_PRINCIPAL = new AuthPrincipal(
+        "token-3",
+        "user-3",
+        "tenant-target",
+        VerificationLevel.PHONE_VERIFIED,
+        Set.of("SCOPE_PARTNER_LINK_APPROVE", "SCOPE_TENANT_READ_ONLY"),
+        Instant.parse("2026-03-13T00:00:00Z")
+    );
 
     @BeforeEach
     void setUp() {
@@ -222,9 +230,9 @@ class PartnerLinkServiceTest {
         PartnerLink approved = pending.approve("user-1", Instant.parse("2026-03-12T01:00:00Z"));
 
         when(repository.findById("pl-1")).thenReturn(Optional.of(pending));
-        doNothing().when(authorizationSupport).assertTenantContext(SOURCE_PRINCIPAL, "tenant-source");
+        doNothing().when(authorizationSupport).assertTenantContext(TARGET_PRINCIPAL, "tenant-target");
         doNothing().when(authorizationSupport).assertLivePermission(
-            SOURCE_PRINCIPAL, "tenant-source", PermissionCodes.PARTNER_LINK_APPROVE, "partner-link:pl-1"
+            TARGET_PRINCIPAL, "tenant-target", PermissionCodes.PARTNER_LINK_APPROVE, "partner-link:pl-1"
         );
         when(repository.save(any(PartnerLink.class))).thenReturn(approved);
         when(tenantReadPort.findTenantSummary("tenant-source"))
@@ -232,12 +240,12 @@ class PartnerLinkServiceTest {
         when(tenantReadPort.findTenantNamesByIds(List.of("tenant-target")))
             .thenReturn(Map.of("tenant-target", "Target Tenant"));
 
-        PartnerLinkResult result = service.approve(SOURCE_PRINCIPAL, "pl-1");
+        PartnerLinkResult result = service.approve(TARGET_PRINCIPAL, "pl-1");
 
         assertEquals("ACTIVE", result.status());
         verify(repository).findById("pl-1");
         verify(repository).save(any(PartnerLink.class));
-        verify(authorizationSupport).assertTenantContext(SOURCE_PRINCIPAL, "tenant-source");
+        verify(authorizationSupport).assertTenantContext(TARGET_PRINCIPAL, "tenant-target");
     }
 
     @Test
@@ -259,8 +267,11 @@ class PartnerLinkServiceTest {
 
         doNothing().when(authorizationSupport).assertTenantContext(SOURCE_PRINCIPAL, "tenant-source");
         when(repository.findByTenantId("tenant-source", PartnerLinkStatus.ACTIVE)).thenReturn(List.of(active));
-        when(tenantReadPort.findTenantSummary("tenant-source"))
-            .thenReturn(new TenantReadPort.TenantSummary("tenant-source", "Source Tenant", "KR", "addr", "BRAND"));
+        when(tenantReadPort.findTenantSummariesByIds(List.of("tenant-source")))
+            .thenReturn(Map.of(
+                "tenant-source",
+                new TenantReadPort.TenantSummary("tenant-source", "Source Tenant", "KR", "addr", "BRAND")
+            ));
         when(tenantReadPort.findTenantNamesByIds(List.of("tenant-target")))
             .thenReturn(Map.of("tenant-target", "Target Tenant"));
 
@@ -268,12 +279,14 @@ class PartnerLinkServiceTest {
 
         assertEquals(1, results.size());
         assertEquals("ACTIVE", results.get(0).status());
+        assertEquals("Source Tenant", results.get(0).sourceTenantName());
         verify(repository).findByTenantId("tenant-source", PartnerLinkStatus.ACTIVE);
+        verify(tenantReadPort).findTenantSummariesByIds(List.of("tenant-source"));
         verify(tenantReadPort).findTenantNamesByIds(List.of("tenant-target"));
     }
 
     @Test
-    void approve_crossTenantContext_shouldBeRejected() {
+    void approve_checksTargetTenantContext() {
         AuthPrincipal foreignPrincipal = new AuthPrincipal(
             "token-2",
             "user-9",
@@ -298,7 +311,7 @@ class PartnerLinkServiceTest {
         );
 
         when(repository.findById("pl-1")).thenReturn(Optional.of(pending));
-        doNothing().when(authorizationSupport).assertTenantContext(foreignPrincipal, "tenant-source");
+        doNothing().when(authorizationSupport).assertTenantContext(foreignPrincipal, "tenant-target");
         when(repository.save(any())).thenAnswer(invocation -> invocation.getArgument(0));
         when(tenantReadPort.findTenantSummary("tenant-source"))
             .thenReturn(new TenantReadPort.TenantSummary("tenant-source", "Source Tenant", "KR", "addr", "BRAND"));
@@ -307,9 +320,9 @@ class PartnerLinkServiceTest {
 
         service.approve(foreignPrincipal, "pl-1");
 
-        verify(authorizationSupport).assertTenantContext(foreignPrincipal, "tenant-source");
+        verify(authorizationSupport).assertTenantContext(foreignPrincipal, "tenant-target");
         verify(authorizationSupport).assertLivePermission(
-            foreignPrincipal, "tenant-source", PermissionCodes.PARTNER_LINK_APPROVE, "partner-link:pl-1"
+            foreignPrincipal, "tenant-target", PermissionCodes.PARTNER_LINK_APPROVE, "partner-link:pl-1"
         );
     }
 }

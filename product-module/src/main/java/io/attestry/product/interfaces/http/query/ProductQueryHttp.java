@@ -101,4 +101,15 @@ public class ProductQueryHttp {
             queryUseCase.getDistributedPassportDetail(actor.tenantId(), passportId)
         ));
     }
+
+    @GetMapping("/tenant/completed-transfers/{passportId}")
+    @PreAuthorize("hasAuthority('SCOPE_TENANT_READ_ONLY')")
+    public ApiResponse<DistributedPassportDetailResponse> getCompletedTransferDetail(
+        @CurrentActor ProductActor actor,
+        @PathVariable("passportId") String passportId
+    ) {
+        return ApiResponse.success(DistributedPassportDetailResponse.from(
+            queryUseCase.getCompletedTransferDetail(actor.tenantId(), passportId)
+        ));
+    }
 }

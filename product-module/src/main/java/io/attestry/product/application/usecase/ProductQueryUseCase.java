@@ -24,6 +24,8 @@ public interface ProductQueryUseCase {
 
     DistributedPassportDetailView getDistributedPassportDetail(String tenantId, String passportId);
 
+    DistributedPassportDetailView getCompletedTransferDetail(String tenantId, String passportId);
+
     PagedTenantPassportView listTenantPassports(
         String tenantId,
         int page,

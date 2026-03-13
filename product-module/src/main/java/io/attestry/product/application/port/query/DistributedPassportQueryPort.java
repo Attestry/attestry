@@ -16,6 +16,8 @@ public interface DistributedPassportQueryPort {
 
     DistributedPassportDetailView findDetailByRetailAccess(String tenantId, String passportId);
 
+    DistributedPassportDetailView findDetailByCompletedTransfer(String tenantId, String passportId);
+
     record PagedResult(List<DistributedPassportView> content, int page, int size, long totalElements, int totalPages) {
     }
 }

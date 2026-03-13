@@ -19,4 +19,6 @@ public interface AuthUseCase {
     VerifyPhoneResult verifyPhone(String userId);
 
     AuthTokenResult reissueToken(String userId, String tenantId);
+
+    AuthTokenResult switchTenant(String userId, String membershipId);
 }

@@ -7,6 +7,8 @@ import jakarta.persistence.Query;
 import jakarta.persistence.Tuple;
 import java.sql.Timestamp;
 import java.time.Instant;
+import java.time.LocalDateTime;
+import java.time.ZoneOffset;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Locale;
@@ -84,7 +86,6 @@ public class GroupPassportCustomRepositoryImpl implements GroupPassportCustomRep
 
         List<GroupPassportRow> content = rows.stream()
             .map(t -> {
-                Timestamp mfgAt = (Timestamp) t.get("manufactured_at");
                 return new GroupPassportRow(
                     t.get("passport_id", String.class),
                     t.get("qr_public_code", String.class),
@@ -92,15 +93,31 @@ public class GroupPassportCustomRepositoryImpl implements GroupPassportCustomRep
                     t.get("serial_number", String.class),
                     t.get("model_id", String.class),
                     t.get("model_name", String.class),
-                    mfgAt != null ? mfgAt.toInstant() : null,
+                    toInstant(t.get("manufactured_at")),
                     t.get("asset_state", String.class),
                     t.get("risk_flag", String.class),
                     t.get("owner_id", String.class),
-                    ((Timestamp) t.get("created_at")).toInstant()
+                    toInstant(t.get("created_at"))
                 );
             })
             .toList();
 
         return new GroupPassportQueryPort.PagedResult(content, page, size, total, totalPages);
+    }
+
+    private Instant toInstant(Object value) {
+        if (value == null) {
+            return null;
+        }
+        if (value instanceof Instant instant) {
+            return instant;
+        }
+        if (value instanceof Timestamp timestamp) {
+            return timestamp.toInstant();
+        }
+        if (value instanceof LocalDateTime localDateTime) {
+            return localDateTime.toInstant(ZoneOffset.UTC);
+        }
+        throw new IllegalStateException("Unsupported temporal value type: " + value.getClass().getName());
     }
 }
