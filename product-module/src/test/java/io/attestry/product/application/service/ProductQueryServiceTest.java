@@ -4,15 +4,19 @@ import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 
-import io.attestry.product.application.port.DistributedPassportQueryPort;
-import io.attestry.product.application.port.GroupPassportQueryPort;
-import io.attestry.product.application.port.MyPassportQueryPort;
-import io.attestry.product.application.port.PassportDistributionQueryPort;
-import io.attestry.product.application.port.PassportShipmentQueryPort;
-import io.attestry.product.application.usecase.ProductQueryUseCase;
-import io.attestry.product.domain.ownership.repository.PassportOwnershipRepository;
-import io.attestry.product.domain.passport.repository.PassportRepository;
-import io.attestry.product.domain.permission.repository.PassportPermissionRepository;
+import io.attestry.product.application.port.query.DistributedPassportQueryPort;
+import io.attestry.product.application.port.query.GroupPassportQueryPort;
+import io.attestry.product.application.port.query.MyPassportQueryPort;
+import io.attestry.product.application.port.query.PassportDistributionQueryPort;
+import io.attestry.product.application.port.ownership.PassportOwnershipPort;
+import io.attestry.product.application.port.permission.PassportPermissionPort;
+import io.attestry.product.application.port.passport.PassportPort;
+import io.attestry.product.application.port.query.PassportShipmentQueryPort;
+import io.attestry.product.application.query.ProductQueryService;
+import io.attestry.product.application.query.assembler.ProductQueryViewAssembler;
+import io.attestry.product.application.dto.view.DistributedPassportView;
+import io.attestry.product.application.dto.view.DistributedPassportDetailView;
+import io.attestry.product.application.dto.view.PagedDistributedPassportView;
 import java.time.Instant;
 import java.util.List;
 import org.junit.jupiter.api.BeforeEach;
@@ -24,58 +28,59 @@ import org.mockito.junit.jupiter.MockitoExtension;
 @ExtendWith(MockitoExtension.class)
 class ProductQueryServiceTest {
 
-    @Mock PassportRepository passportRepository;
-    @Mock PassportOwnershipRepository ownershipRepository;
-    @Mock PassportPermissionRepository permissionRepository;
+    @Mock PassportPort passportPort;
+    @Mock PassportOwnershipPort ownershipPort;
+    @Mock PassportPermissionPort permissionPort;
     @Mock MyPassportQueryPort myPassportQueryPort;
     @Mock GroupPassportQueryPort groupPassportQueryPort;
     @Mock DistributedPassportQueryPort distributedPassportQueryPort;
     @Mock PassportShipmentQueryPort shipmentQueryPort;
     @Mock PassportDistributionQueryPort distributionQueryPort;
+    @Mock ProductQueryViewAssembler viewAssembler;
 
     private ProductQueryService service;
 
     @BeforeEach
     void setUp() {
         service = new ProductQueryService(
-            passportRepository,
-            ownershipRepository,
-            permissionRepository,
+            passportPort,
+            ownershipPort,
+            permissionPort,
             myPassportQueryPort,
             groupPassportQueryPort,
             distributedPassportQueryPort,
             shipmentQueryPort,
             distributionQueryPort,
+            viewAssembler,
             "https://public.example.com"
         );
     }
 
     @Test
     void listDistributedPassports_returnsPagedPermissionBackedProducts() {
-        when(distributedPassportQueryPort.findByTargetTenant("retail-tenant", 0, 20, "SN", null)).thenReturn(
-            new DistributedPassportQueryPort.PagedResult(
-                List.of(new DistributedPassportQueryPort.DistributedPassportView(
-                    "passport-1",
-                    "QR-001",
-                    "asset-1",
-                    "SN-001",
-                    "MODEL-1",
-                    "Model Name",
-                    "ACTIVE",
-                    "NONE",
-                    "perm-1",
-                    Instant.parse("2026-04-01T00:00:00Z"),
-                    "brand-tenant",
-                    "retail-tenant",
-                    "ACTIVE",
-                    Instant.parse("2026-03-01T00:00:00Z")
-                )),
-                0,
-                20,
-                1,
-                1
-            )
+        List<DistributedPassportView> views = List.of(new DistributedPassportView(
+            "passport-1",
+            "QR-001",
+            "asset-1",
+            "SN-001",
+            "MODEL-1",
+            "Model Name",
+            "ACTIVE",
+            "NONE",
+            "perm-1",
+            Instant.parse("2026-04-01T00:00:00Z"),
+            "brand-tenant",
+            "retail-tenant",
+            "ACTIVE",
+            Instant.parse("2026-03-01T00:00:00Z")
+        ));
+        DistributedPassportQueryPort.PagedResult pagedResult = new DistributedPassportQueryPort.PagedResult(
+            views, 0, 20, 1, 1
         );
+        when(distributedPassportQueryPort.findByTargetTenant("retail-tenant", 0, 20, "SN", null))
+            .thenReturn(pagedResult);
+        when(viewAssembler.toPagedDistributedPassportView(pagedResult))
+            .thenReturn(new PagedDistributedPassportView(views, 0, 20, 1, 1));
 
         var result = service.listDistributedPassports("retail-tenant", 0, 20, "  SN  ", null);
 
@@ -92,7 +97,7 @@ class ProductQueryServiceTest {
     void getDistributedPassportDetail_returnsRetailReadableProductDetail() {
         Instant manufacturedAt = Instant.parse("2025-02-01T10:00:00Z");
         when(distributedPassportQueryPort.findDetailByRetailAccess("retail-tenant", "passport-1")).thenReturn(
-            new DistributedPassportQueryPort.DistributedPassportDetailView(
+            new DistributedPassportDetailView(
                 "passport-1",
                 "QR-001",
                 "SN-001",
@@ -106,7 +111,7 @@ class ProductQueryServiceTest {
             )
         );
 
-        ProductQueryUseCase.DistributedPassportDetailResponse result = service.getDistributedPassportDetail(
+        DistributedPassportDetailView result = service.getDistributedPassportDetail(
             "retail-tenant",
             "passport-1"
         );

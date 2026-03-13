@@ -1,8 +1,7 @@
 package io.attestry.userauth.domain.onboarding.model;
 
-import io.attestry.userauth.common.error.DomainException;
-import io.attestry.userauth.common.error.ErrorCode;
-import java.time.Instant;
+import io.attestry.userauth.domain.UserAuthErrorCode;
+import io.attestry.userauth.domain.UserAuthDomainException;import java.time.Instant;
 import java.util.UUID;
 
 public record OnboardingEvidenceFile(
@@ -43,10 +42,10 @@ public record OnboardingEvidenceFile(
 
     public OnboardingEvidenceFile complete(long sizeBytes, Instant now) {
         if (status != OnboardingEvidenceFileStatus.PENDING_UPLOAD) {
-            throw new DomainException(ErrorCode.INVALID_APPLICATION_STATE, "Evidence file is not pending upload");
+            throw new UserAuthDomainException(UserAuthErrorCode.INVALID_APPLICATION_STATE, "Evidence file is not pending upload");
         }
         if (sizeBytes <= 0) {
-            throw new DomainException(ErrorCode.INVALID_APPLICATION_STATE, "Evidence size must be positive");
+            throw new UserAuthDomainException(UserAuthErrorCode.INVALID_APPLICATION_STATE, "Evidence size must be positive");
         }
         return new OnboardingEvidenceFile(
             evidenceFileId,
@@ -63,7 +62,7 @@ public record OnboardingEvidenceFile(
 
     public void assertBelongsToBundle(String bundleId) {
         if (!evidenceBundleId.equals(bundleId)) {
-            throw new DomainException(ErrorCode.EVIDENCE_NOT_FOUND, "Evidence file does not belong to bundle");
+            throw new UserAuthDomainException(UserAuthErrorCode.EVIDENCE_NOT_FOUND, "Evidence file does not belong to bundle");
         }
     }
 
@@ -73,16 +72,16 @@ public record OnboardingEvidenceFile(
 
     private static void validateRequired(String value, String fieldName) {
         if (value == null || value.isBlank()) {
-            throw new DomainException(ErrorCode.INVALID_APPLICATION_STATE, fieldName + " is required");
+            throw new UserAuthDomainException(UserAuthErrorCode.INVALID_APPLICATION_STATE, fieldName + " is required");
         }
     }
 
     private static void validatePdfOnly(String originalFileName, String contentType) {
         if (!"application/pdf".equalsIgnoreCase(contentType)) {
-            throw new DomainException(ErrorCode.EVIDENCE_FILE_TYPE_NOT_ALLOWED, "Only PDF content type is allowed");
+            throw new UserAuthDomainException(UserAuthErrorCode.EVIDENCE_FILE_TYPE_NOT_ALLOWED, "Only PDF content type is allowed");
         }
         if (!originalFileName.toLowerCase().endsWith(".pdf")) {
-            throw new DomainException(ErrorCode.EVIDENCE_FILE_TYPE_NOT_ALLOWED, "Only .pdf files are allowed");
+            throw new UserAuthDomainException(UserAuthErrorCode.EVIDENCE_FILE_TYPE_NOT_ALLOWED, "Only .pdf files are allowed");
         }
     }
 }

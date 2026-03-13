@@ -1,24 +1,32 @@
 package io.attestry.product.application.usecase;
 
-import io.attestry.product.application.port.PassportShipmentQueryPort;
+import io.attestry.product.application.dto.view.AssetStateView;
+import io.attestry.product.application.dto.view.DistributedPassportDetailView;
+import io.attestry.product.application.dto.view.MyPassportView;
+import io.attestry.product.application.dto.view.OwnerView;
+import io.attestry.product.application.dto.view.PagedDistributedPassportView;
+import io.attestry.product.application.dto.view.PagedTenantPassportView;
+import io.attestry.product.application.dto.view.PassportDetailView;
 import java.time.Instant;
 import java.util.List;
 
 public interface ProductQueryUseCase {
 
-    AssetStateResponse getAssetState(String passportId);
+    AssetStateView getAssetState(String passportId);
 
-    OwnerResponse getCurrentOwner(String passportId);
+    OwnerView getCurrentOwner(String passportId);
 
     boolean hasActivePermission(String passportId, String sellerTenantId);
 
-    List<MyPassportResponse> listMyPassports(String ownerId);
+    List<MyPassportView> listMyPassports(String ownerId);
 
-    PassportDetailResponse getTenantPassportDetail(String tenantId, String passportId);
+    PassportDetailView getTenantPassportDetail(String tenantId, String passportId);
 
-    DistributedPassportDetailResponse getDistributedPassportDetail(String tenantId, String passportId);
+    DistributedPassportDetailView getDistributedPassportDetail(String tenantId, String passportId);
 
-    PagedTenantPassportResponse listTenantPassports(
+    DistributedPassportDetailView getCompletedTransferDetail(String tenantId, String passportId);
+
+    PagedTenantPassportView listTenantPassports(
         String tenantId,
         int page,
         int size,
@@ -28,155 +36,11 @@ public interface ProductQueryUseCase {
         String keyword
     );
 
-    PagedDistributedPassportResponse listDistributedPassports(
+    PagedDistributedPassportView listDistributedPassports(
         String tenantId,
         int page,
         int size,
         String keyword,
         String sourceTenantId
     );
-
-    record AssetStateResponse(String assetId, String passportId, String assetState, String riskFlag) {
-    }
-
-    record OwnerResponse(String passportId, String ownerId, Instant updatedAt) {
-    }
-
-    record MyPassportResponse(
-        String passportId,
-        String qrPublicCode,
-        String tenantId,
-        String assetId,
-        String serialNumber,
-        String modelName,
-        String assetState,
-        String riskFlag,
-        Instant ownedSince
-    ) {
-    }
-
-    record TenantPassportResponse(
-        String passportId,
-        String serialNumber,
-        String modelId,
-        String modelName,
-        String assetState,
-        Instant createdAt
-    ) {
-    }
-
-    record PagedTenantPassportResponse(
-        List<TenantPassportResponse> content,
-        int page,
-        int size,
-        long totalElements,
-        int totalPages
-    ) {
-    }
-
-    record DistributedPassportResponse(
-        String passportId,
-        String qrPublicCode,
-        String assetId,
-        String serialNumber,
-        String modelId,
-        String modelName,
-        String assetState,
-        String riskFlag,
-        String permissionId,
-        Instant expiresAt,
-        String sourceTenantId,
-        String targetTenantId,
-        String permissionStatus,
-        Instant distributedAt
-    ) {
-    }
-
-    record PagedDistributedPassportResponse(
-        List<DistributedPassportResponse> content,
-        int page,
-        int size,
-        long totalElements,
-        int totalPages
-    ) {
-    }
-
-    record DistributedPassportDetailResponse(
-        String passportId,
-        String qrPublicCode,
-        String serialNumber,
-        String modelId,
-        String modelName,
-        String assetState,
-        String riskFlag,
-        Instant manufacturedAt,
-        String productionBatch,
-        String factoryCode
-    ) {
-    }
-
-    record PassportDetailResponse(
-        String passportId,
-        String qrPublicCode,
-        String tenantId,
-        String assetId,
-        String serialNumber,
-        String modelId,
-        String modelName,
-        Instant manufacturedAt,
-        String productionBatch,
-        String factoryCode,
-        String assetState,
-        String riskFlag,
-        Instant createdAt,
-        String publicUrl,
-        ShipmentDetailResponse shipment,
-        DistributionDetailResponse distribution
-    ) {
-    }
-
-    record DistributionDetailResponse(
-        String distributionId,
-        String targetTenantId,
-        String targetTenantName,
-        String targetTenantType,
-        String partnerLinkId,
-        String status,
-        Instant distributedAt
-    ) {
-    }
-
-    record ShipmentDetailResponse(
-        String shipmentId,
-        String status,
-        int shipmentRound,
-        Instant releasedAt,
-        String releasedByUserEmail,
-        Instant returnedAt,
-        String returnedByUserEmail,
-        List<EvidenceFileResponse> evidenceFiles
-    ) {
-        public static ShipmentDetailResponse from(PassportShipmentQueryPort.ShipmentView view) {
-            List<EvidenceFileResponse> files = view.evidenceFiles().stream()
-                .map(e -> new EvidenceFileResponse(
-                    e.evidenceId(), e.originalFileName(), e.contentType(), e.sizeBytes(), e.downloadUrl()
-                ))
-                .toList();
-            return new ShipmentDetailResponse(
-                view.shipmentId(), view.status(), view.shipmentRound(),
-                view.releasedAt(), view.releasedByUserEmail(),
-                view.returnedAt(), view.returnedByUserEmail(),
-                files
-            );
-        }
-    }
-
-    record EvidenceFileResponse(
-        String evidenceId,
-        String originalFileName,
-        String contentType,
-        long sizeBytes,
-        String downloadUrl
-    ) {
-    }
 }

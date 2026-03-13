@@ -10,7 +10,9 @@ import io.attestry.workflow.domain.WorkflowErrorCode;
 import io.attestry.workflow.domain.partner.model.PartnerLink;
 import io.attestry.workflow.domain.partner.model.PartnerLinkStatus;
 import io.attestry.workflow.domain.partner.model.PartnerType;
-import io.attestry.workflow.infrastructure.persistence.jpa.repository.PartnerLinkJpaRepository;
+import io.attestry.workflow.infrastructure.persistence.jpa.partner.JpaPartnerLinkRepositoryAdapter;
+import io.attestry.workflow.infrastructure.persistence.jpa.partner.mapper.PartnerLinkMapper;
+import io.attestry.workflow.infrastructure.persistence.jpa.partner.repository.PartnerLinkJpaRepository;
 import java.time.Instant;
 import java.util.Optional;
 import org.junit.jupiter.api.Test;
@@ -23,10 +25,11 @@ import org.springframework.dao.DataIntegrityViolationException;
 class JpaPartnerLinkRepositoryAdapterTest {
 
     @Mock PartnerLinkJpaRepository repository;
+    @Mock PartnerLinkMapper mapper;
 
     @Test
     void save_duplicateStatusConstraint_throwsDomainErrorCode() {
-        JpaPartnerLinkRepositoryAdapter adapter = new JpaPartnerLinkRepositoryAdapter(repository);
+        JpaPartnerLinkRepositoryAdapter adapter = new JpaPartnerLinkRepositoryAdapter(repository, mapper);
         PartnerLink partnerLink = new PartnerLink(
             "pl-1",
             "tenant-a",

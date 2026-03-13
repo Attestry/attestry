@@ -1,6 +1,6 @@
 package io.attestry.userauth.interfaces.membership.dto.response;
 
-import io.attestry.userauth.application.dto.result.MembershipInvitationResult;
+import io.attestry.userauth.application.dto.result.InvitationResult;
 
 public record InvitationResponse(
         String invitationId,
@@ -9,7 +9,7 @@ public record InvitationResponse(
         String role,
         String status
 ) {
-    public static InvitationResponse from(MembershipInvitationResult invitation) {
+    public static InvitationResponse from(InvitationResult invitation) {
         return new InvitationResponse(
                 invitation.invitationId(),
                 invitation.tenantId(),

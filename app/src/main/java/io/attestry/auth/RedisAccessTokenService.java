@@ -3,12 +3,13 @@ package io.attestry.auth;
 import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import io.attestry.config.AccessTokenProperties;
-import io.attestry.userauth.application.port.AccessTokenPort;
+import io.attestry.userauth.application.port.auth.AccessTokenPort;
 import io.attestry.userauth.security.AuthPrincipal;
 import java.time.Clock;
 import java.time.Duration;
 import java.time.Instant;
 import java.util.Optional;
+import java.util.Set;
 import java.util.UUID;
 import org.springframework.boot.autoconfigure.condition.ConditionalOnProperty;
 import org.springframework.data.redis.core.StringRedisTemplate;
@@ -43,6 +44,8 @@ public class RedisAccessTokenService implements AccessTokenPort {
             ttl = Duration.ofSeconds(1);
         }
         redisTemplate.opsForValue().set(key(token), write(principal), ttl);
+        redisTemplate.opsForSet().add(userTokensKey(principal.userId()), token);
+        redisTemplate.expire(userTokensKey(principal.userId()), ttl);
         return token;
     }
 
@@ -62,11 +65,30 @@ public class RedisAccessTokenService implements AccessTokenPort {
 
     @Override
     public void revoke(String token) {
+        String payload = redisTemplate.opsForValue().get(key(token));
+        if (payload != null && !payload.isBlank()) {
+            AuthPrincipal principal = read(payload);
+            redisTemplate.opsForSet().remove(userTokensKey(principal.userId()), token);
+        }
         redisTemplate.delete(key(token));
+    }
+
+    @Override
+    public void revokeByUserId(String userId) {
+        String userKey = userTokensKey(userId);
+        Set<String> tokens = redisTemplate.opsForSet().members(userKey);
+        if (tokens != null && !tokens.isEmpty()) {
+            tokens.forEach(token -> redisTemplate.delete(key(token)));
+        }
+        redisTemplate.delete(userKey);
     }
 
     private String key(String token) {
         return properties.getRedisKeyPrefix() + token;
+    }
+
+    private String userTokensKey(String userId) {
+        return properties.getRedisKeyPrefix() + "user:" + userId;
     }
 
     private String write(AuthPrincipal principal) {

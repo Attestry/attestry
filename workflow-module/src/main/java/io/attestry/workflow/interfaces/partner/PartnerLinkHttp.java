@@ -1,5 +1,6 @@
 package io.attestry.workflow.interfaces.partner;
 
+import io.attestry.commonlib.infrastructure.ApiResponse;
 import io.attestry.userauth.security.AuthPrincipal;
 import io.attestry.workflow.application.partner.command.CreatePartnerLinkCommand;
 import io.attestry.workflow.application.partner.result.PartnerLinkResult;
@@ -13,7 +14,7 @@ import java.util.Locale;
 import io.attestry.workflow.interfaces.partner.dto.request.CreatePartnerLinkRequest;
 import io.attestry.workflow.interfaces.partner.dto.request.ReasonRequest;
 import io.attestry.workflow.interfaces.partner.dto.response.PartnerLinkResponse;
-import io.attestry.workflow.interfaces.partner.dto.response.TenantSearchResponse;
+import lombok.RequiredArgsConstructor;
 import org.springframework.http.HttpStatus;
 import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.security.core.annotation.AuthenticationPrincipal;
@@ -26,20 +27,18 @@ import org.springframework.web.bind.annotation.RestController;
 import org.springframework.web.bind.annotation.PathVariable;
 import org.springframework.web.bind.annotation.RequestParam;
 
+@RequiredArgsConstructor
 @RestController
 @RequestMapping("/workflows")
 public class PartnerLinkHttp {
 
     private final PartnerLinkUseCase partnerLinkUseCase;
 
-    public PartnerLinkHttp(PartnerLinkUseCase partnerLinkUseCase) {
-        this.partnerLinkUseCase = partnerLinkUseCase;
-    }
 
     @PostMapping("/partner-links")
     @ResponseStatus(HttpStatus.CREATED)
     @PreAuthorize("hasAuthority('SCOPE_PARTNER_LINK_CREATE')")
-    public PartnerLinkResponse create(
+    public ApiResponse<PartnerLinkResponse> create(
         @AuthenticationPrincipal AuthPrincipal principal,
         @RequestBody CreatePartnerLinkRequest request
     ) {
@@ -52,76 +51,64 @@ public class PartnerLinkHttp {
                 request.message()
             )
         );
-        return PartnerLinkResponse.from(result);
+        return ApiResponse.success(PartnerLinkResponse.from(result));
     }
 
     @GetMapping("/partner-links")
     @PreAuthorize("hasAnyAuthority('SCOPE_TENANT_READ_ONLY')")
-    public List<PartnerLinkResponse> list(
+    public ApiResponse<List<PartnerLinkResponse>> list(
         @AuthenticationPrincipal AuthPrincipal principal,
         @RequestParam(name = "status", required = false) String status
     ) {
         PartnerLinkStatus statusFilter = parseStatus(status);
-        return partnerLinkUseCase.listByTenant(principal, statusFilter).stream().map(PartnerLinkResponse::from).toList();
-    }
-
-    //TODO("tenant  모듈 분리하기 ")
-    @GetMapping("/tenants/search")
-    @PreAuthorize("hasAuthority('SCOPE_PARTNER_LINK_READ')")
-    public List<TenantSearchResponse> searchActiveTenants(
-        @AuthenticationPrincipal AuthPrincipal principal,
-        @RequestParam("name") String name
-    ) {
-        return partnerLinkUseCase.searchActiveTenantsByName(principal, name).stream()
-            .map(TenantSearchResponse::from)
-            .toList();
+        return ApiResponse.success(partnerLinkUseCase.listByTenant(principal, statusFilter).stream().map(PartnerLinkResponse::from).toList());
     }
 
     @PostMapping("/admin/partner-links/{id}/approve")
     @PreAuthorize("hasAuthority('SCOPE_PARTNER_LINK_APPROVE')")
-    public PartnerLinkResponse approve(
+    public ApiResponse<PartnerLinkResponse> approve(
         @AuthenticationPrincipal AuthPrincipal principal,
         @PathVariable("id") String partnerLinkId
     ) {
-        return PartnerLinkResponse.from(partnerLinkUseCase.approve(principal, partnerLinkId));
+        return ApiResponse.success(PartnerLinkResponse.from(partnerLinkUseCase.approve(principal, partnerLinkId)));
     }
 
     @PostMapping("/admin/partner-links/{id}/reject")
     @PreAuthorize("hasAuthority('SCOPE_PARTNER_LINK_APPROVE')")
-    public PartnerLinkResponse reject(
+    public ApiResponse<PartnerLinkResponse> reject(
         @AuthenticationPrincipal AuthPrincipal principal,
         @PathVariable("id") String partnerLinkId,
         @RequestBody ReasonRequest request
     ) {
-        return PartnerLinkResponse.from(partnerLinkUseCase.reject(principal, partnerLinkId, request.reason()));
+        return ApiResponse.success(PartnerLinkResponse.from(partnerLinkUseCase.reject(principal, partnerLinkId, request.reason())));
     }
 
     @PostMapping("/partner-links/{id}/suspend")
     @PreAuthorize("hasAuthority('SCOPE_PARTNER_LINK_SUSPEND')")
-    public PartnerLinkResponse suspend(
+    public ApiResponse<PartnerLinkResponse> suspend(
         @AuthenticationPrincipal AuthPrincipal principal,
         @PathVariable("id") String partnerLinkId
     ) {
-        return PartnerLinkResponse.from(partnerLinkUseCase.suspend(principal, partnerLinkId));
+        return ApiResponse.success(PartnerLinkResponse.from(partnerLinkUseCase.suspend(principal, partnerLinkId)));
     }
 
     @PostMapping("/partner-links/{id}/resume")
     @PreAuthorize("hasAuthority('SCOPE_PARTNER_LINK_RESUME')")
-    public PartnerLinkResponse resume(
+    public ApiResponse<PartnerLinkResponse> resume(
         @AuthenticationPrincipal AuthPrincipal principal,
         @PathVariable("id") String partnerLinkId
     ) {
-        return PartnerLinkResponse.from(partnerLinkUseCase.resume(principal, partnerLinkId));
+        return ApiResponse.success(PartnerLinkResponse.from(partnerLinkUseCase.resume(principal, partnerLinkId)));
     }
 
     @PostMapping("/partner-links/{id}/terminate")
     @PreAuthorize("hasAuthority('SCOPE_PARTNER_LINK_TERMINATE')")
-    public PartnerLinkResponse terminate(
+    public ApiResponse<PartnerLinkResponse> terminate(
         @AuthenticationPrincipal AuthPrincipal principal,
         @PathVariable("id") String partnerLinkId,
         @RequestBody ReasonRequest request
     ) {
-        return PartnerLinkResponse.from(partnerLinkUseCase.terminate(principal, partnerLinkId, request.reason()));
+        return ApiResponse.success(PartnerLinkResponse.from(partnerLinkUseCase.terminate(principal, partnerLinkId, request.reason())));
     }
 
     private PartnerLinkStatus parseStatus(String status) {

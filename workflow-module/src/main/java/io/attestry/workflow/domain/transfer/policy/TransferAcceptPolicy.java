@@ -2,6 +2,7 @@ package io.attestry.workflow.domain.transfer.policy;
 
 import io.attestry.workflow.domain.WorkflowDomainException;
 import io.attestry.workflow.domain.WorkflowErrorCode;
+import io.attestry.workflow.domain.passport.model.WorkflowRiskFlag;
 import org.springframework.stereotype.Component;
 
 @Component
@@ -15,7 +16,7 @@ public class TransferAcceptPolicy {
     }
 
     private void assertPassportSafe(TransferAcceptContext context) {
-        if (!"NONE".equals(context.passportRiskFlag())) {
+        if (context.passportRiskFlag() != WorkflowRiskFlag.NONE) {
             throw new WorkflowDomainException(WorkflowErrorCode.INVALID_STATE, "Risk flagged passport cannot be transferred");
         }
     }
@@ -31,9 +32,22 @@ public class TransferAcceptPolicy {
 
     public record TransferAcceptContext(
         boolean isC2C,
-        String passportRiskFlag,
+        WorkflowRiskFlag passportRiskFlag,
         String currentOwnerId,
         String expectedFromOwnerId
     ) {
+        public TransferAcceptContext(
+            boolean isC2C,
+            String passportRiskFlag,
+            String currentOwnerId,
+            String expectedFromOwnerId
+        ) {
+            this(
+                isC2C,
+                WorkflowRiskFlag.from(passportRiskFlag),
+                currentOwnerId,
+                expectedFromOwnerId
+            );
+        }
     }
 }

@@ -2,7 +2,7 @@ package io.attestry.userauth.infrastructure.persistence.jpa.repository;
 
 import io.attestry.userauth.domain.onboarding.model.ApplicationStatus;
 import io.attestry.userauth.infrastructure.persistence.jpa.entity.OrganizationApplicationJpaEntity;
-import io.attestry.userauth.domain.organization.model.TenantType;
+import io.attestry.userauth.domain.tenant.model.TenantType;
 import java.util.List;
 import org.springframework.data.jpa.repository.JpaRepository;
 

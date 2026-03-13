@@ -92,7 +92,7 @@ public record ServiceRequest(
         );
     }
 
-    public ServiceRequest accept(String description, Instant now) {
+    public ServiceRequest accept(String serviceType, String description, Instant now) {
         requireNonNull(now, "now");
         if (status != ServiceRequestStatus.PENDING) {
             throw new WorkflowDomainException(WorkflowErrorCode.SERVICE_REQUEST_INVALID_STATE,
@@ -101,7 +101,9 @@ public record ServiceRequest(
         return new ServiceRequest(
             serviceRequestId,
             passportId,
-            serviceType,
+            serviceType == null || serviceType.isBlank()
+                ? this.serviceType
+                : ServiceTypes.normalize(serviceType),
             ownerUserId,
             providerTenantId,
             ServiceRequestStatus.ACCEPTED,

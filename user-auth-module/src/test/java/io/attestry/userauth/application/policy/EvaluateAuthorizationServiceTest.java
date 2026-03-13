@@ -8,15 +8,16 @@ import io.attestry.userauth.application.dto.command.ActorContext;
 import io.attestry.userauth.application.dto.command.AuthzEvaluateCommand;
 import io.attestry.userauth.application.dto.command.PolicyDecisionMode;
 import io.attestry.userauth.application.dto.result.AuthzEvaluateResult;
-import io.attestry.userauth.application.port.MembershipPermissionQueryPort;
-import io.attestry.userauth.application.port.MembershipRepositoryPort;
+import io.attestry.userauth.application.auth.UserEffectiveScopeResolver;
+import io.attestry.userauth.application.port.membership.MembershipPort;
+import io.attestry.userauth.application.port.membership.MembershipProjectionPort;
 import io.attestry.userauth.domain.authorization.model.PermissionCodes;
 import io.attestry.userauth.domain.authorization.model.RoleCodes;
 import io.attestry.userauth.domain.membership.model.Membership;
 import io.attestry.userauth.domain.membership.model.MembershipRole;
 import io.attestry.userauth.domain.membership.model.MembershipStatus;
-import io.attestry.userauth.domain.organization.model.TenantType;
-import io.attestry.userauth.domain.organization.model.TenantStatus;
+import io.attestry.userauth.domain.tenant.model.TenantType;
+import io.attestry.userauth.domain.tenant.model.TenantStatus;
 import io.attestry.userauth.domain.identity.model.VerificationLevel;
 import java.time.Instant;
 import java.util.List;
@@ -27,8 +28,10 @@ import org.junit.jupiter.api.Test;
 class EvaluateAuthorizationServiceTest {
 
     private final EvaluateAuthorizationService service = new EvaluateAuthorizationService(
-        new EmptyMembershipRepository(),
-        new EmptyMembershipPermissionQueryRepository()
+        new UserEffectiveScopeResolver(
+            new EmptyMembershipPort(),
+            new EmptyMembershipProjectionPort()
+        )
     );
 
     @Test
@@ -73,29 +76,36 @@ class EvaluateAuthorizationServiceTest {
     @Test
     void liveRecheckShouldUseTenantMembership() {
         EvaluateAuthorizationService liveService = new EvaluateAuthorizationService(
-            new SingleMembershipRepository(
-                Membership.reconstitute(
-                    "membership-1", "user-1", "tenant-a",
-                    TenantType.BRAND, MembershipRole.ADMIN, MembershipStatus.ACTIVE,
-                    TenantStatus.ACTIVE, java.util.Set.of()
-                )
-            ),
-            new MembershipPermissionQueryPort() {
-                @Override
-                public Set<String> findPermissionCodesByMembershipId(String membershipId) {
-                    return Set.of(PermissionCodes.TENANT_ROLE_ASSIGN);
-                }
+            new UserEffectiveScopeResolver(
+                new SingleMembershipPort(
+                    Membership.reconstitute(
+                        "membership-1", "user-1", "tenant-a",
+                        TenantType.BRAND, MembershipRole.ADMIN, MembershipStatus.ACTIVE,
+                        TenantStatus.ACTIVE, java.util.Set.of()
+                    )
+                ),
+                new MembershipProjectionPort() {
+                    @Override
+                    public Set<String> findPermissionCodesByMembershipId(String membershipId) {
+                        return Set.of(PermissionCodes.TENANT_ROLE_ASSIGN);
+                    }
 
-                @Override
-                public Set<String> findPermissionCodesByGlobalRoleCode(String roleCode) {
-                    return Set.of();
-                }
+                    @Override
+                    public Set<String> findPermissionCodesByGlobalRoleCode(String roleCode) {
+                        return Set.of();
+                    }
 
-                @Override
-                public Set<String> findRoleCodesByMembershipId(String membershipId) {
-                    return Set.of(RoleCodes.TENANT_OWNER);
+                    @Override
+                    public Set<String> findRoleCodesByMembershipId(String membershipId) {
+                        return Set.of(RoleCodes.TENANT_OWNER);
+                    }
+
+                    @Override
+                    public Set<String> findGlobalEnabledRoleCodes() {
+                        return Set.of();
+                    }
                 }
-            }
+            )
         );
 
         ActorContext actor = new ActorContext(
@@ -126,25 +136,59 @@ class EvaluateAuthorizationServiceTest {
         );
     }
 
-    private static class EmptyMembershipRepository implements MembershipRepositoryPort {
+    private static class EmptyMembershipPort implements MembershipPort {
         @Override
-        public List<Membership> findByUserId(String userId) {
-            return List.of();
-        }
+        public Optional<Membership> findById(String membershipId) { return Optional.empty(); }
 
         @Override
-        public Optional<Membership> findByUserIdAndTenantId(String userId, String tenantId) {
-            return Optional.empty();
-        }
+        public Membership save(Membership membership) { return membership; }
+
+        @Override
+        public List<Membership> findByUserId(String userId) { return List.of(); }
+
+        @Override
+        public Optional<Membership> findByUserIdAndTenantId(String userId, String tenantId) { return Optional.empty(); }
+
+        @Override
+        public List<Membership> findByTenantId(String tenantId) { return List.of(); }
+
+        @Override
+        public List<Membership> findMembershipsByTenantId(String tenantId) { return List.of(); }
+
+        @Override
+        public Optional<Membership> findMembershipById(String membershipId) { return Optional.empty(); }
+
+        @Override
+        public Membership updateMembership(String tenantId, String membershipId, MembershipRole role, MembershipStatus status) { return null; }
+
+        @Override
+        public void assignRole(String membershipId, String roleCode, String assignedByUserId) {}
+
+        @Override
+        public void deletePermissionOverrides(String membershipId, Set<String> permissionCodes) {}
+
+        @Override
+        public Set<String> applyPermissionTemplateToMembership(String membershipId, String templateCode, String reason, String actorUserId, Instant now) { return Set.of(); }
+
+        @Override
+        public Set<String> revokePermissionTemplateFromMembership(String membershipId, String templateCode) { return Set.of(); }
     }
 
-    private static class SingleMembershipRepository implements MembershipRepositoryPort {
+    private static class SingleMembershipPort implements MembershipPort {
 
         private final Membership membership;
 
-        private SingleMembershipRepository(Membership membership) {
+        private SingleMembershipPort(Membership membership) {
             this.membership = membership;
         }
+
+        @Override
+        public Optional<Membership> findById(String membershipId) {
+            return membership.membershipId().equals(membershipId) ? Optional.of(membership) : Optional.empty();
+        }
+
+        @Override
+        public Membership save(Membership membership) { return membership; }
 
         @Override
         public List<Membership> findByUserId(String userId) {
@@ -162,9 +206,45 @@ class EvaluateAuthorizationServiceTest {
             }
             return Optional.empty();
         }
+
+        @Override
+        public List<Membership> findByTenantId(String tenantId) {
+            return membership.tenantId().equals(tenantId) ? List.of(membership) : List.of();
+        }
+
+        @Override
+        public List<Membership> findMembershipsByTenantId(String tenantId) {
+            return findByTenantId(tenantId);
+        }
+
+        @Override
+        public Optional<Membership> findMembershipById(String membershipId) {
+            return findById(membershipId);
+        }
+
+        @Override
+        public Membership updateMembership(String tenantId, String membershipId, MembershipRole role, MembershipStatus status) {
+            return membership;
+        }
+
+        @Override
+        public void assignRole(String membershipId, String roleCode, String assignedByUserId) {}
+
+        @Override
+        public void deletePermissionOverrides(String membershipId, Set<String> permissionCodes) {}
+
+        @Override
+        public Set<String> applyPermissionTemplateToMembership(String membershipId, String templateCode, String reason, String actorUserId, Instant now) {
+            return Set.of();
+        }
+
+        @Override
+        public Set<String> revokePermissionTemplateFromMembership(String membershipId, String templateCode) {
+            return Set.of();
+        }
     }
 
-    private static class EmptyMembershipPermissionQueryRepository implements MembershipPermissionQueryPort {
+    private static class EmptyMembershipProjectionPort implements MembershipProjectionPort {
         @Override
         public Set<String> findPermissionCodesByMembershipId(String membershipId) {
             return Set.of();
@@ -185,6 +265,11 @@ class EvaluateAuthorizationServiceTest {
 
         @Override
         public Set<String> findRoleCodesByMembershipId(String membershipId) {
+            return Set.of();
+        }
+
+        @Override
+        public Set<String> findGlobalEnabledRoleCodes() {
             return Set.of();
         }
     }

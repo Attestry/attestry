@@ -11,13 +11,14 @@ import static org.mockito.Mockito.when;
 
 import io.attestry.userauth.domain.identity.model.VerificationLevel;
 import io.attestry.userauth.security.AuthPrincipal;
-import io.attestry.workflow.application.port.ServicePermissionPort;
-import io.attestry.workflow.application.port.ServiceProductReadPort;
-import io.attestry.workflow.application.port.ServiceProductReadPort.ServicePassportState;
-import io.attestry.workflow.application.port.TenantReadPort;
-import io.attestry.workflow.application.port.WorkflowEvidencePort;
+import io.attestry.workflow.application.port.servicerequest.ServicePermissionPort;
+import io.attestry.workflow.application.port.servicerequest.ServiceProductReadPort;
+import io.attestry.workflow.application.port.servicerequest.ServiceProductReadPort.ServicePassportState;
+import io.attestry.workflow.application.port.common.TenantReadPort;
+import io.attestry.workflow.application.port.common.WorkflowEvidencePort;
 import io.attestry.workflow.application.servicerequest.command.SubmitServiceRequestCommand;
 import io.attestry.workflow.application.servicerequest.result.SubmitServiceRequestResult;
+import io.attestry.workflow.application.servicerequest.support.ServiceRequestContextResolver;
 import io.attestry.workflow.application.support.WorkflowAuthorizationSupport;
 import io.attestry.workflow.domain.WorkflowDomainException;
 import io.attestry.workflow.domain.WorkflowErrorCode;
@@ -57,9 +58,23 @@ class ServiceSubmitServiceTest {
 
     @BeforeEach
     void setUp() {
+        ServiceRequestContextResolver contextResolver = new ServiceRequestContextResolver(
+            serviceRequestRepository,
+            serviceProductReadPort,
+            servicePermissionPort,
+            tenantReadPort
+        );
+        ServiceSubmitExecutor submitExecutor = new ServiceSubmitExecutor(
+            serviceRequestRepository,
+            shipmentEvidencePort,
+            servicePermissionPort,
+            clock
+        );
         service = new ServiceSubmitService(
-            serviceRequestRepository, serviceProductReadPort, servicePermissionPort,
-            tenantReadPort, shipmentEvidencePort, authorizationSupport, submitPolicy, clock
+            authorizationSupport,
+            contextResolver,
+            submitPolicy,
+            submitExecutor
         );
     }
 
@@ -77,7 +92,7 @@ class ServiceSubmitServiceTest {
         when(shipmentEvidencePort.findReadyEvidenceHashes("eg1")).thenReturn(List.of("hash1"));
         when(serviceRequestRepository.save(any(ServiceRequest.class))).thenAnswer(inv -> inv.getArgument(0));
 
-        SubmitServiceRequestResult result = service.approve(
+        SubmitServiceRequestResult result = service.submit(
             OWNER,
             new SubmitServiceRequestCommand("p1", "provT1", "eg1", "ONLINE", "화면 불량", null, "010-0000-0000 / 평일 오후")
         );
@@ -103,7 +118,7 @@ class ServiceSubmitServiceTest {
             .thenReturn(new TenantReadPort.TenantSummary("provT1", "Provider", "SEOUL", "서울시 강남구", "SERVICE"));
 
         WorkflowDomainException ex = assertThrows(WorkflowDomainException.class, () ->
-            service.approve(OWNER, new SubmitServiceRequestCommand("p1", "provT1", "eg1", "ONLINE", "화면 불량", null, "010-0000-0000 / 평일 오후"))
+            service.submit(OWNER, new SubmitServiceRequestCommand("p1", "provT1", "eg1", "ONLINE", "화면 불량", null, "010-0000-0000 / 평일 오후"))
         );
         assertEquals(WorkflowErrorCode.FORBIDDEN_SCOPE, ex.getErrorCode());
     }
@@ -120,7 +135,7 @@ class ServiceSubmitServiceTest {
             .thenReturn(new TenantReadPort.TenantSummary("provT1", "Provider", "SEOUL", "서울시 강남구", "SERVICE"));
 
         WorkflowDomainException ex = assertThrows(WorkflowDomainException.class, () ->
-            service.approve(OWNER, new SubmitServiceRequestCommand("p1", "provT1", "eg1", "ONLINE", "화면 불량", null, "010-0000-0000 / 평일 오후"))
+            service.submit(OWNER, new SubmitServiceRequestCommand("p1", "provT1", "eg1", "ONLINE", "화면 불량", null, "010-0000-0000 / 평일 오후"))
         );
         assertEquals(WorkflowErrorCode.SERVICE_REQUEST_ALREADY_SUBMITTED, ex.getErrorCode());
     }
@@ -135,7 +150,7 @@ class ServiceSubmitServiceTest {
             .thenReturn(new TenantReadPort.TenantSummary("provT1", "Provider", "SEOUL", "서울시 강남구", "SERVICE"));
 
         WorkflowDomainException ex = assertThrows(WorkflowDomainException.class, () ->
-            service.approve(OWNER, new SubmitServiceRequestCommand("p1", "provT1", "eg1", "ONLINE", "화면 불량", null, "010-0000-0000 / 평일 오후"))
+            service.submit(OWNER, new SubmitServiceRequestCommand("p1", "provT1", "eg1", "ONLINE", "화면 불량", null, "010-0000-0000 / 평일 오후"))
         );
         assertEquals(WorkflowErrorCode.FORBIDDEN_SCOPE, ex.getErrorCode());
     }

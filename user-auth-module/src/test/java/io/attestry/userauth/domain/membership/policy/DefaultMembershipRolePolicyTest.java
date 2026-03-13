@@ -4,7 +4,7 @@ import static org.junit.jupiter.api.Assertions.assertEquals;
 
 import io.attestry.userauth.domain.authorization.model.RoleCodes;
 import io.attestry.userauth.domain.membership.model.MembershipRole;
-import io.attestry.userauth.domain.organization.model.TenantType;
+import io.attestry.userauth.domain.tenant.model.TenantType;
 import org.junit.jupiter.api.Test;
 
 class DefaultMembershipRolePolicyTest {

@@ -2,7 +2,7 @@ package io.attestry.workflow.application.transfer;
 
 import io.attestry.userauth.domain.authorization.model.PermissionCodes;
 import io.attestry.userauth.security.AuthPrincipal;
-import io.attestry.workflow.application.port.CompletedTransferQueryPort;
+import io.attestry.workflow.application.port.transfer.CompletedTransferQueryPort;
 import io.attestry.workflow.application.support.WorkflowAuthorizationSupport;
 import io.attestry.workflow.application.usecase.TransferQueryUseCase;
 import org.springframework.stereotype.Service;

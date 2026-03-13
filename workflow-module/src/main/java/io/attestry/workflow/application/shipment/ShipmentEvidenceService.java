@@ -1,8 +1,8 @@
 package io.attestry.workflow.application.shipment;
 
-import io.attestry.userauth.application.port.ObjectStoragePort;
+import io.attestry.commonlib.application.port.ObjectStoragePort;
 import io.attestry.userauth.security.AuthPrincipal;
-import io.attestry.workflow.application.port.WorkflowEvidencePort;
+import io.attestry.workflow.application.port.common.WorkflowEvidencePort;
 import io.attestry.workflow.application.shipment.command.CompleteShipmentEvidenceUploadCommand;
 import io.attestry.workflow.application.shipment.command.PresignShipmentEvidenceUploadCommand;
 import io.attestry.workflow.application.shipment.result.PresignedEvidenceUploadResult;
@@ -14,9 +14,12 @@ import io.attestry.userauth.domain.authorization.model.PermissionCodes;
 import java.time.Clock;
 import java.time.Duration;
 import java.time.Instant;
+
+import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
+@RequiredArgsConstructor
 @Service
 public class ShipmentEvidenceService implements ShipmentEvidenceUseCase {
 
@@ -29,20 +32,6 @@ public class ShipmentEvidenceService implements ShipmentEvidenceUseCase {
     private final EvidenceUploadSupport evidenceUploadSupport;
     private final Clock clock;
 
-    public ShipmentEvidenceService(
-        WorkflowEvidencePort evidencePort,
-        ObjectStoragePort objectStoragePort,
-        WorkflowAuthorizationSupport authorizationSupport,
-        EvidenceUploadSupport evidenceUploadSupport,
-        Clock clock
-    ) {
-        this.evidencePort = evidencePort;
-        this.objectStoragePort = objectStoragePort;
-        this.authorizationSupport = authorizationSupport;
-        this.evidenceUploadSupport = evidenceUploadSupport;
-        this.clock = clock;
-    }
-
     @Override
     @Transactional
     public PresignedEvidenceUploadResult presignEvidenceUpload(
@@ -50,8 +39,7 @@ public class ShipmentEvidenceService implements ShipmentEvidenceUseCase {
         PresignShipmentEvidenceUploadCommand command
     ) {
         String tenantId = principal.tenantId();
-        authorizationSupport.assertTenantContext(principal, tenantId);
-        authorizationSupport.assertLivePermission(principal, tenantId, PermissionCodes.BRAND_RELEASE, "shipment:evidence:presign");
+        assertEvidenceWriteAccess(principal, tenantId, "shipment:evidence:presign");
 
         return evidenceUploadSupport.doPresign(
             evidencePort, objectStoragePort,
@@ -69,14 +57,23 @@ public class ShipmentEvidenceService implements ShipmentEvidenceUseCase {
         CompleteShipmentEvidenceUploadCommand command
     ) {
         String tenantId = principal.tenantId();
-        authorizationSupport.assertTenantContext(principal, tenantId);
-        authorizationSupport.assertLivePermission(principal, tenantId, PermissionCodes.BRAND_RELEASE, "shipment:evidence:complete");
+        assertEvidenceWriteAccess(principal, tenantId, "shipment:evidence:complete");
         evidenceUploadSupport.assertEvidenceGroupScope(evidencePort, command.evidenceGroupId(), tenantId);
 
         return evidenceUploadSupport.doComplete(
             evidencePort, objectStoragePort,
             command.evidenceGroupId(), command.evidenceId(),
             command.sizeBytes(), command.fileHash(), Instant.now(clock)
+        );
+    }
+
+    private void assertEvidenceWriteAccess(AuthPrincipal principal, String tenantId, String resourceRef) {
+        authorizationSupport.assertTenantContext(principal, tenantId);
+        authorizationSupport.assertLivePermission(
+            principal,
+            tenantId,
+            PermissionCodes.BRAND_RELEASE,
+            resourceRef
         );
     }
 }

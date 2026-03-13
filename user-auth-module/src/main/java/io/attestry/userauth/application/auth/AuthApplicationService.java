@@ -5,92 +5,54 @@ import io.attestry.userauth.application.dto.result.SignUpResult;
 import io.attestry.userauth.application.dto.result.VerifyPhoneResult;
 import io.attestry.userauth.application.dto.command.LoginCommand;
 import io.attestry.userauth.application.dto.command.SignUpCommand;
-import io.attestry.userauth.application.port.AccessTokenPort;
-import io.attestry.userauth.application.port.MembershipPermissionQueryPort;
-import io.attestry.userauth.application.port.MembershipRepositoryPort;
-import io.attestry.userauth.application.port.PasswordHasherPort;
-import io.attestry.userauth.application.port.UserAccountRepositoryPort;
+import io.attestry.userauth.application.port.auth.AccessTokenPort;
+import io.attestry.userauth.application.port.auth.PasswordHasherPort;
+import io.attestry.userauth.application.port.identity.UserAccountRepositoryPort;
+import io.attestry.userauth.application.port.membership.MembershipPort;
 import io.attestry.userauth.application.usecase.auth.AuthUseCase;
-import io.attestry.userauth.common.error.DomainException;
-import io.attestry.userauth.common.error.ErrorCode;
-import io.attestry.userauth.security.AuthPrincipal;
+import io.attestry.userauth.domain.UserAuthErrorCode;
+import io.attestry.userauth.domain.UserAuthDomainException;
 import io.attestry.userauth.domain.authorization.model.LoginContext;
-import io.attestry.userauth.domain.authorization.model.RoleCodes;
-import io.attestry.userauth.domain.membership.model.Membership;
-import io.attestry.userauth.domain.membership.policy.MembershipSelectionPolicy;
 import io.attestry.userauth.domain.identity.model.Email;
 import io.attestry.userauth.domain.identity.model.UserAccount;
-import java.time.Duration;
-import java.time.Clock;
-import java.time.Instant;
-import java.util.HashSet;
-import java.util.List;
-import java.util.Optional;
-import java.util.Set;
+import io.attestry.userauth.domain.membership.model.Membership;
+import io.attestry.userauth.security.AuthPrincipal;
+import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
-import org.springframework.beans.factory.annotation.Value;
 
 @Service
+@RequiredArgsConstructor
 public class AuthApplicationService implements AuthUseCase {
 
     private final UserAccountRepositoryPort userAccountRepository;
-    private final MembershipRepositoryPort membershipRepository;
-    private final MembershipPermissionQueryPort membershipPermissionQueryPort;
+    private final LoginContextResolver loginContextResolver;
     private final PasswordHasherPort passwordHasher;
+    private final AuthTokenIssuer authTokenIssuer;
     private final AccessTokenPort accessTokenPort;
-    private final Clock clock;
-    private final Duration accessTokenTtl;
-
-    public AuthApplicationService(
-            UserAccountRepositoryPort userAccountRepository,
-            MembershipRepositoryPort membershipRepository,
-            MembershipPermissionQueryPort membershipPermissionQueryPort,
-            PasswordHasherPort passwordHasher,
-            AccessTokenPort accessTokenPort,
-            Clock clock,
-            @Value("${app.auth.token.access-ttl:PT15M}") Duration accessTokenTtl) {
-        this.userAccountRepository = userAccountRepository;
-        this.membershipRepository = membershipRepository;
-        this.membershipPermissionQueryPort = membershipPermissionQueryPort;
-        this.passwordHasher = passwordHasher;
-        this.accessTokenPort = accessTokenPort;
-        this.clock = clock;
-        this.accessTokenTtl = accessTokenTtl;
-    }
+    private final MembershipPort membershipPort;
 
     @Override
     public SignUpResult signUp(SignUpCommand command) {
+        userAccountRepository.findByEmail(Email.of(command.email()).value())
+                .ifPresent(account -> {
+                    throw new UserAuthDomainException(UserAuthErrorCode.DUPLICATE_EMAIL, "Email already exists");
+                });
+
         String passwordHash = passwordHasher.hash(command.password());
         UserAccount userAccount = UserAccount.register(command.email(), command.phone(), passwordHash);
-        return new SignUpResult(userAccountRepository.saveNew(userAccount).userId());
+        return new SignUpResult(userAccountRepository.save(userAccount).userId());
     }
 
     @Override
     public AuthTokenResult login(LoginCommand command) {
-        UserAccount account = userAccountRepository.findByEmail(Email.of(command.email()))
-                .orElseThrow(() -> new DomainException(ErrorCode.USER_NOT_FOUND, "User not found"));
+        UserAccount account = userAccountRepository.findByEmail(command.email())
+                .orElseThrow(() -> new UserAuthDomainException(UserAuthErrorCode.USER_NOT_FOUND, "User not found"));
 
         account.assertPasswordMatches(command.password(), passwordHasher::matches);
         account.checkActiveStatus();
 
-        LoginContext loginContext = resolveLoginContext(account.userId(), command.tenantId());
-
-        Instant now = Instant.now(clock);
-        AuthPrincipal principal = AuthPrincipal.issue(
-                account.userId(),
-                loginContext.tenantId(),
-                account.verificationLevel(),
-                loginContext.scopes(),
-                now,
-                accessTokenTtl);
-        String token = accessTokenPort.issue(principal);
-
-        return new AuthTokenResult(
-                token,
-                "Bearer",
-                principal.expiresAt(),
-                account.userId(),
-                loginContext.tenantId());
+        LoginContext loginContext = loginContextResolver.resolve(account.userId(), command.tenantId());
+        return authTokenIssuer.issue(account, loginContext);
     }
 
     @Override
@@ -101,48 +63,13 @@ public class AuthApplicationService implements AuthUseCase {
     @Override
     public AuthPrincipal authenticate(String accessToken) {
         return accessTokenPort.parse(accessToken)
-                .orElseThrow(() -> new DomainException(ErrorCode.ACCESS_TOKEN_INVALID, "Invalid access token"));
-    }
-
-    private Membership resolveActiveMembership(String userId, String tenantId) {
-        Optional<Membership> requestedMembership = (tenantId != null)
-                ? membershipRepository.findByUserIdAndTenantId(userId, tenantId)
-                : Optional.empty();
-        List<Membership> memberships = membershipRepository.findByUserId(userId);
-        return MembershipSelectionPolicy.resolve(tenantId, requestedMembership, memberships);
-    }
-
-    private LoginContext resolveLoginContext(String userId, String tenantId) {
-        Membership activeMembership = resolveActiveMembership(userId, tenantId);
-        Set<String> scopes = resolveOwnerPermissions();
-
-        if (activeMembership == null) {
-            return LoginContext.owner(scopes);
-        }
-
-        scopes.addAll(resolveMembershipScopes(activeMembership));
-        return LoginContext.withMembership(activeMembership, scopes);
-    }
-
-    private Set<String> resolveMembershipScopes(Membership membership) {
-        Set<String> permissionCodes = membershipPermissionQueryPort
-                .findPermissionCodesByMembershipId(membership.membershipId());
-        return Set.copyOf(permissionCodes);
-    }
-
-    private Set<String> resolveOwnerPermissions() {
-        Set<String> permissionCodes = membershipPermissionQueryPort
-                .findPermissionCodesByGlobalRoleCode(RoleCodes.OWNER_DEFAULT);
-        if (permissionCodes.isEmpty()) {
-            throw new IllegalStateException("OWNER_DEFAULT role permissions are not configured");
-        }
-        return new HashSet<>(permissionCodes);
+                .orElseThrow(() -> new UserAuthDomainException(UserAuthErrorCode.ACCESS_TOKEN_INVALID, "Invalid access token"));
     }
 
     @Override
     public VerifyPhoneResult verifyPhone(String userId) {
-        UserAccount account = userAccountRepository.findByUserId(userId)
-                .orElseThrow(() -> new DomainException(ErrorCode.USER_NOT_FOUND, "User not found"));
+        UserAccount account = userAccountRepository.findById(userId)
+                .orElseThrow(() -> new UserAuthDomainException(UserAuthErrorCode.USER_NOT_FOUND, "User not found"));
         account.verifyPhone();
         userAccountRepository.save(account);
         return new VerifyPhoneResult(account.userId(), account.verificationLevel());
@@ -150,28 +77,30 @@ public class AuthApplicationService implements AuthUseCase {
 
     @Override
     public AuthTokenResult reissueToken(String userId, String tenantId) {
-        UserAccount account = userAccountRepository.findByUserId(userId)
-                .orElseThrow(() -> new DomainException(ErrorCode.USER_NOT_FOUND, "User not found"));
+        UserAccount account = userAccountRepository.findById(userId)
+                .orElseThrow(() -> new UserAuthDomainException(UserAuthErrorCode.USER_NOT_FOUND, "User not found"));
 
         account.checkActiveStatus();
 
-        LoginContext loginContext = resolveLoginContext(account.userId(), tenantId);
+        LoginContext loginContext = loginContextResolver.resolve(account.userId(), tenantId);
+        return authTokenIssuer.issue(account, loginContext);
+    }
 
-        Instant now = Instant.now(clock);
-        AuthPrincipal principal = AuthPrincipal.issue(
-                account.userId(),
-                loginContext.tenantId(),
-                account.verificationLevel(),
-                loginContext.scopes(),
-                now,
-                accessTokenTtl);
-        String token = accessTokenPort.issue(principal);
+    @Override
+    public AuthTokenResult switchTenant(String userId, String membershipId) {
+        UserAccount account = userAccountRepository.findById(userId)
+            .orElseThrow(() -> new UserAuthDomainException(UserAuthErrorCode.USER_NOT_FOUND, "User not found"));
 
-        return new AuthTokenResult(
-                token,
-                "Bearer",
-                principal.expiresAt(),
-                account.userId(),
-                loginContext.tenantId());
+        account.checkActiveStatus();
+
+        Membership membership = membershipPort.findMembershipByMembershipIdAndUserId(membershipId, userId)
+            .filter(Membership::isActive)
+            .orElseThrow(() -> new UserAuthDomainException(
+                UserAuthErrorCode.MEMBERSHIP_NOT_FOUND,
+                "Membership not found"
+            ));
+
+        LoginContext loginContext = loginContextResolver.resolve(account.userId(), membership.tenantId());
+        return authTokenIssuer.issue(account, loginContext);
     }
 }

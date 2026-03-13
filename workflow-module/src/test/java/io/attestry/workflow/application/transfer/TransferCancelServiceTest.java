@@ -4,14 +4,13 @@ import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertNotNull;
 import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.mockito.ArgumentMatchers.any;
-import static org.mockito.ArgumentMatchers.anyString;
 import static org.mockito.Mockito.doNothing;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 
 import io.attestry.userauth.domain.identity.model.VerificationLevel;
 import io.attestry.userauth.security.AuthPrincipal;
-import io.attestry.workflow.application.support.WorkflowAuthorizationSupport;
+import io.attestry.workflow.application.transfer.policy.TransferAccessPolicy;
 import io.attestry.workflow.application.transfer.result.CancelTransferResult;
 import io.attestry.workflow.domain.WorkflowDomainException;
 import io.attestry.workflow.domain.WorkflowErrorCode;
@@ -33,7 +32,8 @@ import org.mockito.junit.jupiter.MockitoExtension;
 class TransferCancelServiceTest {
 
     @Mock TokenTransferRepository transferRepository;
-    @Mock WorkflowAuthorizationSupport authorizationSupport;
+    @Mock TransferAccessPolicy accessPolicy;
+    @Mock TransferCancelExecutor cancelExecutor;
 
     private final Clock clock = Clock.fixed(Instant.parse("2026-03-01T10:00:00Z"), ZoneOffset.UTC);
 
@@ -44,7 +44,7 @@ class TransferCancelServiceTest {
 
     @BeforeEach
     void setUp() {
-        service = new TransferCancelService(transferRepository, authorizationSupport, clock);
+        service = new TransferCancelService(transferRepository, accessPolicy, cancelExecutor, clock);
     }
 
     @Test
@@ -59,7 +59,9 @@ class TransferCancelServiceTest {
         );
 
         when(transferRepository.findById("t1")).thenReturn(Optional.of(pending));
-        when(transferRepository.save(any(TokenTransfer.class))).thenAnswer(inv -> inv.getArgument(0));
+        doNothing().when(accessPolicy).assertCancelAccess(creator, "t1", pending);
+        when(cancelExecutor.cancel(pending, "owner1", Instant.parse("2026-03-01T10:00:00Z")))
+            .thenReturn(new CancelTransferResult("t1", "p1", "CANCELLED", Instant.parse("2026-03-01T10:00:00Z")));
 
         CancelTransferResult result = service.cancel(creator, "t1");
 
@@ -80,6 +82,8 @@ class TransferCancelServiceTest {
         );
 
         when(transferRepository.findById("t1")).thenReturn(Optional.of(pending));
+        org.mockito.Mockito.doThrow(new WorkflowDomainException(WorkflowErrorCode.FORBIDDEN_SCOPE, "Only the transfer creator can cancel a C2C transfer"))
+            .when(accessPolicy).assertCancelAccess(other, "t1", pending);
 
         WorkflowDomainException ex = assertThrows(WorkflowDomainException.class, () ->
             service.cancel(other, "t1")
@@ -99,14 +103,14 @@ class TransferCancelServiceTest {
         );
 
         when(transferRepository.findById("t1")).thenReturn(Optional.of(pending));
-        doNothing().when(authorizationSupport).assertTenantContext(any(), anyString());
-        doNothing().when(authorizationSupport).assertLivePermission(any(), anyString(), anyString(), anyString());
-        when(transferRepository.save(any(TokenTransfer.class))).thenAnswer(inv -> inv.getArgument(0));
+        doNothing().when(accessPolicy).assertCancelAccess(retailPrincipal, "t1", pending);
+        when(cancelExecutor.cancel(pending, "retailUser", Instant.parse("2026-03-01T10:00:00Z")))
+            .thenReturn(new CancelTransferResult("t1", "p1", "CANCELLED", Instant.parse("2026-03-01T10:00:00Z")));
 
         CancelTransferResult result = service.cancel(retailPrincipal, "t1");
 
         assertEquals("CANCELLED", result.status());
-        verify(authorizationSupport).assertTenantContext(retailPrincipal, "tenant1");
+        verify(accessPolicy).assertCancelAccess(retailPrincipal, "t1", pending);
     }
 
     @Test

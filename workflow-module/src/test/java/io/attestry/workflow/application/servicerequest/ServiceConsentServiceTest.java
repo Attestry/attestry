@@ -11,11 +11,11 @@ import static org.mockito.Mockito.when;
 
 import io.attestry.userauth.domain.identity.model.VerificationLevel;
 import io.attestry.userauth.security.AuthPrincipal;
-import io.attestry.workflow.application.port.ServicePermissionPort;
-import io.attestry.workflow.application.port.ServiceProductReadPort;
-import io.attestry.workflow.application.port.ServiceProductReadPort.ServicePassportState;
-import io.attestry.workflow.application.port.TenantReadPort;
+import io.attestry.workflow.application.port.servicerequest.ServicePermissionPort;
+import io.attestry.workflow.application.port.servicerequest.ServiceProductReadPort;
+import io.attestry.workflow.application.port.servicerequest.ServiceProductReadPort.ServicePassportState;
 import io.attestry.workflow.application.servicerequest.command.GrantServiceConsentCommand;
+import io.attestry.workflow.application.servicerequest.policy.ServiceRequestAccessPolicy;
 import io.attestry.workflow.application.servicerequest.result.GrantServiceConsentResult;
 import io.attestry.workflow.application.servicerequest.result.RevokeServiceConsentResult;
 import io.attestry.workflow.application.support.WorkflowAuthorizationSupport;
@@ -39,7 +39,6 @@ class ServiceConsentServiceTest {
 
     @Mock ServiceProductReadPort serviceProductReadPort;
     @Mock ServicePermissionPort servicePermissionPort;
-    @Mock TenantReadPort tenantReadPort;
     @Mock ServiceSubmitUseCase serviceSubmitUseCase;
     @Mock WorkflowAuthorizationSupport authorizationSupport;
 
@@ -54,8 +53,17 @@ class ServiceConsentServiceTest {
 
     @BeforeEach
     void setUp() {
+        ServiceRequestAccessPolicy accessPolicy = new ServiceRequestAccessPolicy(authorizationSupport);
+        ServiceConsentExecutor consentExecutor = new ServiceConsentExecutor(
+            servicePermissionPort,
+            serviceSubmitUseCase,
+            clock
+        );
         service = new ServiceConsentService(
-            serviceProductReadPort, servicePermissionPort, tenantReadPort, serviceSubmitUseCase, authorizationSupport, consentPolicy, clock
+            serviceProductReadPort,
+            accessPolicy,
+            consentPolicy,
+            consentExecutor
         );
     }
 
@@ -67,7 +75,7 @@ class ServiceConsentServiceTest {
         when(serviceProductReadPort.findCurrentOwnerId("p1")).thenReturn(Optional.of("owner1"));
         when(servicePermissionPort.grantServiceRepairConsent(anyString(), anyString(), anyString(), any(Instant.class)))
             .thenReturn("perm1");
-        when(serviceSubmitUseCase.approve(any(), any())).thenReturn(
+        when(serviceSubmitUseCase.submit(any(), any())).thenReturn(
             new io.attestry.workflow.application.servicerequest.result.SubmitServiceRequestResult(
                 "sr1", "p1", "provG1", "REPAIR", "PENDING", "perm1", Instant.parse("2026-03-01T10:00:00Z")
             )

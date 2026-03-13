@@ -11,7 +11,8 @@ import static org.mockito.Mockito.when;
 
 import io.attestry.userauth.domain.identity.model.VerificationLevel;
 import io.attestry.userauth.security.AuthPrincipal;
-import io.attestry.workflow.application.port.ServicePermissionPort;
+import io.attestry.workflow.application.port.servicerequest.ServicePermissionPort;
+import io.attestry.workflow.application.servicerequest.policy.ServiceRequestAccessPolicy;
 import io.attestry.workflow.application.servicerequest.result.CancelServiceRequestResult;
 import io.attestry.workflow.application.support.WorkflowAuthorizationSupport;
 import io.attestry.workflow.domain.WorkflowDomainException;
@@ -47,8 +48,9 @@ class ServiceCancelServiceTest {
 
     @BeforeEach
     void setUp() {
+        ServiceRequestAccessPolicy accessPolicy = new ServiceRequestAccessPolicy(authorizationSupport);
         service = new ServiceCancelService(
-            serviceRequestRepository, servicePermissionPort, authorizationSupport, clock
+            serviceRequestRepository, servicePermissionPort, accessPolicy, clock
         );
     }
 
@@ -108,7 +110,11 @@ class ServiceCancelServiceTest {
         ServiceRequest accepted = ServiceRequest.submit(
             "sr1", "p1", "REPAIR", "owner1",
             "provT1", "desc", "eg1", "ONLINE", "화면 불량", null, "연락처", null, "owner1", SUBMITTED_AT, SUBMITTED_AT
-        ).accept("담당자 확인", Instant.parse("2026-03-01T09:30:00Z"));
+        ).accept(
+            "REPAIR",
+            "담당자 확인",
+            Instant.parse("2026-03-01T09:30:00Z")
+        );
 
         doNothing().when(authorizationSupport).assertPermissionOnly(any(), anyString(), anyString());
         when(serviceRequestRepository.findById("sr1")).thenReturn(Optional.of(accepted));

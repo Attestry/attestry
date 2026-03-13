@@ -6,5 +6,5 @@ import io.attestry.workflow.application.servicerequest.result.SubmitServiceReque
 
 public interface ServiceSubmitUseCase {
 
-    SubmitServiceRequestResult approve(AuthPrincipal principal, SubmitServiceRequestCommand command);
+    SubmitServiceRequestResult submit(AuthPrincipal principal, SubmitServiceRequestCommand command);
 }

@@ -1,10 +1,6 @@
 package io.attestry.workflow.application.claim;
 
-import io.attestry.product.application.usecase.ProductMintUseCase;
-import io.attestry.product.application.usecase.ProductMintUseCase.MintProductCommand;
-import io.attestry.product.application.usecase.ProductMintUseCase.MintedProductResult;
-import io.attestry.userauth.application.dto.command.ActorContext;
-import io.attestry.userauth.application.port.ObjectStoragePort;
+import io.attestry.commonlib.application.port.ObjectStoragePort;
 import io.attestry.userauth.domain.authorization.model.PermissionCodes;
 import io.attestry.userauth.security.AuthPrincipal;
 import io.attestry.workflow.application.claim.command.ApprovePurchaseClaimCommand;
@@ -12,9 +8,10 @@ import io.attestry.workflow.application.claim.result.ApprovePurchaseClaimResult;
 import io.attestry.workflow.application.claim.result.ClaimEvidenceView;
 import io.attestry.workflow.application.claim.result.PendingClaimView;
 import io.attestry.workflow.application.claim.result.RejectPurchaseClaimResult;
-import io.attestry.workflow.application.port.WorkflowEvidencePort;
-import io.attestry.workflow.application.port.TransferOwnershipUpdatePort;
-import io.attestry.workflow.application.port.WorkflowLedgerOutboxPort;
+import io.attestry.workflow.application.port.claim.PurchaseClaimProductMintPort;
+import io.attestry.workflow.application.port.common.WorkflowEvidencePort;
+import io.attestry.workflow.application.port.transfer.TransferOwnershipUpdatePort;
+import io.attestry.workflow.application.port.common.WorkflowLedgerOutboxPort;
 import io.attestry.workflow.application.shipment.result.WorkflowLedgerEventEnvelope;
 import io.attestry.workflow.application.support.WorkflowAuthorizationSupport;
 import io.attestry.workflow.application.usecase.PurchaseClaimAdminUseCase;
@@ -27,15 +24,18 @@ import java.time.Clock;
 import java.time.Duration;
 import java.time.Instant;
 import java.util.List;
+
+import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
 @Service
+@RequiredArgsConstructor
 public class PurchaseClaimAdminService implements PurchaseClaimAdminUseCase {
     private static final Duration DOWNLOAD_TTL = Duration.ofDays(3);
 
     private final PurchaseClaimRepository purchaseClaimRepository;
-    private final ProductMintUseCase productMintUseCase;
+    private final PurchaseClaimProductMintPort productMintPort;
     private final TransferOwnershipUpdatePort ownershipUpdatePort;
     private final WorkflowLedgerOutboxPort ledgerOutboxPort;
     private final WorkflowEvidencePort evidencePort;
@@ -43,25 +43,6 @@ public class PurchaseClaimAdminService implements PurchaseClaimAdminUseCase {
     private final WorkflowAuthorizationSupport authorizationSupport;
     private final Clock clock;
 
-    public PurchaseClaimAdminService(
-        PurchaseClaimRepository purchaseClaimRepository,
-        ProductMintUseCase productMintUseCase,
-        TransferOwnershipUpdatePort ownershipUpdatePort,
-        WorkflowLedgerOutboxPort ledgerOutboxPort,
-        WorkflowEvidencePort evidencePort,
-        ObjectStoragePort objectStoragePort,
-        WorkflowAuthorizationSupport authorizationSupport,
-        Clock clock
-    ) {
-        this.purchaseClaimRepository = purchaseClaimRepository;
-        this.productMintUseCase = productMintUseCase;
-        this.ownershipUpdatePort = ownershipUpdatePort;
-        this.ledgerOutboxPort = ledgerOutboxPort;
-        this.evidencePort = evidencePort;
-        this.objectStoragePort = objectStoragePort;
-        this.authorizationSupport = authorizationSupport;
-        this.clock = clock;
-    }
 
     @Override
     @Transactional(readOnly = true)
@@ -101,12 +82,18 @@ public class PurchaseClaimAdminService implements PurchaseClaimAdminUseCase {
 
         PurchaseClaim claim = findSubmittedClaim(claimId);
 
-        MintedProductResult mintResult = productMintUseCase.mint(
-            ActorContext.from(principal),
-            new MintProductCommand(
+        PurchaseClaimProductMintPort.MintResult mintResult = productMintPort.mint(
+            new PurchaseClaimProductMintPort.MintRequest(
+                principal.userId(),
                 principal.tenantId(),
-                claim.serialNumber(), null, claim.modelName(),
-                command.manufacturedAt(), command.productionBatch(), command.factoryCode(), null
+                principal.scopes(),
+                principal.scopes() != null && principal.scopes().contains(PermissionCodes.PLATFORM_ADMIN),
+                principal.tenantId(),
+                claim.serialNumber(),
+                claim.modelName(),
+                command.manufacturedAt(),
+                command.productionBatch(),
+                command.factoryCode()
             )
         );
 
@@ -164,7 +151,7 @@ public class PurchaseClaimAdminService implements PurchaseClaimAdminUseCase {
         return claim;
     }
 
-    private ClaimEvidenceView toEvidenceView(WorkflowEvidencePort.EvidenceView evidence) {
+    private ClaimEvidenceView toEvidenceView(WorkflowEvidencePort.EvidenceRecord evidence) {
         ObjectStoragePort.PresignedDownload download = objectStoragePort.issuePresignedDownload(
             evidence.objectKey(),
             DOWNLOAD_TTL

@@ -91,3 +91,15 @@ app:
       enabled: ${PRODUCT_PERMISSION_PROJECTION_ENABLED:true}
       initial-delay-ms: ${PRODUCT_PERMISSION_PROJECTION_INITIAL_DELAY_MS:3000}
       sync-interval-ms: ${PRODUCT_PERMISSION_PROJECTION_SYNC_INTERVAL_MS:5000}
+    read-projection:
+      backfill:
+        enabled: ${PRODUCT_READ_PROJECTION_BACKFILL_ENABLED:false}
+      validation:
+        enabled: ${PRODUCT_READ_PROJECTION_VALIDATION_ENABLED:false}
+  workflow:
+    read-projection:
+      consumer-group-id: ${WORKFLOW_READ_PROJECTION_CONSUMER_GROUP_ID:workflow-product-read-projection-consumer}
+      backfill:
+        enabled: ${WORKFLOW_READ_PROJECTION_BACKFILL_ENABLED:false}
+      validation:
+        enabled: ${WORKFLOW_READ_PROJECTION_VALIDATION_ENABLED:false}

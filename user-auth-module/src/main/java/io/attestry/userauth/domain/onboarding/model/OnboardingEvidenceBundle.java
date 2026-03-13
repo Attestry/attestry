@@ -1,8 +1,7 @@
 package io.attestry.userauth.domain.onboarding.model;
 
-import io.attestry.userauth.common.error.DomainException;
-import io.attestry.userauth.common.error.ErrorCode;
-import java.time.Instant;
+import io.attestry.userauth.domain.UserAuthErrorCode;
+import io.attestry.userauth.domain.UserAuthDomainException;import java.time.Instant;
 import java.util.ArrayList;
 import java.util.Collections;
 import java.util.List;
@@ -62,7 +61,7 @@ public class OnboardingEvidenceBundle {
                                            String objectKey, Instant now) {
         assertCollecting();
         if (files.size() >= MAX_FILES) {
-            throw new DomainException(ErrorCode.EVIDENCE_FILE_LIMIT_EXCEEDED,
+            throw new UserAuthDomainException(UserAuthErrorCode.EVIDENCE_FILE_LIMIT_EXCEEDED,
                 "Maximum " + MAX_FILES + " evidence files are allowed per bundle");
         }
         OnboardingEvidenceFile file = OnboardingEvidenceFile.start(evidenceBundleId, originalFileName, contentType, objectKey, now);
@@ -71,13 +70,21 @@ public class OnboardingEvidenceBundle {
     }
 
     public void completeFile(String evidenceFileId, long sizeBytes, Instant now) {
-        OnboardingEvidenceFile file = findFile(evidenceFileId);
+        OnboardingEvidenceFile file = findFileOrThrow(evidenceFileId);
+        completeFile(file, sizeBytes, now);
+    }
+
+    public void completeFile(OnboardingEvidenceFile file, long sizeBytes, Instant now) {
         int index = files.indexOf(file);
         OnboardingEvidenceFile completed = file.complete(sizeBytes, now);
         files.set(index, completed);
         if (files.stream().allMatch(OnboardingEvidenceFile::isReady)) {
             markReady(now);
         }
+    }
+
+    public OnboardingEvidenceFile findFileOrThrow(String evidenceFileId) {
+        return findFile(evidenceFileId);
     }
 
     public void markReady(Instant now) {
@@ -90,19 +97,19 @@ public class OnboardingEvidenceBundle {
 
     public void assertOwnedBy(String userId) {
         if (!ownerUserId.equals(userId)) {
-            throw new DomainException(ErrorCode.FORBIDDEN_SCOPE, "Evidence ownership mismatch");
+            throw new UserAuthDomainException(UserAuthErrorCode.FORBIDDEN_SCOPE, "Evidence ownership mismatch");
         }
     }
 
     public void assertReady() {
         if (status != OnboardingEvidenceBundleStatus.READY) {
-            throw new DomainException(ErrorCode.INVALID_APPLICATION_STATE, "Evidence bundle is not ready");
+            throw new UserAuthDomainException(UserAuthErrorCode.INVALID_APPLICATION_STATE, "Evidence bundle is not ready");
         }
     }
 
     public void assertCollecting() {
         if (status != OnboardingEvidenceBundleStatus.COLLECTING) {
-            throw new DomainException(ErrorCode.INVALID_APPLICATION_STATE, "Evidence bundle is already completed");
+            throw new UserAuthDomainException(UserAuthErrorCode.INVALID_APPLICATION_STATE, "Evidence bundle is already completed");
         }
     }
 
@@ -110,12 +117,12 @@ public class OnboardingEvidenceBundle {
         return files.stream()
             .filter(f -> f.evidenceFileId().equals(evidenceFileId))
             .findFirst()
-            .orElseThrow(() -> new DomainException(ErrorCode.EVIDENCE_NOT_FOUND, "Evidence file not found in bundle"));
+            .orElseThrow(() -> new UserAuthDomainException(UserAuthErrorCode.EVIDENCE_NOT_FOUND, "Evidence file not found in bundle"));
     }
 
     private static void validateRequired(String value, String fieldName) {
         if (value == null || value.isBlank()) {
-            throw new DomainException(ErrorCode.INVALID_APPLICATION_STATE, fieldName + " is required");
+            throw new UserAuthDomainException(UserAuthErrorCode.INVALID_APPLICATION_STATE, fieldName + " is required");
         }
     }
 

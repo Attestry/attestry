@@ -8,27 +8,26 @@ import static org.junit.jupiter.api.Assertions.assertTrue;
 import io.attestry.userauth.application.dto.result.AuthTokenResult;
 import io.attestry.userauth.application.dto.command.LoginCommand;
 import io.attestry.userauth.application.dto.command.SignUpCommand;
-import io.attestry.userauth.application.port.AccessTokenPort;
-import io.attestry.userauth.application.port.MembershipPermissionQueryPort;
-import io.attestry.userauth.application.port.MembershipRepositoryPort;
-import io.attestry.userauth.application.port.PasswordHasherPort;
-import io.attestry.userauth.application.port.UserAccountRepositoryPort;
-import io.attestry.userauth.common.error.DomainException;
-import io.attestry.userauth.common.error.ErrorCode;
+import io.attestry.userauth.application.port.auth.AccessTokenPort;
+import io.attestry.userauth.application.port.membership.MembershipPort;
+import io.attestry.userauth.application.port.membership.MembershipProjectionPort;
+import io.attestry.userauth.application.port.auth.PasswordHasherPort;
+import io.attestry.userauth.application.port.identity.UserAccountRepositoryPort;
+import io.attestry.userauth.domain.UserAuthDomainException;
+import io.attestry.userauth.domain.UserAuthErrorCode;
 import io.attestry.userauth.security.AuthPrincipal;
 import io.attestry.userauth.domain.authorization.model.PermissionCodes;
 import io.attestry.userauth.domain.authorization.model.RoleCodes;
-import io.attestry.userauth.domain.organization.model.TenantType;
+import io.attestry.userauth.domain.tenant.model.TenantType;
 import io.attestry.userauth.domain.membership.model.Membership;
 import io.attestry.userauth.domain.membership.model.MembershipRole;
 import io.attestry.userauth.domain.membership.model.MembershipStatus;
-import io.attestry.userauth.domain.organization.model.TenantStatus;
+import io.attestry.userauth.domain.tenant.model.TenantStatus;
 import io.attestry.userauth.domain.identity.model.Email;
 import io.attestry.userauth.domain.identity.model.UserAccount;
 import io.attestry.userauth.domain.identity.model.UserStatus;
 import io.attestry.userauth.domain.identity.model.VerificationLevel;
 import java.time.Clock;
-import java.time.Duration;
 import java.time.Instant;
 import java.time.ZoneOffset;
 import java.util.ArrayList;
@@ -64,15 +63,21 @@ class AuthApplicationServiceTest {
             PermissionCodes.OWNER_RISK_CLEAR
         ));
         Clock clock = Clock.fixed(Instant.parse("2026-02-25T00:00:00Z"), ZoneOffset.UTC);
+        LoginContextResolver loginContextResolver = new LoginContextResolver(
+            new UserEffectiveScopeResolver(
+                membershipRepo,
+                permissionQueryPort
+            )
+        );
 
+        AuthTokenIssuer authTokenIssuer = new AuthTokenIssuer(tokenPort, clock);
         service = new AuthApplicationService(
             userRepo,
-            membershipRepo,
-            permissionQueryPort,
+            loginContextResolver,
             passwordHasher,
+            authTokenIssuer,
             tokenPort,
-            clock,
-            Duration.ofMinutes(15)
+            membershipRepo
         );
     }
 
@@ -80,7 +85,7 @@ class AuthApplicationServiceTest {
     void signUpShouldHashPasswordAndReturnUserId() {
         String userId = service.signUp(new SignUpCommand("a@b.com", "plain", "010-0000")).userId();
 
-        UserAccount saved = userRepo.findByUserId(userId).orElseThrow();
+        UserAccount saved = userRepo.findById(userId).orElseThrow();
         assertEquals("hashed:plain", saved.passwordHash());
         assertEquals("a@b.com", saved.email().value());
     }
@@ -125,30 +130,30 @@ class AuthApplicationServiceTest {
 
     @Test
     void loginShouldFailWhenUserNotFound() {
-        DomainException ex = assertThrows(DomainException.class,
+        UserAuthDomainException ex = assertThrows(UserAuthDomainException.class,
             () -> service.login(new LoginCommand("missing@x.com", "pw", null)));
 
-        assertEquals(ErrorCode.USER_NOT_FOUND, ex.getErrorCode());
+        assertEquals(UserAuthErrorCode.USER_NOT_FOUND, ex.getErrorCode());
     }
 
     @Test
     void loginShouldFailWhenPasswordInvalid() {
         userRepo.seed("u1", "a@b.com", "hashed:pw", UserStatus.ACTIVE, VerificationLevel.NONE);
 
-        DomainException ex = assertThrows(DomainException.class,
+        UserAuthDomainException ex = assertThrows(UserAuthDomainException.class,
             () -> service.login(new LoginCommand("a@b.com", "wrong", null)));
 
-        assertEquals(ErrorCode.INVALID_CREDENTIALS, ex.getErrorCode());
+        assertEquals(UserAuthErrorCode.INVALID_CREDENTIALS, ex.getErrorCode());
     }
 
     @Test
     void loginShouldFailWhenUserSuspended() {
         userRepo.seed("u1", "a@b.com", "hashed:pw", UserStatus.SUSPENDED, VerificationLevel.NONE);
 
-        DomainException ex = assertThrows(DomainException.class,
+        UserAuthDomainException ex = assertThrows(UserAuthDomainException.class,
             () -> service.login(new LoginCommand("a@b.com", "pw", null)));
 
-        assertEquals(ErrorCode.USER_SUSPENDED, ex.getErrorCode());
+        assertEquals(UserAuthErrorCode.USER_SUSPENDED, ex.getErrorCode());
     }
 
     @Test
@@ -160,10 +165,10 @@ class AuthApplicationServiceTest {
             TenantStatus.ACTIVE, Set.of()
         ));
 
-        DomainException ex = assertThrows(DomainException.class,
+        UserAuthDomainException ex = assertThrows(UserAuthDomainException.class,
             () -> service.login(new LoginCommand("a@b.com", "pw", "t2")));
 
-        assertEquals(ErrorCode.MEMBERSHIP_NOT_FOUND, ex.getErrorCode());
+        assertEquals(UserAuthErrorCode.MEMBERSHIP_NOT_FOUND, ex.getErrorCode());
     }
 
     @Test
@@ -175,10 +180,10 @@ class AuthApplicationServiceTest {
             TenantStatus.ACTIVE, Set.of()
         ));
 
-        DomainException ex = assertThrows(DomainException.class,
+        UserAuthDomainException ex = assertThrows(UserAuthDomainException.class,
             () -> service.login(new LoginCommand("a@b.com", "pw", "t1")));
 
-        assertEquals(ErrorCode.MEMBERSHIP_NOT_FOUND, ex.getErrorCode());
+        assertEquals(UserAuthErrorCode.MEMBERSHIP_NOT_FOUND, ex.getErrorCode());
     }
 
     @Test
@@ -204,9 +209,9 @@ class AuthApplicationServiceTest {
 
     @Test
     void authenticateShouldFailForInvalidToken() {
-        DomainException ex = assertThrows(DomainException.class, () -> service.authenticate("bad-token"));
+        UserAuthDomainException ex = assertThrows(UserAuthDomainException.class, () -> service.authenticate("bad-token"));
 
-        assertEquals(ErrorCode.ACCESS_TOKEN_INVALID, ex.getErrorCode());
+        assertEquals(UserAuthErrorCode.ACCESS_TOKEN_INVALID, ex.getErrorCode());
     }
 
     @Test
@@ -215,15 +220,69 @@ class AuthApplicationServiceTest {
 
         service.verifyPhone("u1");
 
-        VerificationLevel updated = userRepo.findByUserId("u1").orElseThrow().verificationLevel();
+        VerificationLevel updated = userRepo.findById("u1").orElseThrow().verificationLevel();
         assertEquals(VerificationLevel.PHONE_VERIFIED, updated);
     }
 
     @Test
     void verifyPhoneShouldFailWhenUserNotFound() {
-        DomainException ex = assertThrows(DomainException.class, () -> service.verifyPhone("missing"));
+        UserAuthDomainException ex = assertThrows(UserAuthDomainException.class, () -> service.verifyPhone("missing"));
 
-        assertEquals(ErrorCode.USER_NOT_FOUND, ex.getErrorCode());
+        assertEquals(UserAuthErrorCode.USER_NOT_FOUND, ex.getErrorCode());
+    }
+
+    @Test
+    void switchTenantShouldIssueTokenForOwnedActiveMembership() {
+        userRepo.seed("u1", "multi@x.com", "hashed:pw", UserStatus.ACTIVE, VerificationLevel.NONE);
+        membershipRepo.seed(Membership.reconstitute(
+            "m1", "u1", "t-brand",
+            TenantType.BRAND, MembershipRole.ADMIN, MembershipStatus.ACTIVE,
+            TenantStatus.ACTIVE, Set.of()
+        ));
+        membershipRepo.seed(Membership.reconstitute(
+            "m2", "u1", "t-service",
+            TenantType.SERVICE, MembershipRole.OPERATOR, MembershipStatus.ACTIVE,
+            TenantStatus.ACTIVE, Set.of()
+        ));
+        permissionQueryPort.seed("m2", Set.of(PermissionCodes.SERVICE_COMPLETE));
+
+        AuthTokenResult result = service.switchTenant("u1", "m2");
+        AuthPrincipal principal = tokenPort.parse(result.accessToken()).orElseThrow();
+
+        assertEquals("t-service", result.tenantId());
+        assertEquals("t-service", principal.tenantId());
+        assertTrue(principal.scopes().contains(PermissionCodes.SERVICE_COMPLETE));
+    }
+
+    @Test
+    void switchTenantShouldFailWhenMembershipBelongsToAnotherUser() {
+        userRepo.seed("u1", "user1@x.com", "hashed:pw", UserStatus.ACTIVE, VerificationLevel.NONE);
+        userRepo.seed("u2", "user2@x.com", "hashed:pw", UserStatus.ACTIVE, VerificationLevel.NONE);
+        membershipRepo.seed(Membership.reconstitute(
+            "m2", "u2", "t-service",
+            TenantType.SERVICE, MembershipRole.OPERATOR, MembershipStatus.ACTIVE,
+            TenantStatus.ACTIVE, Set.of()
+        ));
+
+        UserAuthDomainException ex = assertThrows(UserAuthDomainException.class,
+            () -> service.switchTenant("u1", "m2"));
+
+        assertEquals(UserAuthErrorCode.MEMBERSHIP_NOT_FOUND, ex.getErrorCode());
+    }
+
+    @Test
+    void switchTenantShouldFailWhenMembershipInactive() {
+        userRepo.seed("u1", "user1@x.com", "hashed:pw", UserStatus.ACTIVE, VerificationLevel.NONE);
+        membershipRepo.seed(Membership.reconstitute(
+            "m2", "u1", "t-service",
+            TenantType.SERVICE, MembershipRole.OPERATOR, MembershipStatus.SUSPENDED,
+            TenantStatus.ACTIVE, Set.of()
+        ));
+
+        UserAuthDomainException ex = assertThrows(UserAuthDomainException.class,
+            () -> service.switchTenant("u1", "m2"));
+
+        assertEquals(UserAuthErrorCode.MEMBERSHIP_NOT_FOUND, ex.getErrorCode());
     }
 
     private static class InMemoryUserAccountRepo implements UserAccountRepositoryPort {
@@ -232,8 +291,8 @@ class AuthApplicationServiceTest {
         private final Map<String, String> userIdByEmail = new HashMap<>();
 
         @Override
-        public Optional<UserAccount> findByEmail(Email email) {
-            String userId = userIdByEmail.get(email.value());
+        public Optional<UserAccount> findByEmail(String email) {
+            String userId = userIdByEmail.get(email);
             if (userId == null) {
                 return Optional.empty();
             }
@@ -241,15 +300,16 @@ class AuthApplicationServiceTest {
         }
 
         @Override
-        public Optional<UserAccount> findByUserId(String userId) {
+        public Optional<UserAccount> findById(String userId) {
             return Optional.ofNullable(byUserId.get(userId));
         }
 
         @Override
-        public UserAccount saveNew(UserAccount userAccount) {
-            byUserId.put(userAccount.userId(), userAccount);
-            userIdByEmail.put(userAccount.email().value(), userAccount.userId());
-            return userAccount;
+        public List<UserAccount> findByIds(List<String> userIds) {
+            return userIds.stream()
+                .map(byUserId::get)
+                .filter(java.util.Objects::nonNull)
+                .toList();
         }
 
         @Override
@@ -266,9 +326,20 @@ class AuthApplicationServiceTest {
         }
     }
 
-    private static class InMemoryMembershipRepo implements MembershipRepositoryPort {
+    private static class InMemoryMembershipRepo implements MembershipPort {
 
         private final List<Membership> memberships = new ArrayList<>();
+
+        @Override
+        public Optional<Membership> findById(String membershipId) {
+            return memberships.stream().filter(m -> m.membershipId().equals(membershipId)).findFirst();
+        }
+
+        @Override
+        public Membership save(Membership membership) {
+            memberships.add(membership);
+            return membership;
+        }
 
         @Override
         public List<Membership> findByUserId(String userId) {
@@ -281,6 +352,42 @@ class AuthApplicationServiceTest {
                 .filter(m -> m.userId().equals(userId))
                 .filter(m -> m.tenantId().equals(tenantId))
                 .findFirst();
+        }
+
+        @Override
+        public List<Membership> findByTenantId(String tenantId) {
+            return memberships.stream().filter(m -> m.tenantId().equals(tenantId)).toList();
+        }
+
+        @Override
+        public List<Membership> findMembershipsByTenantId(String tenantId) {
+            return findByTenantId(tenantId);
+        }
+
+        @Override
+        public Optional<Membership> findMembershipById(String membershipId) {
+            return findById(membershipId);
+        }
+
+        @Override
+        public Membership updateMembership(String tenantId, String membershipId, MembershipRole role, MembershipStatus status) {
+            return null;
+        }
+
+        @Override
+        public void assignRole(String membershipId, String roleCode, String assignedByUserId) {}
+
+        @Override
+        public void deletePermissionOverrides(String membershipId, Set<String> permissionCodes) {}
+
+        @Override
+        public Set<String> applyPermissionTemplateToMembership(String membershipId, String templateCode, String reason, String actorUserId, Instant now) {
+            return Set.of();
+        }
+
+        @Override
+        public Set<String> revokePermissionTemplateFromMembership(String membershipId, String templateCode) {
+            return Set.of();
         }
 
         void seed(Membership membership) {
@@ -321,9 +428,14 @@ class AuthApplicationServiceTest {
         public void revoke(String token) {
             tokens.remove(token);
         }
+
+        @Override
+        public void revokeByUserId(String userId) {
+            tokens.entrySet().removeIf(entry -> userId.equals(entry.getValue().userId()));
+        }
     }
 
-    private static class InMemoryMembershipPermissionQueryPort implements MembershipPermissionQueryPort {
+    private static class InMemoryMembershipPermissionQueryPort implements MembershipProjectionPort {
         private final Map<String, Set<String>> permissionByMembershipId = new HashMap<>();
         private final Map<String, Set<String>> permissionByRoleCode = new HashMap<>();
 
@@ -339,6 +451,11 @@ class AuthApplicationServiceTest {
 
         @Override
         public Set<String> findRoleCodesByMembershipId(String membershipId) {
+            return Set.of();
+        }
+
+        @Override
+        public Set<String> findGlobalEnabledRoleCodes() {
             return Set.of();
         }
 

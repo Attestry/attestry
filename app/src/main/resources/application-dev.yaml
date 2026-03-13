@@ -30,10 +30,17 @@ app:
   user-auth:
     invitation:
       mail:
-        provider: SMTP
+        provider: SQS
         enabled: ${INVITATION_MAIL_ENABLED:true}
         from: ${INVITATION_MAIL_FROM:no-reply@dev.attestry.local}
       accept-url-template: ${INVITATION_ACCEPT_URL_TEMPLATE:https://dev.attestry.local/invitations/%s/accept}
+      sqs:
+        queue-url: ${INVITATION_SQS_QUEUE_URL:}
+        region: ${INVITATION_SQS_REGION:${AWS_REGION:ap-northeast-2}}
+        endpoint: ${INVITATION_SQS_ENDPOINT:}
+        access-key: ${INVITATION_SQS_ACCESS_KEY:${AWS_ACCESS_KEY_ID:}}
+        secret-key: ${INVITATION_SQS_SECRET_KEY:${AWS_SECRET_ACCESS_KEY:}}
+        fifo-message-group-id: ${INVITATION_SQS_FIFO_MESSAGE_GROUP_ID:invitation-notification}
   storage:
     provider: S3
     bucket: ${S3_BUCKET:attestry-onboarding}

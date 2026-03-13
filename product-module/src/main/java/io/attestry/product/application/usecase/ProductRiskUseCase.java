@@ -1,24 +1,16 @@
 package io.attestry.product.application.usecase;
 
-import io.attestry.userauth.application.dto.command.ActorContext;
+import io.attestry.product.application.dto.command.ClearRiskCommand;
+import io.attestry.product.application.dto.command.FlagLostCommand;
+import io.attestry.product.application.dto.command.FlagStolenCommand;
+import io.attestry.product.application.dto.command.ProductActor;
+import io.attestry.product.application.dto.result.RiskResult;
 
 public interface ProductRiskUseCase {
 
-    RiskResult flagStolen(ActorContext actor, FlagStolenCommand command);
+    RiskResult flagStolen(ProductActor actor, FlagStolenCommand command);
 
-    RiskResult flagLost(ActorContext actor, FlagLostCommand command);
+    RiskResult flagLost(ProductActor actor, FlagLostCommand command);
 
-    RiskResult clearRisk(ActorContext actor, ClearRiskCommand command);
-
-    record FlagStolenCommand(String passportId, String policeReportNo) {
-    }
-
-    record FlagLostCommand(String passportId) {
-    }
-
-    record ClearRiskCommand(String passportId) {
-    }
-
-    record RiskResult(String assetId, String riskFlag, String outboxEventId) {
-    }
+    RiskResult clearRisk(ProductActor actor, ClearRiskCommand command);
 }

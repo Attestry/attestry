@@ -3,9 +3,8 @@ package io.attestry.userauth.domain.identity.model;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertThrows;
 
-import io.attestry.userauth.common.error.DomainException;
-import io.attestry.userauth.common.error.ErrorCode;
-import io.attestry.userauth.domain.identity.model.VerificationLevel;
+import io.attestry.userauth.domain.UserAuthDomainException;
+import io.attestry.userauth.domain.UserAuthErrorCode;
 import org.junit.jupiter.api.Test;
 
 class UserAccountTest {
@@ -14,10 +13,10 @@ class UserAccountTest {
     void assertPasswordMatchesShouldFailWhenPasswordInvalid() {
         UserAccount account = UserAccount.register("test@example.com", "010", "hashed:pw");
 
-        DomainException ex = assertThrows(DomainException.class,
+        UserAuthDomainException ex = assertThrows(UserAuthDomainException.class,
             () -> account.assertPasswordMatches("wrong", (raw, hash) -> ("hashed:" + raw).equals(hash)));
 
-        assertEquals(ErrorCode.INVALID_CREDENTIALS, ex.getErrorCode());
+        assertEquals(UserAuthErrorCode.INVALID_CREDENTIALS, ex.getErrorCode());
     }
 
     @Test

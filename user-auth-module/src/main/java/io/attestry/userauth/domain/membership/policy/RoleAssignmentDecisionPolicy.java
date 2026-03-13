@@ -2,14 +2,12 @@ package io.attestry.userauth.domain.membership.policy;
 
 import java.util.Locale;
 import java.util.Set;
+import lombok.RequiredArgsConstructor;
 
+@RequiredArgsConstructor
 public class RoleAssignmentDecisionPolicy {
 
     private final RoleAssignmentPolicy roleAssignmentPolicy;
-
-    public RoleAssignmentDecisionPolicy(RoleAssignmentPolicy roleAssignmentPolicy) {
-        this.roleAssignmentPolicy = roleAssignmentPolicy;
-    }
 
     public Decision decide(
         Set<String> actorRoleCodes,

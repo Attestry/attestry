@@ -18,7 +18,7 @@ app:
       provider: REDIS
   bootstrap:
     platform-admin:
-      enabled: true
+      enabled: ${APP_BOOTSTRAP_PLATFORM_ADMIN_ENABLED:true}
   storage:
     provider: MINIO
     bucket: ${MINIO_BUCKET:attestry-onboarding}
@@ -33,3 +33,7 @@ app:
       batch-size: ${KAFKA_OUTBOX_BATCH_SIZE:50}
       max-retries: ${KAFKA_OUTBOX_MAX_RETRIES:5}
       publish-interval-ms: ${KAFKA_OUTBOX_PUBLISH_INTERVAL_MS:2000}
+  product:
+    read-projection:
+      backfill:
+        enabled: false

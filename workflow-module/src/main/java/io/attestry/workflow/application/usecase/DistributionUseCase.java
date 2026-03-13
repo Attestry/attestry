@@ -15,7 +15,7 @@ public interface DistributionUseCase {
 
     DistributionView recall(AuthPrincipal principal, String distributionId, RecallCommand command);
 
-    PagedDistributionResponse listByTenant(String sourceTenantId, int page, int size, String keyword);
+    PagedDistributionResponse listByTenant(AuthPrincipal principal, String sourceTenantId, int page, int size, String keyword);
 
     PagedDistributionCandidateResponse listDistributionCandidates(
         AuthPrincipal principal, int page, int size, String keyword

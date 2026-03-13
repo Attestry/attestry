@@ -1,6 +1,6 @@
 package io.attestry.auth;
 
-import io.attestry.userauth.application.port.AccessTokenPort;
+import io.attestry.userauth.application.port.auth.AccessTokenPort;
 import io.attestry.userauth.security.AuthPrincipal;
 import java.time.Clock;
 import java.time.Instant;
@@ -45,5 +45,10 @@ public class InMemoryAccessTokenService implements AccessTokenPort {
     @Override
     public void revoke(String token) {
         tokenStore.remove(token);
+    }
+
+    @Override
+    public void revokeByUserId(String userId) {
+        tokenStore.entrySet().removeIf(entry -> userId.equals(entry.getValue().userId()));
     }
 }

@@ -1,6 +1,6 @@
 package io.attestry.workflow.application.claim;
 
-import io.attestry.userauth.application.port.ObjectStoragePort;
+import io.attestry.commonlib.application.port.ObjectStoragePort;
 import io.attestry.userauth.security.AuthPrincipal;
 import io.attestry.workflow.application.claim.command.CompleteClaimEvidenceCommand;
 import io.attestry.workflow.application.claim.command.PresignClaimEvidenceCommand;
@@ -8,7 +8,7 @@ import io.attestry.workflow.application.claim.command.SubmitPurchaseClaimCommand
 import io.attestry.workflow.application.claim.result.ClaimEvidenceView;
 import io.attestry.workflow.application.claim.result.MyClaimView;
 import io.attestry.workflow.application.claim.result.SubmitPurchaseClaimResult;
-import io.attestry.workflow.application.port.WorkflowEvidencePort;
+import io.attestry.workflow.application.port.common.WorkflowEvidencePort;
 import io.attestry.workflow.application.shipment.result.PresignedEvidenceUploadResult;
 import io.attestry.workflow.application.shipment.result.EvidenceCompleteResult;
 import io.attestry.workflow.application.usecase.PurchaseClaimSubmitUseCase;
@@ -21,10 +21,13 @@ import java.time.Duration;
 import java.time.Instant;
 import java.util.List;
 import java.util.UUID;
+
+import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
 @Service
+@RequiredArgsConstructor
 public class PurchaseClaimSubmitService implements PurchaseClaimSubmitUseCase {
     private static final Duration DOWNLOAD_TTL = Duration.ofDays(3);
     private final PurchaseClaimRepository purchaseClaimRepository;
@@ -33,19 +36,6 @@ public class PurchaseClaimSubmitService implements PurchaseClaimSubmitUseCase {
     private final ObjectStoragePort objectStoragePort;
     private final Clock clock;
 
-    public PurchaseClaimSubmitService(
-        PurchaseClaimRepository purchaseClaimRepository,
-        WorkflowEvidencePort evidencePort,
-        PurchaseClaimEvidenceService evidenceService,
-        ObjectStoragePort objectStoragePort,
-        Clock clock
-    ) {
-        this.purchaseClaimRepository = purchaseClaimRepository;
-        this.evidencePort = evidencePort;
-        this.evidenceService = evidenceService;
-        this.objectStoragePort = objectStoragePort;
-        this.clock = clock;
-    }
 
     @Override
     @Transactional
@@ -114,7 +104,7 @@ public class PurchaseClaimSubmitService implements PurchaseClaimSubmitUseCase {
         return evidenceService.completeEvidence(principal, command);
     }
 
-    private ClaimEvidenceView toEvidenceView(WorkflowEvidencePort.EvidenceView evidence) {
+    private ClaimEvidenceView toEvidenceView(WorkflowEvidencePort.EvidenceRecord evidence) {
         ObjectStoragePort.PresignedDownload download = objectStoragePort.issuePresignedDownload(
             evidence.objectKey(),
             DOWNLOAD_TTL
@@ -131,7 +121,7 @@ public class PurchaseClaimSubmitService implements PurchaseClaimSubmitUseCase {
         if (evidenceGroupId == null || evidenceGroupId.isBlank()) {
             throw new WorkflowDomainException(WorkflowErrorCode.INVALID_REQUEST, "evidenceGroupId is required");
         }
-        WorkflowEvidencePort.EvidenceGroupScopeView scope = evidencePort.findEvidenceGroupScope(evidenceGroupId)
+        WorkflowEvidencePort.EvidenceGroupScopeRecord scope = evidencePort.findEvidenceGroupScope(evidenceGroupId)
             .orElseThrow(() -> new WorkflowDomainException(WorkflowErrorCode.EVIDENCE_NOT_FOUND, "Evidence group not found"));
         if (scope.ownerUserId() == null || !scope.ownerUserId().equals(claimantUserId)) {
             throw new WorkflowDomainException(

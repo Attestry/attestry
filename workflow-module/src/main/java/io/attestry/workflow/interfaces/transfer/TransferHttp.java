@@ -1,5 +1,6 @@
 package io.attestry.workflow.interfaces.transfer;
 
+import io.attestry.commonlib.infrastructure.ApiResponse;
 import io.attestry.userauth.security.AuthPrincipal;
 import io.attestry.workflow.application.transfer.command.AcceptTransferCommand;
 import io.attestry.workflow.application.transfer.command.CreateB2CTransferCommand;
@@ -11,10 +12,17 @@ import io.attestry.workflow.application.usecase.TransferAcceptUseCase;
 import io.attestry.workflow.application.usecase.TransferCancelUseCase;
 import io.attestry.workflow.application.usecase.TransferCreateUseCase;
 import io.attestry.workflow.application.usecase.TransferQueryUseCase;
-import io.attestry.workflow.domain.transfer.model.AcceptMethod;
-import java.time.Instant;
+import io.attestry.workflow.interfaces.transfer.dto.request.AcceptTransferRequest;
+import io.attestry.workflow.interfaces.transfer.dto.request.CreateTransferRequest;
+import io.attestry.workflow.interfaces.transfer.dto.response.AcceptTransferResponse;
+import io.attestry.workflow.interfaces.transfer.dto.response.CancelTransferResponse;
+import io.attestry.workflow.interfaces.transfer.dto.response.CompletedTransferResponse;
+import io.attestry.workflow.interfaces.transfer.dto.response.CreateTransferResponse;
+import io.attestry.workflow.interfaces.transfer.dto.response.PagedCompletedTransferResponse;
 import java.util.List;
 import java.util.Optional;
+
+import lombok.RequiredArgsConstructor;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.access.prepost.PreAuthorize;
@@ -28,6 +36,7 @@ import org.springframework.web.bind.annotation.ResponseStatus;
 import org.springframework.web.bind.annotation.RestController;
 
 @RestController
+@RequiredArgsConstructor
 @RequestMapping("/workflows")
 public class TransferHttp {
 
@@ -36,22 +45,10 @@ public class TransferHttp {
     private final TransferCancelUseCase transferCancelUseCase;
     private final TransferQueryUseCase transferQueryUseCase;
 
-    public TransferHttp(
-        TransferCreateUseCase transferCreateUseCase,
-        TransferAcceptUseCase transferAcceptUseCase,
-        TransferCancelUseCase transferCancelUseCase,
-        TransferQueryUseCase transferQueryUseCase
-    ) {
-        this.transferCreateUseCase = transferCreateUseCase;
-        this.transferAcceptUseCase = transferAcceptUseCase;
-        this.transferCancelUseCase = transferCancelUseCase;
-        this.transferQueryUseCase = transferQueryUseCase;
-    }
-
     @PostMapping("/passports/{passportId}/transfers")
     @ResponseStatus(HttpStatus.CREATED)
     @PreAuthorize("hasAuthority('SCOPE_OWNER_TRANSFER_CREATE')")
-    public CreateTransferResponse createC2C(
+    public ApiResponse<CreateTransferResponse> createC2C(
         @AuthenticationPrincipal AuthPrincipal principal,
         @PathVariable("passportId") String passportId,
         @RequestBody CreateTransferRequest request
@@ -61,13 +58,13 @@ public class TransferHttp {
             passportId,
             new CreateC2CTransferCommand(request.acceptMethod(), request.password(), request.expiresAt())
         );
-        return CreateTransferResponse.from(result);
+        return ApiResponse.success(CreateTransferResponse.from(result));
     }
 
     @PostMapping("/tenants/{tenantId}/passports/{passportId}/transfers")
     @ResponseStatus(HttpStatus.CREATED)
     @PreAuthorize("hasAuthority('SCOPE_RETAIL_TRANSFER_CREATE')")
-    public CreateTransferResponse createB2C(
+    public ApiResponse<CreateTransferResponse> createB2C(
         @AuthenticationPrincipal AuthPrincipal principal,
         @PathVariable("tenantId") String tenantId,
         @PathVariable("passportId") String passportId,
@@ -79,25 +76,25 @@ public class TransferHttp {
             passportId,
             new CreateB2CTransferCommand(request.acceptMethod(), request.password(), request.expiresAt())
         );
-        return CreateTransferResponse.from(result);
+        return ApiResponse.success(CreateTransferResponse.from(result));
     }
 
     @GetMapping("/passports/{passportId}/transfers/pending")
     @PreAuthorize("hasAuthority('SCOPE_OWNER_TRANSFER_CREATE')")
-    public ResponseEntity<CreateTransferResponse> findLatestActivePending(
+    public ResponseEntity<ApiResponse<CreateTransferResponse>> findLatestActivePending(
         @AuthenticationPrincipal AuthPrincipal principal,
         @PathVariable("passportId") String passportId
     ) {
         Optional<CreateTransferResult> result = transferCreateUseCase.findLatestActivePendingByPassportId(principal, passportId);
         return result
             .map(CreateTransferResponse::from)
-            .map(ResponseEntity::ok)
+            .map(r -> ResponseEntity.ok(ApiResponse.success(r)))
             .orElseGet(() -> ResponseEntity.noContent().build());
     }
 
     @GetMapping("/tenants/{tenantId}/passports/{passportId}/transfers/pending")
     @PreAuthorize("hasAuthority('SCOPE_RETAIL_TRANSFER_CREATE')")
-    public ResponseEntity<CreateTransferResponse> findLatestActivePendingB2C(
+    public ResponseEntity<ApiResponse<CreateTransferResponse>> findLatestActivePendingB2C(
         @AuthenticationPrincipal AuthPrincipal principal,
         @PathVariable("tenantId") String tenantId,
         @PathVariable("passportId") String passportId
@@ -109,13 +106,13 @@ public class TransferHttp {
         );
         return result
             .map(CreateTransferResponse::from)
-            .map(ResponseEntity::ok)
+            .map(r -> ResponseEntity.ok(ApiResponse.success(r)))
             .orElseGet(() -> ResponseEntity.noContent().build());
     }
 
     @GetMapping("/tenants/{tenantId}/transfers/completed")
     @PreAuthorize("hasAuthority('SCOPE_TENANT_READ_ONLY')")
-    public PagedCompletedTransferResponse listCompletedB2CTransfers(
+    public ApiResponse<PagedCompletedTransferResponse> listCompletedB2CTransfers(
         @AuthenticationPrincipal AuthPrincipal principal,
         @PathVariable("tenantId") String tenantId,
         @org.springframework.web.bind.annotation.RequestParam(value = "sourceTenantId", required = false) String sourceTenantId,
@@ -142,14 +139,14 @@ public class TransferHttp {
                 v.completedAt()
             ))
             .toList();
-        return new PagedCompletedTransferResponse(content, result.page(), result.size(), result.totalElements(),
-            result.totalPages());
+        return ApiResponse.success(new PagedCompletedTransferResponse(content, result.page(), result.size(), result.totalElements(),
+            result.totalPages()));
     }
 
     @PostMapping("/transfers/{transferId}/accept")
     @ResponseStatus(HttpStatus.OK)
     @PreAuthorize("hasAuthority('SCOPE_OWNER_TRANSFER_ACCEPT')")
-    public AcceptTransferResponse accept(
+    public ApiResponse<AcceptTransferResponse> accept(
         @AuthenticationPrincipal AuthPrincipal principal,
         @PathVariable("transferId") String transferId,
         @RequestBody AcceptTransferRequest request
@@ -159,100 +156,18 @@ public class TransferHttp {
             transferId,
             new AcceptTransferCommand(request.qrNonce(), request.password())
         );
-        return AcceptTransferResponse.from(result);
+        return ApiResponse.success(AcceptTransferResponse.from(result));
     }
 
     @PostMapping("/transfers/{transferId}/cancel")
     @ResponseStatus(HttpStatus.OK)
     @PreAuthorize("hasAnyAuthority('SCOPE_OWNER_TRANSFER_CREATE', 'SCOPE_RETAIL_TRANSFER_CREATE')")
-    public CancelTransferResponse cancel(
+    public ApiResponse<CancelTransferResponse> cancel(
         @AuthenticationPrincipal AuthPrincipal principal,
         @PathVariable("transferId") String transferId
     ) {
         CancelTransferResult result = transferCancelUseCase.cancel(principal, transferId);
-        return CancelTransferResponse.from(result);
+        return ApiResponse.success(CancelTransferResponse.from(result));
     }
 
-    public record CreateTransferRequest(
-        AcceptMethod acceptMethod,
-        String password,
-        Instant expiresAt
-    ) {
-    }
-
-    public record AcceptTransferRequest(
-        String qrNonce,
-        String password
-    ) {
-    }
-
-    public record CreateTransferResponse(
-        String transferId,
-        String passportId,
-        String transferType,
-        String status,
-        String acceptMethod,
-        String qrNonce,
-        Instant expiresAt
-    ) {
-        static CreateTransferResponse from(CreateTransferResult result) {
-            return new CreateTransferResponse(
-                result.transferId(), result.passportId(),
-                result.transferType(), result.status(),
-                result.acceptMethod(), result.qrNonce(), result.expiresAt()
-            );
-        }
-    }
-
-    public record AcceptTransferResponse(
-        String passportId,
-        String status,
-        String toOwnerId,
-        Instant completedAt,
-        String outboxEventId
-    ) {
-        static AcceptTransferResponse from(AcceptTransferResult result) {
-            return new AcceptTransferResponse(
-                result.passportId(),
-                result.status(), result.toOwnerId(),
-                result.completedAt(), result.outboxEventId()
-            );
-        }
-    }
-
-    public record CompletedTransferResponse(
-        String transferId,
-        String passportId,
-        String sourceTenantId,
-        String serialNumber,
-        String modelName,
-        String assetState,
-        String toOwnerId,
-        String acceptMethod,
-        Instant completedAt
-    ) {
-    }
-
-    public record PagedCompletedTransferResponse(
-        List<CompletedTransferResponse> content,
-        int page,
-        int size,
-        long totalElements,
-        int totalPages
-    ) {
-    }
-
-    public record CancelTransferResponse(
-        String transferId,
-        String passportId,
-        String status,
-        Instant cancelledAt
-    ) {
-        static CancelTransferResponse from(CancelTransferResult result) {
-            return new CancelTransferResponse(
-                result.transferId(), result.passportId(),
-                result.status(), result.cancelledAt()
-            );
-        }
-    }
 }

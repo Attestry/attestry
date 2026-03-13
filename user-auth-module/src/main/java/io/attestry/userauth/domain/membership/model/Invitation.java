@@ -1,12 +1,12 @@
 package io.attestry.userauth.domain.membership.model;
 
-import io.attestry.userauth.common.error.DomainException;
-import io.attestry.userauth.common.error.ErrorCode;
-import io.attestry.userauth.domain.identity.model.Email;
+import io.attestry.commonlib.domain.AggregateRoot;
+import io.attestry.userauth.domain.UserAuthErrorCode;
+import io.attestry.userauth.domain.UserAuthDomainException;import io.attestry.userauth.domain.identity.model.Email;
 import java.time.Instant;
 import java.util.UUID;
 
-public class Invitation {
+public class Invitation extends AggregateRoot {
 
     private final String invitationId;
     private final String tenantId;
@@ -54,9 +54,9 @@ public class Invitation {
             invitedBy, invitedAt, acceptedBy, acceptedAt);
     }
 
-    public void accept(String accepterUserId, Email accepterEmail, Instant now) {
+    public void accept(String accepterUserId, Instant now) {
         if (status != InvitationStatus.PENDING) {
-            throw new DomainException(ErrorCode.INVALID_APPLICATION_STATE, "Invitation is not pending");
+            throw new UserAuthDomainException(UserAuthErrorCode.INVALID_APPLICATION_STATE, "Invitation is not pending");
         }
         //TODO("acceptEmail 소셜로그인 허용할때 정책 적용 / 또는 회사 계정으로만 가입되게?")
         this.status = InvitationStatus.ACCEPTED;
@@ -66,7 +66,7 @@ public class Invitation {
 
     public void revoke() {
         if (status != InvitationStatus.PENDING) {
-            throw new DomainException(ErrorCode.INVALID_APPLICATION_STATE, "Invitation is not pending");
+            throw new UserAuthDomainException(UserAuthErrorCode.INVALID_APPLICATION_STATE, "Invitation is not pending");
         }
         this.status = InvitationStatus.REVOKED;
     }

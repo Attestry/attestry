@@ -11,13 +11,14 @@ import static org.mockito.Mockito.when;
 
 import io.attestry.userauth.domain.identity.model.VerificationLevel;
 import io.attestry.userauth.security.AuthPrincipal;
-import io.attestry.workflow.application.port.ServicePermissionPort;
-import io.attestry.workflow.application.port.ServiceProductReadPort;
-import io.attestry.workflow.application.port.ServiceProductReadPort.ServicePassportState;
-import io.attestry.workflow.application.port.WorkflowEvidencePort;
-import io.attestry.workflow.application.port.WorkflowLedgerOutboxPort;
+import io.attestry.workflow.application.port.servicerequest.ServicePermissionPort;
+import io.attestry.workflow.application.port.servicerequest.ServiceProductReadPort;
+import io.attestry.workflow.application.port.servicerequest.ServiceProductReadPort.ServicePassportState;
+import io.attestry.workflow.application.port.common.WorkflowEvidencePort;
+import io.attestry.workflow.application.port.common.WorkflowLedgerOutboxPort;
 import io.attestry.workflow.application.servicerequest.command.CompleteServiceRequestCommand;
 import io.attestry.workflow.application.servicerequest.result.CompleteServiceRequestResult;
+import io.attestry.workflow.application.servicerequest.support.ServiceRequestContextResolver;
 import io.attestry.workflow.application.shipment.result.WorkflowLedgerEventEnvelope;
 import io.attestry.workflow.application.support.WorkflowAuthorizationSupport;
 import io.attestry.workflow.domain.WorkflowDomainException;
@@ -59,9 +60,24 @@ class ServiceCompleteServiceTest {
 
     @BeforeEach
     void setUp() {
+        ServiceRequestContextResolver contextResolver = new ServiceRequestContextResolver(
+            serviceRequestRepository,
+            serviceProductReadPort,
+            servicePermissionPort,
+            null
+        );
+        ServiceCompleteExecutor completeExecutor = new ServiceCompleteExecutor(
+            serviceRequestRepository,
+            servicePermissionPort,
+            serviceLedgerOutboxPort,
+            shipmentEvidencePort,
+            clock
+        );
         service = new ServiceCompleteService(
-            serviceRequestRepository, serviceProductReadPort, servicePermissionPort,
-            serviceLedgerOutboxPort, shipmentEvidencePort, authorizationSupport, completePolicy, clock
+            authorizationSupport,
+            contextResolver,
+            completePolicy,
+            completeExecutor
         );
     }
 
@@ -70,7 +86,7 @@ class ServiceCompleteServiceTest {
         ServiceRequest accepted = ServiceRequest.submit(
             "sr1", "p1", "REPAIR", "owner1",
             "provT1", "desc", "beforeEg", "ONLINE", "화면 불량", null, "연락처", "perm1", "owner1", SUBMITTED_AT, SUBMITTED_AT
-        ).accept("desc", Instant.parse("2026-03-01T09:30:00Z"));
+        ).accept("REPAIR", "desc", Instant.parse("2026-03-01T09:30:00Z"));
 
         doNothing().when(authorizationSupport).assertTenantContext(any(), anyString());
         doNothing().when(authorizationSupport).assertLivePermission(any(), anyString(), anyString(), anyString());
@@ -112,7 +128,7 @@ class ServiceCompleteServiceTest {
         ServiceRequest accepted = ServiceRequest.submit(
             "sr1", "p1", "REPAIR", "owner1",
             "otherTenant", "desc", "beforeEg", "ONLINE", "화면 불량", null, "연락처", null, "owner1", SUBMITTED_AT, SUBMITTED_AT
-        ).accept("desc", Instant.parse("2026-03-01T09:30:00Z"));
+        ).accept("REPAIR", "desc", Instant.parse("2026-03-01T09:30:00Z"));
 
         doNothing().when(authorizationSupport).assertTenantContext(any(), anyString());
         doNothing().when(authorizationSupport).assertLivePermission(any(), anyString(), anyString(), anyString());
@@ -129,7 +145,7 @@ class ServiceCompleteServiceTest {
         ServiceRequest accepted = ServiceRequest.submit(
             "sr1", "p1", "REPAIR", "owner1",
             "provT1", "desc", "beforeEg", "ONLINE", "화면 불량", null, "연락처", null, "owner1", SUBMITTED_AT, SUBMITTED_AT
-        ).accept("desc", Instant.parse("2026-03-01T09:30:00Z"));
+        ).accept("REPAIR", "desc", Instant.parse("2026-03-01T09:30:00Z"));
 
         doNothing().when(authorizationSupport).assertTenantContext(any(), anyString());
         doNothing().when(authorizationSupport).assertLivePermission(any(), anyString(), anyString(), anyString());

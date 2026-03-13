@@ -5,7 +5,7 @@ import java.time.Duration;
 import java.time.Instant;
 import java.util.Set;
 import java.util.UUID;
-
+// TODO("추후 제거")
 public record AuthPrincipal(
     String tokenId,
     String userId,

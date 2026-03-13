@@ -1,89 +1,143 @@
 package io.attestry.userauth.interfaces.onboarding;
 
+import io.attestry.commonlib.web.CurrentActor;
+import io.attestry.commonlib.infrastructure.ApiResponse;
+import io.attestry.userauth.application.dto.command.ActorContext;
 import io.attestry.userauth.application.dto.command.CompleteEvidenceUploadCommand;
 import io.attestry.userauth.application.dto.command.CreateApplicationCommand;
 import io.attestry.userauth.application.dto.command.PresignEvidenceUploadCommand;
-import io.attestry.userauth.application.dto.command.ActorContext;
 import io.attestry.userauth.application.dto.result.ApplicationResult;
-import io.attestry.userauth.application.usecase.onboarding.OnboardingUseCase;
-import io.attestry.userauth.security.CurrentActor;
-import io.attestry.userauth.interfaces.onboarding.dto.request.CreateApplicationRequest;
+import io.attestry.userauth.application.dto.result.ApproveApplicationResult;
+import io.attestry.userauth.application.usecase.onboarding.OnboardingApplicationCommandUseCase;
+import io.attestry.userauth.application.usecase.onboarding.OnboardingApplicationQueryUseCase;
 import io.attestry.userauth.interfaces.onboarding.dto.request.CompleteEvidenceUploadRequest;
+import io.attestry.userauth.interfaces.onboarding.dto.request.CreateApplicationRequest;
 import io.attestry.userauth.interfaces.onboarding.dto.request.PresignEvidenceUploadRequest;
+import io.attestry.userauth.interfaces.onboarding.dto.request.RejectApplicationRequest;
 import io.attestry.userauth.interfaces.onboarding.dto.response.ApplicationResponse;
+import io.attestry.userauth.interfaces.onboarding.dto.response.ApproveResponse;
 import io.attestry.userauth.interfaces.onboarding.dto.response.EvidenceBundleResponse;
 import io.attestry.userauth.interfaces.onboarding.dto.response.PresignedEvidenceUploadResponse;
+import jakarta.validation.Valid;
 import java.util.List;
-import org.springframework.http.HttpStatus;
-import org.springframework.web.bind.annotation.GetMapping;
-import org.springframework.web.bind.annotation.PathVariable;
-import org.springframework.web.bind.annotation.PostMapping;
-import org.springframework.web.bind.annotation.RequestBody;
-import org.springframework.web.bind.annotation.RequestMapping;
-import org.springframework.web.bind.annotation.ResponseStatus;
-import org.springframework.web.bind.annotation.RestController;
 
+import lombok.RequiredArgsConstructor;
+import org.springframework.http.HttpStatus;
+import org.springframework.security.access.prepost.PreAuthorize;
+import org.springframework.web.bind.annotation.*;
+
+@RequiredArgsConstructor
 @RestController
-@RequestMapping
+@RequestMapping("/onboarding")
 public class OnboardingHttp {
 
-    private final OnboardingUseCase onboardingService;
+    private final OnboardingApplicationCommandUseCase onboardingCommandUseCase;
+    private final OnboardingApplicationQueryUseCase onboardingQueryUseCase;
 
-    public OnboardingHttp(OnboardingUseCase onboardingService) {
-        this.onboardingService = onboardingService;
-    }
 
-    @PostMapping("/onboarding/evidences/presign")
+    @PostMapping("/evidences/presign")
     @ResponseStatus(HttpStatus.CREATED)
-    public PresignedEvidenceUploadResponse presignEvidenceUpload(
-            @CurrentActor ActorContext actor,
-            @RequestBody PresignEvidenceUploadRequest request) {
-        return PresignedEvidenceUploadResponse.from(
-                onboardingService.presignEvidenceUpload(
-                        actor,
-                        new PresignEvidenceUploadCommand(request.evidenceBundleId(), request.fileName(),
-                                request.contentType())));
-    }
-
-    @PostMapping("/onboarding/evidences/complete")
-    public EvidenceBundleResponse completeEvidenceUpload(
-            @CurrentActor ActorContext actor,
-            @RequestBody CompleteEvidenceUploadRequest request) {
-        return EvidenceBundleResponse.from(
-                onboardingService.completeEvidenceUpload(
-                        actor,
-                        new CompleteEvidenceUploadCommand(request.evidenceBundleId(), request.evidenceFileId(),
-                                request.sizeBytes())));
-    }
-
-    @PostMapping("/onboarding/applications")
-    @ResponseStatus(HttpStatus.CREATED)
-    public ApplicationResponse createApplication(
-            @CurrentActor ActorContext actor,
-            @RequestBody CreateApplicationRequest request) {
-        ApplicationResult result = onboardingService.createApplication(
+    public ApiResponse<PresignedEvidenceUploadResponse> presignEvidenceUpload(
+        @CurrentActor ActorContext actor,
+        @Valid @RequestBody PresignEvidenceUploadRequest request
+    ) {
+        return ApiResponse.success(PresignedEvidenceUploadResponse.from(
+            onboardingCommandUseCase.presignEvidenceUpload(
                 actor,
-                new CreateApplicationCommand(
-                        request.type(),
-                        request.orgName(),
-                        request.country(),
-                        request.address(),
-                        request.bizRegNo(),
-                        request.evidenceBundleId()));
-        return ApplicationResponse.from(result);
+                new PresignEvidenceUploadCommand(request.evidenceBundleId(), request.fileName(), request.contentType())
+            )
+        ));
     }
 
-    @GetMapping("/onboarding/applications")
-    public List<ApplicationResponse> listMyApplications(@CurrentActor ActorContext actor) {
-        return onboardingService.listMyApplications(actor).stream()
-                .map(ApplicationResponse::from)
-                .toList();
+    @PostMapping("/evidences/complete")
+    public ApiResponse<EvidenceBundleResponse> completeEvidenceUpload(
+        @CurrentActor ActorContext actor,
+        @Valid @RequestBody CompleteEvidenceUploadRequest request
+    ) {
+        return ApiResponse.success(EvidenceBundleResponse.from(
+            onboardingCommandUseCase.completeEvidenceUpload(
+                actor,
+                new CompleteEvidenceUploadCommand(request.evidenceBundleId(), request.evidenceFileId(), request.sizeBytes())
+            )
+        ));
     }
 
-    @GetMapping("/onboarding/applications/{applicationId}")
-    public ApplicationResponse getMyApplication(
+    @PostMapping("/applications")
+    @ResponseStatus(HttpStatus.CREATED)
+    public ApiResponse<ApplicationResponse> createApplication(
+        @CurrentActor ActorContext actor,
+        @Valid @RequestBody CreateApplicationRequest request
+    ) {
+        ApplicationResult result = onboardingCommandUseCase.createApplication(
+            actor,
+            new CreateApplicationCommand(
+                request.type(),
+                request.orgName(),
+                request.country(),
+                request.address(),
+                request.bizRegNo(),
+                request.evidenceBundleId()
+            )
+        );
+        return ApiResponse.success(ApplicationResponse.from(result));
+    }
+
+    // TODO("엔드포인트 수정 -> 기존 - Path: `/onboarding/applications`)
+    @GetMapping("/applications/me")
+    public ApiResponse<List<ApplicationResponse>> listMyApplications(@CurrentActor ActorContext actor) {
+        return ApiResponse.success(onboardingQueryUseCase.listMyApplications(actor).stream()
+            .map(ApplicationResponse::from)
+            .toList());
+    }
+
+    @GetMapping("/applications/me/{applicationId}")
+    public ApiResponse<ApplicationResponse> getMyApplication(
             @CurrentActor ActorContext actor,
-            @PathVariable(name = "applicationId") String applicationId) {
-        return ApplicationResponse.from(onboardingService.getMyApplication(actor, applicationId));
+            @PathVariable(name = "applicationId") String applicationId
+    ) {
+        return ApiResponse.success(
+                ApplicationResponse.from(onboardingQueryUseCase.getMyApplication(actor, applicationId))
+        );
+    }
+
+    @GetMapping("/applications/{applicationId}")
+    @PreAuthorize("hasAuthority('SCOPE_TENANT_CREATE_APPROVE')")
+    public ApiResponse<ApplicationResponse> getApplication(
+            @PathVariable(name = "applicationId") String applicationId
+    ) {
+        return ApiResponse.success(
+                ApplicationResponse.from(onboardingQueryUseCase.getApplication(applicationId))
+        );
+    }
+
+    @GetMapping("/applications")
+    @PreAuthorize("hasAuthority('SCOPE_TENANT_CREATE_APPROVE')")
+    public ApiResponse<List<ApplicationResponse>> listApplications(@RequestParam(name = "type", required = false) String type) {
+        return ApiResponse.success(onboardingQueryUseCase.listApplications(type).stream()
+                .map(ApplicationResponse::from)
+                .toList());
+    }
+
+    // TODO("기존 : `/admin/onboarding/applications/{applicationId}`")
+    @PostMapping("/applications/{applicationId}/approve")
+    @PreAuthorize("hasAuthority('SCOPE_TENANT_CREATE_APPROVE')")
+    public ApiResponse<ApproveResponse> approveApplication(
+            @CurrentActor ActorContext actor,
+            @PathVariable(name = "applicationId") String applicationId
+    ) {
+        ApproveApplicationResult result = onboardingCommandUseCase.approveApplication(actor, applicationId);
+        return ApiResponse.success(new ApproveResponse(result.tenantId(), result.membershipId()));
+    }
+
+    //TODO("기존 -> `/admin/onboarding/applications/{applicationId}/reject`")
+    @PostMapping("/applications/{applicationId}/reject")
+    @ResponseStatus(HttpStatus.NO_CONTENT)
+    @PreAuthorize("hasAuthority('SCOPE_TENANT_CREATE_APPROVE')")
+    public void rejectApplication(
+            @CurrentActor ActorContext actor,
+            @PathVariable(name = "applicationId") String applicationId,
+            @Valid @RequestBody RejectApplicationRequest request
+    ) {
+        onboardingCommandUseCase.rejectApplication(actor, applicationId, request.reason());
     }
 }

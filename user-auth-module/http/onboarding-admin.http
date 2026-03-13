@@ -3,23 +3,23 @@
 
 @baseUrl = http://localhost:8080
 @contentType = application/json
-@adminAccessToken = da2d5e75-d6ac-4366-8c20-8428811ae14e
-@applicationId = 8ea6d2aa-bb89-4dbb-b822-2dd6f13d11f9
+@adminAccessToken = 01d2a4fc-0362-4af3-ac57-95e393bb45c9
+@applicationId = c97ac6a1-fb66-4f82-b466-7fa6759b9668
 
 ### 1) List applications (all)
-GET {{baseUrl}}/admin/onboarding/applications
+GET {{baseUrl}}/onboarding/applications
 Authorization: Bearer {{adminAccessToken}}
 
 ### 2) List applications (filtered by type)
-GET {{baseUrl}}/admin/onboarding/applications?type=RETAIL
+GET {{baseUrl}}/onboarding/applications?type=BRAND
 Authorization: Bearer {{adminAccessToken}}
 
 ### 3) Approve application
-POST {{baseUrl}}/admin/onboarding/applications/{{applicationId}}/approve
+POST {{baseUrl}}/onboarding/applications/{{applicationId}}/approve
 Authorization: Bearer {{adminAccessToken}}
 
 ### 4) Reject application
-POST {{baseUrl}}/admin/onboarding/applications/{{applicationId}}/reject
+POST {{baseUrl}}/onboarding/applications/{{applicationId}}/reject
 Authorization: Bearer {{adminAccessToken}}
 Content-Type: {{contentType}}
 

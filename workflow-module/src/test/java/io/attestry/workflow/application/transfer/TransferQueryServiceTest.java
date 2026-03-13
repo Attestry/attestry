@@ -7,7 +7,7 @@ import static org.mockito.Mockito.when;
 
 import io.attestry.userauth.domain.identity.model.VerificationLevel;
 import io.attestry.userauth.security.AuthPrincipal;
-import io.attestry.workflow.application.port.CompletedTransferQueryPort;
+import io.attestry.workflow.application.port.transfer.CompletedTransferQueryPort;
 import io.attestry.workflow.application.support.WorkflowAuthorizationSupport;
 import java.time.Instant;
 import java.util.List;

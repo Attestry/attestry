@@ -2,6 +2,8 @@ package io.attestry.workflow.domain.servicerequest.policy;
 
 import io.attestry.workflow.domain.WorkflowDomainException;
 import io.attestry.workflow.domain.WorkflowErrorCode;
+import io.attestry.workflow.domain.passport.model.WorkflowAssetState;
+import io.attestry.workflow.domain.passport.model.WorkflowRiskFlag;
 import org.springframework.stereotype.Component;
 
 @Component
@@ -15,7 +17,7 @@ public class ServiceSubmitPolicy {
     }
 
     private void assertPassportActive(ServiceSubmitContext context) {
-        if (!"ACTIVE".equals(context.assetState())) {
+        if (context.assetState() != WorkflowAssetState.ACTIVE) {
             throw new WorkflowDomainException(
                 WorkflowErrorCode.INVALID_STATE,
                 "Passport asset must be ACTIVE"
@@ -24,7 +26,7 @@ public class ServiceSubmitPolicy {
     }
 
     private void assertNoRiskFlag(ServiceSubmitContext context) {
-        if (!"NONE".equals(context.riskFlag())) {
+        if (context.riskFlag() != WorkflowRiskFlag.NONE) {
             throw new WorkflowDomainException(
                 WorkflowErrorCode.INVALID_STATE,
                 "Risk flagged passport cannot be submitted for service"
@@ -51,10 +53,23 @@ public class ServiceSubmitPolicy {
     }
 
     public record ServiceSubmitContext(
-        String assetState,
-        String riskFlag,
+        WorkflowAssetState assetState,
+        WorkflowRiskFlag riskFlag,
         boolean hasActiveServiceRepairPermission,
         boolean openRequestExists
     ) {
+        public ServiceSubmitContext(
+            String assetState,
+            String riskFlag,
+            boolean hasActiveServiceRepairPermission,
+            boolean openRequestExists
+        ) {
+            this(
+                WorkflowAssetState.from(assetState),
+                WorkflowRiskFlag.from(riskFlag),
+                hasActiveServiceRepairPermission,
+                openRequestExists
+            );
+        }
     }
 }

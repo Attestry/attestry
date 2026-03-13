@@ -1,16 +1,18 @@
 package io.attestry.workflow.interfaces.distribution;
 
+import io.attestry.commonlib.infrastructure.ApiResponse;
 import io.attestry.userauth.security.AuthPrincipal;
 import io.attestry.workflow.application.usecase.DistributionUseCase;
 import io.attestry.workflow.application.usecase.DistributionUseCase.BatchDistributeResult;
 import io.attestry.workflow.application.usecase.DistributionUseCase.DistributeCommand;
-import io.attestry.workflow.application.usecase.DistributionUseCase.DistributionCandidateView;
 import io.attestry.workflow.application.usecase.DistributionUseCase.DistributionView;
 import io.attestry.workflow.application.usecase.DistributionUseCase.PagedDistributionCandidateResponse;
 import io.attestry.workflow.application.usecase.DistributionUseCase.PagedDistributionResponse;
 import io.attestry.workflow.application.usecase.DistributionUseCase.RecallCommand;
-import java.time.Instant;
-import java.util.List;
+import io.attestry.workflow.interfaces.distribution.dto.request.DistributeRequest;
+import io.attestry.workflow.interfaces.distribution.dto.request.RecallRequest;
+import io.attestry.workflow.interfaces.distribution.dto.response.BatchDistributionResponse;
+import io.attestry.workflow.interfaces.distribution.dto.response.DistributionResponse;
 import org.springframework.http.HttpStatus;
 import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.security.core.annotation.AuthenticationPrincipal;
@@ -36,7 +38,7 @@ public class DistributionHttp {
     @PostMapping("/tenants/{sourceTenantId}/partners/{partnerLinkId}/distributions")
     @ResponseStatus(HttpStatus.CREATED)
     @PreAuthorize("hasAuthority('SCOPE_DELEGATION_GRANT')")
-    public BatchDistributionResponse distribute(
+    public ApiResponse<BatchDistributionResponse> distribute(
         @AuthenticationPrincipal AuthPrincipal principal,
         @PathVariable("sourceTenantId") String sourceTenantId,
         @PathVariable("partnerLinkId") String partnerLinkId,
@@ -52,35 +54,35 @@ public class DistributionHttp {
                 request.note()
             )
         );
-        return BatchDistributionResponse.from(result);
+        return ApiResponse.success(BatchDistributionResponse.from(result));
     }
 
     @GetMapping("/tenants/{tenantId}/distributions")
     @PreAuthorize("hasAuthority('SCOPE_TENANT_READ_ONLY')")
-    public PagedDistributionResponse list(
+    public ApiResponse<PagedDistributionResponse> list(
         @AuthenticationPrincipal AuthPrincipal principal,
         @PathVariable("tenantId") String tenantId,
         @RequestParam(value = "page", defaultValue = "0") int page,
         @RequestParam(value = "size", defaultValue = "20") int size,
         @RequestParam(value = "keyword", required = false) String keyword
     ) {
-        return distributionUseCase.listByTenant(tenantId, page, size, keyword);
+        return ApiResponse.success(distributionUseCase.listByTenant(principal, tenantId, page, size, keyword));
     }
 
     @GetMapping("/distributions/candidates")
     @PreAuthorize("hasAuthority('SCOPE_TENANT_READ_ONLY')")
-    public PagedDistributionCandidateResponse listCandidates(
+    public ApiResponse<PagedDistributionCandidateResponse> listCandidates(
         @AuthenticationPrincipal AuthPrincipal principal,
         @RequestParam(value = "page", defaultValue = "0") int page,
         @RequestParam(value = "size", defaultValue = "20") int size,
         @RequestParam(value = "keyword", required = false) String keyword
     ) {
-        return distributionUseCase.listDistributionCandidates(principal, page, size, keyword);
+        return ApiResponse.success(distributionUseCase.listDistributionCandidates(principal, page, size, keyword));
     }
 
     @PostMapping("/distributions/{distributionId}/recall")
     @PreAuthorize("hasAuthority('SCOPE_DELEGATION_GRANT')")
-    public DistributionResponse recall(
+    public ApiResponse<DistributionResponse> recall(
         @AuthenticationPrincipal AuthPrincipal principal,
         @PathVariable("distributionId") String distributionId,
         @RequestBody RecallRequest request
@@ -88,82 +90,6 @@ public class DistributionHttp {
         DistributionView result = distributionUseCase.recall(
             principal, distributionId, new RecallCommand(request.reason())
         );
-        return DistributionResponse.from(result);
-    }
-
-    public record RecallRequest(
-        String reason
-    ) {
-    }
-
-    public record DistributeRequest(
-        List<String> passportIds,
-        Instant expiresAt,
-        String note
-    ) {
-    }
-
-    public record DistributionResponse(
-        String distributionId,
-        String passportId,
-        String sourceTenantId,
-        String targetTenantId,
-        String targetTenantName,
-        String targetTenantType,
-        String partnerLinkId,
-        String delegationId,
-        String status,
-        String serialNumber,
-        String modelName,
-        String distributedByUserId,
-        Instant distributedAt,
-        String recalledByUserId,
-        Instant recalledAt,
-        String recallReason
-    ) {
-        static DistributionResponse from(DistributionView view) {
-            return new DistributionResponse(
-                view.distributionId(),
-                view.passportId(),
-                view.sourceTenantId(),
-                view.targetTenantId(),
-                view.targetTenantName(),
-                view.targetTenantType(),
-                view.partnerLinkId(),
-                view.delegationId(),
-                view.status(),
-                view.serialNumber(),
-                view.modelName(),
-                view.distributedByUserId(),
-                view.distributedAt(),
-                view.recalledByUserId(),
-                view.recalledAt(),
-                view.recallReason()
-            );
-        }
-    }
-
-    public record BatchDistributionResponse(
-        List<BatchDistributionEntryResponse> results,
-        int totalRequested,
-        long totalDistributed
-    ) {
-        static BatchDistributionResponse from(BatchDistributeResult result) {
-            List<BatchDistributionEntryResponse> entries = result.results().stream()
-                .map(e -> new BatchDistributionEntryResponse(
-                    e.passportId(), e.distributionId(), e.delegationId(), e.status(), e.error()
-                ))
-                .toList();
-            return new BatchDistributionResponse(entries, result.totalRequested(), result.totalDistributed());
-        }
-    }
-
-    public record BatchDistributionEntryResponse(
-        String passportId,
-        String distributionId,
-        String delegationId,
-        String status,
-        String error
-    ) {
+        return ApiResponse.success(DistributionResponse.from(result));
     }
 }

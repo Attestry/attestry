@@ -1,8 +1,7 @@
 package io.attestry.userauth.domain.membership.policy;
 
-import io.attestry.userauth.common.error.DomainException;
-import io.attestry.userauth.common.error.ErrorCode;
-import io.attestry.userauth.domain.membership.model.Membership;
+import io.attestry.userauth.domain.UserAuthErrorCode;
+import io.attestry.userauth.domain.UserAuthDomainException;import io.attestry.userauth.domain.membership.model.Membership;
 import java.util.List;
 import java.util.Optional;
 
@@ -11,19 +10,19 @@ public final class MembershipSelectionPolicy {
     private MembershipSelectionPolicy() {
     }
 
-    public static Membership resolve(
+    public static Optional<Membership> resolve(
         String requestedTenantId,
         Optional<Membership> requestedMembership,
         List<Membership> memberships
     ) {
         if (requestedTenantId != null) {
             Membership membership = requestedMembership
-                .orElseThrow(() -> new DomainException(ErrorCode.MEMBERSHIP_NOT_FOUND, "Membership not found"));
+                .orElseThrow(() -> new UserAuthDomainException(UserAuthErrorCode.MEMBERSHIP_NOT_FOUND, "Membership not found"));
             if (!membership.isActive()) {
-                throw new DomainException(ErrorCode.MEMBERSHIP_NOT_FOUND, "Membership inactive");
+                throw new UserAuthDomainException(UserAuthErrorCode.MEMBERSHIP_NOT_FOUND, "Membership inactive");
             }
-            return membership;
+            return Optional.of(membership);
         }
-        return memberships.stream().filter(Membership::isActive).findFirst().orElse(null);
+        return memberships.stream().filter(Membership::isActive).findFirst();
     }
 }

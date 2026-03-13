@@ -1,14 +1,10 @@
 package io.attestry.product.application.usecase;
 
-import io.attestry.userauth.application.dto.command.ActorContext;
+import io.attestry.product.application.dto.command.VoidCommand;
+import io.attestry.product.application.dto.command.ProductActor;
+import io.attestry.product.application.dto.result.VoidResult;
 
 public interface ProductVoidUseCase {
 
-    VoidResult voidAsset(ActorContext actor, VoidCommand command);
-
-    record VoidCommand(String tenantId, String passportId, String reason, String note) {
-    }
-
-    record VoidResult(String assetId, String assetState, String outboxEventId) {
-    }
+    VoidResult voidAsset(ProductActor actor, VoidCommand command);
 }

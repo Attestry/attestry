@@ -149,12 +149,4 @@ public record PartnerLink(
         );
     }
 
-    // Backward compatibility for older call-sites.
-    public String brandTenantId() {
-        return sourceTenantId;
-    }
-
-    public String partnerTenantId() {
-        return targetTenantId;
-    }
 }

@@ -1,6 +1,6 @@
 package io.attestry.userauth.application.dto.view;
 
-import io.attestry.userauth.domain.organization.model.TenantType;
+import io.attestry.userauth.domain.tenant.model.TenantType;
 import io.attestry.userauth.domain.membership.model.MembershipStatus;
 import java.util.List;
 import java.util.Set;
