@@ -59,7 +59,10 @@ public class WorkflowReadProjectionBackfillRunner implements ApplicationRunner {
                    pp.tenant_id,
                    pp.asset_id,
                    pa.asset_state,
-                   pa.risk_flag,
+                   CASE
+                       WHEN pa.risk_flag = 'NONE' THEN 'NONE'
+                       ELSE 'FLAGGED'
+                   END,
                    po.owner_id,
                    'backfill:workflow-passport-state:' || pp.passport_id,
                    NULL,

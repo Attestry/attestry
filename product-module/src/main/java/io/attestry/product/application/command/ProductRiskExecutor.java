@@ -40,7 +40,8 @@ public class ProductRiskExecutor {
     public RiskExecution clearRisk(String passportId, String actorId) {
         Instant now = Instant.now(clock);
         ProductPassport passport = findPassport(passportId);
-        if (passport.getAsset().getRiskFlag() == RiskFlag.NONE) {
+        RiskFlag currentRiskFlag = passport.getAsset().getRiskFlag();
+        if (currentRiskFlag == RiskFlag.NONE) {
             throw new ProductDomainException(
                 ProductErrorCode.RISK_FLAG_NOT_SET,
                 "No risk flag to clear for asset: " + passport.getAsset().getAssetId()
@@ -48,7 +49,7 @@ public class ProductRiskExecutor {
         }
         passport.clearRisk();
         passportPort.save(passport);
-        return new RiskExecution(passport, enqueueSafe(LedgerEventEnvelope.riskCleared(passport, actorId, now)));
+        return new RiskExecution(passport, enqueueSafe(LedgerEventEnvelope.riskCleared(passport, actorId, now, currentRiskFlag)));
     }
 
     private ProductPassport findPassport(String passportId) {
