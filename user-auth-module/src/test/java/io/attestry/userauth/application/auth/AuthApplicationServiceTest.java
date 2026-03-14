@@ -370,6 +370,14 @@ class AuthApplicationServiceTest {
         }
 
         @Override
+        public Optional<Membership> findMembershipByMembershipIdAndUserId(String membershipId, String userId) {
+            return memberships.stream()
+                .filter(m -> m.membershipId().equals(membershipId))
+                .filter(m -> m.userId().equals(userId))
+                .findFirst();
+        }
+
+        @Override
         public Membership updateMembership(String tenantId, String membershipId, MembershipRole role, MembershipStatus status) {
             return null;
         }

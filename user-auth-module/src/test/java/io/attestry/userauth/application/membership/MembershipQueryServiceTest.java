@@ -64,6 +64,13 @@ class MembershipQueryServiceTest {
             public Optional<Membership> findMembershipById(String membershipId) { return Optional.empty(); }
 
             @Override
+            public Optional<Membership> findMembershipByMembershipIdAndUserId(String membershipId, String userId) {
+                return findByUserId(userId).stream()
+                    .filter(membership -> membership.membershipId().equals(membershipId))
+                    .findFirst();
+            }
+
+            @Override
             public Membership updateMembership(String tenantId, String membershipId, MembershipRole role, MembershipStatus status) { return null; }
 
             @Override
