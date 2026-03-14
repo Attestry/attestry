@@ -1,29 +1,29 @@
-# --- Build stage ---
-FROM eclipse-temurin:21-jdk AS builder
-WORKDIR /workspace
-
-COPY gradle gradle
-COPY gradlew gradlew
-COPY build.gradle.kts build.gradle.kts
-COPY settings.gradle.kts settings.gradle.kts
-
-COPY common-lib-module common-lib-module
-COPY user-auth-module user-auth-module
-COPY workflow-module workflow-module
-COPY ledger-service ledger-service
-COPY product-module product-module
-COPY app app
-
-RUN chmod +x gradlew \
-    && ./gradlew :common-lib-module:publishToMavenLocal --no-daemon -x test \
-    && ./gradlew :ledger-service:bootJar --no-daemon -x test
-
-# --- Runtime stage ---
 FROM eclipse-temurin:21-jre
+ARG APP_USER=attestry
+ARG APP_UID=10001
+ARG APP_GID=10001
+
+ENV TZ=Asia/Seoul \
+    JAVA_TOOL_OPTIONS="-XX:+UseContainerSupport -XX:InitialRAMPercentage=50 -XX:MaxRAMPercentage=75"
+
+RUN apt-get update \
+    && apt-get install -y --no-install-recommends curl tzdata \
+    && groupadd --gid "${APP_GID}" "${APP_USER}" \
+    && useradd --uid "${APP_UID}" --gid "${APP_GID}" --create-home --shell /usr/sbin/nologin "${APP_USER}" \
+    && ln -snf "/usr/share/zoneinfo/${TZ}" /etc/localtime \
+    && echo "${TZ}" > /etc/timezone \
+    && rm -rf /var/lib/apt/lists/*
+
 WORKDIR /app
 
-COPY --from=builder /workspace/ledger-service/build/libs/*.jar app.jar
+COPY ledger-service/build/libs/*.jar app.jar
+RUN chown -R "${APP_USER}:${APP_USER}" /app
 
 EXPOSE 8081
+
+HEALTHCHECK --interval=30s --timeout=5s --start-period=40s --retries=3 \
+  CMD curl --fail --silent http://127.0.0.1:8081/actuator/health || exit 1
+
+USER ${APP_USER}
 
 ENTRYPOINT ["java", "-jar", "app.jar"]
