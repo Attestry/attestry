@@ -1,6 +1,7 @@
 package io.attestry.bootstrap;
 
 import io.attestry.userauth.application.port.auth.PasswordHasherPort;
+import io.attestry.userauth.infrastructure.persistence.jpa.membership.MembershipEffectivePermissionProjectionRefresher;
 import java.sql.Timestamp;
 import java.time.Clock;
 import java.time.Instant;
@@ -28,6 +29,7 @@ public class PlatformAdminBootstrap implements ApplicationRunner {
 
     private final NamedParameterJdbcTemplate jdbcTemplate;
     private final PasswordHasherPort passwordHasher;
+    private final MembershipEffectivePermissionProjectionRefresher permissionProjectionRefresher;
     private final Clock clock;
     private final boolean enabled;
     private final String adminEmail;
@@ -37,6 +39,7 @@ public class PlatformAdminBootstrap implements ApplicationRunner {
     public PlatformAdminBootstrap(
         NamedParameterJdbcTemplate jdbcTemplate,
         PasswordHasherPort passwordHasher,
+        MembershipEffectivePermissionProjectionRefresher permissionProjectionRefresher,
         Clock clock,
         @Value("${app.bootstrap.platform-admin.enabled:false}") boolean enabled,
         @Value("${app.bootstrap.platform-admin.email:platform.admin@attestry.local}") String adminEmail,
@@ -45,6 +48,7 @@ public class PlatformAdminBootstrap implements ApplicationRunner {
     ) {
         this.jdbcTemplate = jdbcTemplate;
         this.passwordHasher = passwordHasher;
+        this.permissionProjectionRefresher = permissionProjectionRefresher;
         this.clock = clock;
         this.enabled = enabled;
         this.adminEmail = adminEmail;
@@ -65,6 +69,7 @@ public class PlatformAdminBootstrap implements ApplicationRunner {
         ensureTenant();
         String membershipId = ensureMembership(userId);
         ensureAssignment(userId, membershipId);
+        permissionProjectionRefresher.refreshMembership(membershipId);
 
         log.info("Platform admin bootstrap ready. email={}, password={}", normalizedEmail, adminPassword);
     }

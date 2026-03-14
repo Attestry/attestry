@@ -155,6 +155,11 @@ class OnboardingProvisioningServiceTest {
         public Optional<Membership> findMembershipById(String membershipId) { return Optional.empty(); }
 
         @Override
+        public Optional<Membership> findMembershipByMembershipIdAndUserId(String membershipId, String userId) {
+            return Optional.empty();
+        }
+
+        @Override
         public Membership updateMembership(
                 String tenantId,
                 String membershipId,
