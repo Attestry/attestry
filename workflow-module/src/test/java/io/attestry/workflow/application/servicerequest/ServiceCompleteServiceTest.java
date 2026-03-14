@@ -19,7 +19,7 @@ import io.attestry.workflow.application.port.common.WorkflowLedgerOutboxPort;
 import io.attestry.workflow.application.servicerequest.command.CompleteServiceRequestCommand;
 import io.attestry.workflow.application.servicerequest.result.CompleteServiceRequestResult;
 import io.attestry.workflow.application.servicerequest.support.ServiceRequestContextResolver;
-import io.attestry.workflow.application.shipment.result.WorkflowLedgerEventEnvelope;
+import io.attestry.commonlib.outbox.OutboxEventEnvelope;
 import io.attestry.workflow.application.support.WorkflowAuthorizationSupport;
 import io.attestry.workflow.domain.WorkflowDomainException;
 import io.attestry.workflow.domain.WorkflowErrorCode;
@@ -97,7 +97,7 @@ class ServiceCompleteServiceTest {
         when(shipmentEvidencePort.findReadyEvidenceHashes("afterEg")).thenReturn(List.of("hash1"));
         when(shipmentEvidencePort.findReadyEvidenceHashes("beforeEg")).thenReturn(List.of("beforeHash"));
         when(serviceRequestRepository.save(any(ServiceRequest.class))).thenAnswer(inv -> inv.getArgument(0));
-        when(serviceLedgerOutboxPort.enqueue(any(WorkflowLedgerEventEnvelope.class))).thenReturn("outbox1");
+        when(serviceLedgerOutboxPort.enqueue(any(OutboxEventEnvelope.class))).thenReturn("outbox1");
 
         CompleteServiceRequestResult result = service.complete(
             PROVIDER, "provT1", "sr1",

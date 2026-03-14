@@ -1,0 +1,21 @@
+spring:
+  config:
+    activate:
+      on-profile: dev
+  kafka:
+    bootstrap-servers: ${KAFKA_BOOTSTRAP_SERVERS:my-cluster-kafka-bootstrap.kafka:9092}
+    client-id: ${KAFKA_CLIENT_ID:ledger-service-dev}
+    consumer:
+      group-id: ${LEDGER_KAFKA_CONSUMER_GROUP:attestry-ledger-dev}
+
+app:
+  ledger:
+    kafka:
+      enabled: ${LEDGER_KAFKA_ENABLED:true}
+      consumer-group-id: ${LEDGER_KAFKA_CONSUMER_GROUP:attestry-ledger-dev}
+      topic-auto-create:
+        enabled: ${LEDGER_KAFKA_TOPIC_AUTO_CREATE_ENABLED:false}
+      topics:
+        partitions: ${KAFKA_TOPIC_PARTITIONS:3}
+        replicas: ${KAFKA_TOPIC_REPLICAS:3}
+

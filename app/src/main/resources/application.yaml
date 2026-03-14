@@ -70,21 +70,6 @@ app:
     bucket: ${STORAGE_BUCKET:attestry-onboarding}
   kafka:
     enabled: ${APP_KAFKA_ENABLED:true}
-    client-id: ${KAFKA_CLIENT_ID:attestry}
-    consumer-group-id: ${KAFKA_CONSUMER_GROUP:attestry-ledger-consumer}
-    topics:
-      ledger-outbox: ${KAFKA_TOPIC_LEDGER_OUTBOX:ledger.outbox.v1}
-      ledger-dlq: ${KAFKA_TOPIC_LEDGER_DLQ:ledger.outbox.v1.dlq}
-      partitions: ${KAFKA_TOPIC_PARTITIONS:3}
-      replicas: ${KAFKA_TOPIC_REPLICAS:1}
-    outbox:
-      batch-size: ${KAFKA_OUTBOX_BATCH_SIZE:100}
-      max-retries: ${KAFKA_OUTBOX_MAX_RETRIES:5}
-      publish-interval-ms: ${KAFKA_OUTBOX_PUBLISH_INTERVAL_MS:2000}
-  ledger:
-    integrity-check:
-      enabled: ${LEDGER_INTEGRITY_CHECK_ENABLED:false}
-      cron: ${LEDGER_INTEGRITY_CHECK_CRON:0 0 3 * * *}
   product:
     public-base-url: ${PRODUCT_PUBLIC_BASE_URL:http://localhost:5174}
     passport-permission-projection:
@@ -99,6 +84,10 @@ app:
   workflow:
     read-projection:
       consumer-group-id: ${WORKFLOW_READ_PROJECTION_CONSUMER_GROUP_ID:workflow-product-read-projection-consumer}
+      listener-concurrency: ${WORKFLOW_READ_PROJECTION_LISTENER_CONCURRENCY:1}
+      kafka:
+        source-topic: ${WORKFLOW_READ_PROJECTION_SOURCE_TOPIC:product.projection.v1}
+        dlq-topic: ${WORKFLOW_READ_PROJECTION_DLQ_TOPIC:product.projection.v1.dlq}
       backfill:
         enabled: ${WORKFLOW_READ_PROJECTION_BACKFILL_ENABLED:false}
       validation:

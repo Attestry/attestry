@@ -5,6 +5,6 @@ include(
     "common-lib-module",
     "user-auth-module",
     "workflow-module",
-    "ledger-module",
+    "ledger-service",
     "product-module",
 )

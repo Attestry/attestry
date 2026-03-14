@@ -1,7 +1,6 @@
 package io.attestry.product.application.port.ledger;
 
-import io.attestry.product.domain.event.LedgerEventEnvelope;
+import io.attestry.commonlib.outbox.OutboxEnqueuePort;
 
-public interface LedgerOutboxPort {
-    String enqueue(LedgerEventEnvelope event);
+public interface LedgerOutboxPort extends OutboxEnqueuePort {
 }

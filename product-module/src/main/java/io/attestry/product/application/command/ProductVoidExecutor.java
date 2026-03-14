@@ -5,7 +5,8 @@ import io.attestry.product.application.port.passport.PassportPort;
 import io.attestry.product.application.command.dto.VoidExecution;
 import io.attestry.product.domain.ProductDomainException;
 import io.attestry.product.domain.ProductErrorCode;
-import io.attestry.product.domain.event.LedgerEventEnvelope;
+import io.attestry.commonlib.outbox.OutboxEventEnvelope;
+import io.attestry.product.domain.event.ProductLedgerEvents;
 import io.attestry.product.domain.passport.model.ProductPassport;
 import io.attestry.product.domain.passport.model.VoidReason;
 import java.time.Clock;
@@ -26,7 +27,7 @@ public class ProductVoidExecutor {
         ProductPassport passport = findPassport(passportId);
         passport.voidAsset(reason, note, now);
         passportPort.save(passport);
-        LedgerEventEnvelope event = LedgerEventEnvelope.voided(passport, actorId, now);
+        OutboxEventEnvelope event = ProductLedgerEvents.voided(passport, actorId, now);
         return new VoidExecution(passport, enqueueSafe(event));
     }
 
@@ -38,7 +39,7 @@ public class ProductVoidExecutor {
             ));
     }
 
-    private String enqueueSafe(LedgerEventEnvelope event) {
+    private String enqueueSafe(OutboxEventEnvelope event) {
         try {
             return ledgerOutboxPort.enqueue(event);
         } catch (RuntimeException ex) {

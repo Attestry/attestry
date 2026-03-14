@@ -71,7 +71,7 @@ public class ProductReadProjectionValidationRunner implements ApplicationRunner 
             SELECT COUNT(*)
             FROM (
                 SELECT DISTINCT ON (passport_id) passport_id
-                FROM workflow_shipments
+                FROM shipments
                 ORDER BY passport_id, shipment_round DESC, created_at DESC, shipment_id DESC
             ) s
         """);
@@ -81,7 +81,7 @@ public class ProductReadProjectionValidationRunner implements ApplicationRunner 
             FROM (
                 SELECT DISTINCT ON (ws.passport_id)
                        ws.passport_id
-                FROM workflow_shipments ws
+                FROM shipments ws
                 ORDER BY ws.passport_id, ws.shipment_round DESC, ws.created_at DESC, ws.shipment_id DESC
             ) latest
             LEFT JOIN product_passport_shipment_projection p

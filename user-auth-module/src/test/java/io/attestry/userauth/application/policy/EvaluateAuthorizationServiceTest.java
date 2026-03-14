@@ -159,6 +159,11 @@ class EvaluateAuthorizationServiceTest {
         public Optional<Membership> findMembershipById(String membershipId) { return Optional.empty(); }
 
         @Override
+        public Optional<Membership> findMembershipByMembershipIdAndUserId(String membershipId, String userId) {
+            return Optional.empty();
+        }
+
+        @Override
         public Membership updateMembership(String tenantId, String membershipId, MembershipRole role, MembershipStatus status) { return null; }
 
         @Override
@@ -220,6 +225,14 @@ class EvaluateAuthorizationServiceTest {
         @Override
         public Optional<Membership> findMembershipById(String membershipId) {
             return findById(membershipId);
+        }
+
+        @Override
+        public Optional<Membership> findMembershipByMembershipIdAndUserId(String membershipId, String userId) {
+            if (membership.membershipId().equals(membershipId) && membership.userId().equals(userId)) {
+                return Optional.of(membership);
+            }
+            return Optional.empty();
         }
 
         @Override

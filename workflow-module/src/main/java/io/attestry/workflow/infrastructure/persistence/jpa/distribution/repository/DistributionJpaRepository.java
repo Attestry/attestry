@@ -118,7 +118,7 @@ public interface DistributionJpaRepository extends JpaRepository<DistributionJpa
                    wpcp.model_name AS modelName,
                    wpcp.production_batch AS productionBatch,
                    wpcp.factory_code AS factoryCode
-            FROM workflow_shipments ws
+            FROM shipments ws
             JOIN workflow_passport_catalog_projection wpcp ON wpcp.passport_id = ws.passport_id
             WHERE ws.tenant_id = :tenantId
               AND ws.status = 'RELEASED'
@@ -137,7 +137,7 @@ public interface DistributionJpaRepository extends JpaRepository<DistributionJpa
         """,
         countQuery = """
             SELECT COUNT(*)
-            FROM workflow_shipments ws
+            FROM shipments ws
             JOIN workflow_passport_catalog_projection wpcp ON wpcp.passport_id = ws.passport_id
             WHERE ws.tenant_id = :tenantId
               AND ws.status = 'RELEASED'

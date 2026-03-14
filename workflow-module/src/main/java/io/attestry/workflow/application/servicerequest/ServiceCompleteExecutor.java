@@ -7,7 +7,7 @@ import io.attestry.workflow.application.port.servicerequest.ServicePermissionPor
 import io.attestry.workflow.application.servicerequest.command.CompleteServiceRequestCommand;
 import io.attestry.workflow.application.servicerequest.result.CompleteServiceRequestResult;
 import io.attestry.workflow.application.servicerequest.support.ServiceRequestContextResolver;
-import io.attestry.workflow.application.shipment.result.WorkflowLedgerEventEnvelope;
+import io.attestry.workflow.domain.event.WorkflowLedgerEvents;
 import io.attestry.workflow.domain.WorkflowDomainException;
 import io.attestry.workflow.domain.WorkflowErrorCode;
 import io.attestry.workflow.domain.servicerequest.model.ServiceRequest;
@@ -73,7 +73,7 @@ public class ServiceCompleteExecutor {
         ServiceRequest saved = serviceRequestRepository.save(completed);
         servicePermissionPort.revokeByServiceRequestId(serviceRequestId);
         String outboxEventId = serviceLedgerOutboxPort.enqueue(
-            WorkflowLedgerEventEnvelope.serviceConfirmed(saved, beforeHashes, afterHashes, command.serviceResult())
+            WorkflowLedgerEvents.serviceConfirmed(saved, beforeHashes, afterHashes, command.serviceResult())
         );
 
         return new CompleteServiceRequestResult(

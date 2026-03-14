@@ -8,8 +8,10 @@ import io.attestry.workflow.application.delegation.result.DelegationResult;
 import io.attestry.workflow.application.port.common.TenantReadPort;
 import io.attestry.workflow.application.port.distribution.DistributionCandidateQueryPort;
 import io.attestry.workflow.application.port.distribution.DistributionCandidateQueryPort.PagedDistributionCandidateResult;
+import io.attestry.workflow.application.port.common.WorkflowProjectionOutboxPort;
 import io.attestry.workflow.application.port.distribution.DistributionQueryPort;
 import io.attestry.workflow.application.support.WorkflowAuthorizationSupport;
+import io.attestry.workflow.domain.event.WorkflowLedgerEvents;
 import io.attestry.workflow.application.usecase.DelegationUseCase;
 import io.attestry.workflow.application.usecase.DistributionUseCase;
 import io.attestry.workflow.domain.WorkflowDomainException;
@@ -35,6 +37,7 @@ public class DistributionService implements DistributionUseCase {
     private final TenantReadPort tenantReadPort;
     private final DistributionViewAssembler viewAssembler;
     private final WorkflowAuthorizationSupport authorizationSupport;
+    private final WorkflowProjectionOutboxPort projectionOutboxPort;
     private final Clock clock;
 
     @Override
@@ -76,6 +79,8 @@ public class DistributionService implements DistributionUseCase {
 
         Distribution recalled = distribution.recall(principal.userId(), command.reason(), now);
         distributionRepository.save(recalled);
+
+        projectionOutboxPort.enqueue(WorkflowLedgerEvents.distributionRecalled(recalled));
 
         delegationUseCase.revoke(principal, distribution.delegationId(), command.reason());
 
@@ -145,6 +150,8 @@ public class DistributionService implements DistributionUseCase {
             principal.userId(),
             now
         ));
+
+        projectionOutboxPort.enqueue(WorkflowLedgerEvents.distributionCreated(distribution));
 
         return BatchDistributeResult.Entry.success(
             passportId, distribution.distributionId(), delegationResult.delegationId()

@@ -11,7 +11,7 @@ import io.attestry.workflow.application.shipment.command.ReleaseShipmentCommand;
 import io.attestry.workflow.application.shipment.command.ReturnShipmentCommand;
 import io.attestry.workflow.application.shipment.result.ReleaseShipmentResult;
 import io.attestry.workflow.application.shipment.result.ReturnShipmentResult;
-import io.attestry.workflow.application.shipment.result.WorkflowLedgerEventEnvelope;
+import io.attestry.workflow.domain.event.WorkflowLedgerEvents;
 import io.attestry.workflow.application.support.EvidenceUploadSupport;
 import io.attestry.workflow.application.support.WorkflowAuthorizationSupport;
 import io.attestry.workflow.application.usecase.ShipmentReleaseUseCase;
@@ -85,7 +85,7 @@ public class ShipmentReleaseService implements ShipmentReleaseUseCase {
         );
         Shipment saved = shipmentRepository.saveRelease(shipment);
         String outboxEventId = shipmentLedgerOutboxPort.enqueue(
-            WorkflowLedgerEventEnvelope.shipmentReleased(saved, evidenceHashes)
+            WorkflowLedgerEvents.shipmentReleased(saved, evidenceHashes)
         );
 
         return new ReleaseShipmentResult(
@@ -128,7 +128,7 @@ public class ShipmentReleaseService implements ShipmentReleaseUseCase {
         Shipment returned = current.markReturned(principal.userId(), returnEvidenceGroupId, now);
         Shipment saved = shipmentRepository.saveReturn(returned);
         String outboxEventId = shipmentLedgerOutboxPort.enqueue(
-            WorkflowLedgerEventEnvelope.shipmentReturned(saved, returnEvidenceHashes, command.reason())
+            WorkflowLedgerEvents.shipmentReturned(saved, returnEvidenceHashes, command.reason())
         );
         return new ReturnShipmentResult(
             saved.shipmentId(),

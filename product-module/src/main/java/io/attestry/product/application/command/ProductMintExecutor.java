@@ -6,7 +6,8 @@ import io.attestry.product.application.command.dto.LedgerActor;
 import io.attestry.product.application.command.dto.MintExecution;
 import io.attestry.product.domain.ProductDomainException;
 import io.attestry.product.domain.ProductErrorCode;
-import io.attestry.product.domain.event.LedgerEventEnvelope;
+import io.attestry.commonlib.outbox.OutboxEventEnvelope;
+import io.attestry.product.domain.event.ProductLedgerEvents;
 import io.attestry.product.domain.passport.model.MintProductInput;
 import io.attestry.product.domain.passport.model.ProductPassport;
 import io.attestry.product.domain.service.QrPublicCodeGenerator;
@@ -30,7 +31,7 @@ public class ProductMintExecutor {
         assertNotDuplicate(input.tenantId(), input.serialNumber());
         ProductPassport passport = createPassport(input);
         ProductPassport savedPassport = passportPort.save(passport);
-        LedgerEventEnvelope event = LedgerEventEnvelope.minted(
+        OutboxEventEnvelope event = ProductLedgerEvents.minted(
             savedPassport,
             ledgerActor.actorRole(),
             ledgerActor.actorId(),

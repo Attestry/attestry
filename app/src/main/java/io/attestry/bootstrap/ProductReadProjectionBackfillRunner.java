@@ -123,7 +123,7 @@ public class ProductReadProjectionBackfillRunner implements ApplicationRunner {
                        released_by_user_id,
                        returned_at,
                        returned_by_user_id
-                FROM workflow_shipments
+                FROM shipments
                 ORDER BY passport_id, shipment_round DESC, created_at DESC, shipment_id DESC
             ) ws
             LEFT JOIN user_accounts released_user ON released_user.user_id = ws.released_by_user_id
@@ -133,10 +133,10 @@ public class ProductReadProjectionBackfillRunner implements ApplicationRunner {
     }
 
     private void backfillShipmentEvidenceProjection() {
-        jdbcTemplate.getJdbcOperations().update("DELETE FROM product_passport_shipment_evidence_projection");
+        jdbcTemplate.getJdbcOperations().update("DELETE FROM product_passport_evidence_projection");
         jdbcTemplate.getJdbcOperations().update(
             """
-            INSERT INTO product_passport_shipment_evidence_projection (
+            INSERT INTO product_passport_evidence_projection (
                 shipment_id,
                 evidence_id,
                 original_file_name,
@@ -153,8 +153,8 @@ public class ProductReadProjectionBackfillRunner implements ApplicationRunner {
                    COALESCE(wse.object_key, ''),
                    CURRENT_TIMESTAMP
             FROM product_passport_shipment_projection ppsp
-            JOIN workflow_shipments ws ON ws.shipment_id = ppsp.shipment_id
-            JOIN workflow_shipment_evidences wse ON wse.evidence_group_id IN (ws.evidence_group_id, ws.return_evidence_group_id)
+            JOIN shipments ws ON ws.shipment_id = ppsp.shipment_id
+            JOIN workflow_evidences wse ON wse.evidence_group_id IN (ws.evidence_group_id, ws.return_evidence_group_id)
             WHERE wse.status = 'READY'
             """
         );

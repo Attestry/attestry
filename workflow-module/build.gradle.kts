@@ -5,7 +5,7 @@ plugins {
 val lombokVersion = "1.18.38"
 dependencies {
     implementation(platform("org.springframework.boot:spring-boot-dependencies:4.0.3"))
-    implementation(project(":common-lib-module"))
+    implementation("${rootProject.group}:attestry-common-lib:${rootProject.version}")
     implementation(project(":user-auth-module"))
     implementation(project(":product-module"))
     implementation("org.springframework:spring-context")

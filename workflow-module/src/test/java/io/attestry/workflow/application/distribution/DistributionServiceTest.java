@@ -16,6 +16,7 @@ import io.attestry.workflow.application.delegation.result.DelegationResult;
 import io.attestry.workflow.application.distribution.assembler.DistributionViewAssembler;
 import io.attestry.workflow.application.port.common.TenantReadPort;
 import io.attestry.workflow.application.port.distribution.DistributionCandidateQueryPort;
+import io.attestry.workflow.application.port.common.WorkflowProjectionOutboxPort;
 import io.attestry.workflow.application.port.distribution.DistributionQueryPort;
 import io.attestry.workflow.application.support.WorkflowAuthorizationSupport;
 import io.attestry.workflow.application.usecase.DelegationUseCase;
@@ -47,6 +48,7 @@ class DistributionServiceTest {
     @Mock TenantReadPort tenantReadPort;
     @Mock DistributionViewAssembler viewAssembler;
     @Mock WorkflowAuthorizationSupport authorizationSupport;
+    @Mock WorkflowProjectionOutboxPort projectionOutboxPort;
 
     private final Clock clock = Clock.fixed(Instant.parse("2026-03-01T10:00:00Z"), ZoneOffset.UTC);
 
@@ -72,6 +74,7 @@ class DistributionServiceTest {
             tenantReadPort,
             viewAssembler,
             authorizationSupport,
+            projectionOutboxPort,
             clock
         );
     }

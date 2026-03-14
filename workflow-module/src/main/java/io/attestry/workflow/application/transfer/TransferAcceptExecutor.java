@@ -2,7 +2,8 @@ package io.attestry.workflow.application.transfer;
 
 import io.attestry.workflow.application.port.transfer.TransferOwnershipUpdatePort;
 import io.attestry.workflow.application.port.common.WorkflowLedgerOutboxPort;
-import io.attestry.workflow.application.shipment.result.WorkflowLedgerEventEnvelope;
+import io.attestry.commonlib.outbox.OutboxEventEnvelope;
+import io.attestry.workflow.domain.event.WorkflowLedgerEvents;
 import io.attestry.workflow.application.transfer.command.AcceptTransferCommand;
 import io.attestry.workflow.application.transfer.result.AcceptTransferResult;
 import io.attestry.workflow.application.usecase.DelegationLifecycleUseCase;
@@ -99,9 +100,9 @@ public class TransferAcceptExecutor {
             delegationLifecycleUseCase.consumeByPassportId(completed.passportId());
         }
 
-        WorkflowLedgerEventEnvelope envelope = completed.transferType() == TransferType.B2C
-            ? WorkflowLedgerEventEnvelope.ownershipClaimed(completed)
-            : WorkflowLedgerEventEnvelope.ownershipTransferCompleted(completed);
+        OutboxEventEnvelope envelope = completed.transferType() == TransferType.B2C
+            ? WorkflowLedgerEvents.ownershipClaimed(completed)
+            : WorkflowLedgerEvents.ownershipTransferCompleted(completed);
 
         String outboxEventId = outboxPort.enqueue(envelope);
 

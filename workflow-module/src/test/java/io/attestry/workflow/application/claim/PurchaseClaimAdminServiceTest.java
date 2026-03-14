@@ -21,7 +21,7 @@ import io.attestry.workflow.application.port.claim.PurchaseClaimProductMintPort;
 import io.attestry.workflow.application.port.common.WorkflowEvidencePort;
 import io.attestry.workflow.application.port.common.WorkflowLedgerOutboxPort;
 import io.attestry.workflow.application.port.transfer.TransferOwnershipUpdatePort;
-import io.attestry.workflow.application.shipment.result.WorkflowLedgerEventEnvelope;
+import io.attestry.commonlib.outbox.OutboxEventEnvelope;
 import io.attestry.workflow.application.support.WorkflowAuthorizationSupport;
 import io.attestry.workflow.domain.WorkflowDomainException;
 import io.attestry.workflow.domain.WorkflowErrorCode;
@@ -99,7 +99,7 @@ class PurchaseClaimAdminServiceTest {
         doNothing().when(ownershipUpdatePort).upsertOwner(anyString(), anyString(), any(Instant.class));
         when(purchaseClaimRepository.save(any(PurchaseClaim.class))).thenAnswer(inv -> inv.getArgument(0));
         when(shipmentEvidencePort.findReadyEvidenceHashes("eg-1")).thenReturn(List.of("hash1"));
-        when(ledgerOutboxPort.enqueue(any(WorkflowLedgerEventEnvelope.class))).thenReturn("outbox-2");
+        when(ledgerOutboxPort.enqueue(any(OutboxEventEnvelope.class))).thenReturn("outbox-2");
 
         ApprovePurchaseClaimResult result = service.approve(
             ADMIN, "claim-1",
