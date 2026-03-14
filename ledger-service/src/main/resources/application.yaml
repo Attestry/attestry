@@ -68,13 +68,6 @@ app:
         product-projection-dlq: ${KAFKA_TOPIC_PRODUCT_PROJECTION_DLQ:product.projection.v1.dlq}
         partitions: ${KAFKA_TOPIC_PARTITIONS:3}
         replicas: ${KAFKA_TOPIC_REPLICAS:1}
-      outbox:
-        batch-size: ${KAFKA_OUTBOX_BATCH_SIZE:100}
-        max-retries: ${KAFKA_OUTBOX_MAX_RETRIES:5}
-        publish-interval-ms: ${KAFKA_OUTBOX_PUBLISH_INTERVAL_MS:2000}
     integrity-check:
       enabled: ${LEDGER_INTEGRITY_CHECK_ENABLED:false}
       cron: ${LEDGER_INTEGRITY_CHECK_CRON:0 0 3 * * *}
-    outbox:
-      cleanup-retention-days: ${LEDGER_OUTBOX_CLEANUP_RETENTION_DAYS:7}
-      cleanup-cron: ${LEDGER_OUTBOX_CLEANUP_CRON:0 0 3 * * *}

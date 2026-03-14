@@ -6,8 +6,6 @@ import io.attestry.ledger.infrastructure.LedgerInfrastructureMarker;
 import io.attestry.ledger.infrastructure.persistence.jpa.entity.LedgerChainJpaEntity;
 import io.attestry.ledger.infrastructure.persistence.jpa.repository.LedgerChainJpaRepository;
 import io.attestry.ledger.interfaces.LedgerInterfacesMarker;
-import io.attestry.ledgerservice.outbox.persistence.LedgerOutboxEventJpaEntity;
-import io.attestry.ledgerservice.outbox.persistence.LedgerOutboxEventJpaRepository;
 import org.springframework.boot.SpringApplication;
 import org.springframework.boot.autoconfigure.SpringBootApplication;
 import org.springframework.boot.context.properties.ConfigurationPropertiesScan;
@@ -16,14 +14,8 @@ import org.springframework.data.jpa.repository.config.EnableJpaRepositories;
 import org.springframework.scheduling.annotation.EnableScheduling;
 
 @EnableScheduling
-@EntityScan(basePackageClasses = {
-    LedgerChainJpaEntity.class,
-    LedgerOutboxEventJpaEntity.class
-})
-@EnableJpaRepositories(basePackageClasses = {
-    LedgerChainJpaRepository.class,
-    LedgerOutboxEventJpaRepository.class
-})
+@EntityScan(basePackageClasses = LedgerChainJpaEntity.class)
+@EnableJpaRepositories(basePackageClasses = LedgerChainJpaRepository.class)
 @ConfigurationPropertiesScan
 @SpringBootApplication(scanBasePackageClasses = {
     CommonLibraryMarker.class,
