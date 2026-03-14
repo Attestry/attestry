@@ -29,12 +29,16 @@ env:
   LEDGER_IMAGE: ghcr.io/attestry/ledger-service
 
 jobs:
-  update:
+  detect-changes:
     if: >
       github.event_name == 'workflow_dispatch' ||
       (github.event.workflow_run.conclusion == 'success' &&
        github.event.workflow_run.head_branch == 'main')
     runs-on: ubuntu-latest
+    outputs:
+      image_tag: ${{ steps.vars.outputs.image_tag }}
+      core: ${{ steps.detect.outputs.core }}
+      ledger: ${{ steps.detect.outputs.ledger }}
 
     steps:
       - name: Resolve image tag
@@ -49,6 +53,51 @@ jobs:
             echo "source_sha=${{ github.event.workflow_run.head_sha }}" >> "$GITHUB_OUTPUT"
           fi
 
+      - name: Checkout source repo
+        if: github.event_name != 'workflow_dispatch'
+        uses: actions/checkout@v5
+        with:
+          ref: ${{ github.event.workflow_run.head_sha }}
+          fetch-depth: 2
+          path: source
+
+      - name: Detect changed areas
+        id: detect
+        shell: bash
+        run: |
+          if [ "${{ github.event_name }}" = "workflow_dispatch" ]; then
+            echo "core=true" >> "$GITHUB_OUTPUT"
+            echo "ledger=true" >> "$GITHUB_OUTPUT"
+            exit 0
+          fi
+
+          cd source
+          CHANGED_FILES="$(git diff --name-only HEAD^ HEAD)"
+          echo "$CHANGED_FILES"
+
+          core=false
+          ledger=false
+
+          if echo "$CHANGED_FILES" | grep -Eq '^(app/|user-auth-module/|product-module/|workflow-module/|common-lib-module/|build\.gradle\.kts|settings\.gradle\.kts|gradle/|gradlew|Dockerfile\.app|\.github/workflows/)'; then
+            core=true
+          fi
+
+          if echo "$CHANGED_FILES" | grep -Eq '^(ledger-service/|common-lib-module/|build\.gradle\.kts|settings\.gradle\.kts|gradle/|gradlew|Dockerfile\.ledger-service|\.github/workflows/)'; then
+            ledger=true
+          fi
+
+          echo "core=$core" >> "$GITHUB_OUTPUT"
+          echo "ledger=$ledger" >> "$GITHUB_OUTPUT"
+
+  update:
+    needs: detect-changes
+    if: >
+      github.event_name == 'workflow_dispatch' ||
+      (github.event.workflow_run.conclusion == 'success' &&
+       github.event.workflow_run.head_branch == 'main')
+    runs-on: ubuntu-latest
+
+    steps:
       - name: Checkout infra repo
         uses: actions/checkout@v5
         with:
@@ -61,10 +110,16 @@ jobs:
         uses: mikefarah/yq@v4.45.1
         with:
           cmd: |
-            yq -i '.spec.template.spec.containers[] |= (select(.name == strenv(CORE_CONTAINER_NAME)).image = strenv(CORE_IMAGE) + ":" + strenv(IMAGE_TAG))' "infra/${CORE_MANIFEST_PATH}"
-            yq -i '.spec.template.spec.containers[] |= (select(.name == strenv(LEDGER_CONTAINER_NAME)).image = strenv(LEDGER_IMAGE) + ":" + strenv(IMAGE_TAG))' "infra/${LEDGER_MANIFEST_PATH}"
+            if [ "${CORE_CHANGED}" = "true" ]; then
+              yq -i '.spec.template.spec.containers[] |= (select(.name == strenv(CORE_CONTAINER_NAME)).image = strenv(CORE_IMAGE) + ":" + strenv(IMAGE_TAG))' "infra/${CORE_MANIFEST_PATH}"
+            fi
+            if [ "${LEDGER_CHANGED}" = "true" ]; then
+              yq -i '.spec.template.spec.containers[] |= (select(.name == strenv(LEDGER_CONTAINER_NAME)).image = strenv(LEDGER_IMAGE) + ":" + strenv(IMAGE_TAG))' "infra/${LEDGER_MANIFEST_PATH}"
+            fi
         env:
-          IMAGE_TAG: ${{ steps.vars.outputs.image_tag }}
+          IMAGE_TAG: ${{ needs.detect-changes.outputs.image_tag }}
+          CORE_CHANGED: ${{ needs.detect-changes.outputs.core }}
+          LEDGER_CHANGED: ${{ needs.detect-changes.outputs.ledger }}
 
       - name: Commit and push
         working-directory: infra
@@ -79,4 +134,4 @@ jobs:
           git commit -m "chore: update core/ledger images to ${IMAGE_TAG}"
           git push origin "${INFRA_REPO_REF}"
         env:
-          IMAGE_TAG: ${{ steps.vars.outputs.image_tag }}
+          IMAGE_TAG: ${{ needs.detect-changes.outputs.image_tag }}

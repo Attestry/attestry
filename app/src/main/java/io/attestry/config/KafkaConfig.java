@@ -15,7 +15,7 @@ import org.springframework.kafka.core.ProducerFactory;
 import java.util.Map;
 
 @Configuration
-@EnableConfigurationProperties(WorkflowReadProjectionKafkaProperties.class)
+@EnableConfigurationProperties({WorkflowReadProjectionKafkaProperties.class, AppKafkaProperties.class})
 public class KafkaConfig {
 
     @Bean

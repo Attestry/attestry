@@ -70,6 +70,13 @@ app:
     bucket: ${STORAGE_BUCKET:attestry-onboarding}
   kafka:
     enabled: ${APP_KAFKA_ENABLED:true}
+    topics:
+      ledger-outbox: ${KAFKA_TOPIC_LEDGER_OUTBOX:ledger.outbox.v1}
+      product-projection: ${KAFKA_TOPIC_PRODUCT_PROJECTION:product.projection.v1}
+    outbox:
+      batch-size: ${KAFKA_OUTBOX_BATCH_SIZE:100}
+      max-retries: ${KAFKA_OUTBOX_MAX_RETRIES:10}
+      cleanup-retention-days: ${KAFKA_OUTBOX_CLEANUP_RETENTION_DAYS:7}
   product:
     public-base-url: ${PRODUCT_PUBLIC_BASE_URL:http://localhost:5174}
     passport-permission-projection:
