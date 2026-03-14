@@ -1,0 +1,127 @@
+### Workflow - Token Transfer APIs (v1)
+### B2C: RETAIL_TRANSFER_CREATE / C2C: OWNER_TRANSFER_CREATE / Accept: OWNER_TRANSFER_ACCEPT
+
+@baseUrl = http://localhost:8080
+@contentType = application/json
+@retailAccessToken = REPLACE_RETAIL_ACCESS_TOKEN
+@ownerAccessToken = REPLACE_OWNER_ACCESS_TOKEN
+@consumerAccessToken = REPLACE_CONSUMER_ACCESS_TOKEN
+@tenantId = REPLACE_TENANT_ID
+@passportId = REPLACE_PASSPORT_ID
+@transferId = REPLACE_TRANSFER_ID
+
+### ──────────────────────────────────────────────
+### B2C Transfer Flow (Brand/Retail → Consumer)
+### ──────────────────────────────────────────────
+
+### 1) Create B2C transfer (QR)
+# @name createB2CTransferQR
+POST {{baseUrl}}/workflows/tenants/{{tenantId}}/passports/{{passportId}}/transfers
+Authorization: Bearer {{retailAccessToken}}
+Content-Type: {{contentType}}
+
+{
+  "acceptMethod": "QR",
+  "expiresAt": "2026-03-04T00:00:00Z"
+}
+
+> {%
+  client.global.set("transferId", response.body.transferId);
+  client.global.set("qrNonce", response.body.qrNonce);
+%}
+
+### 2) Create B2C transfer (CODE)
+# @name createB2CTransferCode
+POST {{baseUrl}}/workflows/tenants/{{tenantId}}/passports/{{passportId}}/transfers
+Authorization: Bearer {{retailAccessToken}}
+Content-Type: {{contentType}}
+
+{
+  "acceptMethod": "CODE",
+  "password": "transfer1234",
+  "expiresAt": "2026-03-04T00:00:00Z"
+}
+
+> {%
+  client.global.set("transferId", response.body.transferId);
+%}
+
+### 3) Accept B2C transfer (QR)
+POST {{baseUrl}}/workflows/transfers/{{transferId}}/accept
+Authorization: Bearer {{consumerAccessToken}}
+Content-Type: {{contentType}}
+
+{
+  "qrNonce": "{{qrNonce}}"
+}
+
+### 4) Accept B2C transfer (CODE)
+POST {{baseUrl}}/workflows/transfers/{{transferId}}/accept
+Authorization: Bearer {{consumerAccessToken}}
+Content-Type: {{contentType}}
+
+{
+  "password": "transfer1234"
+}
+
+### ──────────────────────────────────────────────
+### C2C Transfer Flow (Owner A → Owner B)
+### ──────────────────────────────────────────────
+
+### 5) Create C2C transfer (QR)
+# @name createC2CTransferQR
+POST {{baseUrl}}/workflows/passports/{{passportId}}/transfers
+Authorization: Bearer {{ownerAccessToken}}
+Content-Type: {{contentType}}
+
+{
+  "acceptMethod": "QR",
+  "expiresAt": "2026-03-04T00:00:00Z"
+}
+
+> {%
+  client.global.set("transferId", response.body.transferId);
+  client.global.set("qrNonce", response.body.qrNonce);
+%}
+
+### 6) Create C2C transfer (CODE)
+# @name createC2CTransferCode
+POST {{baseUrl}}/workflows/passports/{{passportId}}/transfers
+Authorization: Bearer {{ownerAccessToken}}
+Content-Type: {{contentType}}
+
+{
+  "acceptMethod": "CODE",
+  "password": "mySecret99",
+  "expiresAt": "2026-03-04T00:00:00Z"
+}
+
+> {%
+  client.global.set("transferId", response.body.transferId);
+%}
+
+### 7) Accept C2C transfer (QR)
+POST {{baseUrl}}/workflows/transfers/{{transferId}}/accept
+Authorization: Bearer {{consumerAccessToken}}
+Content-Type: {{contentType}}
+
+{
+  "qrNonce": "{{qrNonce}}"
+}
+
+### 8) Accept C2C transfer (CODE)
+POST {{baseUrl}}/workflows/transfers/{{transferId}}/accept
+Authorization: Bearer {{consumerAccessToken}}
+Content-Type: {{contentType}}
+
+{
+  "password": "mySecret99"
+}
+
+### ──────────────────────────────────────────────
+### Cancel Transfer
+### ──────────────────────────────────────────────
+
+### 9) Cancel transfer (C2C: owner / B2C: retail)
+POST {{baseUrl}}/workflows/transfers/{{transferId}}/cancel
+Authorization: Bearer {{ownerAccessToken}}

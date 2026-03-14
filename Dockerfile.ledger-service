@@ -1,0 +1,29 @@
+FROM eclipse-temurin:21-jre
+ARG APP_USER=attestry
+ARG APP_UID=10001
+ARG APP_GID=10001
+
+ENV TZ=Asia/Seoul \
+    JAVA_TOOL_OPTIONS="-XX:+UseContainerSupport -XX:InitialRAMPercentage=50 -XX:MaxRAMPercentage=75"
+
+RUN apt-get update \
+    && apt-get install -y --no-install-recommends curl tzdata \
+    && groupadd --gid "${APP_GID}" "${APP_USER}" \
+    && useradd --uid "${APP_UID}" --gid "${APP_GID}" --create-home --shell /usr/sbin/nologin "${APP_USER}" \
+    && ln -snf "/usr/share/zoneinfo/${TZ}" /etc/localtime \
+    && echo "${TZ}" > /etc/timezone \
+    && rm -rf /var/lib/apt/lists/*
+
+WORKDIR /app
+
+COPY ledger-service/build/libs/*.jar app.jar
+RUN chown -R "${APP_USER}:${APP_USER}" /app
+
+EXPOSE 8081
+
+HEALTHCHECK --interval=30s --timeout=5s --start-period=40s --retries=3 \
+  CMD curl --fail --silent http://127.0.0.1:8081/actuator/health || exit 1
+
+USER ${APP_USER}
+
+ENTRYPOINT ["java", "-jar", "app.jar"]

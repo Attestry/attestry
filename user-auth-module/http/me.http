@@ -1,0 +1,30 @@
+### User Auth - Me APIs
+
+@baseUrl = http://localhost:8080
+@accessToken =  945f1758-8b78-476c-8cca-e51179b21133
+@adminAccessToken = 51d955eb-0bf7-4f44-85ed-fe4a7983259e
+@membershipId = 905043f9-7f2a-4242-be41-8901260a926d
+
+### 1) My account
+GET {{baseUrl}}/me/account
+Authorization: Bearer {{accessToken}}
+
+### 2) Update my account
+PATCH {{baseUrl}}/me/account
+Authorization: Bearer {{accessToken}}
+Content-Type: application/json
+
+{
+  "phone": "",
+  "currentPassword": "",
+  "newPassword": ""
+}
+
+### 3) My memberships
+GET {{baseUrl}}/me/memberships
+Authorization: Bearer {{accessToken}}
+
+### 4) Membership detail via admin API (membership + userAccount)
+### Required scope: SCOPE_TENANT_MEMBERSHIP_VIEW or SCOPE_TENANT_READ_ONLY
+GET {{baseUrl}}/admin/memberships/{{membershipId}}
+Authorization: Bearer {{adminAccessToken}}

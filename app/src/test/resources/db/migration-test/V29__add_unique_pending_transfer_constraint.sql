@@ -1,0 +1,3 @@
+-- H2 does not support partial unique indexes (WHERE clause).
+-- The application layer enforces this constraint.
+-- Production uses: CREATE UNIQUE INDEX ... ON token_transfers (passport_id) WHERE status = 'PENDING';

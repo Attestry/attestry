@@ -1,0 +1,86 @@
+### User Auth - Tenant Template Admin APIs
+### Required scope: SCOPE_TENANT_ROLE_ASSIGN
+
+@baseUrl = http://localhost:8080
+@contentType = application/json
+@tenantAccessToken = b50afa61-7fa6-4264-a5fe-a3f0c0ce0cb4
+@tenantId = 4be926c6-39ce-4622-8ca4-86149abd2894
+@tenantTemplateCode = TEMPLATE_TENANT_OWNER_CORE
+@platformTemplateCode = TEMPLATE_BRAND_WORK
+@roleCode = TENANT_OPERATOR
+@permissionCode = BRAND_RELEASE
+
+### 1) Create tenant template
+POST {{baseUrl}}/admin/tenants/{{tenantId}}/permission-templates
+Authorization: Bearer {{tenantAccessToken}}
+Content-Type: {{contentType}}
+
+{
+  "code": "{{tenantTemplateCode}}",
+  "name": "Tenant Custom Work",
+  "description": "Tenant specific operator template"
+}
+
+### 2) List visible templates (global + tenant)
+GET {{baseUrl}}/admin/tenants/{{tenantId}}/permission-templates
+Authorization: Bearer {{tenantAccessToken}}
+
+### 3) List available permissions (for add/replace template permissions)
+GET {{baseUrl}}/admin/tenants/{{tenantId}}/permissions
+Authorization: Bearer {{tenantAccessToken}}
+
+### 4) Get tenant-visible template detail
+GET {{baseUrl}}/admin/tenants/{{tenantId}}/permission-templates/TEMPLATE_TENANT_OWNER_CORE
+Authorization: Bearer {{tenantAccessToken}}
+
+### 5) Update tenant template
+PATCH {{baseUrl}}/admin/tenants/{{tenantId}}/permission-templates/{{tenantTemplateCode}}
+Authorization: Bearer {{tenantAccessToken}}
+Content-Type: {{contentType}}
+
+{
+  "name": "Tenant Custom Work v2",
+  "description": "Updated by tenant admin",
+  "enabled": true
+}
+
+### 6) Replace tenant template permissions
+PUT {{baseUrl}}/admin/tenants/{{tenantId}}/permission-templates/{{tenantTemplateCode}}/permissions
+Authorization: Bearer {{tenantAccessToken}}
+Content-Type: {{contentType}}
+
+{
+  "permissionCodes": ["BRAND_RELEASE"]
+}
+
+### 7) Add tenant template permissions
+POST {{baseUrl}}/admin/tenants/{{tenantId}}/permission-templates/{{tenantTemplateCode}}/permissions
+Authorization: Bearer {{tenantAccessToken}}
+Content-Type: {{contentType}}
+
+{
+  "permissionCodes": ["BRAND_RELEASE"]
+}
+
+### 8) Remove tenant template permission
+DELETE {{baseUrl}}/admin/tenants/{{tenantId}}/permission-templates/{{tenantTemplateCode}}/permissions/{{permissionCode}}
+Authorization: Bearer {{tenantAccessToken}}
+
+### 9) Bind template to tenant role
+## role은 3개 OPERATOR,STAFF, ADMIN
+POST {{baseUrl}}/admin/tenants/{{tenantId}}/role-templates
+Authorization: Bearer {{tenantAccessToken}}
+Content-Type: {{contentType}}
+
+{
+  "roleCode": "TENANT_OPERATOR",
+  "templateCode": "TEMPLATE_BRAND_WORK"
+}
+
+### 10) List tenant role-template bindings
+GET {{baseUrl}}/admin/tenants/{{tenantId}}/role-templates
+Authorization: Bearer {{tenantAccessToken}}
+
+### 11) Unbind template from tenant role
+DELETE {{baseUrl}}/admin/tenants/{{tenantId}}/role-templates/{{roleCode}}/{{platformTemplateCode}}
+Authorization: Bearer {{tenantAccessToken}}

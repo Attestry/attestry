@@ -1,0 +1,78 @@
+### Workflow - Shipment APIs (v1)
+### Policy: BRAND_RELEASE only
+
+@baseUrl = http://localhost:8080
+@contentType = application/json
+@brandAccessToken = 79e7c37d-027b-4016-a9aa-872b1d3a50cb
+@passportId = 019cbcc2-623d-7add-89db-ebda257267c1
+@evidenceGroupId = 5e117e6f-e4f7-4e69-9cb9-089da6994573
+@evidenceId = 0eb26ce2-642e-4076-97ac-e11eae8a94fa
+@uploadUrl = REPLACE_UPLOAD_URL
+@shipmentId = 6215358b-d8da-4e50-bee3-52553e8b1311
+
+### 1) Presign shipment evidence upload
+# @name presignShipmentEvidence
+POST {{baseUrl}}/workflows/shipments/evidences/presign
+Authorization: Bearer {{brandAccessToken}}
+Content-Type: {{contentType}}
+
+{
+  "evidenceGroupId": {{evidenceGroupId}},
+  "fileName": "release-photo-1.jpg",
+  "contentType": "image/jpeg"
+}
+
+> {%
+  client.global.set("evidenceGroupId", response.body.evidenceGroupId);
+  client.global.set("evidenceId", response.body.evidenceId);
+  client.global.set("uploadUrl", response.body.uploadUrl);
+%}
+
+### 2) Upload file to presigned URL
+PUT {{uploadUrl}}
+Content-Type: image/jpeg
+
+< ./files/release-photo-1.jpg
+
+### 3) Complete shipment evidence upload
+POST {{baseUrl}}/workflows/shipments/evidences/complete
+Authorization: Bearer {{brandAccessToken}}
+Content-Type: {{contentType}}
+
+{
+  "evidenceGroupId": "{{evidenceGroupId}}",
+  "evidenceId": "{{evidenceId}}",
+  "sizeBytes": 102400,
+  "fileHash": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
+}
+
+### 4) Release shipment
+POST {{baseUrl}}/workflows/passports/{{passportId}}/shipments/release
+Authorization: Bearer {{brandAccessToken}}
+Content-Type: {{contentType}}
+
+{
+  "evidenceGroupId": "{{evidenceGroupId}}"
+}
+
+### 5) List shipments by passport
+GET {{baseUrl}}/workflows/passports/{{passportId}}/shipments
+Authorization: Bearer {{brandAccessToken}}
+
+### 6) List release candidates (ACTIVE, risk NONE, not currently RELEASED)
+GET {{baseUrl}}/workflows/shipments/release-candidates
+Authorization: Bearer {{brandAccessToken}}
+
+### 7) Return shipment (optional return evidence group)
+POST {{baseUrl}}/workflows/shipments/{{shipmentId}}/return
+Authorization: Bearer {{brandAccessToken}}
+Content-Type: {{contentType}}
+
+{
+  "returnEvidenceGroupId": null,
+  "reason": "returned to brand warehouse"
+}
+
+### 8) List shipment evidences (release + return)
+GET {{baseUrl}}/workflows/shipments/{{shipmentId}}/evidences
+Authorization: Bearer {{brandAccessToken}}

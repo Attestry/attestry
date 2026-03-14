@@ -1,0 +1,80 @@
+server:
+  port: ${SERVER_PORT:8081}
+
+spring:
+  application:
+    name: ledger-service
+  profiles:
+    default: local
+  datasource:
+    url: ${DB_URL:jdbc:postgresql://localhost:5432/mydatabase}
+    username: ${DB_USERNAME:myuser}
+    password: ${DB_PASSWORD:secret}
+    driver-class-name: org.postgresql.Driver
+  jpa:
+    hibernate:
+      ddl-auto: validate
+    properties:
+      hibernate:
+        format_sql: true
+        default_schema: ${LEDGER_DB_SCHEMA:ledger}
+    open-in-view: false
+  flyway:
+    enabled: true
+    locations: classpath:db/ledger/migration
+    schemas: ${LEDGER_DB_SCHEMA:ledger}
+    default-schema: ${LEDGER_DB_SCHEMA:ledger}
+    baseline-on-migrate: true
+  kafka:
+    bootstrap-servers: ${KAFKA_BOOTSTRAP_SERVERS:localhost:9092}
+    client-id: ${KAFKA_CLIENT_ID:ledger-service}
+    admin:
+      auto-create: true
+      fail-fast: false
+    producer:
+      key-serializer: org.apache.kafka.common.serialization.StringSerializer
+      value-serializer: org.apache.kafka.common.serialization.StringSerializer
+      retries: ${KAFKA_PRODUCER_RETRIES:3}
+      acks: ${KAFKA_PRODUCER_ACKS:all}
+    consumer:
+      group-id: ${LEDGER_KAFKA_CONSUMER_GROUP:attestry-ledger-consumer}
+      auto-offset-reset: ${KAFKA_CONSUMER_OFFSET_RESET:earliest}
+      key-deserializer: org.apache.kafka.common.serialization.StringDeserializer
+      value-deserializer: org.apache.kafka.common.serialization.StringDeserializer
+    listener:
+      missing-topics-fatal: false
+
+management:
+  endpoints:
+    web:
+      exposure:
+        include: health, info, metrics, prometheus
+  metrics:
+    tags:
+      application: ledger-service
+
+app:
+  ledger:
+    kafka:
+      enabled: ${LEDGER_KAFKA_ENABLED:true}
+      consumer-group-id: ${LEDGER_KAFKA_CONSUMER_GROUP:attestry-ledger-consumer}
+      listener-concurrency: ${LEDGER_KAFKA_LISTENER_CONCURRENCY:1}
+      topic-auto-create:
+        enabled: ${LEDGER_KAFKA_TOPIC_AUTO_CREATE_ENABLED:false}
+      topics:
+        ledger-outbox: ${KAFKA_TOPIC_LEDGER_OUTBOX:ledger.outbox.v1}
+        ledger-dlq: ${KAFKA_TOPIC_LEDGER_DLQ:ledger.outbox.v1.dlq}
+        product-projection: ${KAFKA_TOPIC_PRODUCT_PROJECTION:product.projection.v1}
+        product-projection-dlq: ${KAFKA_TOPIC_PRODUCT_PROJECTION_DLQ:product.projection.v1.dlq}
+        partitions: ${KAFKA_TOPIC_PARTITIONS:3}
+        replicas: ${KAFKA_TOPIC_REPLICAS:1}
+      outbox:
+        batch-size: ${KAFKA_OUTBOX_BATCH_SIZE:100}
+        max-retries: ${KAFKA_OUTBOX_MAX_RETRIES:5}
+        publish-interval-ms: ${KAFKA_OUTBOX_PUBLISH_INTERVAL_MS:2000}
+    integrity-check:
+      enabled: ${LEDGER_INTEGRITY_CHECK_ENABLED:false}
+      cron: ${LEDGER_INTEGRITY_CHECK_CRON:0 0 3 * * *}
+    outbox:
+      cleanup-retention-days: ${LEDGER_OUTBOX_CLEANUP_RETENTION_DAYS:7}
+      cleanup-cron: ${LEDGER_OUTBOX_CLEANUP_CRON:0 0 3 * * *}

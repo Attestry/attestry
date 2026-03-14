@@ -1,0 +1,94 @@
+spring:
+  application:
+    name: attestry
+  profiles:
+    default: local
+  datasource:
+    url: ${DB_URL:jdbc:postgresql://localhost:5432/mydatabase}
+    username: ${DB_USERNAME:myuser}
+    password: ${DB_PASSWORD:secret}
+    driver-class-name: org.postgresql.Driver
+  jpa:
+    hibernate:
+      ddl-auto: validate
+    properties:
+      hibernate:
+        format_sql: true
+    open-in-view: false
+  flyway:
+    enabled: true
+    locations: classpath:db/migration
+  kafka:
+    bootstrap-servers: ${KAFKA_BOOTSTRAP_SERVERS:localhost:9092}
+    client-id: ${KAFKA_CLIENT_ID:attestry}
+    admin:
+      auto-create: true
+      fail-fast: false
+    producer:
+      key-serializer: org.apache.kafka.common.serialization.StringSerializer
+      value-serializer: org.apache.kafka.common.serialization.StringSerializer
+      retries: ${KAFKA_PRODUCER_RETRIES:3}
+      acks: ${KAFKA_PRODUCER_ACKS:all}
+    consumer:
+      group-id: ${KAFKA_CONSUMER_GROUP:attestry-ledger-consumer}
+      auto-offset-reset: ${KAFKA_CONSUMER_OFFSET_RESET:earliest}
+      key-deserializer: org.apache.kafka.common.serialization.StringDeserializer
+      value-deserializer: org.apache.kafka.common.serialization.StringDeserializer
+    listener:
+      missing-topics-fatal: false
+
+management:
+  endpoints:
+    web:
+      exposure:
+        include: health, info, metrics, prometheus
+  metrics:
+    tags:
+      application: attestry
+
+app:
+  auth:
+    token:
+      provider: ${AUTH_TOKEN_PROVIDER:MEMORY}
+      redis-key-prefix: ${AUTH_TOKEN_REDIS_PREFIX:auth:access-token:}
+      access-ttl: ${AUTH_TOKEN_ACCESS_TTL:PT24H}
+  bootstrap:
+    platform-admin:
+      enabled: ${BOOTSTRAP_PLATFORM_ADMIN_ENABLED:false}
+      email: ${BOOTSTRAP_PLATFORM_ADMIN_EMAIL:platform.admin@attestry.local}
+      password: ${BOOTSTRAP_PLATFORM_ADMIN_PASSWORD:PlatformAdm1n!2026}
+      phone: ${BOOTSTRAP_PLATFORM_ADMIN_PHONE:010-0000-0000}
+  user-auth:
+    invitation:
+      mail:
+        provider: ${INVITATION_MAIL_PROVIDER:LOG}
+        enabled: ${INVITATION_MAIL_ENABLED:true}
+        from: ${INVITATION_MAIL_FROM:no-reply@attestry.local}
+      accept-url-template: ${INVITATION_ACCEPT_URL_TEMPLATE:http://localhost:8080/invitations/%s/accept}
+  storage:
+    provider: ${STORAGE_PROVIDER:MEMORY}
+    bucket: ${STORAGE_BUCKET:attestry-onboarding}
+  kafka:
+    enabled: ${APP_KAFKA_ENABLED:true}
+  product:
+    public-base-url: ${PRODUCT_PUBLIC_BASE_URL:http://localhost:5174}
+    passport-permission-projection:
+      enabled: ${PRODUCT_PERMISSION_PROJECTION_ENABLED:true}
+      initial-delay-ms: ${PRODUCT_PERMISSION_PROJECTION_INITIAL_DELAY_MS:3000}
+      sync-interval-ms: ${PRODUCT_PERMISSION_PROJECTION_SYNC_INTERVAL_MS:5000}
+    read-projection:
+      backfill:
+        enabled: ${PRODUCT_READ_PROJECTION_BACKFILL_ENABLED:false}
+      validation:
+        enabled: ${PRODUCT_READ_PROJECTION_VALIDATION_ENABLED:false}
+  workflow:
+    read-projection:
+      consumer-group-id: ${WORKFLOW_READ_PROJECTION_CONSUMER_GROUP_ID:workflow-product-read-projection-consumer}
+      listener-concurrency: ${WORKFLOW_READ_PROJECTION_LISTENER_CONCURRENCY:1}
+      kafka:
+        source-topic: ${WORKFLOW_READ_PROJECTION_SOURCE_TOPIC:product.projection.v1}
+        dlq-topic: ${WORKFLOW_READ_PROJECTION_DLQ_TOPIC:product.projection.v1.dlq}
+      backfill:
+        enabled: ${WORKFLOW_READ_PROJECTION_BACKFILL_ENABLED:false}
+      validation:
+        enabled: ${WORKFLOW_READ_PROJECTION_VALIDATION_ENABLED:false}

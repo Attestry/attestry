@@ -1,0 +1,31 @@
+### User Auth - Authorization Evaluate API
+
+@baseUrl = http://localhost:8080
+@contentType = application/json
+@accessToken = 51d955eb-0bf7-4f44-85ed-fe4a7983259e
+@tenantId = REPLACE_TENANT_ID
+@resourceRef = membership:REPLACE_MEMBERSHIP_ID
+
+### 1) Evaluate (TOKEN_SNAPSHOT)
+POST {{baseUrl}}/authz/evaluate
+Authorization: Bearer {{accessToken}}
+Content-Type: {{contentType}}
+
+{
+  "tenantId": "{{tenantId}}",
+  "action": "TENANT_ROLE_ASSIGN",
+  "resourceRef": "{{resourceRef}}",
+  "decisionMode": "TOKEN_SNAPSHOT"
+}
+
+### 2) Evaluate (LIVE_RECHECK)
+POST {{baseUrl}}/authz/evaluate
+Authorization: Bearer {{accessToken}}
+Content-Type: {{contentType}}
+
+{
+  "tenantId": "{{tenantId}}",
+  "action": "TENANT_ROLE_ASSIGN",
+  "resourceRef": "{{resourceRef}}",
+  "decisionMode": "LIVE_RECHECK"
+}

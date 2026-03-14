@@ -1,0 +1,52 @@
+### User Auth - Auth APIs
+
+@baseUrl = http://localhost:8080
+@contentType = application/json
+@accessToken = REPLACE_ACCESS_TOKEN
+
+@admin-email = platform.admin@attestry.local
+@admin-password = PlatformAdm1n!2026
+
+### 1) Sign up
+POST {{baseUrl}}/auth/signup
+Content-Type: {{contentType}}
+
+{
+  "email": "user9@attestry.io",
+  "password": "Password123!",
+  "phone": "010-1234-5678"
+}
+
+
+### 2) Login
+# @name login
+POST {{baseUrl}}/auth/login
+Content-Type: {{contentType}}
+
+{
+  "email": "user9@attestry.io",
+  "password": "Password123!"
+}
+
+> {%
+  client.global.set("accessToken", response.body.accessToken);
+%}
+
+### 3) Logout
+POST {{baseUrl}}/auth/logout
+Authorization: Bearer {{accessToken}}
+
+### 4) Verify phone
+POST {{baseUrl}}/auth/verify-phone
+Authorization: Bearer {{accessToken}}
+
+### 5) Login (legacy path)
+POST {{baseUrl}}/auth/login
+Content-Type: {{contentType}}
+
+{
+  "email": "platform.admin@attestry.local",
+  "password": "PlatformAdm1n!2026",
+  "tenantId": null
+}
+

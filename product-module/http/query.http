@@ -1,0 +1,31 @@
+### =========================================================
+### Product Query APIs
+### =========================================================
+
+@baseUrl = http://localhost:8080
+@accessToken = REPLACE_ACCESS_TOKEN
+@passportId = 019cbc97-fa07-7072-b36b-efee059e1af5
+
+### 1) Get Passport Detail (public endpoint)
+GET {{baseUrl}}/products/passports/{{passportId}}
+
+### 2) Get Asset State (public endpoint)
+GET {{baseUrl}}/products/passports/{{passportId}}/state
+
+### 3) Get Current Owner (public endpoint)
+GET {{baseUrl}}/products/passports/{{passportId}}/owner
+
+### 4) List My Passports
+### Scope: isAuthenticated()
+GET {{baseUrl}}/products/me/passports
+Authorization: Bearer {{accessToken}}
+
+### 5) List Tenant Passports (paged + filters)
+### Scope: SCOPE_TENANT_READ_ONLY
+GET {{baseUrl}}/products/tenant/passports?page=0&size=20&assetState=ACTIVE&createdFrom=2026-01-01T00:00:00Z&createdTo=2026-12-31T23:59:59Z&keyword=SN-2026
+Authorization: Bearer {{accessToken}}
+
+### 6) List Distributed Passports For Retail Tenant
+### Scope: SCOPE_TENANT_READ_ONLY
+GET {{baseUrl}}/products/tenant/distributed-passports?page=0&size=20&keyword=SN-2026
+Authorization: Bearer {{accessToken}}

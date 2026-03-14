@@ -1,0 +1,109 @@
+### Workflow - Purchase Claim APIs (소유권 등록)
+### Consumer: isAuthenticated() only
+### Admin: PURCHASE_CLAIM_APPROVE
+
+@baseUrl = http://localhost:8080
+@contentType = application/json
+@consumerAccessToken = REPLACE_CONSUMER_ACCESS_TOKEN
+@adminAccessToken = REPLACE_ADMIN_ACCESS_TOKEN
+@tenantId = REPLACE_TENANT_ID
+@evidenceGroupId = null
+@evidenceId = REPLACE_EVIDENCE_ID
+@uploadUrl = REPLACE_UPLOAD_URL
+@claimId = REPLACE_CLAIM_ID
+
+## ──────────────────────────────────────
+## Consumer APIs
+## ──────────────────────────────────────
+
+### 1) Presign evidence upload (소비자)
+# @name presignClaimEvidence
+POST {{baseUrl}}/workflows/purchase-claims/evidence/presign
+Authorization: Bearer {{consumerAccessToken}}
+Content-Type: {{contentType}}
+
+{
+  "tenantId": "{{tenantId}}",
+  "evidenceGroupId": {{evidenceGroupId}},
+  "fileName": "receipt-photo.jpg",
+  "contentType": "image/jpeg"
+}
+
+> {%
+  client.global.set("evidenceGroupId", response.body.evidenceGroupId);
+  client.global.set("evidenceId", response.body.evidenceId);
+  client.global.set("uploadUrl", response.body.uploadUrl);
+%}
+
+### 2) Upload file to presigned URL
+PUT {{uploadUrl}}
+Content-Type: image/jpeg
+
+< ./files/receipt-photo.jpg
+
+### 3) Complete evidence upload (소비자)
+POST {{baseUrl}}/workflows/purchase-claims/evidence/complete
+Authorization: Bearer {{consumerAccessToken}}
+Content-Type: {{contentType}}
+
+{
+  "tenantId": "{{tenantId}}",
+  "evidenceGroupId": "{{evidenceGroupId}}",
+  "evidenceId": "{{evidenceId}}",
+  "sizeBytes": 102400,
+  "fileHash": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
+}
+
+### 4) Submit purchase claim (소비자)
+# @name submitPurchaseClaim
+POST {{baseUrl}}/workflows/purchase-claims
+Authorization: Bearer {{consumerAccessToken}}
+Content-Type: {{contentType}}
+
+{
+  "tenantId": "{{tenantId}}",
+  "serialNumber": "SN-001",
+  "modelName": "Model X",
+  "evidenceGroupId": "{{evidenceGroupId}}",
+  "note": "구매 영수증 첨부"
+}
+
+> {%
+  client.global.set("claimId", response.body.claimId);
+%}
+
+### 5) List my claims (소비자)
+GET {{baseUrl}}/workflows/purchase-claims/me
+Authorization: Bearer {{consumerAccessToken}}
+
+## ──────────────────────────────────────
+## Admin APIs
+## ──────────────────────────────────────
+
+### 6) List pending claims (관리자)
+GET {{baseUrl}}/workflows/purchase-claims/pending
+Authorization: Bearer {{adminAccessToken}}
+
+### 7) List claim evidences (관리자)
+GET {{baseUrl}}/workflows/purchase-claims/{{claimId}}/admin-evidences
+Authorization: Bearer {{adminAccessToken}}
+
+### 8) Approve claim (관리자 → 자동 MINT + 소유권 할당)
+POST {{baseUrl}}/workflows/purchase-claims/{{claimId}}/approve
+Authorization: Bearer {{adminAccessToken}}
+Content-Type: {{contentType}}
+
+{
+  "manufacturedAt": "2025-01-01T00:00:00Z",
+  "productionBatch": "B1",
+  "factoryCode": "F1"
+}
+
+### 9) Reject claim (관리자)
+POST {{baseUrl}}/workflows/purchase-claims/{{claimId}}/reject
+Authorization: Bearer {{adminAccessToken}}
+Content-Type: {{contentType}}
+
+{
+  "reason": "시리얼 번호 불일치"
+}

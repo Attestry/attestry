@@ -1,0 +1,217 @@
+### =========================================================
+### Brand Onboarding -> Self Operator -> Product Mint
+### 실행 대상: IntelliJ HTTP Client / VS Code REST Client
+### 전제:
+### - app가 localhost:8080 에 떠 있어야 함
+### - local profile이면 platform admin bootstrap 이 켜져 있어야 함
+### - MinIO/S3 presigned upload 가 동작해야 함
+### =========================================================
+
+@baseUrl = http://localhost:8080
+@contentType = application/json
+
+### 플랫폼 관리자 기본값 (application-local.yaml / bootstrap 기본값 기준)
+@platformEmail = platform.admin@attestry.local
+@platformPassword = PlatformAdm1n!2026
+
+### 시나리오 사용자
+@brandEmail = scenario.brand.self-operator@attestry.io
+@brandPassword = Password123!
+@brandPhone = 010-1111-2222
+
+### 수동 fallback 값
+@tenantId = REPLACE_TENANT_ID
+@ownerMembershipId = REPLACE_MEMBERSHIP_ID
+@applicationId = REPLACE_APPLICATION_ID
+@passportId = REPLACE_PASSPORT_ID
+
+
+### 1) 브랜드 사용자 회원가입
+# @name signupBrandUser
+POST {{baseUrl}}/auth/signup
+Content-Type: {{contentType}}
+
+{
+  "email": "{{brandEmail}}",
+  "password": "{{brandPassword}}",
+  "phone": "{{brandPhone}}"
+}
+
+
+### 2) 브랜드 사용자 로그인 (tenant 미지정)
+# @name loginBrandUser
+POST {{baseUrl}}/auth/login
+Content-Type: {{contentType}}
+
+{
+  "email": "{{brandEmail}}",
+  "password": "{{brandPassword}}",
+  "tenantId": null
+}
+
+> {%
+  client.global.set("brandAccessToken", response.body.data.accessToken);
+%}
+
+
+### 3) 증빙 업로드 presign
+# @name presignEvidence
+POST {{baseUrl}}/onboarding/evidences/presign
+Authorization: Bearer {{brandAccessToken}}
+Content-Type: {{contentType}}
+
+{
+  "evidenceBundleId": null,
+  "fileName": "biz-proof-1.pdf",
+  "contentType": "application/pdf"
+}
+
+> {%
+  client.global.set("evidenceBundleId", response.body.data.evidenceBundleId);
+  client.global.set("evidenceFileId", response.body.data.evidenceFileId);
+  client.global.set("uploadUrl", response.body.data.uploadUrl);
+%}
+
+
+### 4) presigned URL로 파일 업로드
+PUT {{uploadUrl}}
+Content-Type: application/pdf
+
+< ../user-auth-module/http/files/biz-proof-1.pdf
+
+
+### 5) 증빙 업로드 완료 처리
+# @name completeEvidence
+POST {{baseUrl}}/onboarding/evidences/complete
+Authorization: Bearer {{brandAccessToken}}
+Content-Type: {{contentType}}
+
+{
+  "evidenceBundleId": "{{evidenceBundleId}}",
+  "evidenceFileId": "{{evidenceFileId}}",
+  "sizeBytes": 102400
+}
+
+
+### 6) 브랜드 온보딩 신청
+# @name createBrandApplication
+POST {{baseUrl}}/onboarding/applications
+Authorization: Bearer {{brandAccessToken}}
+Content-Type: {{contentType}}
+
+{
+  "type": "BRAND",
+  "orgName": "SELF_OPERATOR_BRAND",
+  "country": "KR",
+  "address": "Seoul",
+  "bizRegNo": "110-11-56382",
+  "evidenceBundleId": "{{evidenceBundleId}}"
+}
+
+> {%
+  client.global.set("applicationId", response.body.data.applicationId);
+%}
+
+
+### 7) 플랫폼 관리자 로그인
+# @name loginPlatformAdmin
+POST {{baseUrl}}/auth/login
+Content-Type: {{contentType}}
+
+{
+  "email": "{{platformEmail}}",
+  "password": "{{platformPassword}}",
+  "tenantId": null
+}
+
+> {%
+  client.global.set("platformAccessToken", response.body.data.accessToken);
+%}
+
+
+### 8) 플랫폼 관리자 온보딩 승인
+# @name approveBrandApplication
+POST {{baseUrl}}/onboarding/applications/{{applicationId}}/approve
+Authorization: Bearer {{platformAccessToken}}
+
+> {%
+  client.global.set("tenantId", response.body.data.tenantId);
+  client.global.set("ownerMembershipId", response.body.data.membershipId);
+%}
+
+
+### 9) 브랜드 사용자 tenant 컨텍스트로 재로그인
+# @name loginBrandWithTenant
+POST {{baseUrl}}/auth/login
+Content-Type: {{contentType}}
+
+{
+  "email": "{{brandEmail}}",
+  "password": "{{brandPassword}}",
+  "tenantId": "{{tenantId}}"
+}
+
+> {%
+  client.global.set("brandTenantAccessToken", response.body.data.accessToken);
+%}
+
+
+### 10) 내 membership 역할 확인
+GET {{baseUrl}}/memberships/{{ownerMembershipId}}/roles
+Authorization: Bearer {{brandTenantAccessToken}}
+
+
+### 11) 자기 자신에게 TENANT_OPERATOR 역할 부여
+### 참고:
+### - BRAND 온보딩 승인 시 TENANT_OPERATOR -> TEMPLATE_BRAND_WORK 바인딩은 기본 생성됨
+### - 따라서 역할만 추가되면 mint scope(BRAND_MINT)를 받을 수 있어야 함
+POST {{baseUrl}}/memberships/{{ownerMembershipId}}/roles/TENANT_OPERATOR
+Authorization: Bearer {{brandTenantAccessToken}}
+
+
+### 12) 권한 반영을 위해 다시 로그인
+# @name reloginBrandAfterOperatorGrant
+POST {{baseUrl}}/auth/login
+Content-Type: {{contentType}}
+
+{
+  "email": "{{brandEmail}}",
+  "password": "{{brandPassword}}",
+  "tenantId": "{{tenantId}}"
+}
+
+> {%
+  client.global.set("brandOperatorAccessToken", response.body.data.accessToken);
+%}
+
+
+### 13) 내 membership 역할 재확인
+GET {{baseUrl}}/memberships/{{ownerMembershipId}}/roles
+Authorization: Bearer {{brandOperatorAccessToken}}
+
+
+### 14) 제품 발행
+# @name mintProduct
+POST {{baseUrl}}/products/minted
+Authorization: Bearer {{brandOperatorAccessToken}}
+Content-Type: {{contentType}}
+
+{
+  "serialNumber": "SN-20260313-0001",
+  "modelId": "MODEL-001",
+  "modelName": "Cyber Sneaker V1",
+  "manufacturedAt": "2026-03-13T00:00:00Z",
+  "productionBatch": "BATCH-20260313",
+  "factoryCode": "F-KR-01",
+  "componentRootHash": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
+}
+
+> {%
+  client.global.set("passportId", response.body.data.passportId);
+%}
+
+
+### 15) 발행된 제품 상세 조회
+GET {{baseUrl}}/products/passports/{{passportId}}
+Authorization: Bearer {{brandOperatorAccessToken}}
+

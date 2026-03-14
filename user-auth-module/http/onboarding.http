@@ -1,0 +1,65 @@
+### User Auth - Onboarding User APIs
+
+@baseUrl = http://localhost:8080
+@contentType = application/json
+@accessToken = 89dac529-8f6b-464a-acd8-f1acc16d1053
+@applicationId = 7958e5c5-66c5-4b81-997a-05ecbb12b159
+@evidenceBundleId = bedd3bd4-312e-4e53-a39d-8de25c5f1265
+@evidenceFileId = d05dbf8c-85c0-4d2c-8ced-fc09548b3c5a
+@uploadUrl = http://localhost:9000/attestry-onboarding/onboarding/ccc025c8-04ae-4b51-912e-e20f00783179/bedd3bd4-312e-4e53-a39d-8de25c5f1265/9812c886-5513-4035-a66f-2ba1559727e9/biz-proof-1.pdf?X-Amz-Algorithm=AWS4-HMAC-SHA256&X-Amz-Credential=minioadmin%2F20260310%2Fus-east-1%2Fs3%2Faws4_request&X-Amz-Date=20260310T133022Z&X-Amz-Expires=900&X-Amz-SignedHeaders=host&X-Amz-Signature=b9bb2a253d01d15d59a22b2413a0c23d85d986a60e49de263f10265c3de86d5c
+
+### 1) Presign evidence upload
+# @name presignEvidence
+POST {{baseUrl}}/onboarding/evidences/presign
+Authorization: Bearer {{accessToken}}
+Content-Type: {{contentType}}
+
+{
+  "evidenceBundleId": null,
+  "fileName": "biz-proof-1.pdf",
+  "contentType": "application/pdf"
+}
+
+> {%
+  client.global.set("evidenceBundleId", response.body.evidenceBundleId);
+  client.global.set("evidenceFileId", response.body.evidenceFileId);
+  client.global.set("uploadUrl", response.body.uploadUrl);
+%}
+
+### 2) Upload file to presigned URL
+PUT {{uploadUrl}}
+Content-Type: application/pdf
+
+< ./files/biz-proof-1.pdf
+
+### 3) Complete evidence upload
+POST {{baseUrl}}/onboarding/evidences/complete
+Authorization: Bearer {{accessToken}}
+Content-Type: {{contentType}}
+
+{
+  "evidenceBundleId": "{{evidenceBundleId}}",
+  "evidenceFileId": "{{evidenceFileId}}",
+  "sizeBytes": 102400
+}
+
+### 4) Create onboarding application
+POST {{baseUrl}}/onboarding/applications
+Authorization: Bearer {{accessToken}}
+Content-Type: {{contentType}}
+
+{
+  "type": "BRAND",
+  "orgName": "My Brand Inc.",
+  "country": "KR",
+  "bizRegNo": "123-45-67890",
+  "evidenceBundleId": "{{evidenceBundleId}}"
+}
+
+### 5) List my onboarding applications
+GET {{baseUrl}}/onboarding/applications
+Authorization: Bearer {{accessToken}}
+
+### 6) Get my onboarding application detail
+GET {{baseUrl}}/onboarding/applications/{{applicationId}}
+Authorization: Bearer {{accessToken}}

@@ -1,0 +1,82 @@
+name: Update Infra Manifest
+
+on:
+  workflow_run:
+    workflows:
+      - Build And Push
+    types:
+      - completed
+  workflow_dispatch:
+    inputs:
+      image_tag:
+        description: Image tag to apply to the infra repo
+        required: true
+      source_sha:
+        description: Source commit SHA for the image
+        required: false
+
+permissions:
+  contents: read
+
+env:
+  INFRA_REPO: ${{ vars.INFRA_REPO }}
+  INFRA_REPO_REF: ${{ vars.INFRA_REPO_REF || 'main' }}
+  CORE_MANIFEST_PATH: ${{ vars.CORE_MANIFEST_PATH }}
+  LEDGER_MANIFEST_PATH: ${{ vars.LEDGER_MANIFEST_PATH }}
+  CORE_CONTAINER_NAME: ${{ vars.CORE_CONTAINER_NAME || 'core' }}
+  LEDGER_CONTAINER_NAME: ${{ vars.LEDGER_CONTAINER_NAME || 'ledger' }}
+  CORE_IMAGE: ghcr.io/attestry/app
+  LEDGER_IMAGE: ghcr.io/attestry/ledger-service
+
+jobs:
+  update:
+    if: >
+      github.event_name == 'workflow_dispatch' ||
+      (github.event.workflow_run.conclusion == 'success' &&
+       github.event.workflow_run.head_branch == 'main')
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Resolve image tag
+        id: vars
+        run: |
+          if [ "${{ github.event_name }}" = "workflow_dispatch" ]; then
+            echo "image_tag=${{ inputs.image_tag }}" >> "$GITHUB_OUTPUT"
+            echo "source_sha=${{ inputs.source_sha }}" >> "$GITHUB_OUTPUT"
+          else
+            IMAGE_TAG=$(printf '%s' "${{ github.event.workflow_run.head_sha }}" | cut -c1-12)
+            echo "image_tag=$IMAGE_TAG" >> "$GITHUB_OUTPUT"
+            echo "source_sha=${{ github.event.workflow_run.head_sha }}" >> "$GITHUB_OUTPUT"
+          fi
+
+      - name: Checkout infra repo
+        uses: actions/checkout@v5
+        with:
+          repository: ${{ env.INFRA_REPO }}
+          ref: ${{ env.INFRA_REPO_REF }}
+          token: ${{ secrets.INFRA_REPO_TOKEN }}
+          path: infra
+
+      - name: Update image tags
+        uses: mikefarah/yq@v4.45.1
+        with:
+          cmd: |
+            yq -i '.spec.template.spec.containers[] |= (select(.name == strenv(CORE_CONTAINER_NAME)).image = strenv(CORE_IMAGE) + ":" + strenv(IMAGE_TAG))' "infra/${CORE_MANIFEST_PATH}"
+            yq -i '.spec.template.spec.containers[] |= (select(.name == strenv(LEDGER_CONTAINER_NAME)).image = strenv(LEDGER_IMAGE) + ":" + strenv(IMAGE_TAG))' "infra/${LEDGER_MANIFEST_PATH}"
+        env:
+          IMAGE_TAG: ${{ steps.vars.outputs.image_tag }}
+
+      - name: Commit and push
+        working-directory: infra
+        run: |
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add "${CORE_MANIFEST_PATH}" "${LEDGER_MANIFEST_PATH}"
+          if git diff --cached --quiet; then
+            echo "No manifest changes to commit"
+            exit 0
+          fi
+          git commit -m "chore: update core/ledger images to ${IMAGE_TAG}"
+          git push origin "${INFRA_REPO_REF}"
+        env:
+          IMAGE_TAG: ${{ steps.vars.outputs.image_tag }}

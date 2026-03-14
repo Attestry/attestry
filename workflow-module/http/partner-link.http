@@ -1,0 +1,64 @@
+### =========================================================
+### Workflow API - PartnerLink (Phase 2)
+### =========================================================
+
+@baseUrl = http://localhost:8080
+@contentType = application/json
+@accessToken = a01cb0eb-3b74-46d3-b9ee-5ccf1b973f0b
+@targetAccessToken = eb4ad12f-ecc1-4090-bc31-45bf1b75e334
+@targetTenantId = 4be926c6-39ce-4622-8ca4-86149abd2894
+@partnerLinkId = 5bbdd004-23df-4609-8928-87a8ad0d50af
+
+### 1) Create PartnerLink (tenant context from token + SCOPE_PARTNER_LINK_CREATE)
+POST {{baseUrl}}/workflows/partner-links
+Authorization: Bearer {{accessToken}}
+Content-Type: {{contentType}}
+
+{
+  "targetTenantId": "{{targetTenantId}}",
+  "partnerType": "RETAIL",
+  "message": "brand to retail partnership",
+  "proposedExpiresAt": null
+}
+
+### 2) List PartnerLinks for my tenant (tenant context from token + SCOPE_PARTNER_LINK_READ)
+GET {{baseUrl}}/workflows/partner-links
+Authorization: Bearer {{accessToken}}
+
+### 2-1) Search ACTIVE tenants by name keyword (returns name/region/type)
+GET {{baseUrl}}/workflows/tenants/search?name=무신
+Authorization: Bearer {{accessToken}}
+
+### 3) List ACTIVE PartnerLinks for my tenant
+GET {{baseUrl}}/workflows/partner-links?status=ACTIVE
+Authorization: Bearer {{accessToken}}
+
+### 4) Approve PartnerLink (platform admin scope)
+POST {{baseUrl}}/workflows/admin/partner-links/{{partnerLinkId}}/approve
+Authorization: Bearer {{targetAccessToken}}
+
+### 5) Reject PartnerLink (platform admin scope)
+POST {{baseUrl}}/workflows/admin/partner-links/{{partnerLinkId}}/reject
+Authorization: Bearer {{accessToken}}
+Content-Type: {{contentType}}
+
+{
+  "reason": "policy violation"
+}
+
+### 6) Suspend PartnerLink (source tenant scope)
+POST {{baseUrl}}/workflows/partner-links/{{partnerLinkId}}/suspend
+Authorization: Bearer {{accessToken}}
+
+### 7) Resume PartnerLink (source tenant scope)
+POST {{baseUrl}}/workflows/partner-links/{{partnerLinkId}}/resume
+Authorization: Bearer {{accessToken}}
+
+### 8) Terminate PartnerLink (source tenant scope)
+POST {{baseUrl}}/workflows/partner-links/{{partnerLinkId}}/terminate
+Authorization: Bearer {{accessToken}}
+Content-Type: {{contentType}}
+
+{
+  "reason": "contract ended"
+}

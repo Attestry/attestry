@@ -1,0 +1,59 @@
+spring:
+  config:
+    activate:
+      on-profile: dev
+  mail:
+    host: ${MAIL_HOST:smtp.example.com}
+    port: ${MAIL_PORT:587}
+    username: ${MAIL_USERNAME:}
+    password: ${MAIL_PASSWORD:}
+    properties:
+      mail:
+        smtp:
+          auth: ${MAIL_SMTP_AUTH:true}
+          starttls:
+            enable: ${MAIL_SMTP_STARTTLS_ENABLE:true}
+  data:
+    redis:
+      host: ${REDIS_HOST:localhost}
+      port: ${REDIS_PORT:6379}
+  kafka:
+    bootstrap-servers: ${KAFKA_BOOTSTRAP_SERVERS:localhost:9092}
+    client-id: ${KAFKA_CLIENT_ID:attestry-dev}
+    consumer:
+      group-id: ${KAFKA_CONSUMER_GROUP:attestry-ledger-dev}
+
+app:
+  auth:
+    token:
+      provider: REDIS
+  user-auth:
+    invitation:
+      mail:
+        provider: SQS
+        enabled: ${INVITATION_MAIL_ENABLED:true}
+        from: ${INVITATION_MAIL_FROM:no-reply@dev.attestry.local}
+      accept-url-template: ${INVITATION_ACCEPT_URL_TEMPLATE:https://dev.attestry.local/invitations/%s/accept}
+      sqs:
+        queue-url: ${INVITATION_SQS_QUEUE_URL:}
+        region: ${INVITATION_SQS_REGION:${AWS_REGION:ap-northeast-2}}
+        endpoint: ${INVITATION_SQS_ENDPOINT:}
+        access-key: ${INVITATION_SQS_ACCESS_KEY:${AWS_ACCESS_KEY_ID:}}
+        secret-key: ${INVITATION_SQS_SECRET_KEY:${AWS_SECRET_ACCESS_KEY:}}
+        fifo-message-group-id: ${INVITATION_SQS_FIFO_MESSAGE_GROUP_ID:invitation-notification}
+  storage:
+    provider: S3
+    bucket: ${S3_BUCKET:attestry-onboarding}
+    s3:
+      region: ${AWS_REGION:ap-northeast-2}
+      endpoint: ${S3_ENDPOINT:}
+      access-key: ${AWS_ACCESS_KEY_ID:}
+      secret-key: ${AWS_SECRET_ACCESS_KEY:}
+  product:
+    public-base-url: ${PRODUCT_PUBLIC_BASE_URL:https://dev.attestry.local}
+  kafka:
+    enabled: ${APP_KAFKA_ENABLED:true}
+    outbox:
+      batch-size: ${KAFKA_OUTBOX_BATCH_SIZE:100}
+      max-retries: ${KAFKA_OUTBOX_MAX_RETRIES:10}
+      publish-interval-ms: ${KAFKA_OUTBOX_PUBLISH_INTERVAL_MS:1000}

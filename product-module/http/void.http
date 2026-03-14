@@ -1,0 +1,19 @@
+### =========================================================
+### Product Void API
+### Scope: SCOPE_BRAND_VOID
+### =========================================================
+
+@baseUrl = http://localhost:8080
+@contentType = application/json
+@brandAccessToken = REPLACE_BRAND_TOKEN
+@passportId = REPLACE_PASSPORT_ID
+
+### 1) Void Asset
+POST {{baseUrl}}/products/passports/{{passportId}}/void
+Authorization: Bearer {{brandAccessToken}}
+Content-Type: {{contentType}}
+
+{
+  "reason": "COUNTERFEIT_DETECTED",
+  "note": "Counterfeit confirmed by inspection team"
+}

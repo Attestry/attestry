@@ -1,0 +1,13 @@
+.gradle
+**/build
+!app/build/
+!app/build/libs/
+!app/build/libs/*.jar
+!ledger-service/build/
+!ledger-service/build/libs/
+!ledger-service/build/libs/*.jar
+!gradle/wrapper/gradle-wrapper.jar
+.idea
+*.iml
+.DS_Store
+docs
