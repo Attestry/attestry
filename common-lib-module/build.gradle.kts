@@ -38,7 +38,7 @@ publishing {
         if (githubActor.isPresent && githubToken.isPresent) {
             maven {
                 name = "GitHubPackages"
-                url = uri("https://maven.pkg.github.com/Attestry/attestry")
+                url = uri("https://maven.pkg.github.com/attestry/attestry")
                 credentials {
                     username = githubActor.get()
                     password = githubToken.get()

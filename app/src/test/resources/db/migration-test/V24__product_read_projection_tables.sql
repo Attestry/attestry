@@ -30,7 +30,7 @@ CREATE TABLE IF NOT EXISTS product_passport_shipment_projection (
     CONSTRAINT uq_ppsp_source_event_id UNIQUE (source_event_id)
 );
 
-CREATE TABLE IF NOT EXISTS product_passport_shipment_evidence_projection (
+CREATE TABLE IF NOT EXISTS product_passport_evidence_projection (
     shipment_id VARCHAR(36) NOT NULL,
     evidence_id VARCHAR(48) NOT NULL,
     original_file_name VARCHAR(255) NOT NULL,

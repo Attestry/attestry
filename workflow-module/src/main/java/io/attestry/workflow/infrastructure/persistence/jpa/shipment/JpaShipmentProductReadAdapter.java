@@ -82,7 +82,7 @@ public class JpaShipmentProductReadAdapter implements ShipmentProductReadPort {
               AND wpsp.asset_state = 'ACTIVE'
               AND wpsp.risk_flag = 'NONE'
               AND NOT EXISTS (
-                   SELECT 1 FROM workflow_shipments ws
+                   SELECT 1 FROM shipments ws
                    WHERE ws.passport_id = wpsp.passport_id AND ws.status = 'RELEASED'
               )
         """);
@@ -144,7 +144,7 @@ public class JpaShipmentProductReadAdapter implements ShipmentProductReadPort {
         }
 
         String fromClause = """
-            FROM workflow_shipments ws
+            FROM shipments ws
             JOIN workflow_passport_catalog_projection wpcp ON wpcp.passport_id = ws.passport_id
         """;
 

@@ -10,7 +10,7 @@ import jakarta.persistence.Table;
 import java.time.Instant;
 
 @Entity
-@Table(name = "workflow_service_requests")
+@Table(name = "service_requests")
 public class WorkflowServiceRequestJpaEntity {
 
     @Id

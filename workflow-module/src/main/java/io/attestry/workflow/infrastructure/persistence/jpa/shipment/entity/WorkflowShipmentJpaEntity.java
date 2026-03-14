@@ -10,7 +10,7 @@ import jakarta.persistence.Table;
 import java.time.Instant;
 
 @Entity
-@Table(name = "workflow_shipments")
+@Table(name = "shipments")
 public class WorkflowShipmentJpaEntity {
 
     @Id

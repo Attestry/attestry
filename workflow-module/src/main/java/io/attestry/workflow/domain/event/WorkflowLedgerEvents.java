@@ -1,6 +1,7 @@
 package io.attestry.workflow.domain.event;
 
 import io.attestry.commonlib.outbox.OutboxEventEnvelope;
+import io.attestry.workflow.domain.distribution.model.Distribution;
 import io.attestry.workflow.domain.claim.model.PurchaseClaim;
 import io.attestry.workflow.domain.servicerequest.model.ServiceRequest;
 import io.attestry.workflow.domain.shipment.model.Shipment;
@@ -13,6 +14,44 @@ import java.util.Map;
 public final class WorkflowLedgerEvents {
 
     private WorkflowLedgerEvents() {
+    }
+
+    public static OutboxEventEnvelope distributionCreated(Distribution distribution) {
+        return new OutboxEventEnvelope(
+            "DISTRIBUTION",
+            distribution.passportId(),
+            "DISTRIBUTION",
+            "CREATED",
+            "BRAND",
+            distribution.distributedByUserId(),
+            distribution.distributedAt(),
+            Map.of(
+                "distributionId", distribution.distributionId(),
+                "sourceTenantId", distribution.sourceTenantId(),
+                "targetTenantId", distribution.targetTenantId(),
+                "partnerLinkId", distribution.partnerLinkId()
+            ),
+            "distribution-created-" + distribution.distributionId()
+        );
+    }
+
+    public static OutboxEventEnvelope distributionRecalled(Distribution distribution) {
+        return new OutboxEventEnvelope(
+            "DISTRIBUTION",
+            distribution.passportId(),
+            "DISTRIBUTION",
+            "RECALLED",
+            "BRAND",
+            distribution.recalledByUserId(),
+            distribution.recalledAt(),
+            Map.of(
+                "distributionId", distribution.distributionId(),
+                "sourceTenantId", distribution.sourceTenantId(),
+                "targetTenantId", distribution.targetTenantId(),
+                "reason", distribution.recallReason() == null ? "" : distribution.recallReason()
+            ),
+            "distribution-recalled-" + distribution.distributionId()
+        );
     }
 
     public static OutboxEventEnvelope shipmentReleased(Shipment shipment, List<String> evidenceHashes) {

@@ -12,7 +12,7 @@ import org.springframework.data.repository.query.Param;
 public interface LedgerOutboxEventJpaRepository extends JpaRepository<LedgerOutboxEventJpaEntity, String> {
 
     @Query("SELECT e FROM LedgerOutboxEventJpaEntity e " +
-        "WHERE e.eventType = 'LEDGER_APPEND' " +
+        "WHERE e.eventType IN ('LEDGER_APPEND', 'PROJECTION_UPDATE') " +
         "AND e.status = :status " +
         "AND (e.nextRetryAt IS NULL OR e.nextRetryAt <= :now) " +
         "ORDER BY e.createdAt ASC")

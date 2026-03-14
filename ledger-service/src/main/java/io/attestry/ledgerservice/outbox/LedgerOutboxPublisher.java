@@ -132,13 +132,26 @@ public class LedgerOutboxPublisher {
     }
 
     private void publishToTopics(LedgerOutboxEventJpaEntity event) throws Exception {
-        kafkaTemplate.send(
-            kafkaProperties.getTopics().getLedgerOutbox(),
-            event.getAggregateId(),
-            event.getPayload()
-        ).get();
+        if ("LEDGER_APPEND".equals(event.getEventType())) {
+            kafkaTemplate.send(
+                kafkaProperties.getTopics().getLedgerOutbox(),
+                event.getAggregateId(),
+                event.getPayload()
+            ).get();
 
-        if ("PRODUCT".equals(event.getAggregateType())) {
+            String aggregateType = event.getAggregateType();
+            if ("PRODUCT".equals(aggregateType)
+                || "SHIPMENT".equals(aggregateType)
+                || "TRANSFER".equals(aggregateType)) {
+                kafkaTemplate.send(
+                    kafkaProperties.getTopics().getProductProjection(),
+                    event.getAggregateId(),
+                    event.getPayload()
+                ).get();
+            }
+        }
+
+        if ("PROJECTION_UPDATE".equals(event.getEventType())) {
             kafkaTemplate.send(
                 kafkaProperties.getTopics().getProductProjection(),
                 event.getAggregateId(),

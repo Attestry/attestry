@@ -88,7 +88,7 @@ public class JdbcProductShipmentProjectionAdapter
                        content_type,
                        size_bytes,
                        object_key
-                FROM product_passport_shipment_evidence_projection
+                FROM product_passport_evidence_projection
                 WHERE shipment_id = ?
                 ORDER BY evidence_id
             """,

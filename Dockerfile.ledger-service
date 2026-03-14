@@ -1,0 +1,29 @@
+# --- Build stage ---
+FROM eclipse-temurin:21-jdk AS builder
+WORKDIR /workspace
+
+COPY gradle gradle
+COPY gradlew gradlew
+COPY build.gradle.kts build.gradle.kts
+COPY settings.gradle.kts settings.gradle.kts
+
+COPY common-lib-module common-lib-module
+COPY user-auth-module user-auth-module
+COPY workflow-module workflow-module
+COPY ledger-service ledger-service
+COPY product-module product-module
+COPY app app
+
+RUN chmod +x gradlew \
+    && ./gradlew :common-lib-module:publishToMavenLocal --no-daemon -x test \
+    && ./gradlew :ledger-service:bootJar --no-daemon -x test
+
+# --- Runtime stage ---
+FROM eclipse-temurin:21-jre
+WORKDIR /app
+
+COPY --from=builder /workspace/ledger-service/build/libs/*.jar app.jar
+
+EXPOSE 8081
+
+ENTRYPOINT ["java", "-jar", "app.jar"]
