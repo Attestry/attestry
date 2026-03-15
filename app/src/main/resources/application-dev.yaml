@@ -31,6 +31,12 @@ app:
     allowed-origins:
       - http://localhost:5173
       - http://localhost:3000
+  bootstrap:
+    platform-admin:
+      enabled: ${APP_BOOTSTRAP_PLATFORM_ADMIN_ENABLED:true}
+      email: ${APP_BOOTSTRAP_PLATFORM_ADMIN_EMAIL:platform.admin@attestry.local}
+      password: ${APP_BOOTSTRAP_PLATFORM_ADMIN_PASSWORD:PlatformAdm1n!2026}
+      phone: ${APP_BOOTSTRAP_PLATFORM_ADMIN_PHONE:010-0000-0000}
   auth:
     token:
       provider: REDIS
