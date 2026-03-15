@@ -12,6 +12,7 @@ import io.micrometer.core.instrument.Timer;
 import java.nio.charset.StandardCharsets;
 import java.time.Duration;
 import java.time.Instant;
+import java.util.List;
 import org.apache.kafka.clients.producer.ProducerRecord;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -39,6 +40,7 @@ public class WorkflowProductProjectionConsumer {
     private final Counter consumeFailureCounter;
     private final Timer projectionRefreshTimer;
     private final Timer projectionLagTimer;
+    private final List<ProjectionRefreshHandler> refreshHandlers;
 
     public WorkflowProductProjectionConsumer(
         ObjectMapper objectMapper,
@@ -72,6 +74,12 @@ public class WorkflowProductProjectionConsumer {
             .register(meterRegistry);
         this.projectionLagTimer = Timer.builder("workflow.projection.lag")
             .register(meterRegistry);
+        this.refreshHandlers = List.of(
+            this::refreshProductProjection,
+            this::refreshShipmentProjection,
+            this::refreshDistributionProjection,
+            this::refreshRetailAccessProjection
+        );
     }
 
     @KafkaListener(
@@ -81,62 +89,17 @@ public class WorkflowProductProjectionConsumer {
     )
     public void consume(String payload) {
         try {
-            JsonNode root = objectMapper.readTree(payload);
-            String aggregateType = root.path("aggregateType").asText();
-
-            String passportId = text(root, "passportId");
-            if (passportId == null || passportId.isBlank()) {
+            ProjectionEventContext context = parseContext(payload);
+            if (context.passportId() == null || context.passportId().isBlank()) {
                 consumeIgnoredCounter.increment();
                 return;
             }
 
-            String eventCategory = text(root, "eventCategory");
-            String eventAction = text(root, "eventAction");
-            Instant occurredAt = root.hasNonNull("occurredAt")
-                ? Instant.parse(root.get("occurredAt").asText())
-                : Instant.now();
-            String idempotencyKey = text(root, "idempotencyKey");
-            String sourceEventId = safeEventId(idempotencyKey, passportId, eventAction);
-            projectionLagTimer.record(Duration.between(occurredAt, Instant.now()).abs());
+            projectionLagTimer.record(Duration.between(context.occurredAt(), Instant.now()).abs());
 
-            if ("PRODUCT".equals(aggregateType) && shouldRefreshStateAndCatalog(eventCategory, eventAction)) {
-                projectionRefreshTimer.record(() ->
-                    projectionWriter.refreshStateAndCatalog(passportId, sourceEventId, null, occurredAt)
-                );
+            if (refreshHandlers.stream().anyMatch(handler -> handler.refresh(context))) {
                 consumeSuccessCounter.increment();
-                log.debug("workflow product projection refreshed: passportId={}, eventCategory={}, eventAction={}",
-                    passportId, eventCategory, eventAction);
                 return;
-            }
-
-            if ("SHIPMENT".equals(aggregateType) && "SHIPMENT".equals(eventCategory)) {
-                projectionRefreshTimer.record(() ->
-                    shipmentProjectionWriter.refreshShipmentProjection(passportId, sourceEventId, null, occurredAt)
-                );
-                consumeSuccessCounter.increment();
-                log.debug("shipment projection refreshed: passportId={}, eventAction={}", passportId, eventAction);
-                return;
-            }
-
-            if ("DISTRIBUTION".equals(aggregateType) && "DISTRIBUTION".equals(eventCategory)) {
-                projectionRefreshTimer.record(() ->
-                    distributionProjectionWriter.refreshDistributionProjection(passportId, sourceEventId, null, occurredAt)
-                );
-                consumeSuccessCounter.increment();
-                log.debug("distribution projection refreshed: passportId={}, eventAction={}", passportId, eventAction);
-                return;
-            }
-
-            if ("TRANSFER".equals(aggregateType) && "OWNERSHIP".equals(eventCategory) && "CLAIMED".equals(eventAction)) {
-                String transferId = text(root.path("payload"), "transferId");
-                if (transferId != null && !transferId.isBlank()) {
-                    projectionRefreshTimer.record(() ->
-                        retailAccessProjectionWriter.refreshB2cTransferAccess(passportId, transferId, sourceEventId, occurredAt)
-                    );
-                    consumeSuccessCounter.increment();
-                    log.debug("retail access projection refreshed: passportId={}, transferId={}", passportId, transferId);
-                    return;
-                }
             }
 
             consumeIgnoredCounter.increment();
@@ -154,6 +117,95 @@ public class WorkflowProductProjectionConsumer {
             log.warn("workflow product projection DLQ: errorType={}, errorMessage={}",
                 ex.getClass().getName(), ex.getMessage());
         }
+    }
+
+    private ProjectionEventContext parseContext(String payload) throws Exception {
+        JsonNode root = objectMapper.readTree(payload);
+        String passportId = text(root, "passportId");
+        String eventAction = text(root, "eventAction");
+        Instant occurredAt = root.hasNonNull("occurredAt")
+            ? Instant.parse(root.get("occurredAt").asText())
+            : Instant.now();
+        return new ProjectionEventContext(
+            root,
+            root.path("aggregateType").asText(),
+            passportId,
+            text(root, "eventCategory"),
+            eventAction,
+            occurredAt,
+            safeEventId(text(root, "idempotencyKey"), passportId, eventAction)
+        );
+    }
+
+    private boolean refreshProductProjection(ProjectionEventContext context) {
+        if (!"PRODUCT".equals(context.aggregateType()) ||
+            !shouldRefreshStateAndCatalog(context.eventCategory(), context.eventAction())) {
+            return false;
+        }
+
+        projectionRefreshTimer.record(() ->
+            projectionWriter.refreshStateAndCatalog(
+                context.passportId(), context.sourceEventId(), null, context.occurredAt()
+            )
+        );
+        log.debug(
+            "workflow product projection refreshed: passportId={}, eventCategory={}, eventAction={}",
+            context.passportId(),
+            context.eventCategory(),
+            context.eventAction()
+        );
+        return true;
+    }
+
+    private boolean refreshShipmentProjection(ProjectionEventContext context) {
+        if (!"SHIPMENT".equals(context.aggregateType()) || !"SHIPMENT".equals(context.eventCategory())) {
+            return false;
+        }
+
+        projectionRefreshTimer.record(() ->
+            shipmentProjectionWriter.refreshShipmentProjection(
+                context.passportId(), context.sourceEventId(), null, context.occurredAt()
+            )
+        );
+        log.debug("shipment projection refreshed: passportId={}, eventAction={}",
+            context.passportId(), context.eventAction());
+        return true;
+    }
+
+    private boolean refreshDistributionProjection(ProjectionEventContext context) {
+        if (!"DISTRIBUTION".equals(context.aggregateType()) || !"DISTRIBUTION".equals(context.eventCategory())) {
+            return false;
+        }
+
+        projectionRefreshTimer.record(() ->
+            distributionProjectionWriter.refreshDistributionProjection(
+                context.passportId(), context.sourceEventId(), null, context.occurredAt()
+            )
+        );
+        log.debug("distribution projection refreshed: passportId={}, eventAction={}",
+            context.passportId(), context.eventAction());
+        return true;
+    }
+
+    private boolean refreshRetailAccessProjection(ProjectionEventContext context) {
+        if (!"TRANSFER".equals(context.aggregateType()) ||
+            !"OWNERSHIP".equals(context.eventCategory()) ||
+            !"CLAIMED".equals(context.eventAction())) {
+            return false;
+        }
+
+        String transferId = text(context.root().path("payload"), "transferId");
+        if (transferId == null || transferId.isBlank()) {
+            return false;
+        }
+
+        projectionRefreshTimer.record(() ->
+            retailAccessProjectionWriter.refreshB2cTransferAccess(
+                context.passportId(), transferId, context.sourceEventId(), context.occurredAt()
+            )
+        );
+        log.debug("retail access projection refreshed: passportId={}, transferId={}", context.passportId(), transferId);
+        return true;
     }
 
     private boolean shouldRefreshStateAndCatalog(String eventCategory, String eventAction) {
@@ -179,5 +231,22 @@ public class WorkflowProductProjectionConsumer {
 
     private byte[] safeBytes(String value) {
         return (value == null ? "" : value).getBytes(StandardCharsets.UTF_8);
+    }
+
+    @FunctionalInterface
+    private interface ProjectionRefreshHandler {
+
+        boolean refresh(ProjectionEventContext context);
+    }
+
+    private record ProjectionEventContext(
+        JsonNode root,
+        String aggregateType,
+        String passportId,
+        String eventCategory,
+        String eventAction,
+        Instant occurredAt,
+        String sourceEventId
+    ) {
     }
 }
