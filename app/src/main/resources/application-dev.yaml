@@ -31,6 +31,8 @@ app:
     allowed-origins:
       - http://localhost:5173
       - http://localhost:3000
+      - https://attestry-front.vercel.app
+      - https://proveny.live
   bootstrap:
     platform-admin:
       enabled: ${APP_BOOTSTRAP_PLATFORM_ADMIN_ENABLED:true}
