@@ -9,6 +9,10 @@ spring:
       group-id: ${LEDGER_KAFKA_CONSUMER_GROUP:attestry-ledger-dev}
 
 app:
+  cors:
+    allowed-origins:
+      - http://localhost:5173
+      - http://localhost:3000
   ledger:
     kafka:
       enabled: ${LEDGER_KAFKA_ENABLED:true}
@@ -18,4 +22,3 @@ app:
       topics:
         partitions: ${KAFKA_TOPIC_PARTITIONS:3}
         replicas: ${KAFKA_TOPIC_REPLICAS:3}
-
