@@ -20,6 +20,7 @@ public class UserAuthSecurityConfig {
     public SecurityFilterChain userAuthFilterChain(HttpSecurity http, AccessTokenAuthenticationFilter accessTokenFilter)
         throws Exception {
         http
+            .cors(Customizer.withDefaults())
             .csrf(csrf -> csrf.disable())
             .sessionManagement(session -> session.sessionCreationPolicy(SessionCreationPolicy.STATELESS))
             .authorizeHttpRequests(auth -> auth
