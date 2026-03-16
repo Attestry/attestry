@@ -541,6 +541,19 @@ class UserAuthApiIntegrationTests {
     }
 
     private void signUp(String email, String password, String phone) throws Exception {
+        mockMvc.perform(post("/auth/signup/email-verifications")
+                .contentType(MediaType.APPLICATION_JSON)
+                .content(json(Map.of("email", email))))
+            .andExpect(status().isCreated());
+
+        mockMvc.perform(post("/auth/signup/email-verifications/confirm")
+                .contentType(MediaType.APPLICATION_JSON)
+                .content(json(Map.of(
+                    "email", email,
+                    "code", "12345678"
+                ))))
+            .andExpect(status().isOk());
+
         mockMvc.perform(post("/auth/signup")
                 .contentType(MediaType.APPLICATION_JSON)
                 .content(json(Map.of(

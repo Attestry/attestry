@@ -11,6 +11,14 @@ public enum UserAuthErrorCode implements ErrorCode {
     INVALID_CREDENTIALS("IDENTITY", "Invalid credentials", ErrorCategory.UNAUTHORIZED),
     USER_SUSPENDED("IDENTITY", "User is suspended", ErrorCategory.UNAUTHORIZED),
     ACCESS_TOKEN_INVALID("IDENTITY", "Access token is invalid", ErrorCategory.UNAUTHORIZED),
+    EMAIL_VERIFICATION_REQUIRED("IDENTITY", "이메일 인증이 필요합니다", ErrorCategory.BAD_REQUEST),
+    EMAIL_VERIFICATION_NOT_FOUND("IDENTITY", "이메일 인증 요청을 찾을 수 없습니다", ErrorCategory.NOT_FOUND),
+    EMAIL_VERIFICATION_CODE_INVALID("IDENTITY", "이메일 인증코드가 올바르지 않습니다", ErrorCategory.BAD_REQUEST),
+    EMAIL_VERIFICATION_EXPIRED("IDENTITY", "이메일 인증코드 유효시간이 만료되었습니다", ErrorCategory.BAD_REQUEST),
+    EMAIL_VERIFICATION_ALREADY_VERIFIED("IDENTITY", "이미 이메일 인증이 완료되었습니다", ErrorCategory.CONFLICT),
+    EMAIL_VERIFICATION_ALREADY_USED("IDENTITY", "이미 사용된 이메일 인증입니다", ErrorCategory.CONFLICT),
+    EMAIL_VERIFICATION_RESEND_COOLDOWN("IDENTITY", "이메일 인증코드 재발송 대기시간이 남아 있습니다", ErrorCategory.BAD_REQUEST),
+    EMAIL_VERIFICATION_RESEND_LIMIT_EXCEEDED("IDENTITY", "이메일 인증코드 재발송 가능 횟수를 초과했습니다", ErrorCategory.BAD_REQUEST),
 
     // Membership
     MEMBERSHIP_NOT_FOUND("MEMBERSHIP", "Membership not found", ErrorCategory.NOT_FOUND),

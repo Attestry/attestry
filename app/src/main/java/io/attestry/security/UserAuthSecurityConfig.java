@@ -24,7 +24,15 @@ public class UserAuthSecurityConfig {
             .csrf(csrf -> csrf.disable())
             .sessionManagement(session -> session.sessionCreationPolicy(SessionCreationPolicy.STATELESS))
             .authorizeHttpRequests(auth -> auth
-                .requestMatchers("/auth/signup", "/auth/login", "/api-v1/auth/signup", "/api-v1/auth/login", "/error")
+                .requestMatchers(
+                    "/auth/signup",
+                    "/auth/login",
+                    "/auth/signup/email-verifications",
+                    "/auth/signup/email-verifications/confirm",
+                    "/api-v1/auth/signup",
+                    "/api-v1/auth/login",
+                    "/error"
+                )
                 .permitAll()
                 .requestMatchers(
                     HttpMethod.GET,

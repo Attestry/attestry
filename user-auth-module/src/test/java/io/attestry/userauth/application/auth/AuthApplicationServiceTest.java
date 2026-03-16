@@ -12,16 +12,20 @@ import io.attestry.userauth.application.port.auth.AccessTokenPort;
 import io.attestry.userauth.application.port.membership.MembershipPort;
 import io.attestry.userauth.application.port.membership.MembershipProjectionPort;
 import io.attestry.userauth.application.port.auth.PasswordHasherPort;
+import io.attestry.userauth.application.port.auth.SignUpEmailVerificationRepositoryPort;
 import io.attestry.userauth.application.port.identity.UserAccountRepositoryPort;
+import io.attestry.userauth.application.port.notification.NotificationOutboxRepositoryPort;
 import io.attestry.userauth.domain.UserAuthDomainException;
 import io.attestry.userauth.domain.UserAuthErrorCode;
 import io.attestry.userauth.security.AuthPrincipal;
 import io.attestry.userauth.domain.authorization.model.PermissionCodes;
 import io.attestry.userauth.domain.authorization.model.RoleCodes;
+import io.attestry.userauth.domain.identity.model.SignUpEmailVerification;
 import io.attestry.userauth.domain.tenant.model.TenantType;
 import io.attestry.userauth.domain.membership.model.Membership;
 import io.attestry.userauth.domain.membership.model.MembershipRole;
 import io.attestry.userauth.domain.membership.model.MembershipStatus;
+import io.attestry.userauth.domain.membership.model.NotificationOutbox;
 import io.attestry.userauth.domain.tenant.model.TenantStatus;
 import io.attestry.userauth.domain.identity.model.Email;
 import io.attestry.userauth.domain.identity.model.UserAccount;
@@ -47,6 +51,8 @@ class AuthApplicationServiceTest {
     private FakePasswordHasher passwordHasher;
     private InMemoryAccessTokenPort tokenPort;
     private InMemoryMembershipPermissionQueryPort permissionQueryPort;
+    private InMemorySignUpEmailVerificationRepo verificationRepo;
+    private InMemoryNotificationOutboxRepo notificationOutboxRepo;
     private AuthApplicationService service;
 
     @BeforeEach
@@ -56,6 +62,8 @@ class AuthApplicationServiceTest {
         passwordHasher = new FakePasswordHasher();
         tokenPort = new InMemoryAccessTokenPort();
         permissionQueryPort = new InMemoryMembershipPermissionQueryPort();
+        verificationRepo = new InMemorySignUpEmailVerificationRepo();
+        notificationOutboxRepo = new InMemoryNotificationOutboxRepo();
         permissionQueryPort.seedGlobalRole(RoleCodes.OWNER_DEFAULT, Set.of(
             PermissionCodes.OWNER_TRANSFER_CREATE,
             PermissionCodes.OWNER_TRANSFER_ACCEPT,
@@ -77,17 +85,31 @@ class AuthApplicationServiceTest {
             passwordHasher,
             authTokenIssuer,
             tokenPort,
-            membershipRepo
+            membershipRepo,
+            verificationRepo,
+            notificationOutboxRepo,
+            clock,
+            "12345678"
         );
     }
 
     @Test
     void signUpShouldHashPasswordAndReturnUserId() {
+        service.requestSignUpEmailVerification("a@b.com");
+        service.confirmSignUpEmailVerification("a@b.com", "12345678");
         String userId = service.signUp(new SignUpCommand("a@b.com", "plain", "010-0000")).userId();
 
         UserAccount saved = userRepo.findById(userId).orElseThrow();
         assertEquals("hashed:plain", saved.passwordHash());
         assertEquals("a@b.com", saved.email().value());
+    }
+
+    @Test
+    void signUpShouldFailWhenEmailVerificationIsMissing() {
+        UserAuthDomainException ex = assertThrows(UserAuthDomainException.class,
+            () -> service.signUp(new SignUpCommand("a@b.com", "plain", "010-0000")));
+
+        assertEquals(UserAuthErrorCode.EMAIL_VERIFICATION_REQUIRED, ex.getErrorCode());
     }
 
     @Test
@@ -473,6 +495,37 @@ class AuthApplicationServiceTest {
 
         void seedGlobalRole(String roleCode, Set<String> codes) {
             permissionByRoleCode.put(roleCode, codes);
+        }
+    }
+
+    private static class InMemorySignUpEmailVerificationRepo implements SignUpEmailVerificationRepositoryPort {
+        private final Map<String, SignUpEmailVerification> byEmail = new HashMap<>();
+
+        @Override
+        public Optional<SignUpEmailVerification> findByEmail(String email) {
+            return Optional.ofNullable(byEmail.get(email));
+        }
+
+        @Override
+        public SignUpEmailVerification save(SignUpEmailVerification verification) {
+            byEmail.put(verification.email(), verification);
+            return verification;
+        }
+    }
+
+    private static class InMemoryNotificationOutboxRepo implements NotificationOutboxRepositoryPort {
+        private final List<NotificationOutbox> entries = new ArrayList<>();
+
+        @Override
+        public NotificationOutbox save(NotificationOutbox outbox) {
+            entries.removeIf(entry -> entry.id().equals(outbox.id()));
+            entries.add(outbox);
+            return outbox;
+        }
+
+        @Override
+        public List<NotificationOutbox> findPendingRetryable(Instant now, int batchSize) {
+            return entries;
         }
     }
 }
