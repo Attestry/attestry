@@ -5,7 +5,8 @@ import io.attestry.workflow.domain.WorkflowErrorCode;
 
 public enum WorkflowAssetState {
     ACTIVE,
-    VOIDED;
+    VOIDED,
+    RETIRED;
 
     public static WorkflowAssetState from(String value) {
         if (value == null) {

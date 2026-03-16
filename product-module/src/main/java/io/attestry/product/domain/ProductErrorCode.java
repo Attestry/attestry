@@ -18,6 +18,8 @@ public enum ProductErrorCode implements ErrorCode {
     ASSET_ALREADY_VOIDED("VOID", "Asset already voided", ErrorCategory.CONFLICT),
     FORBIDDEN_VOID("VOID", "Forbidden void", ErrorCategory.FORBIDDEN),
     ASSET_NOT_FOUND("VOID", "Asset not found", ErrorCategory.NOT_FOUND),
+    ASSET_ALREADY_RETIRED("RETIRE", "Asset already retired", ErrorCategory.CONFLICT),
+    FORBIDDEN_RETIRE("RETIRE", "Forbidden retire", ErrorCategory.FORBIDDEN),
 
     // Risk
     RISK_FLAG_ALREADY_SET("RISK", "Risk flag already set", ErrorCategory.CONFLICT),
