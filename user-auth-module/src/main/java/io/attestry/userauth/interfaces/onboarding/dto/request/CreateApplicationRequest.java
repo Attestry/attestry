@@ -1,6 +1,7 @@
 package io.attestry.userauth.interfaces.onboarding.dto.request;
 
 import jakarta.validation.constraints.NotBlank;
+import jakarta.validation.constraints.Pattern;
 
 //TODO("country는 enum으로 매핑 ")
 public record CreateApplicationRequest(
@@ -12,6 +13,7 @@ public record CreateApplicationRequest(
         String country,
         String address,
         @NotBlank(message = "사업자등록번호는 필수입니다")
+        @Pattern(regexp = "^\\d{3}-\\d{2}-\\d{5}$", message = "사업자 등록번호는 123-45-67890 형식으로 입력해주세요.")
         String bizRegNo,
         @NotBlank(message = "증빙 묶음 ID는 필수입니다")
         String evidenceBundleId

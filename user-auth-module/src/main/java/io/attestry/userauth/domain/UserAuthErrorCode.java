@@ -31,8 +31,8 @@ public enum UserAuthErrorCode implements ErrorCode {
     // Onboarding
     APPLICATION_NOT_FOUND("ONBOARDING", "Application not found", ErrorCategory.NOT_FOUND),
     INVALID_APPLICATION_STATE("ONBOARDING", "Invalid application state", ErrorCategory.CONFLICT),
-    DUPLICATE_ORGANIZATION_NAME("ONBOARDING", "Organization name already exists", ErrorCategory.CONFLICT),
-    DUPLICATE_BIZ_REG_NO("ONBOARDING", "Business registration number already exists", ErrorCategory.CONFLICT),
+    DUPLICATE_ORGANIZATION_NAME("ONBOARDING", "해당 국가에 이미 등록된 조직명입니다", ErrorCategory.CONFLICT),
+    DUPLICATE_BIZ_REG_NO("ONBOARDING", "이미 등록된 사업자 등록번호입니다", ErrorCategory.CONFLICT),
     EVIDENCE_NOT_FOUND("ONBOARDING", "Evidence not found", ErrorCategory.NOT_FOUND),
     EVIDENCE_FILE_LIMIT_EXCEEDED("ONBOARDING", "Evidence file limit exceeded", ErrorCategory.BAD_REQUEST),
     EVIDENCE_FILE_TYPE_NOT_ALLOWED("ONBOARDING", "Evidence file type not allowed", ErrorCategory.BAD_REQUEST),

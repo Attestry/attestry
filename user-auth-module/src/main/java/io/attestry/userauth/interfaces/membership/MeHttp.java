@@ -11,6 +11,7 @@ import io.attestry.userauth.application.usecase.auth.MyAccountQueryUseCase;
 import io.attestry.userauth.application.usecase.membership.MembershipQueryUseCase;
 import java.util.List;
 
+import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.PatchMapping;
@@ -35,7 +36,7 @@ public class MeHttp {
     @PatchMapping("/account")
     public ApiResponse<MyAccountView> updateMyAccount(
         @CurrentActor ActorContext actor,
-        @RequestBody UpdateMyAccountRequest request
+        @Valid @RequestBody UpdateMyAccountRequest request
     ) {
         return ApiResponse.success(myAccountQueryUseCase.updateMyAccount(
             actor.userId(),
