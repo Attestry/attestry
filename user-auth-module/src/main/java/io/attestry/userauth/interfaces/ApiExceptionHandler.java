@@ -4,8 +4,12 @@ import io.attestry.commonlib.domain.exception.DomainException;
 import io.attestry.commonlib.domain.exception.ErrorCategory;
 import io.attestry.commonlib.infrastructure.ApiResponse;
 import io.attestry.commonlib.infrastructure.ErrorResponse;
+import jakarta.validation.ConstraintViolationException;
+import org.springframework.http.converter.HttpMessageNotReadableException;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
+import org.springframework.validation.BindException;
+import org.springframework.web.bind.MethodArgumentNotValidException;
 import org.springframework.web.bind.annotation.ExceptionHandler;
 import org.springframework.web.bind.annotation.RestControllerAdvice;
 
@@ -27,5 +31,39 @@ public class ApiExceptionHandler {
         };
         ErrorResponse error = ErrorResponse.from(ex);
         return ResponseEntity.status(status).body(ApiResponse.error(error));
+    }
+
+    @ExceptionHandler({
+        MethodArgumentNotValidException.class,
+        BindException.class,
+        ConstraintViolationException.class,
+        HttpMessageNotReadableException.class
+    })
+    public ResponseEntity<ApiResponse<Void>> handleValidation(Exception ex) {
+        String message = switch (ex) {
+            case MethodArgumentNotValidException valid ->
+                valid.getBindingResult().getFieldErrors().stream()
+                    .map(fieldError -> fieldError.getDefaultMessage())
+                    .filter(m -> m != null && !m.isBlank())
+                    .findFirst()
+                    .orElse("입력값을 다시 확인해주세요.");
+            case BindException bind ->
+                bind.getBindingResult().getFieldErrors().stream()
+                    .map(fieldError -> fieldError.getDefaultMessage())
+                    .filter(m -> m != null && !m.isBlank())
+                    .findFirst()
+                    .orElse("입력값을 다시 확인해주세요.");
+            case ConstraintViolationException violation ->
+                violation.getConstraintViolations().stream()
+                    .map(v -> v.getMessage())
+                    .filter(m -> m != null && !m.isBlank())
+                    .findFirst()
+                    .orElse("입력값을 다시 확인해주세요.");
+            case HttpMessageNotReadableException ignored -> "요청 본문 형식이 올바르지 않습니다.";
+            default -> "입력값을 다시 확인해주세요.";
+        };
+
+        ErrorResponse error = new ErrorResponse("INVALID_INPUT", message, "VALIDATION");
+        return ResponseEntity.status(HttpStatus.BAD_REQUEST).body(ApiResponse.error(error));
     }
 }

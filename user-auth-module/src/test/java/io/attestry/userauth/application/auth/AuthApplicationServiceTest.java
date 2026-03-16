@@ -96,19 +96,19 @@ class AuthApplicationServiceTest {
 
     @Test
     void signUpShouldHashPasswordAndReturnUserId() {
-        service.requestSignUpEmailVerification("a@b.com");
-        service.confirmSignUpEmailVerification("a@b.com", "12345678");
-        String userId = service.signUp(new SignUpCommand("a@b.com", "plain", "010-0000")).userId();
+        service.requestSignUpEmailVerification("a@b.co");
+        service.confirmSignUpEmailVerification("a@b.co", "12345678");
+        String userId = service.signUp(new SignUpCommand("a@b.co", "plain", "010-0000")).userId();
 
         UserAccount saved = userRepo.findById(userId).orElseThrow();
         assertEquals("hashed:plain", saved.passwordHash());
-        assertEquals("a@b.com", saved.email().value());
+        assertEquals("a@b.co", saved.email().value());
     }
 
     @Test
     void signUpShouldFailWhenEmailVerificationIsMissing() {
         UserAuthDomainException ex = assertThrows(UserAuthDomainException.class,
-            () -> service.signUp(new SignUpCommand("a@b.com", "plain", "010-0000")));
+            () -> service.signUp(new SignUpCommand("a@b.co", "plain", "010-0000")));
 
         assertEquals(UserAuthErrorCode.EMAIL_VERIFICATION_REQUIRED, ex.getErrorCode());
     }
@@ -162,27 +162,27 @@ class AuthApplicationServiceTest {
 
     @Test
     void loginShouldFailWhenPasswordInvalid() {
-        userRepo.seed("u1", "a@b.com", "hashed:pw", UserStatus.ACTIVE, VerificationLevel.NONE);
+        userRepo.seed("u1", "a@b.co", "hashed:pw", UserStatus.ACTIVE, VerificationLevel.NONE);
 
         UserAuthDomainException ex = assertThrows(UserAuthDomainException.class,
-            () -> service.login(new LoginCommand("a@b.com", "wrong", null)));
+            () -> service.login(new LoginCommand("a@b.co", "wrong", null)));
 
         assertEquals(UserAuthErrorCode.INVALID_CREDENTIALS, ex.getErrorCode());
     }
 
     @Test
     void loginShouldFailWhenUserSuspended() {
-        userRepo.seed("u1", "a@b.com", "hashed:pw", UserStatus.SUSPENDED, VerificationLevel.NONE);
+        userRepo.seed("u1", "a@b.co", "hashed:pw", UserStatus.SUSPENDED, VerificationLevel.NONE);
 
         UserAuthDomainException ex = assertThrows(UserAuthDomainException.class,
-            () -> service.login(new LoginCommand("a@b.com", "pw", null)));
+            () -> service.login(new LoginCommand("a@b.co", "pw", null)));
 
         assertEquals(UserAuthErrorCode.USER_SUSPENDED, ex.getErrorCode());
     }
 
     @Test
     void loginShouldFailWhenRequestedMembershipNotFound() {
-        userRepo.seed("u1", "a@b.com", "hashed:pw", UserStatus.ACTIVE, VerificationLevel.NONE);
+        userRepo.seed("u1", "a@b.co", "hashed:pw", UserStatus.ACTIVE, VerificationLevel.NONE);
         membershipRepo.seed(Membership.reconstitute(
             "m1", "u1", "t1",
             TenantType.RETAIL, MembershipRole.OPERATOR, MembershipStatus.ACTIVE,
@@ -190,14 +190,14 @@ class AuthApplicationServiceTest {
         ));
 
         UserAuthDomainException ex = assertThrows(UserAuthDomainException.class,
-            () -> service.login(new LoginCommand("a@b.com", "pw", "t2")));
+            () -> service.login(new LoginCommand("a@b.co", "pw", "t2")));
 
         assertEquals(UserAuthErrorCode.MEMBERSHIP_NOT_FOUND, ex.getErrorCode());
     }
 
     @Test
     void loginShouldFailWhenRequestedMembershipInactive() {
-        userRepo.seed("u1", "a@b.com", "hashed:pw", UserStatus.ACTIVE, VerificationLevel.NONE);
+        userRepo.seed("u1", "a@b.co", "hashed:pw", UserStatus.ACTIVE, VerificationLevel.NONE);
         membershipRepo.seed(Membership.reconstitute(
             "m1", "u1", "t1",
             TenantType.RETAIL, MembershipRole.OPERATOR, MembershipStatus.SUSPENDED,
@@ -205,15 +205,15 @@ class AuthApplicationServiceTest {
         ));
 
         UserAuthDomainException ex = assertThrows(UserAuthDomainException.class,
-            () -> service.login(new LoginCommand("a@b.com", "pw", "t1")));
+            () -> service.login(new LoginCommand("a@b.co", "pw", "t1")));
 
         assertEquals(UserAuthErrorCode.MEMBERSHIP_NOT_FOUND, ex.getErrorCode());
     }
 
     @Test
     void logoutShouldRevokeToken() {
-        userRepo.seed("u1", "a@b.com", "hashed:pw", UserStatus.ACTIVE, VerificationLevel.NONE);
-        AuthTokenResult result = service.login(new LoginCommand("a@b.com", "pw", null));
+        userRepo.seed("u1", "a@b.co", "hashed:pw", UserStatus.ACTIVE, VerificationLevel.NONE);
+        AuthTokenResult result = service.login(new LoginCommand("a@b.co", "pw", null));
 
         service.logout(result.accessToken());
 
@@ -222,8 +222,8 @@ class AuthApplicationServiceTest {
 
     @Test
     void authenticateShouldReturnPrincipal() {
-        userRepo.seed("u1", "a@b.com", "hashed:pw", UserStatus.ACTIVE, VerificationLevel.NONE);
-        AuthTokenResult result = service.login(new LoginCommand("a@b.com", "pw", null));
+        userRepo.seed("u1", "a@b.co", "hashed:pw", UserStatus.ACTIVE, VerificationLevel.NONE);
+        AuthTokenResult result = service.login(new LoginCommand("a@b.co", "pw", null));
 
         AuthPrincipal principal = service.authenticate(result.accessToken());
 
@@ -240,7 +240,7 @@ class AuthApplicationServiceTest {
 
     @Test
     void verifyPhoneShouldUpdateVerificationLevel() {
-        userRepo.seed("u1", "a@b.com", "hashed:pw", UserStatus.ACTIVE, VerificationLevel.NONE);
+        userRepo.seed("u1", "a@b.co", "hashed:pw", UserStatus.ACTIVE, VerificationLevel.NONE);
 
         service.verifyPhone("u1");
 

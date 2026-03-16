@@ -80,7 +80,7 @@ public class AuthApplicationService implements AuthUseCase {
 
         userAccountRepository.findByEmail(normalizedEmail)
                 .ifPresent(account -> {
-                    throw new UserAuthDomainException(UserAuthErrorCode.DUPLICATE_EMAIL, "Email already exists");
+                    throw new UserAuthDomainException(UserAuthErrorCode.DUPLICATE_EMAIL, "이미 등록된 이메일입니다");
                 });
 
         SignUpEmailVerification verification = signUpEmailVerificationRepository.findByEmail(normalizedEmail)
@@ -112,7 +112,7 @@ public class AuthApplicationService implements AuthUseCase {
         String normalizedEmail = Email.of(email).value();
         userAccountRepository.findByEmail(normalizedEmail)
             .ifPresent(account -> {
-                throw new UserAuthDomainException(UserAuthErrorCode.DUPLICATE_EMAIL, "Email already exists");
+                throw new UserAuthDomainException(UserAuthErrorCode.DUPLICATE_EMAIL, "이미 등록된 이메일입니다");
             });
 
         Instant now = Instant.now(clock);
@@ -167,7 +167,7 @@ public class AuthApplicationService implements AuthUseCase {
     @Override
     public AuthTokenResult login(LoginCommand command) {
         UserAccount account = userAccountRepository.findByEmail(command.email())
-                .orElseThrow(() -> new UserAuthDomainException(UserAuthErrorCode.USER_NOT_FOUND, "User not found"));
+                .orElseThrow(() -> new UserAuthDomainException(UserAuthErrorCode.USER_NOT_FOUND, "사용자 정보를 찾을 수 없습니다"));
 
         account.assertPasswordMatches(command.password(), passwordHasher::matches);
         account.checkActiveStatus();
@@ -190,7 +190,7 @@ public class AuthApplicationService implements AuthUseCase {
     @Override
     public VerifyPhoneResult verifyPhone(String userId) {
         UserAccount account = userAccountRepository.findById(userId)
-                .orElseThrow(() -> new UserAuthDomainException(UserAuthErrorCode.USER_NOT_FOUND, "User not found"));
+                .orElseThrow(() -> new UserAuthDomainException(UserAuthErrorCode.USER_NOT_FOUND, "사용자 정보를 찾을 수 없습니다"));
         account.verifyPhone();
         userAccountRepository.save(account);
         return new VerifyPhoneResult(account.userId(), account.verificationLevel());
@@ -199,7 +199,7 @@ public class AuthApplicationService implements AuthUseCase {
     @Override
     public AuthTokenResult reissueToken(String userId, String tenantId) {
         UserAccount account = userAccountRepository.findById(userId)
-                .orElseThrow(() -> new UserAuthDomainException(UserAuthErrorCode.USER_NOT_FOUND, "User not found"));
+                .orElseThrow(() -> new UserAuthDomainException(UserAuthErrorCode.USER_NOT_FOUND, "사용자 정보를 찾을 수 없습니다"));
 
         account.checkActiveStatus();
 
@@ -210,7 +210,7 @@ public class AuthApplicationService implements AuthUseCase {
     @Override
     public AuthTokenResult switchTenant(String userId, String membershipId) {
         UserAccount account = userAccountRepository.findById(userId)
-            .orElseThrow(() -> new UserAuthDomainException(UserAuthErrorCode.USER_NOT_FOUND, "User not found"));
+            .orElseThrow(() -> new UserAuthDomainException(UserAuthErrorCode.USER_NOT_FOUND, "사용자 정보를 찾을 수 없습니다"));
 
         account.checkActiveStatus();
 

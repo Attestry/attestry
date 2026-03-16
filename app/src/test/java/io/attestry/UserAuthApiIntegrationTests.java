@@ -341,6 +341,58 @@ class UserAuthApiIntegrationTests {
     }
 
     @Test
+    void signupShouldReturnValidationMessageWhenPasswordRuleIsViolated() throws Exception {
+        String email = "invalid-password@test.com";
+
+        mockMvc.perform(post("/auth/signup/email-verifications")
+                .contentType(MediaType.APPLICATION_JSON)
+                .content(json(Map.of("email", email))))
+            .andExpect(status().isCreated());
+
+        mockMvc.perform(post("/auth/signup/email-verifications/confirm")
+                .contentType(MediaType.APPLICATION_JSON)
+                .content(json(Map.of(
+                    "email", email,
+                    "code", "12345678"
+                ))))
+            .andExpect(status().isOk());
+
+        mockMvc.perform(post("/auth/signup")
+                .contentType(MediaType.APPLICATION_JSON)
+                .content(json(Map.of(
+                    "email", email,
+                    "password", "qwer1234",
+                    "phone", "010-1234-5678"
+                ))))
+            .andExpect(status().isBadRequest())
+            .andExpect(jsonPath("$.error.code").value("INVALID_INPUT"))
+            .andExpect(jsonPath("$.error.message").value("비밀번호는 8자 이상이며 영문 대문자를 1자 이상 포함해야 합니다"));
+    }
+
+    @Test
+    void signupEmailVerificationRequestShouldReturnLocalizedMessageWhenEmailAlreadyExists() throws Exception {
+        String email = "duplicate-email@test.com";
+        signUp(email, "DuplicatePw123", "010-1234-5678");
+
+        mockMvc.perform(post("/auth/signup/email-verifications")
+                .contentType(MediaType.APPLICATION_JSON)
+                .content(json(Map.of("email", email))))
+            .andExpect(status().isConflict())
+            .andExpect(jsonPath("$.error.code").value("DUPLICATE_EMAIL"))
+            .andExpect(jsonPath("$.error.message").value("이미 등록된 이메일입니다"));
+    }
+
+    @Test
+    void signupEmailVerificationRequestShouldRejectInvalidTopLevelDomain() throws Exception {
+        mockMvc.perform(post("/auth/signup/email-verifications")
+                .contentType(MediaType.APPLICATION_JSON)
+                .content(json(Map.of("email", "qwer@asdf.123"))))
+            .andExpect(status().isBadRequest())
+            .andExpect(jsonPath("$.error.code").value("INVALID_INPUT"))
+            .andExpect(jsonPath("$.error.message").value("올바른 이메일 형식을 입력해주세요."));
+    }
+
+    @Test
     void membershipUpdateShouldWork() throws Exception {
         String tenantId = UUID.randomUUID().toString();
         String adminUserId = UUID.randomUUID().toString();
