@@ -60,7 +60,7 @@ public class MembershipQueryService implements MembershipQueryUseCase {
         Membership membership = membershipAccessPolicy.loadTenantMembership(membershipId, actor.tenantId());
 
         UserAccount userAccount = userAccountRepository.findById(membership.userId())
-                .orElseThrow(() -> new UserAuthDomainException(UserAuthErrorCode.USER_NOT_FOUND, "User not found"));
+                .orElseThrow(() -> new UserAuthDomainException(UserAuthErrorCode.USER_NOT_FOUND, "사용자 정보를 찾을 수 없습니다"));
 
         return viewAssembler.toDetailResult(membership, userAccount);
     }

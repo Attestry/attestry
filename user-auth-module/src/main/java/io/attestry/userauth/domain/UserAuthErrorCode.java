@@ -6,8 +6,8 @@ import io.attestry.commonlib.domain.exception.ErrorCode;
 public enum UserAuthErrorCode implements ErrorCode {
 
     // Identity
-    DUPLICATE_EMAIL("IDENTITY", "Email already exists", ErrorCategory.CONFLICT),
-    USER_NOT_FOUND("IDENTITY", "User not found", ErrorCategory.UNAUTHORIZED),
+    DUPLICATE_EMAIL("IDENTITY", "이미 등록된 이메일입니다", ErrorCategory.CONFLICT),
+    USER_NOT_FOUND("IDENTITY", "사용자 정보를 찾을 수 없습니다", ErrorCategory.UNAUTHORIZED),
     INVALID_CREDENTIALS("IDENTITY", "Invalid credentials", ErrorCategory.UNAUTHORIZED),
     USER_SUSPENDED("IDENTITY", "User is suspended", ErrorCategory.UNAUTHORIZED),
     ACCESS_TOKEN_INVALID("IDENTITY", "Access token is invalid", ErrorCategory.UNAUTHORIZED),
