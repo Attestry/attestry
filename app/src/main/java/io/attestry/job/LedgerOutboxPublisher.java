@@ -15,6 +15,8 @@ import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.concurrent.CompletableFuture;
+import java.util.concurrent.ExecutorService;
+import java.util.concurrent.Executors;
 import java.util.concurrent.atomic.AtomicLong;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -23,7 +25,7 @@ import org.springframework.jdbc.core.JdbcTemplate;
 import org.springframework.kafka.core.KafkaTemplate;
 import org.springframework.scheduling.annotation.Scheduled;
 import org.springframework.stereotype.Component;
-import org.springframework.transaction.annotation.Transactional;
+import org.springframework.transaction.support.TransactionTemplate;
 
 @Component
 @ConditionalOnProperty(prefix = "app.kafka", name = "enabled", havingValue = "true", matchIfMissing = true)
@@ -41,6 +43,7 @@ public class LedgerOutboxPublisher {
     private final KafkaTemplate<String, String> kafkaTemplate;
     private final AppKafkaProperties kafkaProperties;
     private final Clock clock;
+    private final TransactionTemplate transactionTemplate;
     private final Counter claimCounter;
     private final Counter publishCounter;
     private final Counter publishSuccessCounter;
@@ -56,18 +59,23 @@ public class LedgerOutboxPublisher {
     private final AtomicLong failedSizeGauge;
     private final AtomicLong oldestPendingAgeSecondsGauge;
     private final String processingOwner;
+    private final ExecutorService publishExecutor = Executors.newFixedThreadPool(
+        Runtime.getRuntime().availableProcessors()
+    );
 
     public LedgerOutboxPublisher(
         JdbcTemplate jdbcTemplate,
         KafkaTemplate<String, String> kafkaTemplate,
         AppKafkaProperties kafkaProperties,
         Clock clock,
-        MeterRegistry meterRegistry
+        MeterRegistry meterRegistry,
+        TransactionTemplate transactionTemplate
     ) {
         this.jdbcTemplate = jdbcTemplate;
         this.kafkaTemplate = kafkaTemplate;
         this.kafkaProperties = kafkaProperties;
         this.clock = clock;
+        this.transactionTemplate = transactionTemplate;
         this.claimCounter = Counter.builder("ledger.outbox.claim.count")
             .register(meterRegistry);
         this.publishCounter = Counter.builder("ledger.outbox.publish.count")
@@ -98,7 +106,6 @@ public class LedgerOutboxPublisher {
     }
 
     @Scheduled(fixedDelayString = "${app.kafka.outbox.publish-interval-ms:1000}")
-    @Transactional
     public void publishPending() {
         refreshBacklogMetrics();
         batchTimer.record(this::doPublishPending);
@@ -107,41 +114,49 @@ public class LedgerOutboxPublisher {
 
     private void doPublishPending() {
         Instant now = Instant.now(clock);
-        List<OutboxEventRecord> pending = claimTimer.record(() -> jdbcTemplate.query(
-            """
-                WITH claimed AS (
-                    SELECT event_id
-                    FROM outbox_event
-                    WHERE event_type IN ('LEDGER_APPEND', 'PROJECTION_UPDATE')
-                      AND status = ?
-                      AND (next_retry_at IS NULL OR next_retry_at <= ?)
-                    ORDER BY created_at ASC
-                    LIMIT ?
-                    FOR UPDATE SKIP LOCKED
-                )
-                UPDATE outbox_event target
-                SET status = ?,
-                    processing_started_at = ?,
-                    processing_owner = ?,
-                    last_error = NULL
-                FROM claimed
-                WHERE target.event_id = claimed.event_id
-                RETURNING target.event_id, target.aggregate_type, target.aggregate_id, target.event_type,
-                          target.payload, target.retry_count, target.created_at
-            """,
-            this::mapRecord,
-            PENDING_STATUS,
-            Timestamp.from(now),
-            Math.max(1, kafkaProperties.getOutbox().getBatchSize()),
-            PROCESSING_STATUS,
-            Timestamp.from(now),
-            processingOwner
-        ));
-        claimCounter.increment(pending.size());
 
-        Map<String, List<OutboxEventRecord>> groupedByAggregate = groupByAggregateId(pending);
+        // 1. claim 트랜잭션: CTE로 PENDING → PROCESSING 원자적 전환 후 커밋
+        List<OutboxEventRecord> claimed = transactionTemplate.execute(status ->
+            claimTimer.record(() -> jdbcTemplate.query(
+                """
+                    WITH claimed AS (
+                        SELECT event_id
+                        FROM outbox_event
+                        WHERE event_type IN ('LEDGER_APPEND', 'PROJECTION_UPDATE')
+                          AND status = ?
+                          AND (next_retry_at IS NULL OR next_retry_at <= ?)
+                        ORDER BY created_at ASC
+                        LIMIT ?
+                        FOR UPDATE SKIP LOCKED
+                    )
+                    UPDATE outbox_event target
+                    SET status = ?,
+                        processing_started_at = ?,
+                        processing_owner = ?,
+                        last_error = NULL
+                    FROM claimed
+                    WHERE target.event_id = claimed.event_id
+                    RETURNING target.event_id, target.aggregate_type, target.aggregate_id, target.event_type,
+                              target.payload, target.retry_count, target.created_at
+                """,
+                this::mapRecord,
+                PENDING_STATUS,
+                Timestamp.from(now),
+                Math.max(1, kafkaProperties.getOutbox().getBatchSize()),
+                PROCESSING_STATUS,
+                Timestamp.from(now),
+                processingOwner
+            ))
+        );
+        if (claimed == null || claimed.isEmpty()) {
+            return;
+        }
+        claimCounter.increment(claimed.size());
+
+        // 2. publish (트랜잭션 밖): aggregate별 그룹화 → 그룹 간 병렬, 그룹 내 순차
+        Map<String, List<OutboxEventRecord>> groupedByAggregate = groupByAggregateId(claimed);
         List<CompletableFuture<List<PublishAttempt>>> groupFutures = groupedByAggregate.values().stream()
-            .map(events -> CompletableFuture.supplyAsync(() -> publishGroupSequentially(events)))
+            .map(events -> CompletableFuture.supplyAsync(() -> publishGroupSequentially(events), publishExecutor))
             .toList();
 
         List<PublishAttempt> attempts = groupFutures.stream()
@@ -149,63 +164,66 @@ public class LedgerOutboxPublisher {
             .flatMap(List::stream)
             .toList();
 
-        for (PublishAttempt attempt : attempts) {
-            OutboxEventRecord event = attempt.event();
-            publishCounter.increment();
-            try {
-                if (attempt.error() != null) {
-                    throw attempt.error();
-                }
-                finalizeTimer.record(() -> jdbcTemplate.update(
-                    """
-                        UPDATE outbox_event
-                        SET status = ?, last_error = ?, published_at = ?, next_retry_at = ?,
-                            processing_started_at = ?, processing_owner = ?
-                        WHERE event_id = ? AND status = ?
-                    """,
-                    PUBLISHED_STATUS,
-                    null,
-                    Timestamp.from(Instant.now(clock)),
-                    null,
-                    null,
-                    null,
-                    event.eventId(),
-                    PROCESSING_STATUS
-                ));
-                publishSuccessCounter.increment();
-                publishSuccessStandaloneCounter.increment();
-            } catch (Throwable ex) {
-                int nextRetryCount = event.retryCount() + 1;
-                String nextStatus = nextRetryCount >= kafkaProperties.getOutbox().getMaxRetries()
-                    ? FAILED_STATUS
-                    : PENDING_STATUS;
-                Instant nextRetryAt = PENDING_STATUS.equals(nextStatus)
-                    ? computeNextRetryAt(now, nextRetryCount)
-                    : null;
-                finalizeTimer.record(() -> jdbcTemplate.update(
-                    """
-                        UPDATE outbox_event
-                        SET status = ?, retry_count = ?, last_error = ?, next_retry_at = ?,
-                            processing_started_at = ?, processing_owner = ?
-                        WHERE event_id = ? AND status = ?
-                    """,
-                    nextStatus,
-                    nextRetryCount,
-                    trimError(ex.getMessage()),
-                    nextRetryAt == null ? null : Timestamp.from(nextRetryAt),
-                    null,
-                    null,
-                    event.eventId(),
-                    PROCESSING_STATUS
-                ));
-                publishFailureCounter.increment();
-                publishFailureStandaloneCounter.increment();
-                if (FAILED_STATUS.equals(nextStatus)) {
-                    log.warn("ledger outbox event permanently failed: eventId={}, retryCount={}, lastError={}",
-                        event.eventId(), nextRetryCount, trimError(ex.getMessage()));
+        // 3. finalize 트랜잭션: PROCESSING → PUBLISHED/FAILED/PENDING
+        transactionTemplate.executeWithoutResult(status -> {
+            for (PublishAttempt attempt : attempts) {
+                OutboxEventRecord event = attempt.event();
+                publishCounter.increment();
+                try {
+                    if (attempt.error() != null) {
+                        throw attempt.error();
+                    }
+                    finalizeTimer.record(() -> jdbcTemplate.update(
+                        """
+                            UPDATE outbox_event
+                            SET status = ?, last_error = ?, published_at = ?, next_retry_at = ?,
+                                processing_started_at = ?, processing_owner = ?
+                            WHERE event_id = ? AND status = ?
+                        """,
+                        PUBLISHED_STATUS,
+                        null,
+                        Timestamp.from(Instant.now(clock)),
+                        null,
+                        null,
+                        null,
+                        event.eventId(),
+                        PROCESSING_STATUS
+                    ));
+                    publishSuccessCounter.increment();
+                    publishSuccessStandaloneCounter.increment();
+                } catch (Throwable ex) {
+                    int nextRetryCount = event.retryCount() + 1;
+                    String nextStatus = nextRetryCount >= kafkaProperties.getOutbox().getMaxRetries()
+                        ? FAILED_STATUS
+                        : PENDING_STATUS;
+                    Instant nextRetryAt = PENDING_STATUS.equals(nextStatus)
+                        ? computeNextRetryAt(now, nextRetryCount)
+                        : null;
+                    finalizeTimer.record(() -> jdbcTemplate.update(
+                        """
+                            UPDATE outbox_event
+                            SET status = ?, retry_count = ?, last_error = ?, next_retry_at = ?,
+                                processing_started_at = ?, processing_owner = ?
+                            WHERE event_id = ? AND status = ?
+                        """,
+                        nextStatus,
+                        nextRetryCount,
+                        trimError(ex.getMessage()),
+                        nextRetryAt == null ? null : Timestamp.from(nextRetryAt),
+                        null,
+                        null,
+                        event.eventId(),
+                        PROCESSING_STATUS
+                    ));
+                    publishFailureCounter.increment();
+                    publishFailureStandaloneCounter.increment();
+                    if (FAILED_STATUS.equals(nextStatus)) {
+                        log.warn("ledger outbox event permanently failed: eventId={}, retryCount={}, lastError={}",
+                            event.eventId(), nextRetryCount, trimError(ex.getMessage()));
+                    }
                 }
             }
-        }
+        });
     }
 
     private Map<String, List<OutboxEventRecord>> groupByAggregateId(List<OutboxEventRecord> events) {
@@ -271,14 +289,15 @@ public class LedgerOutboxPublisher {
                 SELECT created_at
                 FROM outbox_event
                 WHERE event_type IN ('LEDGER_APPEND', 'PROJECTION_UPDATE')
-                  AND status = ?
+                  AND status IN (?, ?)
                 ORDER BY created_at ASC
                 LIMIT 1
             """,
             rs -> rs.next()
                 ? Math.max(0L, Duration.between(rs.getTimestamp("created_at").toInstant(), now).getSeconds())
                 : 0L,
-            PENDING_STATUS
+            PENDING_STATUS,
+            PROCESSING_STATUS
         );
         oldestPendingAgeSecondsGauge.set(oldestAgeSeconds == null ? 0L : oldestAgeSeconds);
     }

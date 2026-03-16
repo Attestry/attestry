@@ -26,6 +26,7 @@ public class UserAuthSecurityConfig {
             .authorizeHttpRequests(auth -> auth
                 .requestMatchers("/auth/signup", "/auth/login", "/api-v1/auth/signup", "/api-v1/auth/login", "/error")
                 .permitAll()
+                .requestMatchers(HttpMethod.POST, "/experiments/outbox/**").permitAll()
                 .requestMatchers(
                     HttpMethod.GET,
                     "/products/passports/*",
