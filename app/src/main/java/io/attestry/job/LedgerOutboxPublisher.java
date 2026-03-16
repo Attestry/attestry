@@ -41,9 +41,16 @@ public class LedgerOutboxPublisher {
     private final KafkaTemplate<String, String> kafkaTemplate;
     private final AppKafkaProperties kafkaProperties;
     private final Clock clock;
+    private final Counter claimCounter;
+    private final Counter publishCounter;
     private final Counter publishSuccessCounter;
     private final Counter publishFailureCounter;
+    private final Counter publishSuccessStandaloneCounter;
+    private final Counter publishFailureStandaloneCounter;
+    private final Timer claimTimer;
     private final Timer publishTimer;
+    private final Timer finalizeTimer;
+    private final Timer batchTimer;
     private final AtomicLong pendingSizeGauge;
     private final AtomicLong processingSizeGauge;
     private final AtomicLong failedSizeGauge;
@@ -61,13 +68,27 @@ public class LedgerOutboxPublisher {
         this.kafkaTemplate = kafkaTemplate;
         this.kafkaProperties = kafkaProperties;
         this.clock = clock;
+        this.claimCounter = Counter.builder("ledger.outbox.claim.count")
+            .register(meterRegistry);
+        this.publishCounter = Counter.builder("ledger.outbox.publish.count")
+            .register(meterRegistry);
         this.publishSuccessCounter = Counter.builder("ledger.outbox.publish.count")
             .tag("result", "success")
             .register(meterRegistry);
         this.publishFailureCounter = Counter.builder("ledger.outbox.publish.count")
             .tag("result", "failure")
             .register(meterRegistry);
+        this.publishSuccessStandaloneCounter = Counter.builder("ledger.outbox.publish.success.count")
+            .register(meterRegistry);
+        this.publishFailureStandaloneCounter = Counter.builder("ledger.outbox.publish.failure.count")
+            .register(meterRegistry);
+        this.claimTimer = Timer.builder("ledger.outbox.claim.duration")
+            .register(meterRegistry);
         this.publishTimer = Timer.builder("ledger.outbox.publish.duration")
+            .register(meterRegistry);
+        this.finalizeTimer = Timer.builder("ledger.outbox.finalize.duration")
+            .register(meterRegistry);
+        this.batchTimer = Timer.builder("ledger.outbox.batch.duration")
             .register(meterRegistry);
         this.pendingSizeGauge = meterRegistry.gauge("ledger.outbox.pending.size", new AtomicLong(0));
         this.processingSizeGauge = meterRegistry.gauge("ledger.outbox.processing.size", new AtomicLong(0));
@@ -80,13 +101,13 @@ public class LedgerOutboxPublisher {
     @Transactional
     public void publishPending() {
         refreshBacklogMetrics();
-        publishTimer.record(this::doPublishPending);
+        batchTimer.record(this::doPublishPending);
         refreshBacklogMetrics();
     }
 
     private void doPublishPending() {
         Instant now = Instant.now(clock);
-        List<OutboxEventRecord> pending = jdbcTemplate.query(
+        List<OutboxEventRecord> pending = claimTimer.record(() -> jdbcTemplate.query(
             """
                 WITH claimed AS (
                     SELECT event_id
@@ -115,7 +136,8 @@ public class LedgerOutboxPublisher {
             PROCESSING_STATUS,
             Timestamp.from(now),
             processingOwner
-        );
+        ));
+        claimCounter.increment(pending.size());
 
         Map<String, List<OutboxEventRecord>> groupedByAggregate = groupByAggregateId(pending);
         List<CompletableFuture<List<PublishAttempt>>> groupFutures = groupedByAggregate.values().stream()
@@ -129,11 +151,12 @@ public class LedgerOutboxPublisher {
 
         for (PublishAttempt attempt : attempts) {
             OutboxEventRecord event = attempt.event();
+            publishCounter.increment();
             try {
                 if (attempt.error() != null) {
                     throw attempt.error();
                 }
-                jdbcTemplate.update(
+                finalizeTimer.record(() -> jdbcTemplate.update(
                     """
                         UPDATE outbox_event
                         SET status = ?, last_error = ?, published_at = ?, next_retry_at = ?,
@@ -148,8 +171,9 @@ public class LedgerOutboxPublisher {
                     null,
                     event.eventId(),
                     PROCESSING_STATUS
-                );
+                ));
                 publishSuccessCounter.increment();
+                publishSuccessStandaloneCounter.increment();
             } catch (Throwable ex) {
                 int nextRetryCount = event.retryCount() + 1;
                 String nextStatus = nextRetryCount >= kafkaProperties.getOutbox().getMaxRetries()
@@ -158,7 +182,7 @@ public class LedgerOutboxPublisher {
                 Instant nextRetryAt = PENDING_STATUS.equals(nextStatus)
                     ? computeNextRetryAt(now, nextRetryCount)
                     : null;
-                jdbcTemplate.update(
+                finalizeTimer.record(() -> jdbcTemplate.update(
                     """
                         UPDATE outbox_event
                         SET status = ?, retry_count = ?, last_error = ?, next_retry_at = ?,
@@ -173,8 +197,9 @@ public class LedgerOutboxPublisher {
                     null,
                     event.eventId(),
                     PROCESSING_STATUS
-                );
+                ));
                 publishFailureCounter.increment();
+                publishFailureStandaloneCounter.increment();
                 if (FAILED_STATUS.equals(nextStatus)) {
                     log.warn("ledger outbox event permanently failed: eventId={}, retryCount={}, lastError={}",
                         event.eventId(), nextRetryCount, trimError(ex.getMessage()));
@@ -195,7 +220,7 @@ public class LedgerOutboxPublisher {
         List<PublishAttempt> attempts = new ArrayList<>(events.size());
         for (OutboxEventRecord event : events) {
             try {
-                publishToTopicsAsync(event).join();
+                publishTimer.record(() -> publishToTopicsAsync(event).join());
                 attempts.add(new PublishAttempt(event, null));
             } catch (Throwable ex) {
                 attempts.add(new PublishAttempt(event, ex));

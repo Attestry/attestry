@@ -1,6 +1,8 @@
 package io.attestry.job;
 
 import io.attestry.config.AppKafkaProperties;
+import io.micrometer.core.instrument.Counter;
+import io.micrometer.core.instrument.MeterRegistry;
 import java.sql.Timestamp;
 import java.time.Clock;
 import java.time.Instant;
@@ -22,15 +24,22 @@ public class LedgerOutboxRecoveryScheduler {
     private final JdbcTemplate jdbcTemplate;
     private final AppKafkaProperties kafkaProperties;
     private final Clock clock;
+    private final Counter recoveredCounter;
+    private final Counter processingTimeoutCounter;
 
     public LedgerOutboxRecoveryScheduler(
         JdbcTemplate jdbcTemplate,
         AppKafkaProperties kafkaProperties,
-        Clock clock
+        Clock clock,
+        MeterRegistry meterRegistry
     ) {
         this.jdbcTemplate = jdbcTemplate;
         this.kafkaProperties = kafkaProperties;
         this.clock = clock;
+        this.recoveredCounter = Counter.builder("ledger.outbox.recovered.count")
+            .register(meterRegistry);
+        this.processingTimeoutCounter = Counter.builder("ledger.outbox.processing.timeout.count")
+            .register(meterRegistry);
     }
 
     @Scheduled(cron = "${app.kafka.outbox.recovery-cron:*/30 * * * * *}")
@@ -53,6 +62,8 @@ public class LedgerOutboxRecoveryScheduler {
             Timestamp.from(threshold)
         );
         if (recovered > 0) {
+            recoveredCounter.increment(recovered);
+            processingTimeoutCounter.increment(recovered);
             log.warn("recovered stuck outbox events: count={}, threshold={}", recovered, threshold);
         }
     }
