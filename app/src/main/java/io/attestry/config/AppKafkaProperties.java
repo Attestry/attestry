@@ -50,6 +50,7 @@ public class AppKafkaProperties {
         private int batchSize = 100;
         private int maxRetries = 10;
         private int cleanupRetentionDays = 7;
+        private int processingTimeoutSeconds = 300;
 
         public int getBatchSize() {
             return batchSize;
@@ -73,6 +74,14 @@ public class AppKafkaProperties {
 
         public void setCleanupRetentionDays(int cleanupRetentionDays) {
             this.cleanupRetentionDays = cleanupRetentionDays;
+        }
+
+        public int getProcessingTimeoutSeconds() {
+            return processingTimeoutSeconds;
+        }
+
+        public void setProcessingTimeoutSeconds(int processingTimeoutSeconds) {
+            this.processingTimeoutSeconds = processingTimeoutSeconds;
         }
     }
 }

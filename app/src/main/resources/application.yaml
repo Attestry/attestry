@@ -77,6 +77,7 @@ app:
       batch-size: ${KAFKA_OUTBOX_BATCH_SIZE:100}
       max-retries: ${KAFKA_OUTBOX_MAX_RETRIES:10}
       cleanup-retention-days: ${KAFKA_OUTBOX_CLEANUP_RETENTION_DAYS:7}
+      processing-timeout-seconds: ${KAFKA_OUTBOX_PROCESSING_TIMEOUT_SECONDS:300}
   product:
     public-base-url: ${PRODUCT_PUBLIC_BASE_URL:http://localhost:5174}
     passport-permission-projection:
@@ -91,7 +92,7 @@ app:
   workflow:
     read-projection:
       consumer-group-id: ${WORKFLOW_READ_PROJECTION_CONSUMER_GROUP_ID:workflow-product-read-projection-consumer}
-      listener-concurrency: ${WORKFLOW_READ_PROJECTION_LISTENER_CONCURRENCY:1}
+      listener-concurrency: ${WORKFLOW_READ_PROJECTION_LISTENER_CONCURRENCY:2}
       kafka:
         source-topic: ${WORKFLOW_READ_PROJECTION_SOURCE_TOPIC:product.projection.v1}
         dlq-topic: ${WORKFLOW_READ_PROJECTION_DLQ_TOPIC:product.projection.v1.dlq}
