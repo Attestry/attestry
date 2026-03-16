@@ -12,5 +12,7 @@ public interface ProductAuthorizationPort {
 
     void assertOwnerRiskClearAllowed(ProductActor actor);
 
+    void assertOwnerRetireAllowed(ProductActor actor);
+
     void assertPassportPermissionGrantAllowed(ProductActor actor);
 }

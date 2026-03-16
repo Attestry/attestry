@@ -35,6 +35,7 @@ public static final String TENANT_INVITATION_CREATE = "TENANT_INVITATION_CREATE"
     public static final String OWNER_TRANSFER_ACCEPT = "OWNER_TRANSFER_ACCEPT";
     public static final String OWNER_RISK_FLAG = "OWNER_RISK_FLAG";
     public static final String OWNER_RISK_CLEAR = "OWNER_RISK_CLEAR";
+    public static final String OWNER_RETIRE = "OWNER_RETIRE";
     public static final String PURCHASE_CLAIM_APPROVE = "PURCHASE_CLAIM_APPROVE";
     public static final String OWNER_SERVICE_CREATE = "OWNER_SERVICE_CREATE";
     public static final String SERVICE_COMPLETE = "SERVICE_COMPLETE";

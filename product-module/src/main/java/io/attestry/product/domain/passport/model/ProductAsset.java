@@ -23,6 +23,7 @@ public class ProductAsset {
     private Instant voidedAt;
     private VoidReason voidedReason;
     private String voidedNote;
+    private Instant retiredAt;
     private Instant stolenAt;
     private Instant lostAt;
     private String riskReportedBy;
@@ -43,6 +44,7 @@ public class ProductAsset {
         Instant voidedAt,
         VoidReason voidedReason,
         String voidedNote,
+        Instant retiredAt,
         Instant stolenAt,
         Instant lostAt,
         String riskReportedBy,
@@ -62,6 +64,7 @@ public class ProductAsset {
         this.voidedAt = voidedAt;
         this.voidedReason = voidedReason;
         this.voidedNote = voidedNote;
+        this.retiredAt = retiredAt;
         this.stolenAt = stolenAt;
         this.lostAt = lostAt;
         this.riskReportedBy = riskReportedBy;
@@ -83,7 +86,7 @@ public class ProductAsset {
             AssetState.ACTIVE,
             RiskFlag.NONE,
             now,
-            null, null, null,
+            null, null, null, null,
             null, null, null, null
         );
     }
@@ -103,6 +106,7 @@ public class ProductAsset {
         Instant voidedAt,
         VoidReason voidedReason,
         String voidedNote,
+        Instant retiredAt,
         Instant stolenAt,
         Instant lostAt,
         String riskReportedBy,
@@ -112,7 +116,7 @@ public class ProductAsset {
             assetId, serialNumber, modelId, modelName,
             manufacturedAt, productionBatch, factoryCode, componentRootHash,
             assetState, riskFlag, createdAt,
-            voidedAt, voidedReason, voidedNote,
+            voidedAt, voidedReason, voidedNote, retiredAt,
             stolenAt, lostAt, riskReportedBy, policeReportNo
         );
     }
@@ -120,11 +124,18 @@ public class ProductAsset {
     // --- Behaviors ---
 
     public void voidAsset(VoidReason reason, String note, Instant now) {
-        assertActive();
+        assertMutableForVoid();
         this.assetState = AssetState.VOIDED;
         this.voidedAt = now;
         this.voidedReason = reason;
         this.voidedNote = note;
+        this.riskFlag = RiskFlag.NONE;
+    }
+
+    public void retire(Instant now) {
+        assertMutableForRetire();
+        this.assetState = AssetState.RETIRED;
+        this.retiredAt = now;
         this.riskFlag = RiskFlag.NONE;
     }
 
@@ -156,9 +167,47 @@ public class ProductAsset {
     // --- Assertions ---
 
     private void assertActive() {
-        if (assetState != AssetState.ACTIVE) {
+        if (assetState == AssetState.VOIDED) {
             throw new ProductDomainException(ProductErrorCode.ASSET_ALREADY_VOIDED,
                 "Asset is already voided: " + assetId);
+        }
+        if (assetState == AssetState.RETIRED) {
+            throw new ProductDomainException(ProductErrorCode.ASSET_ALREADY_RETIRED,
+                "Asset is already retired: " + assetId);
+        }
+        if (assetState != AssetState.ACTIVE) {
+            throw new ProductDomainException(ProductErrorCode.INVALID_REQUEST,
+                "Asset is not active: " + assetId);
+        }
+    }
+
+    private void assertMutableForVoid() {
+        if (assetState == AssetState.VOIDED) {
+            throw new ProductDomainException(ProductErrorCode.ASSET_ALREADY_VOIDED,
+                "Asset is already voided: " + assetId);
+        }
+        if (assetState == AssetState.RETIRED) {
+            throw new ProductDomainException(ProductErrorCode.ASSET_ALREADY_RETIRED,
+                "Retired asset cannot be voided: " + assetId);
+        }
+        if (assetState != AssetState.ACTIVE) {
+            throw new ProductDomainException(ProductErrorCode.INVALID_REQUEST,
+                "Asset is not active: " + assetId);
+        }
+    }
+
+    private void assertMutableForRetire() {
+        if (assetState == AssetState.RETIRED) {
+            throw new ProductDomainException(ProductErrorCode.ASSET_ALREADY_RETIRED,
+                "Asset is already retired: " + assetId);
+        }
+        if (assetState == AssetState.VOIDED) {
+            throw new ProductDomainException(ProductErrorCode.ASSET_ALREADY_VOIDED,
+                "Voided asset cannot be retired: " + assetId);
+        }
+        if (assetState != AssetState.ACTIVE) {
+            throw new ProductDomainException(ProductErrorCode.INVALID_REQUEST,
+                "Asset is not active: " + assetId);
         }
     }
 
@@ -185,6 +234,7 @@ public class ProductAsset {
     public Instant getVoidedAt() { return voidedAt; }
     public VoidReason getVoidedReason() { return voidedReason; }
     public String getVoidedNote() { return voidedNote; }
+    public Instant getRetiredAt() { return retiredAt; }
     public Instant getStolenAt() { return stolenAt; }
     public Instant getLostAt() { return lostAt; }
     public String getRiskReportedBy() { return riskReportedBy; }

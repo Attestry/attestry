@@ -68,7 +68,8 @@ class AuthApplicationServiceTest {
             PermissionCodes.OWNER_TRANSFER_CREATE,
             PermissionCodes.OWNER_TRANSFER_ACCEPT,
             PermissionCodes.OWNER_RISK_FLAG,
-            PermissionCodes.OWNER_RISK_CLEAR
+            PermissionCodes.OWNER_RISK_CLEAR,
+            PermissionCodes.OWNER_RETIRE
         ));
         Clock clock = Clock.fixed(Instant.parse("2026-02-25T00:00:00Z"), ZoneOffset.UTC);
         LoginContextResolver loginContextResolver = new LoginContextResolver(
@@ -146,7 +147,8 @@ class AuthApplicationServiceTest {
             PermissionCodes.OWNER_TRANSFER_CREATE,
             PermissionCodes.OWNER_TRANSFER_ACCEPT,
             PermissionCodes.OWNER_RISK_FLAG,
-            PermissionCodes.OWNER_RISK_CLEAR
+            PermissionCodes.OWNER_RISK_CLEAR,
+            PermissionCodes.OWNER_RETIRE
         ), principal.scopes());
     }
 

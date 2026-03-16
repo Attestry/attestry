@@ -59,6 +59,7 @@ public class StaticPermissionCatalog implements PermissionCatalog {
         add(map, PermissionCodes.OWNER_TRANSFER_ACCEPT, "Owner Transfer Accept", "Accept owner transfer", "owner", "transfer_accept");
         add(map, PermissionCodes.OWNER_RISK_FLAG, "Owner Risk Flag", "Flag owner risk", "owner", "risk_flag");
         add(map, PermissionCodes.OWNER_RISK_CLEAR, "Owner Risk Clear", "Clear owner risk", "owner", "risk_clear");
+        add(map, PermissionCodes.OWNER_RETIRE, "Owner Retire", "Retire owned asset", "owner", "retire");
         add(map, PermissionCodes.PURCHASE_CLAIM_APPROVE, "Purchase Claim Approve", "Approve purchase claims", "claim", "approve");
         add(map, PermissionCodes.OWNER_SERVICE_CREATE, "Owner Service Create", "Create service request as owner", "owner", "service_create");
         add(map, PermissionCodes.SERVICE_COMPLETE, "Service Complete", "Complete service request as provider", "service", "complete");

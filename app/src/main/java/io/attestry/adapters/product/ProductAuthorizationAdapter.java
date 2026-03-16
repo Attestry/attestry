@@ -14,6 +14,7 @@ public class ProductAuthorizationAdapter implements ProductAuthorizationPort {
     private static final String BRAND_VOID = "BRAND_VOID";
     private static final String OWNER_RISK_FLAG = "OWNER_RISK_FLAG";
     private static final String OWNER_RISK_CLEAR = "OWNER_RISK_CLEAR";
+    private static final String OWNER_RETIRE = "OWNER_RETIRE";
     private static final String PASSPORT_PERMISSION_GRANT = "PASSPORT_PERMISSION_GRANT";
 
     private final AuthorizationCheckPort authorizationCheckPort;
@@ -71,6 +72,19 @@ public class ProductAuthorizationAdapter implements ProductAuthorizationPort {
             AuthorizationCheckPort.DecisionMode.TOKEN_SNAPSHOT,
             ProductErrorCode.FORBIDDEN_RISK_FLAG,
             "OWNER_RISK_CLEAR scope is required"
+        );
+    }
+
+    @Override
+    public void assertOwnerRetireAllowed(ProductActor actor) {
+        assertAllowed(
+            actor,
+            actor.tenantId(),
+            OWNER_RETIRE,
+            null,
+            AuthorizationCheckPort.DecisionMode.TOKEN_SNAPSHOT,
+            ProductErrorCode.FORBIDDEN_RETIRE,
+            "OWNER_RETIRE scope is required"
         );
     }
 
