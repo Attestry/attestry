@@ -341,6 +341,58 @@ class UserAuthApiIntegrationTests {
     }
 
     @Test
+    void signupShouldReturnValidationMessageWhenPasswordRuleIsViolated() throws Exception {
+        String email = "invalid-password@test.com";
+
+        mockMvc.perform(post("/auth/signup/email-verifications")
+                .contentType(MediaType.APPLICATION_JSON)
+                .content(json(Map.of("email", email))))
+            .andExpect(status().isCreated());
+
+        mockMvc.perform(post("/auth/signup/email-verifications/confirm")
+                .contentType(MediaType.APPLICATION_JSON)
+                .content(json(Map.of(
+                    "email", email,
+                    "code", "12345678"
+                ))))
+            .andExpect(status().isOk());
+
+        mockMvc.perform(post("/auth/signup")
+                .contentType(MediaType.APPLICATION_JSON)
+                .content(json(Map.of(
+                    "email", email,
+                    "password", "qwer1234",
+                    "phone", "010-1234-5678"
+                ))))
+            .andExpect(status().isBadRequest())
+            .andExpect(jsonPath("$.error.code").value("INVALID_INPUT"))
+            .andExpect(jsonPath("$.error.message").value("비밀번호는 8자 이상이며 영문 대문자를 1자 이상 포함해야 합니다"));
+    }
+
+    @Test
+    void signupEmailVerificationRequestShouldReturnLocalizedMessageWhenEmailAlreadyExists() throws Exception {
+        String email = "duplicate-email@test.com";
+        signUp(email, "DuplicatePw123", "010-1234-5678");
+
+        mockMvc.perform(post("/auth/signup/email-verifications")
+                .contentType(MediaType.APPLICATION_JSON)
+                .content(json(Map.of("email", email))))
+            .andExpect(status().isConflict())
+            .andExpect(jsonPath("$.error.code").value("DUPLICATE_EMAIL"))
+            .andExpect(jsonPath("$.error.message").value("이미 등록된 이메일입니다"));
+    }
+
+    @Test
+    void signupEmailVerificationRequestShouldRejectInvalidTopLevelDomain() throws Exception {
+        mockMvc.perform(post("/auth/signup/email-verifications")
+                .contentType(MediaType.APPLICATION_JSON)
+                .content(json(Map.of("email", "qwer@asdf.123"))))
+            .andExpect(status().isBadRequest())
+            .andExpect(jsonPath("$.error.code").value("INVALID_INPUT"))
+            .andExpect(jsonPath("$.error.message").value("올바른 이메일 형식을 입력해주세요."));
+    }
+
+    @Test
     void membershipUpdateShouldWork() throws Exception {
         String tenantId = UUID.randomUUID().toString();
         String adminUserId = UUID.randomUUID().toString();
@@ -540,7 +592,96 @@ class UserAuthApiIntegrationTests {
             .andExpect(jsonPath("$.data.roleCodes").value(org.hamcrest.Matchers.hasItem("TENANT_OWNER")));
     }
 
+    @Test
+    void membershipStatusApiShouldRejectSuspendingLastActiveOwner() throws Exception {
+        String tenantId = UUID.randomUUID().toString();
+        String ownerUserId = UUID.randomUUID().toString();
+
+        tenantRepository.save(new TenantJpaEntity(tenantId, "Tenant F", "KR", null, TenantType.BRAND, TenantStatus.ACTIVE));
+
+        userAccountRepository.save(new UserAccountJpaEntity(
+            ownerUserId,
+            "last-owner@test.com",
+            passwordHasher.hash("OwnerPw123"),
+            "010-9999-3333",
+            UserStatus.ACTIVE,
+            VerificationLevel.NONE
+        ));
+
+        MembershipJpaEntity ownerMembership = membershipRepository.save(new MembershipJpaEntity(
+            UUID.randomUUID().toString(),
+            ownerUserId,
+            tenantId,
+            TenantType.BRAND,
+            MembershipRole.ADMIN,
+            MembershipStatus.ACTIVE,
+            TenantStatus.ACTIVE
+        ));
+        assignRoleToMembership(ownerMembership.getMembershipId(), "role-tenant-owner");
+        bindTenantOwnerTemplate(tenantId, ownerUserId);
+
+        String ownerToken = login("last-owner@test.com", "OwnerPw123", tenantId);
+
+        mockMvc.perform(patch("/memberships/{id}/status", ownerMembership.getMembershipId())
+                .header("Authorization", bearer(ownerToken))
+                .contentType(MediaType.APPLICATION_JSON)
+                .content(json(Map.of("status", "SUSPENDED"))))
+            .andExpect(status().isBadRequest())
+            .andExpect(jsonPath("$.error.code").value("LAST_ACTIVE_OWNER_REQUIRED"))
+            .andExpect(jsonPath("$.error.message").value("시스템에 최소 한 명의 관리자가 필요합니다."));
+    }
+
+    @Test
+    void roleAssignmentApiShouldRejectRevokingTenantOwnerFromLastActiveOwner() throws Exception {
+        String tenantId = UUID.randomUUID().toString();
+        String ownerUserId = UUID.randomUUID().toString();
+
+        tenantRepository.save(new TenantJpaEntity(tenantId, "Tenant G", "KR", null, TenantType.BRAND, TenantStatus.ACTIVE));
+
+        userAccountRepository.save(new UserAccountJpaEntity(
+            ownerUserId,
+            "last-owner-role@test.com",
+            passwordHasher.hash("OwnerPw123"),
+            "010-9999-4444",
+            UserStatus.ACTIVE,
+            VerificationLevel.NONE
+        ));
+
+        MembershipJpaEntity ownerMembership = membershipRepository.save(new MembershipJpaEntity(
+            UUID.randomUUID().toString(),
+            ownerUserId,
+            tenantId,
+            TenantType.BRAND,
+            MembershipRole.ADMIN,
+            MembershipStatus.ACTIVE,
+            TenantStatus.ACTIVE
+        ));
+        assignRoleToMembership(ownerMembership.getMembershipId(), "role-tenant-owner");
+        bindTenantOwnerTemplate(tenantId, ownerUserId);
+
+        String ownerToken = login("last-owner-role@test.com", "OwnerPw123", tenantId);
+
+        mockMvc.perform(delete("/memberships/{id}/roles/{roleCode}", ownerMembership.getMembershipId(), "TENANT_OWNER")
+                .header("Authorization", bearer(ownerToken)))
+            .andExpect(status().isBadRequest())
+            .andExpect(jsonPath("$.error.code").value("LAST_ACTIVE_OWNER_REQUIRED"))
+            .andExpect(jsonPath("$.error.message").value("시스템에 최소 한 명의 관리자가 필요합니다."));
+    }
+
     private void signUp(String email, String password, String phone) throws Exception {
+        mockMvc.perform(post("/auth/signup/email-verifications")
+                .contentType(MediaType.APPLICATION_JSON)
+                .content(json(Map.of("email", email))))
+            .andExpect(status().isCreated());
+
+        mockMvc.perform(post("/auth/signup/email-verifications/confirm")
+                .contentType(MediaType.APPLICATION_JSON)
+                .content(json(Map.of(
+                    "email", email,
+                    "code", "12345678"
+                ))))
+            .andExpect(status().isOk());
+
         mockMvc.perform(post("/auth/signup")
                 .contentType(MediaType.APPLICATION_JSON)
                 .content(json(Map.of(

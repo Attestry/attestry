@@ -40,9 +40,9 @@ public class DelegationGrantPolicy {
             throw new WorkflowDomainException(WorkflowErrorCode.FORBIDDEN_SCOPE,
                 "Source tenant does not own the passport");
         }
-        if (context.passportAssetState() == WorkflowAssetState.VOIDED) {
+        if (context.passportAssetState() != WorkflowAssetState.ACTIVE) {
             throw new WorkflowDomainException(WorkflowErrorCode.INVALID_STATE,
-                "VOIDED passport cannot be delegated");
+                "Only ACTIVE passport can be delegated");
         }
     }
 

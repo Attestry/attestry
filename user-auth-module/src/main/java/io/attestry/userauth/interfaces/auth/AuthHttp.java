@@ -4,14 +4,18 @@ import io.attestry.commonlib.web.CurrentActor;
 import io.attestry.commonlib.infrastructure.ApiResponse;
 import io.attestry.userauth.application.dto.result.AuthTokenResult;
 import io.attestry.userauth.application.dto.result.SignUpResult;
+import io.attestry.userauth.application.dto.result.SignUpEmailVerificationResult;
 import io.attestry.userauth.application.dto.command.LoginCommand;
 import io.attestry.userauth.application.dto.command.SignUpCommand;
 import io.attestry.userauth.application.usecase.auth.AuthUseCase;
 import io.attestry.userauth.application.dto.command.ActorContext;
+import io.attestry.userauth.interfaces.auth.dto.request.ConfirmSignUpEmailVerificationRequest;
 import io.attestry.userauth.interfaces.auth.dto.request.LoginRequest;
+import io.attestry.userauth.interfaces.auth.dto.request.SendSignUpEmailVerificationRequest;
 import io.attestry.userauth.interfaces.auth.dto.request.SignUpRequest;
 import io.attestry.userauth.interfaces.auth.dto.request.TenantSwitchRequest;
 import io.attestry.userauth.interfaces.auth.dto.response.LoginResponse;
+import io.attestry.userauth.interfaces.auth.dto.response.SignUpEmailVerificationResponse;
 import io.attestry.userauth.interfaces.auth.dto.response.SignUpResponse;
 import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
@@ -29,6 +33,26 @@ import org.springframework.web.bind.annotation.RestController;
 public class AuthHttp {
 
     private final AuthUseCase authApplicationService;
+
+    @PostMapping("/signup/email-verifications")
+    @ResponseStatus(HttpStatus.CREATED)
+    public ApiResponse<SignUpEmailVerificationResponse> requestSignUpEmailVerification(
+        @Valid @RequestBody SendSignUpEmailVerificationRequest request
+    ) {
+        SignUpEmailVerificationResult result = authApplicationService.requestSignUpEmailVerification(request.email());
+        return ApiResponse.success(SignUpEmailVerificationResponse.from(result));
+    }
+
+    @PostMapping("/signup/email-verifications/confirm")
+    public ApiResponse<SignUpEmailVerificationResponse> confirmSignUpEmailVerification(
+        @Valid @RequestBody ConfirmSignUpEmailVerificationRequest request
+    ) {
+        SignUpEmailVerificationResult result = authApplicationService.confirmSignUpEmailVerification(
+            request.email(),
+            request.code()
+        );
+        return ApiResponse.success(SignUpEmailVerificationResponse.from(result));
+    }
 
     @PostMapping("/signup")
     @ResponseStatus(HttpStatus.CREATED)

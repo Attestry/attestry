@@ -19,6 +19,11 @@ app:
     provider: MEMORY
     bucket: test-onboarding
   user-auth:
+    signup-email-verification:
+      mail:
+        provider: LOG
+        enabled: false
+      fixed-code: 12345678
     invitation:
       mail:
         provider: LOG

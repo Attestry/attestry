@@ -178,6 +178,47 @@ class DelegationServiceTest {
     }
 
     @Test
+    void grant_rejectsNonRetailPartnerForRetailTransferPermission() {
+        GrantDelegationCommand command = new GrantDelegationCommand(
+            "pl-1",
+            "PASSPORT",
+            "passport-1",
+            "RETAIL_TRANSFER_CREATE",
+            Instant.parse("2026-04-01T00:00:00Z"),
+            "note"
+        );
+        PartnerLink link = new PartnerLink(
+            "pl-1",
+            "source-tenant",
+            "target-tenant",
+            PartnerType.SERVICE,
+            PartnerLinkStatus.ACTIVE,
+            "user-1",
+            Instant.parse("2026-03-01T00:00:00Z"),
+            "approver-1",
+            Instant.parse("2026-03-02T00:00:00Z"),
+            null,
+            null,
+            null
+        );
+
+        doNothing().when(authorizationSupport).assertTenantContext(PRINCIPAL, "source-tenant");
+        doNothing().when(authorizationSupport).assertLivePermission(
+            PRINCIPAL, "source-tenant", PermissionCodes.DELEGATION_GRANT, "delegation:grant"
+        );
+        when(relationshipValidator.assertEligibleBySource("pl-1", "source-tenant")).thenReturn(link);
+
+        WorkflowDomainException ex = assertThrows(
+            WorkflowDomainException.class,
+            () -> service.grant(PRINCIPAL, "source-tenant", command)
+        );
+
+        assertEquals(WorkflowErrorCode.PARTNER_LINK_INVALID_TYPE, ex.getErrorCode());
+        verify(delegationRepository, never()).save(any());
+        verify(permissionProjectionPort, never()).onDelegationGranted(any(), any());
+    }
+
+    @Test
     void revoke_savesDelegationAndSyncsProjection() {
         Delegation active = Delegation.grant(
             "pl-1",

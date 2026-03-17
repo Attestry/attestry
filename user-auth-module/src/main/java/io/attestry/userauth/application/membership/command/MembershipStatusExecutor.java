@@ -4,6 +4,7 @@ import io.attestry.userauth.application.dto.command.ActorContext;
 import io.attestry.userauth.application.dto.command.UpdateMembershipStatusCommand;
 import io.attestry.userauth.application.dto.result.MembershipResult;
 import io.attestry.userauth.application.membership.assembler.MembershipResultAssembler;
+import io.attestry.userauth.application.membership.policy.ActiveOwnerGuard;
 import io.attestry.userauth.application.membership.policy.MembershipAccessPolicy;
 import io.attestry.userauth.application.port.auth.AccessTokenPort;
 import io.attestry.userauth.application.port.membership.MembershipPort;
@@ -19,6 +20,7 @@ public class MembershipStatusExecutor {
 
     private final MembershipPort membershipPort;
     private final MembershipAccessPolicy accessPolicy;
+    private final ActiveOwnerGuard activeOwnerGuard;
     private final MembershipResultAssembler resultAssembler;
     private final AccessTokenPort accessTokenPort;
 
@@ -39,6 +41,7 @@ public class MembershipStatusExecutor {
             PermissionCodes.TENANT_MEMBERSHIP_ENFORCE,
             "membership:" + membershipId
         );
+        activeOwnerGuard.assertCanUpdateStatus(current, command.status());
 
         Membership updated = membershipPort.updateMembership(
             tenantId,

@@ -7,6 +7,7 @@ import io.attestry.commonlib.infrastructure.ErrorResponse;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.access.AccessDeniedException;
+import org.springframework.web.bind.MethodArgumentNotValidException;
 import org.springframework.web.bind.annotation.ExceptionHandler;
 import org.springframework.web.bind.annotation.RestControllerAdvice;
 
@@ -33,6 +34,17 @@ public class WorkflowApiExceptionHandler {
     public ResponseEntity<ApiResponse<Void>> handleAccessDenied(AccessDeniedException ex) {
         return ResponseEntity.status(HttpStatus.FORBIDDEN)
             .body(ApiResponse.error("ACCESS_DENIED", ex.getMessage()));
+    }
+
+    @ExceptionHandler(MethodArgumentNotValidException.class)
+    public ResponseEntity<ApiResponse<Void>> handleValidation(MethodArgumentNotValidException ex) {
+        String message = ex.getBindingResult().getFieldErrors().stream()
+            .map(error -> error.getDefaultMessage())
+            .filter(msg -> msg != null && !msg.isBlank())
+            .findFirst()
+            .orElse("입력값을 다시 확인해주세요.");
+        return ResponseEntity.badRequest()
+            .body(ApiResponse.error("INVALID_REQUEST", message));
     }
 
     @ExceptionHandler(Exception.class)

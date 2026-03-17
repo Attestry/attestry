@@ -15,6 +15,7 @@ import io.attestry.workflow.domain.delegation.model.Delegation;
 import io.attestry.workflow.domain.delegation.policy.DelegationGrantPolicy;
 import io.attestry.workflow.domain.delegation.repository.DelegationRepository;
 import io.attestry.workflow.domain.partner.model.PartnerLink;
+import io.attestry.workflow.domain.partner.model.PartnerType;
 import java.time.Clock;
 import java.time.Instant;
 import java.util.Optional;
@@ -46,6 +47,7 @@ public class DelegationService implements DelegationUseCase {
         PartnerLink partnerLink = relationshipValidator.assertEligibleBySource(
             command.partnerLinkId(), sourceTenantId
         );
+        assertPartnerTypeAllowed(command, partnerLink);
         String targetTenantId = partnerLink.targetTenantId();
         assertTenantsActive(sourceTenantId, targetTenantId);
 
@@ -68,6 +70,18 @@ public class DelegationService implements DelegationUseCase {
     private void assertTenantsActive(String sourceTenantId, String targetTenantId) {
         if (!tenantReadPort.existsActiveTenant(sourceTenantId) || !tenantReadPort.existsActiveTenant(targetTenantId)) {
             throw new WorkflowDomainException(WorkflowErrorCode.INVALID_REQUEST, "Tenant not found or inactive");
+        }
+    }
+
+    private void assertPartnerTypeAllowed(GrantDelegationCommand command, PartnerLink partnerLink) {
+        if (
+            "RETAIL_TRANSFER_CREATE".equals(command.permissionCode())
+                && partnerLink.partnerType() != PartnerType.RETAIL
+        ) {
+            throw new WorkflowDomainException(
+                WorkflowErrorCode.PARTNER_LINK_INVALID_TYPE,
+                "해당 파트너는 유통(판매) 권한이 없는 서비스 타입 업체입니다."
+            );
         }
     }
 

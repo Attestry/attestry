@@ -2,6 +2,7 @@ package io.attestry.userauth.application.usecase.auth;
 
 import io.attestry.userauth.application.dto.result.AuthTokenResult;
 import io.attestry.userauth.application.dto.result.SignUpResult;
+import io.attestry.userauth.application.dto.result.SignUpEmailVerificationResult;
 import io.attestry.userauth.application.dto.result.VerifyPhoneResult;
 import io.attestry.userauth.application.dto.command.LoginCommand;
 import io.attestry.userauth.application.dto.command.SignUpCommand;
@@ -9,6 +10,10 @@ import io.attestry.userauth.security.AuthPrincipal;
 
 public interface AuthUseCase {
     SignUpResult signUp(SignUpCommand command);
+
+    SignUpEmailVerificationResult requestSignUpEmailVerification(String email);
+
+    SignUpEmailVerificationResult confirmSignUpEmailVerification(String email, String code);
 
     AuthTokenResult login(LoginCommand command);
 

@@ -14,6 +14,7 @@ import java.util.Locale;
 import io.attestry.workflow.interfaces.partner.dto.request.CreatePartnerLinkRequest;
 import io.attestry.workflow.interfaces.partner.dto.request.ReasonRequest;
 import io.attestry.workflow.interfaces.partner.dto.response.PartnerLinkResponse;
+import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
 import org.springframework.http.HttpStatus;
 import org.springframework.security.access.prepost.PreAuthorize;
@@ -78,7 +79,7 @@ public class PartnerLinkHttp {
     public ApiResponse<PartnerLinkResponse> reject(
         @AuthenticationPrincipal AuthPrincipal principal,
         @PathVariable("id") String partnerLinkId,
-        @RequestBody ReasonRequest request
+        @Valid @RequestBody ReasonRequest request
     ) {
         return ApiResponse.success(PartnerLinkResponse.from(partnerLinkUseCase.reject(principal, partnerLinkId, request.reason())));
     }
@@ -106,7 +107,7 @@ public class PartnerLinkHttp {
     public ApiResponse<PartnerLinkResponse> terminate(
         @AuthenticationPrincipal AuthPrincipal principal,
         @PathVariable("id") String partnerLinkId,
-        @RequestBody ReasonRequest request
+        @Valid @RequestBody ReasonRequest request
     ) {
         return ApiResponse.success(PartnerLinkResponse.from(partnerLinkUseCase.terminate(principal, partnerLinkId, request.reason())));
     }

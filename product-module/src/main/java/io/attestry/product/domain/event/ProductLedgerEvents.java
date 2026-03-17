@@ -56,6 +56,22 @@ public final class ProductLedgerEvents {
         );
     }
 
+    public static OutboxEventEnvelope retired(ProductPassport passport, String actorId, Instant occurredAt) {
+        return new OutboxEventEnvelope(
+            "PRODUCT",
+            passport.getPassportId(),
+            "LIFECYCLE",
+            "RETIRED",
+            "OWNER",
+            actorId,
+            occurredAt,
+            Map.of(
+                "assetId", passport.getAsset().getAssetId()
+            ),
+            "retire-" + passport.getPassportId()
+        );
+    }
+
     public static OutboxEventEnvelope riskFlagged(ProductPassport passport, String actorId, Instant occurredAt) {
         ProductAsset asset = passport.getAsset();
         String action = asset.getRiskFlag() == RiskFlag.STOLEN ? "STOLEN_FLAGGED" : "LOST_FLAGGED";
