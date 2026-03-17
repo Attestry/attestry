@@ -6,6 +6,14 @@ public interface PassportManualNotificationPort {
 
     void send(PassportManualNotification notification);
 
+    record AttachmentReference(
+        String evidenceId,
+        String fileName,
+        String objectKey,
+        String contentType
+    ) {
+    }
+
     record ManualAttachment(
         String evidenceId,
         String fileName,
@@ -20,7 +28,7 @@ public interface PassportManualNotificationPort {
         String modelName,
         String message,
         String evidenceGroupId,
-        List<String> attachmentEvidenceIds,
+        List<AttachmentReference> attachmentFiles,
         List<ManualAttachment> attachments
     ) {
     }

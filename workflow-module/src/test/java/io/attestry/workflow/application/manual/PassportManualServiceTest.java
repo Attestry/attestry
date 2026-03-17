@@ -15,6 +15,7 @@ import io.attestry.userauth.domain.identity.model.VerificationLevel;
 import io.attestry.userauth.domain.membership.model.NotificationOutbox;
 import io.attestry.userauth.domain.membership.model.NotificationType;
 import io.attestry.userauth.domain.membership.model.PassportManualNotificationPayload;
+import io.attestry.userauth.domain.membership.model.PassportManualNotificationPayload.AttachmentPayload;
 import io.attestry.userauth.security.AuthPrincipal;
 import io.attestry.workflow.application.manual.command.SendPassportManualCommand;
 import io.attestry.workflow.application.manual.result.PassportManualRecipientResult;
@@ -125,7 +126,7 @@ class PassportManualServiceTest {
         assertEquals("Model A", payload.modelName());
         assertEquals("사용 설명입니다.", payload.message());
         assertEquals(null, payload.evidenceGroupId());
-        assertEquals(List.of(), payload.attachmentEvidenceIds());
+        assertEquals(List.of(), payload.attachments());
     }
 
     @Test
@@ -172,7 +173,15 @@ class PassportManualServiceTest {
         );
         assertEquals(null, payload.message());
         assertEquals("group-1", payload.evidenceGroupId());
-        assertEquals(List.of("evidence-1"), payload.attachmentEvidenceIds());
+        assertEquals(
+            List.of(new AttachmentPayload(
+                "evidence-1",
+                "test.pdf",
+                "passport-manual/test.pdf",
+                "application/pdf"
+            )),
+            payload.attachments()
+        );
     }
 
     @Test
