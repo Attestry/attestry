@@ -38,6 +38,16 @@ spring:
       missing-topics-fatal: false
 
 management:
+  endpoint:
+    health:
+      probes:
+        enabled: true
+      show-details: never
+  health:
+    livenessstate:
+      enabled: true
+    readinessstate:
+      enabled: true
   endpoints:
     web:
       exposure:
@@ -45,6 +55,8 @@ management:
   metrics:
     tags:
       application: attestry
+      service: ${MONITORING_SERVICE:${spring.application.name}}
+      environment: ${MONITORING_ENV:${spring.profiles.active:${spring.profiles.default:local}}}
 
 app:
   auth:
