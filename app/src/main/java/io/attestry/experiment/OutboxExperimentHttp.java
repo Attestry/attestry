@@ -40,9 +40,7 @@ public class OutboxExperimentHttp {
 
         String[] aggregateIds = new String[aggregateCount];
         for (int i = 0; i < aggregateCount; i++) {
-            aggregateIds[i] = request.fixedAggregatePrefix() != null
-                ? request.fixedAggregatePrefix() + "-" + i
-                : UUID.randomUUID().toString();
+            aggregateIds[i] = UUID.randomUUID().toString();
         }
 
         int inserted = 0;
@@ -140,8 +138,7 @@ public class OutboxExperimentHttp {
         String aggregateType,
         String eventType,
         String runId,
-        boolean sameAggregateBurst,
-        String fixedAggregatePrefix
+        boolean sameAggregateBurst
     ) {}
 
     record SeedResponse(int inserted, int aggregateCount, String[] aggregateIds, String runId) {}
