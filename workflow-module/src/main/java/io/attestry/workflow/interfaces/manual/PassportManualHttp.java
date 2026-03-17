@@ -50,20 +50,18 @@ public class PassportManualHttp {
         return ApiResponse.success(PassportManualRecipientResponse.from(result));
     }
 
-    @PostMapping("/tenants/{tenantId}/passports/{passportId}/manual-deliveries")
+    @PostMapping("/tenants/{tenantId}/passport-manuals/manual-deliveries")
     @ResponseStatus(HttpStatus.CREATED)
     @PreAuthorize("hasAuthority('SCOPE_BRAND_RELEASE')")
     public ApiResponse<SendPassportManualResponse> send(
         @AuthenticationPrincipal AuthPrincipal principal,
         @PathVariable("tenantId") String tenantId,
-        @PathVariable("passportId") String passportId,
         @Valid @RequestBody SendPassportManualRequest request
     ) {
         SendPassportManualResult result = passportManualUseCase.send(
             principal,
             tenantId,
-            passportId,
-            new SendPassportManualCommand(request.message(), request.evidenceGroupId())
+            new SendPassportManualCommand(request.passportIds(), request.message(), request.evidenceGroupId())
         );
         return ApiResponse.success(SendPassportManualResponse.from(result));
     }

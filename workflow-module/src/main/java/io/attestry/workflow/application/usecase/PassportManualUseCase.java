@@ -9,5 +9,5 @@ public interface PassportManualUseCase {
 
     PassportManualRecipientResult getRecipient(AuthPrincipal principal, String tenantId, String passportId);
 
-    SendPassportManualResult send(AuthPrincipal principal, String tenantId, String passportId, SendPassportManualCommand command);
+    SendPassportManualResult send(AuthPrincipal principal, String tenantId, SendPassportManualCommand command);
 }

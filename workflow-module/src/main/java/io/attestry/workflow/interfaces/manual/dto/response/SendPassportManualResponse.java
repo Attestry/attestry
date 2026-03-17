@@ -1,20 +1,32 @@
 package io.attestry.workflow.interfaces.manual.dto.response;
 
 import io.attestry.workflow.application.manual.result.SendPassportManualResult;
+import java.util.List;
 
 public record SendPassportManualResponse(
-    String passportId,
-    String recipientEmailMasked,
+    int queuedCount,
+    boolean hasAttachment,
     String evidenceGroupId,
-    boolean hasAttachment
+    List<PassportManualDeliveryResponse> deliveries
 ) {
 
     public static SendPassportManualResponse from(SendPassportManualResult result) {
         return new SendPassportManualResponse(
-            result.passportId(),
-            result.recipientEmailMasked(),
+            result.queuedCount(),
+            result.hasAttachment(),
             result.evidenceGroupId(),
-            result.hasAttachment()
+            result.deliveries().stream()
+                .map(delivery -> new PassportManualDeliveryResponse(
+                    delivery.passportId(),
+                    delivery.recipientEmailMasked()
+                ))
+                .toList()
         );
+    }
+
+    public record PassportManualDeliveryResponse(
+        String passportId,
+        String recipientEmailMasked
+    ) {
     }
 }

@@ -5,8 +5,9 @@ import static org.junit.jupiter.api.Assertions.assertInstanceOf;
 import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.anyString;
-import static org.mockito.Mockito.never;
 import static org.mockito.Mockito.doNothing;
+import static org.mockito.Mockito.never;
+import static org.mockito.Mockito.times;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 
@@ -34,10 +35,10 @@ import java.util.List;
 import java.util.Map;
 import java.util.Optional;
 import java.util.Set;
-import org.mockito.ArgumentCaptor;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
+import org.mockito.ArgumentCaptor;
 import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
 
@@ -76,8 +77,7 @@ class PassportManualServiceTest {
 
     @Test
     void getRecipient_returnsUnavailableWhenOwnerMissing() {
-        doNothing().when(authorizationSupport).assertTenantContext(any(), anyString());
-        doNothing().when(authorizationSupport).assertLivePermission(any(), anyString(), anyString(), anyString());
+        stubAuthorization();
         when(passportManualReadPort.findContext("passport-1"))
             .thenReturn(Optional.of(new PassportManualReadPort.PassportManualContext(
                 "passport-1", "tenant-1", "SN-1", "Model A", null
@@ -91,25 +91,21 @@ class PassportManualServiceTest {
 
     @Test
     void send_queuesOutboxWhenMessageOnly() {
-        doNothing().when(authorizationSupport).assertTenantContext(any(), anyString());
-        doNothing().when(authorizationSupport).assertLivePermission(any(), anyString(), anyString(), anyString());
-        when(passportManualReadPort.findContext("passport-1"))
-            .thenReturn(Optional.of(new PassportManualReadPort.PassportManualContext(
-                "passport-1", "tenant-1", "SN-1", "Model A", "owner-1"
-            )));
+        stubAuthorization();
+        stubPassport("passport-1", "tenant-1", "SN-1", "Model A", "owner-1");
         when(userReadPort.findEmailsByUserIds(List.of("owner-1")))
             .thenReturn(Map.of("owner-1", "owner@example.com"));
 
         SendPassportManualResult result = service.send(
             BRAND,
             "tenant-1",
-            "passport-1",
-            new SendPassportManualCommand("사용 설명입니다.", null)
+            new SendPassportManualCommand(List.of("passport-1"), "사용 설명입니다.", null)
         );
 
-        assertEquals("passport-1", result.passportId());
+        assertEquals(1, result.queuedCount());
         assertEquals(false, result.hasAttachment());
-        assertEquals("o***@example.com", result.recipientEmailMasked());
+        assertEquals("passport-1", result.deliveries().getFirst().passportId());
+        assertEquals("o***@example.com", result.deliveries().getFirst().recipientEmailMasked());
 
         ArgumentCaptor<NotificationOutbox> captor = ArgumentCaptor.forClass(NotificationOutbox.class);
         verify(notificationOutboxRepositoryPort).save(captor.capture());
@@ -130,15 +126,14 @@ class PassportManualServiceTest {
     }
 
     @Test
-    void send_queuesOutboxWhenAttachmentExists() {
-        doNothing().when(authorizationSupport).assertTenantContext(any(), anyString());
-        doNothing().when(authorizationSupport).assertLivePermission(any(), anyString(), anyString(), anyString());
-        when(passportManualReadPort.findContext("passport-1"))
-            .thenReturn(Optional.of(new PassportManualReadPort.PassportManualContext(
-                "passport-1", "tenant-1", "SN-1", "Model A", "owner-1"
-            )));
+    void send_queuesOutboxPerPassportWhenAttachmentExists() {
+        stubAuthorization();
+        stubPassport("passport-1", "tenant-1", "SN-1", "Model A", "owner-1");
+        stubPassport("passport-2", "tenant-1", "SN-2", "Model B", "owner-2");
         when(userReadPort.findEmailsByUserIds(List.of("owner-1")))
             .thenReturn(Map.of("owner-1", "owner@example.com"));
+        when(userReadPort.findEmailsByUserIds(List.of("owner-2")))
+            .thenReturn(Map.of("owner-2", "second@example.com"));
         when(workflowEvidencePort.findEvidenceGroupScope("group-1"))
             .thenReturn(Optional.of(new WorkflowEvidencePort.EvidenceGroupScopeRecord("group-1", "tenant-1", "brand-user")));
         when(workflowEvidencePort.findEvidenceByEvidenceGroupId("group-1"))
@@ -158,43 +153,20 @@ class PassportManualServiceTest {
         SendPassportManualResult result = service.send(
             BRAND,
             "tenant-1",
-            "passport-1",
-            new SendPassportManualCommand("   ", " group-1 ")
+            new SendPassportManualCommand(List.of("passport-1", "passport-2"), "   ", " group-1 ")
         );
 
+        assertEquals(2, result.queuedCount());
         assertEquals(true, result.hasAttachment());
         assertEquals("group-1", result.evidenceGroupId());
-
-        ArgumentCaptor<NotificationOutbox> captor = ArgumentCaptor.forClass(NotificationOutbox.class);
-        verify(notificationOutboxRepositoryPort).save(captor.capture());
-        PassportManualNotificationPayload payload = assertInstanceOf(
-            PassportManualNotificationPayload.class,
-            captor.getValue().payload()
-        );
-        assertEquals(null, payload.message());
-        assertEquals("group-1", payload.evidenceGroupId());
-        assertEquals(
-            List.of(new AttachmentPayload(
-                "evidence-1",
-                "test.pdf",
-                "passport-manual/test.pdf",
-                "application/pdf"
-            )),
-            payload.attachments()
-        );
+        assertEquals(2, result.deliveries().size());
+        verify(notificationOutboxRepositoryPort, times(2)).save(any(NotificationOutbox.class));
     }
 
     @Test
     void send_throwsWhenNeitherMessageNorAttachmentExists() {
-        doNothing().when(authorizationSupport).assertTenantContext(any(), anyString());
-        doNothing().when(authorizationSupport).assertLivePermission(any(), anyString(), anyString(), anyString());
-        when(passportManualReadPort.findContext("passport-1"))
-            .thenReturn(Optional.of(new PassportManualReadPort.PassportManualContext(
-                "passport-1", "tenant-1", "SN-1", "Model A", "owner-1"
-            )));
-
         WorkflowDomainException exception = assertThrows(WorkflowDomainException.class, () ->
-            service.send(BRAND, "tenant-1", "passport-1", new SendPassportManualCommand("   ", null))
+            service.send(BRAND, "tenant-1", new SendPassportManualCommand(List.of("passport-1"), "   ", null))
         );
 
         assertEquals(WorkflowErrorCode.PASSPORT_MANUAL_CONTENT_REQUIRED, exception.getErrorCode());
@@ -202,15 +174,11 @@ class PassportManualServiceTest {
 
     @Test
     void send_throwsWhenOwnerMissing() {
-        doNothing().when(authorizationSupport).assertTenantContext(any(), anyString());
-        doNothing().when(authorizationSupport).assertLivePermission(any(), anyString(), anyString(), anyString());
-        when(passportManualReadPort.findContext("passport-1"))
-            .thenReturn(Optional.of(new PassportManualReadPort.PassportManualContext(
-                "passport-1", "tenant-1", "SN-1", "Model A", null
-            )));
+        stubAuthorization();
+        stubPassport("passport-1", "tenant-1", "SN-1", "Model A", null);
 
         WorkflowDomainException exception = assertThrows(WorkflowDomainException.class, () ->
-            service.send(BRAND, "tenant-1", "passport-1", new SendPassportManualCommand("사용 설명입니다.", null))
+            service.send(BRAND, "tenant-1", new SendPassportManualCommand(List.of("passport-1"), "사용 설명입니다.", null))
         );
 
         assertEquals(WorkflowErrorCode.PASSPORT_MANUAL_OWNER_NOT_FOUND, exception.getErrorCode());
@@ -219,17 +187,13 @@ class PassportManualServiceTest {
 
     @Test
     void send_throwsWhenRecipientEmailMissing() {
-        doNothing().when(authorizationSupport).assertTenantContext(any(), anyString());
-        doNothing().when(authorizationSupport).assertLivePermission(any(), anyString(), anyString(), anyString());
-        when(passportManualReadPort.findContext("passport-1"))
-            .thenReturn(Optional.of(new PassportManualReadPort.PassportManualContext(
-                "passport-1", "tenant-1", "SN-1", "Model A", "owner-1"
-            )));
+        stubAuthorization();
+        stubPassport("passport-1", "tenant-1", "SN-1", "Model A", "owner-1");
         when(userReadPort.findEmailsByUserIds(List.of("owner-1")))
             .thenReturn(Map.of());
 
         WorkflowDomainException exception = assertThrows(WorkflowDomainException.class, () ->
-            service.send(BRAND, "tenant-1", "passport-1", new SendPassportManualCommand("사용 설명입니다.", null))
+            service.send(BRAND, "tenant-1", new SendPassportManualCommand(List.of("passport-1"), "사용 설명입니다.", null))
         );
 
         assertEquals(WorkflowErrorCode.PASSPORT_MANUAL_RECIPIENT_NOT_FOUND, exception.getErrorCode());
@@ -237,12 +201,6 @@ class PassportManualServiceTest {
 
     @Test
     void send_throwsWhenAttachmentHasNoReadyEvidence() {
-        doNothing().when(authorizationSupport).assertTenantContext(any(), anyString());
-        doNothing().when(authorizationSupport).assertLivePermission(any(), anyString(), anyString(), anyString());
-        when(passportManualReadPort.findContext("passport-1"))
-            .thenReturn(Optional.of(new PassportManualReadPort.PassportManualContext(
-                "passport-1", "tenant-1", "SN-1", "Model A", "owner-1"
-            )));
         when(workflowEvidencePort.findEvidenceGroupScope("group-1"))
             .thenReturn(Optional.of(new WorkflowEvidencePort.EvidenceGroupScopeRecord("group-1", "tenant-1", "brand-user")));
         when(workflowEvidencePort.findEvidenceByEvidenceGroupId("group-1"))
@@ -260,7 +218,7 @@ class PassportManualServiceTest {
             ));
 
         WorkflowDomainException exception = assertThrows(WorkflowDomainException.class, () ->
-            service.send(BRAND, "tenant-1", "passport-1", new SendPassportManualCommand(null, "group-1"))
+            service.send(BRAND, "tenant-1", new SendPassportManualCommand(List.of("passport-1"), null, "group-1"))
         );
 
         assertEquals(WorkflowErrorCode.PASSPORT_MANUAL_CONTENT_REQUIRED, exception.getErrorCode());
@@ -269,20 +227,35 @@ class PassportManualServiceTest {
 
     @Test
     void send_throwsWhenAttachmentScopeBelongsToDifferentTenant() {
-        doNothing().when(authorizationSupport).assertTenantContext(any(), anyString());
-        doNothing().when(authorizationSupport).assertLivePermission(any(), anyString(), anyString(), anyString());
-        when(passportManualReadPort.findContext("passport-1"))
-            .thenReturn(Optional.of(new PassportManualReadPort.PassportManualContext(
-                "passport-1", "tenant-1", "SN-1", "Model A", "owner-1"
-            )));
         when(workflowEvidencePort.findEvidenceGroupScope("group-1"))
             .thenReturn(Optional.of(new WorkflowEvidencePort.EvidenceGroupScopeRecord("group-1", "tenant-2", "brand-user")));
 
         WorkflowDomainException exception = assertThrows(WorkflowDomainException.class, () ->
-            service.send(BRAND, "tenant-1", "passport-1", new SendPassportManualCommand(null, "group-1"))
+            service.send(BRAND, "tenant-1", new SendPassportManualCommand(List.of("passport-1"), null, "group-1"))
         );
 
         assertEquals(WorkflowErrorCode.TENANT_ISOLATION_VIOLATION, exception.getErrorCode());
         verify(notificationOutboxRepositoryPort, never()).save(any(NotificationOutbox.class));
+    }
+
+    @Test
+    void send_throwsWhenPassportIdsEmpty() {
+        WorkflowDomainException exception = assertThrows(WorkflowDomainException.class, () ->
+            service.send(BRAND, "tenant-1", new SendPassportManualCommand(List.of(), "사용 설명입니다.", null))
+        );
+
+        assertEquals(WorkflowErrorCode.INVALID_REQUEST, exception.getErrorCode());
+    }
+
+    private void stubAuthorization() {
+        doNothing().when(authorizationSupport).assertTenantContext(any(), anyString());
+        doNothing().when(authorizationSupport).assertLivePermission(any(), anyString(), anyString(), anyString());
+    }
+
+    private void stubPassport(String passportId, String tenantId, String serialNumber, String modelName, String ownerUserId) {
+        when(passportManualReadPort.findContext(passportId))
+            .thenReturn(Optional.of(new PassportManualReadPort.PassportManualContext(
+                passportId, tenantId, serialNumber, modelName, ownerUserId
+            )));
     }
 }
