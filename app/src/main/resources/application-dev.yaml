@@ -42,6 +42,18 @@ app:
     token:
       provider: REDIS
   user-auth:
+    signup-email-verification:
+      mail:
+        provider: SQS
+        enabled: ${SIGNUP_EMAIL_VERIFICATION_MAIL_ENABLED:true}
+        from: ${SIGNUP_EMAIL_VERIFICATION_MAIL_FROM:no-reply@dev.attestry.local}
+      sqs:
+        queue-url: ${SIGNUP_EMAIL_VERIFICATION_SQS_QUEUE_URL:}
+        region: ${SIGNUP_EMAIL_VERIFICATION_SQS_REGION:${AWS_REGION:ap-northeast-2}}
+        endpoint: ${SIGNUP_EMAIL_VERIFICATION_SQS_ENDPOINT:}
+        access-key: ${SIGNUP_EMAIL_VERIFICATION_SQS_ACCESS_KEY:${AWS_ACCESS_KEY_ID:}}
+        secret-key: ${SIGNUP_EMAIL_VERIFICATION_SQS_SECRET_KEY:${AWS_SECRET_ACCESS_KEY:}}
+        fifo-message-group-id: ${SIGNUP_EMAIL_VERIFICATION_SQS_FIFO_MESSAGE_GROUP_ID:signup-email-verification}
     invitation:
       mail:
         provider: SQS

@@ -32,6 +32,7 @@ import io.attestry.userauth.domain.identity.model.UserAccount;
 import io.attestry.userauth.domain.identity.model.UserStatus;
 import io.attestry.userauth.domain.identity.model.VerificationLevel;
 import java.time.Clock;
+import java.time.Duration;
 import java.time.Instant;
 import java.time.ZoneOffset;
 import java.util.ArrayList;
@@ -90,6 +91,7 @@ class AuthApplicationServiceTest {
             verificationRepo,
             notificationOutboxRepo,
             clock,
+            Duration.ofMinutes(10),
             "12345678"
         );
     }
