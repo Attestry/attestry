@@ -92,7 +92,14 @@ public class NotificationOutboxPublisher {
                         p.modelName(),
                         p.message(),
                         p.evidenceGroupId(),
-                        p.attachmentEvidenceIds(),
+                        p.attachments().stream()
+                            .map(attachment -> new PassportManualNotificationPort.AttachmentReference(
+                                attachment.evidenceId(),
+                                attachment.fileName(),
+                                attachment.objectKey(),
+                                attachment.contentType()
+                            ))
+                            .toList(),
                         List.of()
                     )
                 );

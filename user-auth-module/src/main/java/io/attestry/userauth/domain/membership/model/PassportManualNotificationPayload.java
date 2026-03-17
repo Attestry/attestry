@@ -10,6 +10,13 @@ public record PassportManualNotificationPayload(
     String modelName,
     String message,
     String evidenceGroupId,
-    List<String> attachmentEvidenceIds
+    List<AttachmentPayload> attachments
 ) {
+    public record AttachmentPayload(
+        String evidenceId,
+        String fileName,
+        String objectKey,
+        String contentType
+    ) {
+    }
 }
