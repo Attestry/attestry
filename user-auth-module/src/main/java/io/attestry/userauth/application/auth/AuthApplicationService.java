@@ -34,7 +34,6 @@ import org.springframework.stereotype.Service;
 @Service
 public class AuthApplicationService implements AuthUseCase {
 
-    private static final Duration SIGNUP_EMAIL_VERIFICATION_TTL = Duration.ofMinutes(3);
     private static final Duration SIGNUP_EMAIL_VERIFICATION_RESEND_COOLDOWN = Duration.ofSeconds(10);
     private static final int SIGNUP_EMAIL_VERIFICATION_RESEND_LIMIT = 3;
     private static final SecureRandom SIGNUP_EMAIL_VERIFICATION_RANDOM = new SecureRandom();
@@ -48,6 +47,7 @@ public class AuthApplicationService implements AuthUseCase {
     private final SignUpEmailVerificationRepositoryPort signUpEmailVerificationRepository;
     private final NotificationOutboxRepositoryPort notificationOutboxRepository;
     private final Clock clock;
+    private final Duration signUpEmailVerificationTtl;
     private final String fixedVerificationCode;
 
     public AuthApplicationService(
@@ -60,6 +60,7 @@ public class AuthApplicationService implements AuthUseCase {
         SignUpEmailVerificationRepositoryPort signUpEmailVerificationRepository,
         NotificationOutboxRepositoryPort notificationOutboxRepository,
         Clock clock,
+        @Value("${app.user-auth.signup-email-verification.ttl:PT10M}") Duration signUpEmailVerificationTtl,
         @Value("${app.user-auth.signup-email-verification.fixed-code:}") String fixedVerificationCode
     ) {
         this.userAccountRepository = userAccountRepository;
@@ -71,6 +72,7 @@ public class AuthApplicationService implements AuthUseCase {
         this.signUpEmailVerificationRepository = signUpEmailVerificationRepository;
         this.notificationOutboxRepository = notificationOutboxRepository;
         this.clock = clock;
+        this.signUpEmailVerificationTtl = signUpEmailVerificationTtl;
         this.fixedVerificationCode = fixedVerificationCode == null ? "" : fixedVerificationCode.trim();
     }
 
@@ -124,13 +126,13 @@ public class AuthApplicationService implements AuthUseCase {
                 existing.regenerate(
                     codeHash,
                     now,
-                    SIGNUP_EMAIL_VERIFICATION_TTL,
+                    signUpEmailVerificationTtl,
                     SIGNUP_EMAIL_VERIFICATION_RESEND_COOLDOWN,
                     SIGNUP_EMAIL_VERIFICATION_RESEND_LIMIT
                 );
                 return existing;
             })
-            .orElseGet(() -> SignUpEmailVerification.issue(normalizedEmail, codeHash, now, SIGNUP_EMAIL_VERIFICATION_TTL));
+            .orElseGet(() -> SignUpEmailVerification.issue(normalizedEmail, codeHash, now, signUpEmailVerificationTtl));
 
         SignUpEmailVerification saved = signUpEmailVerificationRepository.save(verification);
         notificationOutboxRepository.save(
@@ -141,7 +143,7 @@ public class AuthApplicationService implements AuthUseCase {
                     saved.verificationId(),
                     saved.email(),
                     rawCode,
-                    SIGNUP_EMAIL_VERIFICATION_TTL.toSeconds()
+                    signUpEmailVerificationTtl.toSeconds()
                 ),
                 now
             )

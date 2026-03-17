@@ -15,6 +15,7 @@ public enum WorkflowErrorCode implements ErrorCode {
     PARTNER_LINK_ALREADY_ACTIVE("PARTNER", "Partner link already active", ErrorCategory.BAD_REQUEST),
     PARTNER_LINK_DUPLICATE_STATUS("PARTNER", "Partner link duplicate status", ErrorCategory.CONFLICT),
     PARTNER_LINK_INVALID_STATE("PARTNER", "Partner link invalid state", ErrorCategory.BAD_REQUEST),
+    PARTNER_LINK_INVALID_TYPE("PARTNER", "해당 파트너는 유통(판매) 권한이 없는 서비스 타입 업체입니다.", ErrorCategory.BAD_REQUEST),
 
     // Transfer
     TRANSFER_NOT_FOUND("TRANSFER", "Transfer not found", ErrorCategory.NOT_FOUND),
