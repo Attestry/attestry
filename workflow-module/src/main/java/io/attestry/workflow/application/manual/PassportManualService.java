@@ -5,6 +5,7 @@ import io.attestry.userauth.domain.authorization.model.PermissionCodes;
 import io.attestry.userauth.domain.membership.model.NotificationOutbox;
 import io.attestry.userauth.domain.membership.model.NotificationType;
 import io.attestry.userauth.domain.membership.model.PassportManualNotificationPayload;
+import io.attestry.userauth.domain.membership.model.PassportManualNotificationPayload.AttachmentPayload;
 import io.attestry.userauth.security.AuthPrincipal;
 import io.attestry.workflow.application.manual.command.SendPassportManualCommand;
 import io.attestry.workflow.application.manual.result.PassportManualRecipientResult;
@@ -21,7 +22,6 @@ import java.time.Clock;
 import java.time.Instant;
 import java.util.List;
 import java.util.Map;
-import java.util.Objects;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
@@ -121,26 +121,30 @@ public class PassportManualService implements PassportManualUseCase {
             );
         }
 
-        List<String> attachmentEvidenceIds = evidenceGroupId == null
+        List<AttachmentPayload> attachments = evidenceGroupId == null
             ? List.of()
-            : resolveAttachmentEvidenceIds(evidenceGroupId, tenantId);
-        return new ManualContent(message, evidenceGroupId, attachmentEvidenceIds);
+            : resolveAttachments(evidenceGroupId, tenantId);
+        return new ManualContent(message, evidenceGroupId, attachments);
     }
 
-    private List<String> resolveAttachmentEvidenceIds(String evidenceGroupId, String tenantId) {
+    private List<AttachmentPayload> resolveAttachments(String evidenceGroupId, String tenantId) {
         evidenceUploadSupport.assertEvidenceGroupScope(evidencePort, evidenceGroupId, tenantId);
-        List<String> attachmentEvidenceIds = evidencePort.findEvidenceByEvidenceGroupId(evidenceGroupId).stream()
+        List<AttachmentPayload> attachments = evidencePort.findEvidenceByEvidenceGroupId(evidenceGroupId).stream()
             .filter(evidence -> READY_EVIDENCE_STATUS.equalsIgnoreCase(evidence.status()))
-            .map(WorkflowEvidencePort.EvidenceRecord::evidenceId)
-            .filter(Objects::nonNull)
+            .map(evidence -> new AttachmentPayload(
+                evidence.evidenceId(),
+                evidence.originalFileName(),
+                evidence.objectKey(),
+                evidence.contentType()
+            ))
             .toList();
-        if (attachmentEvidenceIds.isEmpty()) {
+        if (attachments.isEmpty()) {
             throw new WorkflowDomainException(
                 WorkflowErrorCode.PASSPORT_MANUAL_CONTENT_REQUIRED,
                 "첨부 파일을 다시 확인해주세요."
             );
         }
-        return attachmentEvidenceIds;
+        return attachments;
     }
 
     private String resolveRecipientEmail(String ownerUserId) {
@@ -171,7 +175,7 @@ public class PassportManualService implements PassportManualUseCase {
                 context.modelName(),
                 content.message(),
                 content.evidenceGroupId(),
-                content.attachmentEvidenceIds()
+                content.attachments()
             ),
             Instant.now(clock)
         );
@@ -196,7 +200,7 @@ public class PassportManualService implements PassportManualUseCase {
     private record ManualContent(
         String message,
         String evidenceGroupId,
-        List<String> attachmentEvidenceIds
+        List<AttachmentPayload> attachments
     ) {
         private boolean hasAttachment() {
             return evidenceGroupId != null;
