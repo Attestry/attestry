@@ -77,6 +77,19 @@ app:
       secret-key: ${AWS_SECRET_ACCESS_KEY:}
   product:
     public-base-url: ${PRODUCT_PUBLIC_BASE_URL:https://dev.attestry.local}
+  workflow:
+    passport-manual:
+      mail:
+        provider: SQS
+        enabled: ${PASSPORT_MANUAL_MAIL_ENABLED:true}
+        from: ${PASSPORT_MANUAL_MAIL_FROM:no-reply@dev.attestry.local}
+      sqs:
+        queue-url: ${PASSPORT_MANUAL_SQS_QUEUE_URL:}
+        region: ${PASSPORT_MANUAL_SQS_REGION:${AWS_REGION:ap-northeast-2}}
+        endpoint: ${PASSPORT_MANUAL_SQS_ENDPOINT:}
+        access-key: ${PASSPORT_MANUAL_SQS_ACCESS_KEY:${AWS_ACCESS_KEY_ID:}}
+        secret-key: ${PASSPORT_MANUAL_SQS_SECRET_KEY:${AWS_SECRET_ACCESS_KEY:}}
+        fifo-message-group-id: ${PASSPORT_MANUAL_SQS_FIFO_MESSAGE_GROUP_ID:passport-manual-notification}
   kafka:
     enabled: ${APP_KAFKA_ENABLED:true}
     outbox:

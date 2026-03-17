@@ -2,10 +2,12 @@ package io.attestry.job;
 
 import io.attestry.userauth.application.port.notification.InvitationNotificationPort;
 import io.attestry.userauth.application.port.notification.NotificationOutboxRepositoryPort;
+import io.attestry.userauth.application.port.notification.PassportManualNotificationPort;
 import io.attestry.userauth.application.port.notification.SignUpEmailVerificationNotificationPort;
 import io.attestry.userauth.domain.identity.model.SignUpEmailVerificationNotificationPayload;
 import io.attestry.userauth.domain.membership.model.InvitationNotificationPayload;
 import io.attestry.userauth.domain.membership.model.NotificationOutbox;
+import io.attestry.userauth.domain.membership.model.PassportManualNotificationPayload;
 import java.time.Clock;
 import java.time.Duration;
 import java.time.Instant;
@@ -28,17 +30,20 @@ public class NotificationOutboxPublisher {
     private final NotificationOutboxRepositoryPort notificationOutboxRepository;
     private final InvitationNotificationPort invitationNotificationPort;
     private final SignUpEmailVerificationNotificationPort signUpEmailVerificationNotificationPort;
+    private final PassportManualNotificationPort passportManualNotificationPort;
     private final Clock clock;
 
     public NotificationOutboxPublisher(
         NotificationOutboxRepositoryPort notificationOutboxRepository,
         InvitationNotificationPort invitationNotificationPort,
         SignUpEmailVerificationNotificationPort signUpEmailVerificationNotificationPort,
+        PassportManualNotificationPort passportManualNotificationPort,
         Clock clock
     ) {
         this.notificationOutboxRepository = notificationOutboxRepository;
         this.invitationNotificationPort = invitationNotificationPort;
         this.signUpEmailVerificationNotificationPort = signUpEmailVerificationNotificationPort;
+        this.passportManualNotificationPort = passportManualNotificationPort;
         this.clock = clock;
     }
 
@@ -74,6 +79,21 @@ public class NotificationOutboxPublisher {
                 signUpEmailVerificationNotificationPort.send(
                     new SignUpEmailVerificationNotificationPort.SignUpEmailVerificationNotification(
                         p.verificationId(), p.email(), p.code(), p.expiresInSeconds()
+                    )
+                );
+            }
+            case PASSPORT_MANUAL_DELIVERY -> {
+                PassportManualNotificationPayload p = (PassportManualNotificationPayload) entry.payload();
+                passportManualNotificationPort.send(
+                    new PassportManualNotificationPort.PassportManualNotification(
+                        p.passportId(),
+                        p.recipientEmail(),
+                        p.serialNumber(),
+                        p.modelName(),
+                        p.message(),
+                        p.evidenceGroupId(),
+                        p.attachmentEvidenceIds(),
+                        List.of()
                     )
                 );
             }
