@@ -592,6 +592,82 @@ class UserAuthApiIntegrationTests {
             .andExpect(jsonPath("$.data.roleCodes").value(org.hamcrest.Matchers.hasItem("TENANT_OWNER")));
     }
 
+    @Test
+    void membershipStatusApiShouldRejectSuspendingLastActiveOwner() throws Exception {
+        String tenantId = UUID.randomUUID().toString();
+        String ownerUserId = UUID.randomUUID().toString();
+
+        tenantRepository.save(new TenantJpaEntity(tenantId, "Tenant F", "KR", null, TenantType.BRAND, TenantStatus.ACTIVE));
+
+        userAccountRepository.save(new UserAccountJpaEntity(
+            ownerUserId,
+            "last-owner@test.com",
+            passwordHasher.hash("OwnerPw123"),
+            "010-9999-3333",
+            UserStatus.ACTIVE,
+            VerificationLevel.NONE
+        ));
+
+        MembershipJpaEntity ownerMembership = membershipRepository.save(new MembershipJpaEntity(
+            UUID.randomUUID().toString(),
+            ownerUserId,
+            tenantId,
+            TenantType.BRAND,
+            MembershipRole.ADMIN,
+            MembershipStatus.ACTIVE,
+            TenantStatus.ACTIVE
+        ));
+        assignRoleToMembership(ownerMembership.getMembershipId(), "role-tenant-owner");
+        bindTenantOwnerTemplate(tenantId, ownerUserId);
+
+        String ownerToken = login("last-owner@test.com", "OwnerPw123", tenantId);
+
+        mockMvc.perform(patch("/memberships/{id}/status", ownerMembership.getMembershipId())
+                .header("Authorization", bearer(ownerToken))
+                .contentType(MediaType.APPLICATION_JSON)
+                .content(json(Map.of("status", "SUSPENDED"))))
+            .andExpect(status().isBadRequest())
+            .andExpect(jsonPath("$.error.code").value("LAST_ACTIVE_OWNER_REQUIRED"))
+            .andExpect(jsonPath("$.error.message").value("시스템에 최소 한 명의 관리자가 필요합니다."));
+    }
+
+    @Test
+    void roleAssignmentApiShouldRejectRevokingTenantOwnerFromLastActiveOwner() throws Exception {
+        String tenantId = UUID.randomUUID().toString();
+        String ownerUserId = UUID.randomUUID().toString();
+
+        tenantRepository.save(new TenantJpaEntity(tenantId, "Tenant G", "KR", null, TenantType.BRAND, TenantStatus.ACTIVE));
+
+        userAccountRepository.save(new UserAccountJpaEntity(
+            ownerUserId,
+            "last-owner-role@test.com",
+            passwordHasher.hash("OwnerPw123"),
+            "010-9999-4444",
+            UserStatus.ACTIVE,
+            VerificationLevel.NONE
+        ));
+
+        MembershipJpaEntity ownerMembership = membershipRepository.save(new MembershipJpaEntity(
+            UUID.randomUUID().toString(),
+            ownerUserId,
+            tenantId,
+            TenantType.BRAND,
+            MembershipRole.ADMIN,
+            MembershipStatus.ACTIVE,
+            TenantStatus.ACTIVE
+        ));
+        assignRoleToMembership(ownerMembership.getMembershipId(), "role-tenant-owner");
+        bindTenantOwnerTemplate(tenantId, ownerUserId);
+
+        String ownerToken = login("last-owner-role@test.com", "OwnerPw123", tenantId);
+
+        mockMvc.perform(delete("/memberships/{id}/roles/{roleCode}", ownerMembership.getMembershipId(), "TENANT_OWNER")
+                .header("Authorization", bearer(ownerToken)))
+            .andExpect(status().isBadRequest())
+            .andExpect(jsonPath("$.error.code").value("LAST_ACTIVE_OWNER_REQUIRED"))
+            .andExpect(jsonPath("$.error.message").value("시스템에 최소 한 명의 관리자가 필요합니다."));
+    }
+
     private void signUp(String email, String password, String phone) throws Exception {
         mockMvc.perform(post("/auth/signup/email-verifications")
                 .contentType(MediaType.APPLICATION_JSON)

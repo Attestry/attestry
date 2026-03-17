@@ -23,6 +23,7 @@ public enum UserAuthErrorCode implements ErrorCode {
     // Membership
     MEMBERSHIP_NOT_FOUND("MEMBERSHIP", "Membership not found", ErrorCategory.NOT_FOUND),
     DUPLICATE_MEMBERSHIP("MEMBERSHIP", "Duplicate membership", ErrorCategory.CONFLICT),
+    LAST_ACTIVE_OWNER_REQUIRED("MEMBERSHIP", "시스템에 최소 한 명의 관리자가 필요합니다.", ErrorCategory.BAD_REQUEST),
     ROLE_NOT_FOUND("MEMBERSHIP", "Role not found", ErrorCategory.NOT_FOUND),
     ROLE_ASSIGNMENT_NOT_FOUND("MEMBERSHIP", "Role assignment not found", ErrorCategory.NOT_FOUND),
     INVITATION_NOT_FOUND("MEMBERSHIP", "Invitation not found", ErrorCategory.NOT_FOUND),
