@@ -116,15 +116,26 @@ public class LedgerOutboxPublisher {
         Instant now = Instant.now(clock);
 
         // 1. claim 트랜잭션: CTE로 PENDING → PROCESSING 원자적 전환 후 커밋
+        // 같은 aggregate에 PROCESSING 또는 retry 대기 중인 선행 이벤트가 있으면 해당 aggregate는 제외
         List<OutboxEventRecord> claimed = transactionTemplate.execute(status ->
             claimTimer.record(() -> jdbcTemplate.query(
                 """
-                    WITH claimed AS (
+                    WITH blocked_aggregates AS (
+                        SELECT DISTINCT aggregate_id
+                        FROM outbox_event
+                        WHERE event_type IN ('LEDGER_APPEND', 'PROJECTION_UPDATE')
+                          AND (
+                              status = 'PROCESSING'
+                              OR (status = 'PENDING' AND retry_count > 0 AND next_retry_at > ?)
+                          )
+                    ),
+                    claimed AS (
                         SELECT event_id
                         FROM outbox_event
                         WHERE event_type IN ('LEDGER_APPEND', 'PROJECTION_UPDATE')
                           AND status = ?
                           AND (next_retry_at IS NULL OR next_retry_at <= ?)
+                          AND aggregate_id NOT IN (SELECT aggregate_id FROM blocked_aggregates)
                         ORDER BY created_at ASC
                         LIMIT ?
                         FOR UPDATE SKIP LOCKED
@@ -140,6 +151,7 @@ public class LedgerOutboxPublisher {
                               target.payload, target.retry_count, target.created_at
                 """,
                 this::mapRecord,
+                Timestamp.from(now),
                 PENDING_STATUS,
                 Timestamp.from(now),
                 Math.max(1, kafkaProperties.getOutbox().getBatchSize()),
