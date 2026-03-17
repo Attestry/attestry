@@ -103,6 +103,45 @@ class PassportManualServiceTest {
 
         assertEquals("passport-1", result.passportId());
         assertEquals(false, result.hasAttachment());
+        assertEquals("o***@example.com", result.recipientEmailMasked());
+        verify(notificationOutboxRepositoryPort).save(any(NotificationOutbox.class));
+    }
+
+    @Test
+    void send_queuesOutboxWhenAttachmentExists() {
+        doNothing().when(authorizationSupport).assertTenantContext(any(), anyString());
+        doNothing().when(authorizationSupport).assertLivePermission(any(), anyString(), anyString(), anyString());
+        when(passportManualReadPort.findContext("passport-1"))
+            .thenReturn(Optional.of(new PassportManualReadPort.PassportManualContext(
+                "passport-1", "tenant-1", "SN-1", "Model A", "owner-1"
+            )));
+        when(userReadPort.findEmailsByUserIds(List.of("owner-1")))
+            .thenReturn(Map.of("owner-1", "owner@example.com"));
+        when(workflowEvidencePort.findEvidenceGroupScope("group-1"))
+            .thenReturn(Optional.of(new WorkflowEvidencePort.EvidenceGroupScopeRecord("group-1", "tenant-1", "brand-user")));
+        when(workflowEvidencePort.findEvidenceByEvidenceGroupId("group-1"))
+            .thenReturn(List.of(
+                new WorkflowEvidencePort.EvidenceRecord(
+                    "evidence-1",
+                    "group-1",
+                    "hash-1",
+                    "passport-manual/test.pdf",
+                    "test.pdf",
+                    "application/pdf",
+                    10L,
+                    "READY"
+                )
+            ));
+
+        SendPassportManualResult result = service.send(
+            BRAND,
+            "tenant-1",
+            "passport-1",
+            new SendPassportManualCommand("   ", " group-1 ")
+        );
+
+        assertEquals(true, result.hasAttachment());
+        assertEquals("group-1", result.evidenceGroupId());
         verify(notificationOutboxRepositoryPort).save(any(NotificationOutbox.class));
     }
 
@@ -120,5 +159,23 @@ class PassportManualServiceTest {
         );
 
         assertEquals(WorkflowErrorCode.PASSPORT_MANUAL_CONTENT_REQUIRED, exception.getErrorCode());
+    }
+
+    @Test
+    void send_throwsWhenRecipientEmailMissing() {
+        doNothing().when(authorizationSupport).assertTenantContext(any(), anyString());
+        doNothing().when(authorizationSupport).assertLivePermission(any(), anyString(), anyString(), anyString());
+        when(passportManualReadPort.findContext("passport-1"))
+            .thenReturn(Optional.of(new PassportManualReadPort.PassportManualContext(
+                "passport-1", "tenant-1", "SN-1", "Model A", "owner-1"
+            )));
+        when(userReadPort.findEmailsByUserIds(List.of("owner-1")))
+            .thenReturn(Map.of());
+
+        WorkflowDomainException exception = assertThrows(WorkflowDomainException.class, () ->
+            service.send(BRAND, "tenant-1", "passport-1", new SendPassportManualCommand("사용 설명입니다.", null))
+        );
+
+        assertEquals(WorkflowErrorCode.PASSPORT_MANUAL_RECIPIENT_NOT_FOUND, exception.getErrorCode());
     }
 }
