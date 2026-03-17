@@ -24,7 +24,7 @@ public class MyAccountService implements MyAccountQueryUseCase {
     @Transactional(readOnly = true)
     public MyAccountView getMyAccount(String userId) {
         UserAccount account = userAccountRepository.findById(userId)
-            .orElseThrow(() -> new UserAuthDomainException(UserAuthErrorCode.USER_NOT_FOUND, "User not found"));
+            .orElseThrow(() -> new UserAuthDomainException(UserAuthErrorCode.USER_NOT_FOUND, "사용자 정보를 찾을 수 없습니다"));
         return MyAccountView.from(account);
     }
 
@@ -32,7 +32,7 @@ public class MyAccountService implements MyAccountQueryUseCase {
     @Transactional
     public MyAccountView updateMyAccount(String userId, UpdateMyAccountCommand command) {
         UserAccount account = userAccountRepository.findById(userId)
-            .orElseThrow(() -> new UserAuthDomainException(UserAuthErrorCode.USER_NOT_FOUND, "User not found"));
+            .orElseThrow(() -> new UserAuthDomainException(UserAuthErrorCode.USER_NOT_FOUND, "사용자 정보를 찾을 수 없습니다"));
 
         String newHash = command.hasPasswordChangeRequest()
             ? passwordHasherPort.hash(command.newPassword()) : null;

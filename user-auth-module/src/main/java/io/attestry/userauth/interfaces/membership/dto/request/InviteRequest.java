@@ -6,10 +6,10 @@ import jakarta.validation.constraints.NotBlank;
 import jakarta.validation.constraints.NotNull;
 
 public record InviteRequest(
-        @NotBlank(message = "email is required")
-        @Email(message = "email format is invalid")
+        @NotBlank(message = "이메일은 필수입니다")
+        @Email(message = "올바른 이메일 형식이 아닙니다")
         String email,
 
-        @NotNull(message = "role is required")
+        @NotNull(message = "역할은 필수입니다")
         MembershipRole role) {
 }

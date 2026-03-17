@@ -2,6 +2,8 @@ package io.attestry.job;
 
 import io.attestry.userauth.application.port.notification.InvitationNotificationPort;
 import io.attestry.userauth.application.port.notification.NotificationOutboxRepositoryPort;
+import io.attestry.userauth.application.port.notification.SignUpEmailVerificationNotificationPort;
+import io.attestry.userauth.domain.identity.model.SignUpEmailVerificationNotificationPayload;
 import io.attestry.userauth.domain.membership.model.InvitationNotificationPayload;
 import io.attestry.userauth.domain.membership.model.NotificationOutbox;
 import java.time.Clock;
@@ -25,15 +27,18 @@ public class NotificationOutboxPublisher {
 
     private final NotificationOutboxRepositoryPort notificationOutboxRepository;
     private final InvitationNotificationPort invitationNotificationPort;
+    private final SignUpEmailVerificationNotificationPort signUpEmailVerificationNotificationPort;
     private final Clock clock;
 
     public NotificationOutboxPublisher(
         NotificationOutboxRepositoryPort notificationOutboxRepository,
         InvitationNotificationPort invitationNotificationPort,
+        SignUpEmailVerificationNotificationPort signUpEmailVerificationNotificationPort,
         Clock clock
     ) {
         this.notificationOutboxRepository = notificationOutboxRepository;
         this.invitationNotificationPort = invitationNotificationPort;
+        this.signUpEmailVerificationNotificationPort = signUpEmailVerificationNotificationPort;
         this.clock = clock;
     }
 
@@ -61,6 +66,14 @@ public class NotificationOutboxPublisher {
                 invitationNotificationPort.send(
                     new InvitationNotificationPort.InvitationNotification(
                         p.invitationId(), p.tenantId(), p.inviteeEmail()
+                    )
+                );
+            }
+            case SIGNUP_EMAIL_VERIFICATION -> {
+                SignUpEmailVerificationNotificationPayload p = (SignUpEmailVerificationNotificationPayload) entry.payload();
+                signUpEmailVerificationNotificationPort.send(
+                    new SignUpEmailVerificationNotificationPort.SignUpEmailVerificationNotification(
+                        p.verificationId(), p.email(), p.code(), p.expiresInSeconds()
                     )
                 );
             }

@@ -32,6 +32,8 @@ public class AccessTokenAuthenticationFilter extends OncePerRequestFilter {
         String path = request.getRequestURI();
         return path.equals("/auth/signup")
             || path.equals("/auth/login")
+            || path.equals("/auth/signup/email-verifications")
+            || path.equals("/auth/signup/email-verifications/confirm")
             || path.equals("/api-v1/auth/signup")
             || path.equals("/api-v1/auth/login")
             || path.equals("/error");

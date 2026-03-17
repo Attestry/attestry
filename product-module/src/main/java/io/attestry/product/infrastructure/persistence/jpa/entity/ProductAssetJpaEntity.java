@@ -56,6 +56,9 @@ public class ProductAssetJpaEntity {
     @Column(name = "voided_note", columnDefinition = "TEXT")
     private String voidedNote;
 
+    @Column(name = "retired_at")
+    private Instant retiredAt;
+
     @Column(name = "stolen_at")
     private Instant stolenAt;
 
@@ -87,6 +90,7 @@ public class ProductAssetJpaEntity {
         Instant voidedAt,
         String voidedReason,
         String voidedNote,
+        Instant retiredAt,
         Instant stolenAt,
         Instant lostAt,
         String riskReportedBy,
@@ -107,6 +111,7 @@ public class ProductAssetJpaEntity {
         this.voidedAt = voidedAt;
         this.voidedReason = voidedReason;
         this.voidedNote = voidedNote;
+        this.retiredAt = retiredAt;
         this.stolenAt = stolenAt;
         this.lostAt = lostAt;
         this.riskReportedBy = riskReportedBy;
@@ -128,6 +133,7 @@ public class ProductAssetJpaEntity {
     public Instant getVoidedAt() { return voidedAt; }
     public String getVoidedReason() { return voidedReason; }
     public String getVoidedNote() { return voidedNote; }
+    public Instant getRetiredAt() { return retiredAt; }
     public Instant getStolenAt() { return stolenAt; }
     public Instant getLostAt() { return lostAt; }
     public String getRiskReportedBy() { return riskReportedBy; }

@@ -215,6 +215,9 @@ public class WorkflowProductProjectionConsumer {
         if ("LIFECYCLE".equals(eventCategory) && "VOIDED".equals(eventAction)) {
             return true;
         }
+        if ("LIFECYCLE".equals(eventCategory) && "RETIRED".equals(eventAction)) {
+            return true;
+        }
         return "RISK".equals(eventCategory);
     }
 

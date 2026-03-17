@@ -2,6 +2,7 @@ package io.attestry.notification;
 
 import com.fasterxml.jackson.databind.ObjectMapper;
 import io.attestry.userauth.application.port.notification.NotificationPayloadSerializerPort;
+import io.attestry.userauth.domain.identity.model.SignUpEmailVerificationNotificationPayload;
 import io.attestry.userauth.domain.membership.model.InvitationNotificationPayload;
 import io.attestry.userauth.domain.membership.model.NotificationType;
 import org.springframework.stereotype.Component;
@@ -29,6 +30,7 @@ public class JacksonNotificationPayloadSerializer implements NotificationPayload
         try {
             return switch (type) {
                 case INVITATION -> objectMapper.readValue(json, InvitationNotificationPayload.class);
+                case SIGNUP_EMAIL_VERIFICATION -> objectMapper.readValue(json, SignUpEmailVerificationNotificationPayload.class);
             };
         } catch (Exception ex) {
             throw new IllegalStateException("Failed to deserialize notification payload", ex);

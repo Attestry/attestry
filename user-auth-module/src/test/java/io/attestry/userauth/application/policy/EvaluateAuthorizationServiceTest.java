@@ -270,7 +270,8 @@ class EvaluateAuthorizationServiceTest {
                     PermissionCodes.OWNER_TRANSFER_CREATE,
                     PermissionCodes.OWNER_TRANSFER_ACCEPT,
                     PermissionCodes.OWNER_RISK_FLAG,
-                    PermissionCodes.OWNER_RISK_CLEAR
+                    PermissionCodes.OWNER_RISK_CLEAR,
+                    PermissionCodes.OWNER_RETIRE
                 );
             }
             return Set.of();

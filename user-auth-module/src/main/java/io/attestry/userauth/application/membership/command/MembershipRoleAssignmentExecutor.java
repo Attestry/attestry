@@ -2,6 +2,7 @@ package io.attestry.userauth.application.membership.command;
 
 import io.attestry.userauth.application.dto.command.ActorContext;
 import io.attestry.userauth.application.dto.result.MembershipRoleAssignmentsResult;
+import io.attestry.userauth.application.membership.policy.ActiveOwnerGuard;
 import io.attestry.userauth.application.membership.policy.MembershipAccessPolicy;
 import io.attestry.userauth.application.port.auth.AccessTokenPort;
 import io.attestry.userauth.application.port.membership.MembershipPort;
@@ -20,6 +21,7 @@ public class MembershipRoleAssignmentExecutor {
 
     private final MembershipPort membershipPort;
     private final MembershipAccessPolicy accessPolicy;
+    private final ActiveOwnerGuard activeOwnerGuard;
     private final RoleAssignmentDomainService roleAssignmentDomainService;
     private final ApplicationEventPublisher eventPublisher;
     private final AccessTokenPort accessTokenPort;
@@ -50,6 +52,7 @@ public class MembershipRoleAssignmentExecutor {
                 actorMembership.membershipId()
             );
         } else {
+            activeOwnerGuard.assertCanRevokeRole(target, roleCode);
             target.revokeRole(
                 roleCode,
                 actor.userId(),

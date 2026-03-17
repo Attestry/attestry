@@ -5,14 +5,14 @@ import jakarta.validation.constraints.NotBlank;
 import jakarta.validation.constraints.Pattern;
 
 public record LoginRequest(
-    @NotBlank(message = "email is required")
-    @Email(message = "email format is invalid")
+    @NotBlank(message = "이메일은 필수입니다")
+    @Email(message = "올바른 이메일 형식이 아닙니다")
     String email,
 
-    @NotBlank(message = "password is required")
+    @NotBlank(message = "비밀번호는 필수입니다")
     @Pattern(
         regexp = "^(?=.*[A-Z]).{8,}$",
-        message = "password must be at least 8 characters and include an uppercase letter"
+        message = "비밀번호는 8자 이상이며 영문 대문자를 1자 이상 포함해야 합니다"
     )
     String password,
 

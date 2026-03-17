@@ -64,6 +64,10 @@ public class ProductPassport {
         asset.voidAsset(reason, note, now);
     }
 
+    public void retire(Instant now) {
+        asset.retire(now);
+    }
+
     public void flagStolen(String reportedBy, String policeReportNo, Instant now) {
         asset.flagStolen(reportedBy, policeReportNo, now);
     }
