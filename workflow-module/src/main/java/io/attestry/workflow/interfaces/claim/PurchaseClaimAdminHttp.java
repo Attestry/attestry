@@ -13,6 +13,7 @@ import io.attestry.workflow.interfaces.claim.dto.response.ClaimEvidenceResponse;
 import io.attestry.workflow.interfaces.claim.dto.response.PendingClaimResponse;
 import io.attestry.workflow.interfaces.claim.dto.response.RejectClaimResponse;
 import java.util.List;
+import jakarta.validation.Valid;
 import org.springframework.http.HttpStatus;
 import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.security.core.annotation.AuthenticationPrincipal;
@@ -75,7 +76,7 @@ public class PurchaseClaimAdminHttp {
     public ApiResponse<RejectClaimResponse> reject(
         @AuthenticationPrincipal AuthPrincipal principal,
         @PathVariable("claimId") String claimId,
-        @RequestBody RejectClaimRequest request
+        @Valid @RequestBody RejectClaimRequest request
     ) {
         RejectPurchaseClaimResult result = purchaseClaimAdminUseCase.reject(
             principal, claimId, request.reason()

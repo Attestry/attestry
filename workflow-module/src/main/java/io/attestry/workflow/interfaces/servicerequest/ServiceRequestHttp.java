@@ -46,6 +46,7 @@ import io.attestry.workflow.interfaces.servicerequest.dto.response.RejectService
 import io.attestry.workflow.interfaces.servicerequest.dto.response.RevokeServiceConsentResponse;
 import io.attestry.workflow.interfaces.servicerequest.dto.response.SubmitServiceRequestResponse;
 
+import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
 import org.springframework.http.HttpStatus;
 import org.springframework.security.access.prepost.PreAuthorize;
@@ -79,7 +80,7 @@ public class ServiceRequestHttp {
     public ApiResponse<GrantServiceConsentResponse> submit(
         @AuthenticationPrincipal AuthPrincipal principal,
         @PathVariable("passportId") String passportId,
-        @RequestBody GrantServiceConsentRequest request
+        @Valid @RequestBody GrantServiceConsentRequest request
     ) {
         GrantServiceConsentResult result = serviceConsentUseCase.submit(
             principal,
@@ -118,7 +119,7 @@ public class ServiceRequestHttp {
     @PreAuthorize("hasAuthority('SCOPE_OWNER_SERVICE_CREATE')")
     public ApiResponse<SubmitServiceRequestResponse> submitRequest(
         @AuthenticationPrincipal AuthPrincipal principal,
-        @RequestBody SubmitServiceRequestRequest request
+        @Valid @RequestBody SubmitServiceRequestRequest request
     ) {
         SubmitServiceRequestResult result = serviceSubmitUseCase.submit(
             principal,
@@ -185,7 +186,7 @@ public class ServiceRequestHttp {
         @AuthenticationPrincipal AuthPrincipal principal,
         @PathVariable("tenantId") String tenantId,
         @PathVariable("serviceRequestId") String serviceRequestId,
-        @RequestBody(required = false) RejectServiceRequestRequest request
+        @Valid @RequestBody(required = false) RejectServiceRequestRequest request
     ) {
         RejectServiceRequestResult result = serviceRejectUseCase.reject(
             principal,
@@ -202,7 +203,7 @@ public class ServiceRequestHttp {
         @AuthenticationPrincipal AuthPrincipal principal,
         @PathVariable("tenantId") String tenantId,
         @PathVariable("serviceRequestId") String serviceRequestId,
-        @RequestBody CompleteServiceRequestRequest request
+        @Valid @RequestBody CompleteServiceRequestRequest request
     ) {
         CompleteServiceRequestResult result = serviceCompleteUseCase.complete(
             principal,
@@ -223,7 +224,7 @@ public class ServiceRequestHttp {
     public ApiResponse<CancelServiceRequestResponse> cancel(
         @AuthenticationPrincipal AuthPrincipal principal,
         @PathVariable("serviceRequestId") String serviceRequestId,
-        @RequestBody(required = false) CancelServiceRequestRequest request
+        @Valid @RequestBody(required = false) CancelServiceRequestRequest request
     ) {
         CancelServiceRequestResult result = serviceCancelUseCase.cancel(
             principal,
