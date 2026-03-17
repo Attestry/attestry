@@ -64,28 +64,19 @@ public class PassportManualService implements PassportManualUseCase {
     public SendPassportManualResult send(
         AuthPrincipal principal,
         String tenantId,
-        String passportId,
         SendPassportManualCommand command
     ) {
-        PassportManualReadPort.PassportManualContext context = loadAuthorizedContext(
-            principal,
-            tenantId,
-            passportId,
-            SEND_PERMISSION_PREFIX
-        );
-        if (context.ownerUserId() == null || context.ownerUserId().isBlank()) {
-            throw new WorkflowDomainException(WorkflowErrorCode.PASSPORT_MANUAL_OWNER_NOT_FOUND, "현재 소유주가 없습니다.");
-        }
-
+        List<String> passportIds = normalizePassportIds(command.passportIds());
         ManualContent content = resolveManualContent(command, tenantId);
-        String recipientEmail = resolveRecipientEmail(context.ownerUserId());
-        notificationOutboxRepositoryPort.save(buildOutbox(context, recipientEmail, content));
+        List<SendPassportManualResult.PassportManualDeliveryResult> deliveries = passportIds.stream()
+            .map(passportId -> queuePassportManualDelivery(principal, tenantId, passportId, content))
+            .toList();
 
         return new SendPassportManualResult(
-            context.passportId(),
-            maskEmail(recipientEmail),
+            deliveries.size(),
+            content.hasAttachment(),
             content.evidenceGroupId(),
-            content.hasAttachment()
+            deliveries
         );
     }
 
@@ -125,6 +116,45 @@ public class PassportManualService implements PassportManualUseCase {
             ? List.of()
             : resolveAttachments(evidenceGroupId, tenantId);
         return new ManualContent(message, evidenceGroupId, attachments);
+    }
+
+    private List<String> normalizePassportIds(List<String> passportIds) {
+        if (passportIds == null || passportIds.isEmpty()) {
+            throw new WorkflowDomainException(WorkflowErrorCode.INVALID_REQUEST, "passportIds is required");
+        }
+        List<String> normalizedPassportIds = passportIds.stream()
+            .map(this::trimToNull)
+            .filter(java.util.Objects::nonNull)
+            .distinct()
+            .toList();
+        if (normalizedPassportIds.isEmpty()) {
+            throw new WorkflowDomainException(WorkflowErrorCode.INVALID_REQUEST, "passportIds is required");
+        }
+        return normalizedPassportIds;
+    }
+
+    private SendPassportManualResult.PassportManualDeliveryResult queuePassportManualDelivery(
+        AuthPrincipal principal,
+        String tenantId,
+        String passportId,
+        ManualContent content
+    ) {
+        PassportManualReadPort.PassportManualContext context = loadAuthorizedContext(
+            principal,
+            tenantId,
+            passportId,
+            SEND_PERMISSION_PREFIX
+        );
+        if (context.ownerUserId() == null || context.ownerUserId().isBlank()) {
+            throw new WorkflowDomainException(WorkflowErrorCode.PASSPORT_MANUAL_OWNER_NOT_FOUND, "현재 소유주가 없습니다.");
+        }
+
+        String recipientEmail = resolveRecipientEmail(context.ownerUserId());
+        notificationOutboxRepositoryPort.save(buildOutbox(context, recipientEmail, content));
+        return new SendPassportManualResult.PassportManualDeliveryResult(
+            context.passportId(),
+            maskEmail(recipientEmail)
+        );
     }
 
     private List<AttachmentPayload> resolveAttachments(String evidenceGroupId, String tenantId) {
