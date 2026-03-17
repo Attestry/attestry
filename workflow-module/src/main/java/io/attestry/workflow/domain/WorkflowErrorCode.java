@@ -36,6 +36,11 @@ public enum WorkflowErrorCode implements ErrorCode {
     SERVICE_REQUEST_INVALID_STATE("SERVICE_REQUEST", "Service request invalid state", ErrorCategory.BAD_REQUEST),
     SERVICE_REQUEST_ALREADY_SUBMITTED("SERVICE_REQUEST", "이미 처리 중인 서비스 요청이 있습니다.", ErrorCategory.CONFLICT),
 
+    // Passport Manual
+    PASSPORT_MANUAL_OWNER_NOT_FOUND("PASSPORT_MANUAL", "현재 소유주가 없습니다.", ErrorCategory.BAD_REQUEST),
+    PASSPORT_MANUAL_RECIPIENT_NOT_FOUND("PASSPORT_MANUAL", "현재 소유자의 이메일 정보를 확인할 수 없습니다.", ErrorCategory.BAD_REQUEST),
+    PASSPORT_MANUAL_CONTENT_REQUIRED("PASSPORT_MANUAL", "메뉴얼 내용을 입력하거나 첨부 파일을 추가해주세요.", ErrorCategory.BAD_REQUEST),
+
     // Distribution
     DISTRIBUTION_NOT_FOUND("DISTRIBUTION", "Distribution not found", ErrorCategory.NOT_FOUND),
 

@@ -2,5 +2,6 @@ package io.attestry.userauth.domain.membership.model;
 
 public enum NotificationType {
     INVITATION,
-    SIGNUP_EMAIL_VERIFICATION
+    SIGNUP_EMAIL_VERIFICATION,
+    PASSPORT_MANUAL_DELIVERY
 }
