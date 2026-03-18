@@ -82,9 +82,6 @@ public class OrganizationApplication {
         String address,
         String evidenceBundleId
     ) {
-        if (address == null || address.isBlank()) {
-            throw new UserAuthDomainException(UserAuthErrorCode.INVALID_REQUEST, "address is required for SERVICE type");
-        }
         return create(TenantType.SERVICE, applicantUserId, orgName, country, bizRegNo, address, evidenceBundleId);
     }
 
@@ -98,9 +95,7 @@ public class OrganizationApplication {
         String evidenceBundleId
     ) {
         validateEvidenceBundleId(evidenceBundleId);
-        if (type == TenantType.SERVICE) {
-            validateAddress(address);
-        }
+        validateAddress(address);
         return new OrganizationApplication(
             UUID.randomUUID().toString(),
             type,
