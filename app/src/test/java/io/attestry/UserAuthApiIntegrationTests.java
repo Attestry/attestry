@@ -129,6 +129,7 @@ class UserAuthApiIntegrationTests {
                     "type", "BRAND",
                     "orgName", "Brand X",
                     "country", "KR",
+                    "address", "서울 강남구 테헤란로 152",
                     "bizRegNo", "111-22-33333",
                     "evidenceBundleId", evidenceBundleId
                 ))))
@@ -153,7 +154,7 @@ class UserAuthApiIntegrationTests {
         String tenantId = UUID.randomUUID().toString();
         String adminUserId = UUID.randomUUID().toString();
 
-        tenantRepository.save(new TenantJpaEntity(tenantId, "Tenant A", "KR", null, TenantType.BRAND, TenantStatus.ACTIVE));
+        tenantRepository.save(new TenantJpaEntity(tenantId, "Tenant A", "KR", "서울 강남구 테헤란로 201", TenantType.BRAND, TenantStatus.ACTIVE));
 
         String adminEmail = "tenant-admin@test.com";
         userAccountRepository.save(new UserAccountJpaEntity(
@@ -217,6 +218,7 @@ class UserAuthApiIntegrationTests {
                     "type", "RETAIL",
                     "orgName", "Retail One",
                     "country", "KR",
+                    "address", "서울 성동구 아차산로13길 11",
                     "bizRegNo", "999-88-77777",
                     "evidenceBundleId", evidenceBundleId
                 ))))
@@ -281,7 +283,7 @@ class UserAuthApiIntegrationTests {
         String adminEmail = "operator-invite-admin@test.com";
         String adminPassword = "AdminPw123";
 
-        tenantRepository.save(new TenantJpaEntity(tenantId, "Tenant C", "KR", null, TenantType.BRAND, TenantStatus.ACTIVE));
+        tenantRepository.save(new TenantJpaEntity(tenantId, "Tenant C", "KR", "서울 강남구 봉은사로 301", TenantType.BRAND, TenantStatus.ACTIVE));
 
         userAccountRepository.save(new UserAccountJpaEntity(
             adminUserId,
@@ -398,7 +400,7 @@ class UserAuthApiIntegrationTests {
         String adminUserId = UUID.randomUUID().toString();
         String targetUserId = UUID.randomUUID().toString();
 
-        tenantRepository.save(new TenantJpaEntity(tenantId, "Tenant B", "KR", null, TenantType.BRAND, TenantStatus.ACTIVE));
+        tenantRepository.save(new TenantJpaEntity(tenantId, "Tenant B", "KR", "서울 서초구 강남대로 221", TenantType.BRAND, TenantStatus.ACTIVE));
 
         userAccountRepository.save(new UserAccountJpaEntity(
             adminUserId,
@@ -473,7 +475,7 @@ class UserAuthApiIntegrationTests {
         String adminUserId = UUID.randomUUID().toString();
         String targetUserId = UUID.randomUUID().toString();
 
-        tenantRepository.save(new TenantJpaEntity(tenantId, "Tenant D", "KR", null, TenantType.BRAND, TenantStatus.ACTIVE));
+        tenantRepository.save(new TenantJpaEntity(tenantId, "Tenant D", "KR", "서울 송파구 올림픽로 240", TenantType.BRAND, TenantStatus.ACTIVE));
 
         userAccountRepository.save(new UserAccountJpaEntity(
             adminUserId,
@@ -541,7 +543,7 @@ class UserAuthApiIntegrationTests {
         String adminUserId = UUID.randomUUID().toString();
         String targetUserId = UUID.randomUUID().toString();
 
-        tenantRepository.save(new TenantJpaEntity(tenantId, "Tenant E", "KR", null, TenantType.BRAND, TenantStatus.ACTIVE));
+        tenantRepository.save(new TenantJpaEntity(tenantId, "Tenant E", "KR", "서울 마포구 양화로 98", TenantType.BRAND, TenantStatus.ACTIVE));
 
         userAccountRepository.save(new UserAccountJpaEntity(
             adminUserId,
@@ -597,7 +599,7 @@ class UserAuthApiIntegrationTests {
         String tenantId = UUID.randomUUID().toString();
         String ownerUserId = UUID.randomUUID().toString();
 
-        tenantRepository.save(new TenantJpaEntity(tenantId, "Tenant F", "KR", null, TenantType.BRAND, TenantStatus.ACTIVE));
+        tenantRepository.save(new TenantJpaEntity(tenantId, "Tenant F", "KR", "서울 영등포구 여의대로 24", TenantType.BRAND, TenantStatus.ACTIVE));
 
         userAccountRepository.save(new UserAccountJpaEntity(
             ownerUserId,
@@ -636,7 +638,7 @@ class UserAuthApiIntegrationTests {
         String tenantId = UUID.randomUUID().toString();
         String ownerUserId = UUID.randomUUID().toString();
 
-        tenantRepository.save(new TenantJpaEntity(tenantId, "Tenant G", "KR", null, TenantType.BRAND, TenantStatus.ACTIVE));
+        tenantRepository.save(new TenantJpaEntity(tenantId, "Tenant G", "KR", "서울 중구 을지로 120", TenantType.BRAND, TenantStatus.ACTIVE));
 
         userAccountRepository.save(new UserAccountJpaEntity(
             ownerUserId,
