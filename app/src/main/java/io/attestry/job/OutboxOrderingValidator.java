@@ -2,6 +2,10 @@ package io.attestry.job;
 
 import io.micrometer.core.instrument.Counter;
 import io.micrometer.core.instrument.MeterRegistry;
+import java.sql.Timestamp;
+import java.time.Clock;
+import java.time.Instant;
+import java.time.Duration;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.boot.autoconfigure.condition.ConditionalOnProperty;
@@ -14,27 +18,31 @@ import org.springframework.stereotype.Component;
 public class OutboxOrderingValidator {
 
     private static final Logger log = LoggerFactory.getLogger(OutboxOrderingValidator.class);
+    private static final Duration CHECK_WINDOW = Duration.ofMinutes(10);
 
     private final JdbcTemplate jdbcTemplate;
     private final Counter violationCounter;
+    private final Clock clock;
 
-    public OutboxOrderingValidator(JdbcTemplate jdbcTemplate, MeterRegistry meterRegistry) {
+    public OutboxOrderingValidator(JdbcTemplate jdbcTemplate, MeterRegistry meterRegistry, Clock clock) {
         this.jdbcTemplate = jdbcTemplate;
         this.violationCounter = Counter.builder("ledger.outbox.ordering.violation.count")
             .description("Number of outbox events published out of order within the same aggregate")
             .register(meterRegistry);
+        this.clock = clock;
     }
 
     @Scheduled(cron = "${app.kafka.outbox.ordering-check-cron:0 */5 * * * *}")
     public void checkOrderingViolations() {
+        Timestamp windowStart = Timestamp.from(Instant.now(clock).minus(CHECK_WINDOW));
         Integer violations = jdbcTemplate.queryForObject(
             """
                 SELECT COUNT(*) FROM (
-                    SELECT e.event_id, e.aggregate_id, e.created_at, e.published_at
+                    SELECT e.event_id
                     FROM outbox_event e
                     WHERE e.status = 'PUBLISHED'
                       AND e.event_type IN ('LEDGER_APPEND', 'PROJECTION_UPDATE')
-                      AND e.published_at IS NOT NULL
+                      AND e.published_at >= ?
                       AND EXISTS (
                           SELECT 1 FROM outbox_event later
                           WHERE later.aggregate_id = e.aggregate_id
@@ -45,7 +53,8 @@ public class OutboxOrderingValidator {
                       )
                 ) AS violations
             """,
-            Integer.class
+            Integer.class,
+            windowStart
         );
         int count = violations == null ? 0 : violations;
         if (count > 0) {

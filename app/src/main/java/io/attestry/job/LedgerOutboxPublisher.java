@@ -177,64 +177,74 @@ public class LedgerOutboxPublisher {
             .toList();
 
         // 3. finalize 트랜잭션: PROCESSING → PUBLISHED/FAILED/PENDING
+        List<String> successEventIds = new ArrayList<>();
+        List<PublishAttempt> failedAttempts = new ArrayList<>();
+        for (PublishAttempt attempt : attempts) {
+            if (attempt.error() == null) {
+                successEventIds.add(attempt.event().eventId());
+            } else {
+                failedAttempts.add(attempt);
+            }
+        }
+
         transactionTemplate.executeWithoutResult(status -> {
-            for (PublishAttempt attempt : attempts) {
+            // 성공 건: 단일 batch UPDATE
+            if (!successEventIds.isEmpty()) {
+                Timestamp publishedAt = Timestamp.from(Instant.now(clock));
+                String inClause = String.join(",",
+                    successEventIds.stream().map(id -> "?").toList());
+                Object[] params = new Object[successEventIds.size() + 2];
+                params[0] = publishedAt;
+                params[1] = PROCESSING_STATUS;
+                for (int i = 0; i < successEventIds.size(); i++) {
+                    params[i + 2] = successEventIds.get(i);
+                }
+                finalizeTimer.record(() -> jdbcTemplate.update(
+                    """
+                        UPDATE outbox_event
+                        SET status = 'PUBLISHED', last_error = NULL, published_at = ?,
+                            next_retry_at = NULL, processing_started_at = NULL, processing_owner = NULL
+                        WHERE status = ? AND event_id IN (%s)
+                    """.formatted(inClause),
+                    params
+                ));
+                publishSuccessCounter.increment(successEventIds.size());
+                publishSuccessStandaloneCounter.increment(successEventIds.size());
+            }
+
+            // 실패 건: 이벤트마다 retry_count, last_error, next_retry_at 이 다르므로 개별 UPDATE
+            for (PublishAttempt attempt : failedAttempts) {
                 OutboxEventRecord event = attempt.event();
-                publishCounter.increment();
-                try {
-                    if (attempt.error() != null) {
-                        throw attempt.error();
-                    }
-                    finalizeTimer.record(() -> jdbcTemplate.update(
-                        """
-                            UPDATE outbox_event
-                            SET status = ?, last_error = ?, published_at = ?, next_retry_at = ?,
-                                processing_started_at = ?, processing_owner = ?
-                            WHERE event_id = ? AND status = ?
-                        """,
-                        PUBLISHED_STATUS,
-                        null,
-                        Timestamp.from(Instant.now(clock)),
-                        null,
-                        null,
-                        null,
-                        event.eventId(),
-                        PROCESSING_STATUS
-                    ));
-                    publishSuccessCounter.increment();
-                    publishSuccessStandaloneCounter.increment();
-                } catch (Throwable ex) {
-                    int nextRetryCount = event.retryCount() + 1;
-                    String nextStatus = nextRetryCount >= kafkaProperties.getOutbox().getMaxRetries()
-                        ? FAILED_STATUS
-                        : PENDING_STATUS;
-                    Instant nextRetryAt = PENDING_STATUS.equals(nextStatus)
-                        ? computeNextRetryAt(now, nextRetryCount)
-                        : null;
-                    finalizeTimer.record(() -> jdbcTemplate.update(
-                        """
-                            UPDATE outbox_event
-                            SET status = ?, retry_count = ?, last_error = ?, next_retry_at = ?,
-                                processing_started_at = ?, processing_owner = ?
-                            WHERE event_id = ? AND status = ?
-                        """,
-                        nextStatus,
-                        nextRetryCount,
-                        trimError(ex.getMessage()),
-                        nextRetryAt == null ? null : Timestamp.from(nextRetryAt),
-                        null,
-                        null,
-                        event.eventId(),
-                        PROCESSING_STATUS
-                    ));
-                    publishFailureCounter.increment();
-                    publishFailureStandaloneCounter.increment();
-                    if (FAILED_STATUS.equals(nextStatus)) {
-                        log.warn("ledger outbox event permanently failed: eventId={}, retryCount={}, lastError={}",
-                            event.eventId(), nextRetryCount, trimError(ex.getMessage()));
-                    }
+                int nextRetryCount = event.retryCount() + 1;
+                String nextStatus = nextRetryCount >= kafkaProperties.getOutbox().getMaxRetries()
+                    ? FAILED_STATUS
+                    : PENDING_STATUS;
+                Instant nextRetryAt = PENDING_STATUS.equals(nextStatus)
+                    ? computeNextRetryAt(now, nextRetryCount)
+                    : null;
+                finalizeTimer.record(() -> jdbcTemplate.update(
+                    """
+                        UPDATE outbox_event
+                        SET status = ?, retry_count = ?, last_error = ?, next_retry_at = ?,
+                            processing_started_at = NULL, processing_owner = NULL
+                        WHERE event_id = ? AND status = ?
+                    """,
+                    nextStatus,
+                    nextRetryCount,
+                    trimError(attempt.error().getMessage()),
+                    nextRetryAt == null ? null : Timestamp.from(nextRetryAt),
+                    event.eventId(),
+                    PROCESSING_STATUS
+                ));
+                publishFailureCounter.increment();
+                publishFailureStandaloneCounter.increment();
+                if (FAILED_STATUS.equals(nextStatus)) {
+                    log.warn("ledger outbox event permanently failed: eventId={}, retryCount={}, lastError={}",
+                        event.eventId(), nextRetryCount, trimError(attempt.error().getMessage()));
                 }
             }
+
+            publishCounter.increment(attempts.size());
         });
     }
 
