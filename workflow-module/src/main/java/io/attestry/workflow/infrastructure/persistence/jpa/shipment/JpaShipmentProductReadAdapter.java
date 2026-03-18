@@ -89,7 +89,13 @@ public class JpaShipmentProductReadAdapter implements ShipmentProductReadPort {
         MapSqlParameterSource params = new MapSqlParameterSource().addValue("tenantId", tenantId);
 
         if (keyword != null && !keyword.isBlank()) {
-            whereClause.append(" AND (LOWER(wpcp.serial_number) LIKE :keyword OR LOWER(wpcp.model_name) LIKE :keyword) ");
+            whereClause.append("""
+                 AND (
+                     LOWER(wpcp.passport_id) LIKE :keyword
+                     OR LOWER(wpcp.serial_number) LIKE :keyword
+                     OR LOWER(wpcp.model_name) LIKE :keyword
+                 )
+            """);
             params.addValue("keyword", "%" + keyword.toLowerCase(java.util.Locale.ROOT) + "%");
         }
 
@@ -139,7 +145,13 @@ public class JpaShipmentProductReadAdapter implements ShipmentProductReadPort {
         MapSqlParameterSource params = new MapSqlParameterSource().addValue("tenantId", tenantId);
 
         if (keyword != null && !keyword.isBlank()) {
-            whereClause.append(" AND (LOWER(wpcp.serial_number) LIKE :keyword OR LOWER(wpcp.model_name) LIKE :keyword) ");
+            whereClause.append("""
+                 AND (
+                     LOWER(wpcp.passport_id) LIKE :keyword
+                     OR LOWER(wpcp.serial_number) LIKE :keyword
+                     OR LOWER(wpcp.model_name) LIKE :keyword
+                 )
+            """);
             params.addValue("keyword", "%" + keyword.toLowerCase(java.util.Locale.ROOT) + "%");
         }
 
