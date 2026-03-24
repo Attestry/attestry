@@ -12,12 +12,12 @@ import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 
 import io.attestry.userauth.application.port.notification.NotificationOutboxRepositoryPort;
-import io.attestry.userauth.domain.identity.model.VerificationLevel;
+import io.attestry.userauth.domain.auth.model.VerificationLevel;
 import io.attestry.userauth.domain.membership.model.NotificationOutbox;
 import io.attestry.userauth.domain.membership.model.NotificationType;
 import io.attestry.userauth.domain.membership.model.PassportManualNotificationPayload;
-import io.attestry.userauth.domain.membership.model.PassportManualNotificationPayload.AttachmentPayload;
-import io.attestry.userauth.security.AuthPrincipal;
+import io.attestry.workflow.application.common.WorkflowActorContext;
+import io.attestry.workflow.application.manual.command.PassportManualService;
 import io.attestry.workflow.application.manual.command.SendPassportManualCommand;
 import io.attestry.workflow.application.manual.result.PassportManualRecipientResult;
 import io.attestry.workflow.application.manual.result.SendPassportManualResult;
@@ -53,7 +53,7 @@ class PassportManualServiceTest {
 
     private PassportManualService service;
 
-    private static final AuthPrincipal BRAND = new AuthPrincipal(
+    private static final WorkflowActorContext BRAND = new WorkflowActorContext(
         "token-1",
         "brand-user",
         "tenant-1",
@@ -93,7 +93,7 @@ class PassportManualServiceTest {
     void send_queuesOutboxWhenMessageOnly() {
         stubAuthorization();
         stubPassport("passport-1", "tenant-1", "SN-1", "Model A", "owner-1");
-        when(userReadPort.findEmailsByUserIds(List.of("owner-1")))
+        when(userReadPort.findEmailMapByUserIds(List.of("owner-1")))
             .thenReturn(Map.of("owner-1", "owner@example.com"));
 
         SendPassportManualResult result = service.send(
@@ -130,9 +130,9 @@ class PassportManualServiceTest {
         stubAuthorization();
         stubPassport("passport-1", "tenant-1", "SN-1", "Model A", "owner-1");
         stubPassport("passport-2", "tenant-1", "SN-2", "Model B", "owner-2");
-        when(userReadPort.findEmailsByUserIds(List.of("owner-1")))
+        when(userReadPort.findEmailMapByUserIds(List.of("owner-1")))
             .thenReturn(Map.of("owner-1", "owner@example.com"));
-        when(userReadPort.findEmailsByUserIds(List.of("owner-2")))
+        when(userReadPort.findEmailMapByUserIds(List.of("owner-2")))
             .thenReturn(Map.of("owner-2", "second@example.com"));
         when(workflowEvidencePort.findEvidenceGroupScope("group-1"))
             .thenReturn(Optional.of(new WorkflowEvidencePort.EvidenceGroupScopeRecord("group-1", "tenant-1", "brand-user")));
@@ -189,7 +189,7 @@ class PassportManualServiceTest {
     void send_throwsWhenRecipientEmailMissing() {
         stubAuthorization();
         stubPassport("passport-1", "tenant-1", "SN-1", "Model A", "owner-1");
-        when(userReadPort.findEmailsByUserIds(List.of("owner-1")))
+        when(userReadPort.findEmailMapByUserIds(List.of("owner-1")))
             .thenReturn(Map.of());
 
         WorkflowDomainException exception = assertThrows(WorkflowDomainException.class, () ->

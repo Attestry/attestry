@@ -3,7 +3,7 @@ package io.attestry.workflow.application.shipment.assembler;
 import io.attestry.commonlib.application.port.ObjectStoragePort;
 import io.attestry.workflow.application.port.common.WorkflowEvidencePort;
 import io.attestry.workflow.application.port.shipment.WorkflowShipmentHistoryPort.EvidenceFileRecord;
-import io.attestry.workflow.application.shipment.result.ShipmentDetailResult.EvidenceFileResult;
+import io.attestry.workflow.application.shipment.view.ShipmentDetailView.EvidenceFileView;
 import java.time.Duration;
 import java.util.List;
 
@@ -20,9 +20,9 @@ public class ShipmentEvidenceViewAssembler {
     private final ObjectStoragePort objectStoragePort;
 
 
-    public List<EvidenceFileResult> toDetailEvidenceFiles(String evidenceGroupId) {
+    public List<EvidenceFileView> toDetailEvidenceFiles(String evidenceGroupId) {
         return toPassportEvidenceRecords(evidenceGroupId).stream()
-            .map(file -> new EvidenceFileResult(
+            .map(file -> new EvidenceFileView(
                 file.evidenceId(),
                 file.originalFileName(),
                 file.contentType(),

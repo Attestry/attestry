@@ -3,7 +3,7 @@ package io.attestry.userauth.application.membership;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
-import io.attestry.userauth.application.dto.view.MembershipView;
+import io.attestry.userauth.application.membership.view.MembershipView;
 import io.attestry.userauth.application.membership.assembler.MembershipQueryViewAssembler;
 import io.attestry.userauth.application.membership.query.MembershipQueryService;
 import io.attestry.userauth.application.port.membership.MembershipPort;
@@ -130,23 +130,23 @@ class MembershipQueryServiceTest {
 
         UserAccountRepositoryPort userAccountRepository = new UserAccountRepositoryPort() {
             @Override
-            public Optional<io.attestry.userauth.domain.identity.model.UserAccount> findByEmail(String email) {
+            public Optional<io.attestry.userauth.domain.auth.model.UserAccount> findByEmail(String email) {
                 return Optional.empty();
             }
 
             @Override
-            public Optional<io.attestry.userauth.domain.identity.model.UserAccount> findById(String userId) {
+            public Optional<io.attestry.userauth.domain.auth.model.UserAccount> findById(String userId) {
                 return Optional.empty();
             }
 
             @Override
-            public List<io.attestry.userauth.domain.identity.model.UserAccount> findByIds(List<String> userIds) {
+            public List<io.attestry.userauth.domain.auth.model.UserAccount> findByIds(List<String> userIds) {
                 return List.of();
             }
 
             @Override
-            public io.attestry.userauth.domain.identity.model.UserAccount save(
-                    io.attestry.userauth.domain.identity.model.UserAccount userAccount) {
+            public io.attestry.userauth.domain.auth.model.UserAccount save(
+                    io.attestry.userauth.domain.auth.model.UserAccount userAccount) {
                 return userAccount;
             }
         };

@@ -1,6 +1,6 @@
 package io.attestry.userauth.interfaces.membership.dto.response;
 
-import io.attestry.userauth.application.dto.result.MembershipDetailResult;
+import io.attestry.userauth.application.membership.view.MembershipDetailView;
 import java.util.List;
 
 public record MembershipDetailResponse(
@@ -10,7 +10,7 @@ public record MembershipDetailResponse(
     String status,
     UserAccountResponse userAccount
 ) {
-    public static MembershipDetailResponse from(MembershipDetailResult result) {
+    public static MembershipDetailResponse from(MembershipDetailView result) {
         return new MembershipDetailResponse(
             result.membershipId(),
             result.tenantId(),
@@ -35,4 +35,3 @@ public record MembershipDetailResponse(
     ) {
     }
 }
-

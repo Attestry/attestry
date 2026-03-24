@@ -1,10 +1,10 @@
 package io.attestry.userauth.application.membership.policy;
 
-import io.attestry.userauth.application.dto.command.ActorContext;
-import io.attestry.userauth.application.dto.command.AuthzEvaluateCommand;
-import io.attestry.userauth.application.dto.command.PolicyDecisionMode;
-import io.attestry.userauth.application.dto.result.AuthzEvaluateResult;
-import io.attestry.userauth.application.usecase.policy.EvaluateAuthorizationUseCase;
+import io.attestry.userauth.application.common.ActorContext;
+import io.attestry.userauth.application.policy.command.AuthzEvaluateCommand;
+import io.attestry.userauth.application.policy.command.PolicyDecisionMode;
+import io.attestry.userauth.application.policy.result.AuthzEvaluateResult;
+import io.attestry.userauth.application.policy.usecase.EvaluateAuthorizationUseCase;
 import io.attestry.userauth.domain.authorization.model.PermissionCodes;
 import io.attestry.userauth.domain.membership.service.RoleAssignmentDomainService;
 import lombok.RequiredArgsConstructor;

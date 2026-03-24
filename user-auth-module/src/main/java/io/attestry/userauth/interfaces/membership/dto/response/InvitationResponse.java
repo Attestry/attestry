@@ -1,6 +1,6 @@
 package io.attestry.userauth.interfaces.membership.dto.response;
 
-import io.attestry.userauth.application.dto.result.InvitationResult;
+import io.attestry.userauth.application.membership.result.InvitationResult;
 
 public record InvitationResponse(
         String invitationId,

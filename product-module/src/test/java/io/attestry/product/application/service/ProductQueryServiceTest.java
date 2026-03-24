@@ -1,4 +1,4 @@
-package io.attestry.product.application.service;
+package io.attestry.product.application.query;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.mockito.Mockito.verify;
@@ -12,11 +12,11 @@ import io.attestry.product.application.port.ownership.PassportOwnershipPort;
 import io.attestry.product.application.port.permission.PassportPermissionPort;
 import io.attestry.product.application.port.passport.PassportPort;
 import io.attestry.product.application.port.query.PassportShipmentQueryPort;
-import io.attestry.product.application.query.ProductQueryService;
 import io.attestry.product.application.query.assembler.ProductQueryViewAssembler;
-import io.attestry.product.application.dto.view.DistributedPassportView;
-import io.attestry.product.application.dto.view.DistributedPassportDetailView;
-import io.attestry.product.application.dto.view.PagedDistributedPassportView;
+import io.attestry.product.application.query.view.DistributedPassportView;
+import io.attestry.product.application.query.view.DistributedPassportDetailView;
+import io.attestry.product.application.query.view.PagedDistributedPassportView;
+import io.attestry.product.infrastructure.config.ProductProperties;
 import java.time.Instant;
 import java.util.List;
 import org.junit.jupiter.api.BeforeEach;
@@ -52,7 +52,7 @@ class ProductQueryServiceTest {
             shipmentQueryPort,
             distributionQueryPort,
             viewAssembler,
-            "https://public.example.com"
+            productProperties()
         );
     }
 
@@ -127,5 +127,11 @@ class ProductQueryServiceTest {
         assertEquals("BATCH-01", result.productionBatch());
         assertEquals("FACTORY-A", result.factoryCode());
         verify(distributedPassportQueryPort).findDetailByRetailAccess("retail-tenant", "passport-1");
+    }
+
+    private static ProductProperties productProperties() {
+        ProductProperties props = new ProductProperties();
+        props.setPublicBaseUrl("https://public.example.com");
+        return props;
     }
 }

@@ -1,9 +1,8 @@
 package io.attestry.userauth.application.membership.command;
 
-import io.attestry.userauth.application.dto.command.ActorContext;
-import io.attestry.userauth.application.dto.command.InviteCommand;
-import io.attestry.userauth.application.dto.result.InvitationResult;
-import io.attestry.userauth.application.dto.result.MembershipResult;
+import io.attestry.userauth.application.common.ActorContext;
+import io.attestry.userauth.application.membership.result.InvitationResult;
+import io.attestry.userauth.application.membership.result.MembershipResult;
 import io.attestry.userauth.application.membership.assembler.MembershipResultAssembler;
 import io.attestry.userauth.application.port.membership.InvitationPort;
 import io.attestry.userauth.application.port.membership.MembershipPort;

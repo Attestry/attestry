@@ -1,8 +1,8 @@
 package io.attestry.product.interfaces.http.query.dto.response;
 
-import io.attestry.product.application.dto.view.DistributionDetailView;
-import io.attestry.product.application.dto.view.PassportDetailView;
-import io.attestry.product.application.dto.view.ShipmentDetailView;
+import io.attestry.product.application.query.view.DistributionDetailView;
+import io.attestry.product.application.query.view.PassportDetailView;
+import io.attestry.product.application.query.view.ShipmentDetailView;
 import java.time.Instant;
 import java.util.List;
 

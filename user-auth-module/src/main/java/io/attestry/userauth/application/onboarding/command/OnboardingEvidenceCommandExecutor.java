@@ -1,11 +1,9 @@
 package io.attestry.userauth.application.onboarding.command;
 
 import io.attestry.commonlib.application.port.ObjectStoragePort;
-import io.attestry.userauth.application.dto.command.ActorContext;
-import io.attestry.userauth.application.dto.command.CompleteEvidenceUploadCommand;
-import io.attestry.userauth.application.dto.command.PresignEvidenceUploadCommand;
-import io.attestry.userauth.application.dto.result.EvidenceBundleResult;
-import io.attestry.userauth.application.dto.result.PresignedEvidenceUploadResult;
+import io.attestry.userauth.application.common.ActorContext;
+import io.attestry.userauth.application.onboarding.result.EvidenceBundleResult;
+import io.attestry.userauth.application.onboarding.result.PresignedEvidenceUploadResult;
 import io.attestry.userauth.application.port.onboarding.OnboardingEvidenceBundleRepositoryPort;
 import io.attestry.userauth.domain.UserAuthDomainException;
 import io.attestry.userauth.domain.UserAuthErrorCode;

@@ -2,7 +2,7 @@ package io.attestry.workflow.application.servicerequest.assembler;
 
 import io.attestry.commonlib.application.port.ObjectStoragePort;
 import io.attestry.workflow.application.port.common.WorkflowEvidencePort;
-import io.attestry.workflow.application.usecase.ServiceRequestQueryUseCase.EvidenceFileResult;
+import io.attestry.workflow.application.servicerequest.view.ServiceRequestEvidenceFileView;
 import java.time.Duration;
 import java.util.List;
 import org.springframework.stereotype.Component;
@@ -23,13 +23,13 @@ public class ServiceRequestEvidenceAssembler {
         this.objectStoragePort = objectStoragePort;
     }
 
-    public List<EvidenceFileResult> toEvidenceFiles(String evidenceGroupId) {
+    public List<ServiceRequestEvidenceFileView> toEvidenceFiles(String evidenceGroupId) {
         if (evidenceGroupId == null || evidenceGroupId.isBlank()) {
             return List.of();
         }
         return evidencePort.findEvidenceByEvidenceGroupId(evidenceGroupId).stream()
             .filter(e -> "READY".equals(e.status()))
-            .map(e -> new EvidenceFileResult(
+            .map(e -> new ServiceRequestEvidenceFileView(
                 e.evidenceId(),
                 e.originalFileName(),
                 e.contentType(),

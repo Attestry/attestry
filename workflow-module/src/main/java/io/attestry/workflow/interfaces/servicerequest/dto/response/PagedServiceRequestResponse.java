@@ -1,6 +1,6 @@
 package io.attestry.workflow.interfaces.servicerequest.dto.response;
 
-import io.attestry.workflow.application.usecase.ServiceRequestQueryUseCase;
+import io.attestry.workflow.application.servicerequest.view.PagedServiceRequestView;
 import java.util.List;
 
 public record PagedServiceRequestResponse(
@@ -10,7 +10,7 @@ public record PagedServiceRequestResponse(
     long totalElements,
     int totalPages
 ) {
-    public static PagedServiceRequestResponse from(ServiceRequestQueryUseCase.PagedServiceRequestResult result) {
+    public static PagedServiceRequestResponse from(PagedServiceRequestView result) {
         return new PagedServiceRequestResponse(
             result.content().stream().map(ServiceRequestListItemResponse::from).toList(),
             result.page(),

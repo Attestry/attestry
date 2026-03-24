@@ -9,8 +9,10 @@ import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 
 import io.attestry.userauth.domain.authorization.model.PermissionCodes;
-import io.attestry.userauth.domain.identity.model.VerificationLevel;
-import io.attestry.userauth.security.AuthPrincipal;
+import io.attestry.userauth.domain.auth.model.VerificationLevel;
+import io.attestry.workflow.application.common.WorkflowActorContext;
+import io.attestry.workflow.application.delegation.command.DelegationService;
+import io.attestry.workflow.application.delegation.support.RelationshipValidator;
 import io.attestry.workflow.application.delegation.command.GrantDelegationCommand;
 import io.attestry.workflow.application.delegation.result.DelegationResult;
 import io.attestry.workflow.application.port.common.TenantReadPort;
@@ -51,7 +53,7 @@ class DelegationServiceTest {
 
     private DelegationService service;
 
-    private static final AuthPrincipal PRINCIPAL = new AuthPrincipal(
+    private static final WorkflowActorContext PRINCIPAL = new WorkflowActorContext(
         "token-1",
         "user-1",
         "source-tenant",

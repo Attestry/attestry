@@ -9,20 +9,24 @@ import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 
 import io.attestry.userauth.domain.authorization.model.PermissionCodes;
-import io.attestry.userauth.domain.identity.model.VerificationLevel;
-import io.attestry.userauth.security.AuthPrincipal;
+import io.attestry.userauth.domain.auth.model.VerificationLevel;
+import io.attestry.workflow.application.common.WorkflowActorContext;
 import io.attestry.workflow.application.delegation.command.GrantDelegationCommand;
 import io.attestry.workflow.application.delegation.result.DelegationResult;
+import io.attestry.workflow.application.delegation.usecase.DelegationUseCase;
 import io.attestry.workflow.application.distribution.assembler.DistributionViewAssembler;
+import io.attestry.workflow.application.distribution.command.DistributeCommand;
+import io.attestry.workflow.application.distribution.command.DistributionCommandService;
+import io.attestry.workflow.application.distribution.command.RecallDistributionCommand;
+import io.attestry.workflow.application.distribution.query.DistributionQueryService;
+import io.attestry.workflow.application.distribution.result.BatchDistributeResult;
+import io.attestry.workflow.application.distribution.view.DistributionView;
+import io.attestry.workflow.application.distribution.view.PagedDistributionView;
 import io.attestry.workflow.application.port.common.TenantReadPort;
 import io.attestry.workflow.application.port.distribution.DistributionCandidateQueryPort;
 import io.attestry.workflow.application.port.common.WorkflowProjectionOutboxPort;
 import io.attestry.workflow.application.port.distribution.DistributionQueryPort;
 import io.attestry.workflow.application.support.WorkflowAuthorizationSupport;
-import io.attestry.workflow.application.usecase.DelegationUseCase;
-import io.attestry.workflow.application.usecase.DistributionUseCase.BatchDistributeResult;
-import io.attestry.workflow.application.usecase.DistributionUseCase.DistributeCommand;
-import io.attestry.workflow.application.usecase.DistributionUseCase.DistributionView;
 import io.attestry.workflow.domain.WorkflowDomainException;
 import io.attestry.workflow.domain.WorkflowErrorCode;
 import io.attestry.workflow.domain.distribution.model.Distribution;
@@ -52,13 +56,14 @@ class DistributionServiceTest {
 
     private final Clock clock = Clock.fixed(Instant.parse("2026-03-01T10:00:00Z"), ZoneOffset.UTC);
 
-    private DistributionService service;
+    private DistributionCommandService commandService;
+    private DistributionQueryService queryService;
 
     private static final String SOURCE_TENANT = "source-tenant";
     private static final String TARGET_TENANT = "target-tenant";
     private static final String PARTNER_LINK_ID = "pl-1";
     private static final Instant EXPIRES = Instant.parse("2026-04-01T00:00:00Z");
-    private static final AuthPrincipal PRINCIPAL = new AuthPrincipal(
+    private static final WorkflowActorContext PRINCIPAL = new WorkflowActorContext(
         "token1", "admin1", SOURCE_TENANT,
         VerificationLevel.PHONE_VERIFIED, Set.of("SCOPE_DELEGATION_GRANT"),
         Instant.parse("2026-03-02T00:00:00Z")
@@ -66,16 +71,21 @@ class DistributionServiceTest {
 
     @BeforeEach
     void setUp() {
-        service = new DistributionService(
+        commandService = new DistributionCommandService(
             delegationUseCase,
             distributionRepository,
+            distributionQueryPort,
+            tenantReadPort,
+            authorizationSupport,
+            projectionOutboxPort,
+            clock
+        );
+        queryService = new DistributionQueryService(
             distributionCandidateQueryPort,
             distributionQueryPort,
             tenantReadPort,
             viewAssembler,
-            authorizationSupport,
-            projectionOutboxPort,
-            clock
+            authorizationSupport
         );
     }
 
@@ -87,8 +97,10 @@ class DistributionServiceTest {
             return delegationResultFor(cmd.resourceId());
         });
         when(distributionRepository.save(any(Distribution.class))).thenAnswer(inv -> inv.getArgument(0));
+        when(tenantReadPort.findTenantSummary(TARGET_TENANT))
+            .thenReturn(new TenantReadPort.TenantSummary(TARGET_TENANT, "Target", "", "", "RETAIL"));
 
-        BatchDistributeResult result = service.distribute(
+        BatchDistributeResult result = commandService.distribute(
             PRINCIPAL, SOURCE_TENANT, PARTNER_LINK_ID,
             new DistributeCommand(List.of("p1"), EXPIRES, "batch note")
         );
@@ -108,7 +120,7 @@ class DistributionServiceTest {
 
         WorkflowDomainException ex = org.junit.jupiter.api.Assertions.assertThrows(
             WorkflowDomainException.class,
-            () -> service.distribute(
+            () -> commandService.distribute(
                 PRINCIPAL,
                 SOURCE_TENANT,
                 PARTNER_LINK_ID,
@@ -125,7 +137,7 @@ class DistributionServiceTest {
         stubDistributionGrantAuthorization();
         WorkflowDomainException ex = org.junit.jupiter.api.Assertions.assertThrows(
             WorkflowDomainException.class,
-            () -> service.distribute(
+            () -> commandService.distribute(
                 PRINCIPAL,
                 SOURCE_TENANT,
                 PARTNER_LINK_ID,
@@ -184,11 +196,11 @@ class DistributionServiceTest {
                 new TenantReadPort.TenantSummary(TARGET_TENANT, "Target Tenant", "KR", "addr", "RETAIL")
             ));
         when(viewAssembler.toPagedDistributionResponse(any(), any()))
-            .thenReturn(new io.attestry.workflow.application.usecase.DistributionUseCase.PagedDistributionResponse(
+            .thenReturn(new PagedDistributionView(
                 List.of(view), 0, 20, 1, 1
             ));
 
-        var result = service.listByTenant(PRINCIPAL, SOURCE_TENANT, 0, 20, "abc");
+        var result = queryService.listByTenant(PRINCIPAL, SOURCE_TENANT, 0, 20, "abc");
 
         assertEquals(1, result.content().size());
         verify(tenantReadPort).findTenantSummariesByIds(List.of(TARGET_TENANT));
@@ -225,6 +237,8 @@ class DistributionServiceTest {
         );
         when(distributionRepository.findById(recalled.distributionId())).thenReturn(java.util.Optional.of(distribution));
         when(distributionRepository.save(any(Distribution.class))).thenReturn(recalled);
+        when(tenantReadPort.findTenantSummary(TARGET_TENANT))
+            .thenReturn(new TenantReadPort.TenantSummary(TARGET_TENANT, "Target Tenant", "", "", "RETAIL"));
         stubDistributionGrantAuthorization(SOURCE_TENANT, "distribution:recall:" + recalled.distributionId());
         when(delegationUseCase.revoke(PRINCIPAL, "delegation-1", "reason"))
             .thenReturn(new DelegationResult("delegation-1", PARTNER_LINK_ID, SOURCE_TENANT, TARGET_TENANT, "PASSPORT", "passport-1", "RETAIL_TRANSFER_CREATE", "REVOKED", null, "reason"));
@@ -234,26 +248,8 @@ class DistributionServiceTest {
                 TARGET_TENANT,
                 new TenantReadPort.TenantSummary(TARGET_TENANT, "Target Tenant", "KR", "addr", "RETAIL")
             ));
-        when(viewAssembler.toView(any(), any())).thenReturn(new DistributionView(
-            recalled.distributionId(),
-            recalled.passportId(),
-            SOURCE_TENANT,
-            TARGET_TENANT,
-            "Target Tenant",
-            "RETAIL",
-            PARTNER_LINK_ID,
-            "delegation-1",
-            "RECALLED",
-            "SN-1",
-            "Model X",
-            "admin1",
-            recalled.distributedAt(),
-            "admin1",
-            recalled.recalledAt(),
-            "reason"
-        ));
 
-        DistributionView result = service.recall(PRINCIPAL, recalled.distributionId(), new io.attestry.workflow.application.usecase.DistributionUseCase.RecallCommand("reason"));
+        DistributionView result = commandService.recall(PRINCIPAL, recalled.distributionId(), new RecallDistributionCommand("reason"));
 
         assertEquals("RECALLED", result.status());
         verify(authorizationSupport).assertTenantContext(PRINCIPAL, SOURCE_TENANT);

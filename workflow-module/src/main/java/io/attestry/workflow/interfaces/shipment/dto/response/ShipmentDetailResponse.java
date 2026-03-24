@@ -1,6 +1,6 @@
 package io.attestry.workflow.interfaces.shipment.dto.response;
 
-import io.attestry.workflow.application.shipment.result.ShipmentDetailResult;
+import io.attestry.workflow.application.shipment.view.ShipmentDetailView;
 import java.time.Instant;
 import java.util.List;
 
@@ -19,7 +19,7 @@ public record ShipmentDetailResponse(
         List<EvidenceFileResponse> releaseEvidenceFiles,
         List<EvidenceFileResponse> returnEvidenceFiles,
         Instant createdAt) {
-    public static ShipmentDetailResponse from(ShipmentDetailResult result) {
+    public static ShipmentDetailResponse from(ShipmentDetailView result) {
         return new ShipmentDetailResponse(
                 result.shipmentId(),
                 result.tenantId(),

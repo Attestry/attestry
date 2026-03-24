@@ -1,6 +1,6 @@
 package io.attestry.userauth.interfaces.membership.dto.response;
 
-import io.attestry.userauth.application.dto.result.MembershipPermissionTemplateResult;
+import io.attestry.userauth.application.membership.result.MembershipPermissionTemplateResult;
 import java.util.List;
 
 public record MembershipPermissionTemplateResponse(

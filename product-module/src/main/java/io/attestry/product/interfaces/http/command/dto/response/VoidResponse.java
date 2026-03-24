@@ -1,6 +1,6 @@
 package io.attestry.product.interfaces.http.command.dto.response;
 
-import io.attestry.product.application.dto.result.VoidResult;
+import io.attestry.product.application.command.result.VoidResult;
 
 public record VoidResponse(
     String assetId,

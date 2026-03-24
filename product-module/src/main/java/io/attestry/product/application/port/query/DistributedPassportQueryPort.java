@@ -1,7 +1,7 @@
 package io.attestry.product.application.port.query;
 
-import io.attestry.product.application.dto.view.DistributedPassportDetailView;
-import io.attestry.product.application.dto.view.DistributedPassportView;
+import io.attestry.product.application.query.view.DistributedPassportDetailView;
+import io.attestry.product.application.query.view.DistributedPassportView;
 import java.util.List;
 
 public interface DistributedPassportQueryPort {

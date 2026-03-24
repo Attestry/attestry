@@ -1,6 +1,6 @@
 package io.attestry.workflow.interfaces.shipment.dto.response;
 
-import io.attestry.workflow.application.shipment.result.ShipmentReleaseCandidateResult;
+import io.attestry.workflow.application.shipment.view.ShipmentReleaseCandidateView;
 
 public record ShipmentReleaseCandidateResponse(
         String passportId,
@@ -10,7 +10,7 @@ public record ShipmentReleaseCandidateResponse(
         String modelName,
         String productionBatch,
         String factoryCode) {
-    public static ShipmentReleaseCandidateResponse from(ShipmentReleaseCandidateResult result) {
+    public static ShipmentReleaseCandidateResponse from(ShipmentReleaseCandidateView result) {
         return new ShipmentReleaseCandidateResponse(
                 result.passportId(),
                 result.assetId(),

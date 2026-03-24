@@ -1,13 +1,15 @@
-package io.attestry.product.application.command;
+package io.attestry.product.application.command.service;
 
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.Mockito.doAnswer;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 
-import io.attestry.product.application.command.dto.LedgerActor;
-import io.attestry.product.application.dto.command.MintProductCommand;
-import io.attestry.product.application.dto.command.ProductActor;
+import io.attestry.product.application.command.support.ProductMintCsvParser;
+import io.attestry.product.application.command.support.ProductMintExecutor;
+import io.attestry.product.application.command.support.LedgerActor;
+import io.attestry.product.application.command.model.MintProductCommand;
+import io.attestry.product.application.common.ProductActor;
 import io.attestry.product.application.policy.ProductMintAccessPolicy;
 import java.time.Instant;
 import java.util.List;

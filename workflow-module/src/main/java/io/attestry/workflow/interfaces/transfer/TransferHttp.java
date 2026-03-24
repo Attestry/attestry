@@ -2,16 +2,18 @@ package io.attestry.workflow.interfaces.transfer;
 
 import io.attestry.commonlib.infrastructure.ApiResponse;
 import io.attestry.userauth.security.AuthPrincipal;
+import io.attestry.workflow.application.common.WorkflowActorContext;
 import io.attestry.workflow.application.transfer.command.AcceptTransferCommand;
 import io.attestry.workflow.application.transfer.command.CreateB2CTransferCommand;
 import io.attestry.workflow.application.transfer.command.CreateC2CTransferCommand;
 import io.attestry.workflow.application.transfer.result.AcceptTransferResult;
 import io.attestry.workflow.application.transfer.result.CancelTransferResult;
 import io.attestry.workflow.application.transfer.result.CreateTransferResult;
-import io.attestry.workflow.application.usecase.TransferAcceptUseCase;
-import io.attestry.workflow.application.usecase.TransferCancelUseCase;
-import io.attestry.workflow.application.usecase.TransferCreateUseCase;
-import io.attestry.workflow.application.usecase.TransferQueryUseCase;
+import io.attestry.workflow.application.transfer.usecase.TransferAcceptUseCase;
+import io.attestry.workflow.application.transfer.usecase.TransferCancelUseCase;
+import io.attestry.workflow.application.transfer.usecase.TransferCreateUseCase;
+import io.attestry.workflow.application.transfer.usecase.TransferQueryUseCase;
+import io.attestry.workflow.application.transfer.view.PagedCompletedTransferView;
 import io.attestry.workflow.interfaces.transfer.dto.request.AcceptTransferRequest;
 import io.attestry.workflow.interfaces.transfer.dto.request.CreateTransferRequest;
 import io.attestry.workflow.interfaces.transfer.dto.response.AcceptTransferResponse;
@@ -54,7 +56,7 @@ public class TransferHttp {
         @RequestBody CreateTransferRequest request
     ) {
         CreateTransferResult result = transferCreateUseCase.createC2C(
-            principal,
+            actor(principal),
             passportId,
             new CreateC2CTransferCommand(request.acceptMethod(), request.password(), request.expiresAt())
         );
@@ -71,7 +73,7 @@ public class TransferHttp {
         @RequestBody CreateTransferRequest request
     ) {
         CreateTransferResult result = transferCreateUseCase.createB2C(
-            principal,
+            actor(principal),
             tenantId,
             passportId,
             new CreateB2CTransferCommand(request.acceptMethod(), request.password(), request.expiresAt())
@@ -85,7 +87,7 @@ public class TransferHttp {
         @AuthenticationPrincipal AuthPrincipal principal,
         @PathVariable("passportId") String passportId
     ) {
-        Optional<CreateTransferResult> result = transferCreateUseCase.findLatestActivePendingByPassportId(principal, passportId);
+        Optional<CreateTransferResult> result = transferCreateUseCase.findLatestActivePendingByPassportId(actor(principal), passportId);
         return result
             .map(CreateTransferResponse::from)
             .map(r -> ResponseEntity.ok(ApiResponse.success(r)))
@@ -100,7 +102,7 @@ public class TransferHttp {
         @PathVariable("passportId") String passportId
     ) {
         Optional<CreateTransferResult> result = transferCreateUseCase.findLatestActivePendingB2CByPassportId(
-            principal,
+            actor(principal),
             tenantId,
             passportId
         );
@@ -119,8 +121,8 @@ public class TransferHttp {
         @org.springframework.web.bind.annotation.RequestParam(value = "page", defaultValue = "0") int page,
         @org.springframework.web.bind.annotation.RequestParam(value = "size", defaultValue = "20") int size
     ) {
-        TransferQueryUseCase.PagedCompletedTransferResponse result = transferQueryUseCase.listCompletedB2CTransfers(
-            principal,
+        PagedCompletedTransferView result = transferQueryUseCase.listCompletedB2CTransfers(
+            actor(principal),
             tenantId,
             sourceTenantId,
             page,
@@ -152,7 +154,7 @@ public class TransferHttp {
         @RequestBody AcceptTransferRequest request
     ) {
         AcceptTransferResult result = transferAcceptUseCase.accept(
-            principal,
+            actor(principal),
             transferId,
             new AcceptTransferCommand(request.qrNonce(), request.password())
         );
@@ -166,8 +168,12 @@ public class TransferHttp {
         @AuthenticationPrincipal AuthPrincipal principal,
         @PathVariable("transferId") String transferId
     ) {
-        CancelTransferResult result = transferCancelUseCase.cancel(principal, transferId);
+        CancelTransferResult result = transferCancelUseCase.cancel(actor(principal), transferId);
         return ApiResponse.success(CancelTransferResponse.from(result));
+    }
+
+    private WorkflowActorContext actor(AuthPrincipal principal) {
+        return WorkflowActorContext.from(principal);
     }
 
 }

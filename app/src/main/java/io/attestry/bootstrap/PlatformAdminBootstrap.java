@@ -7,9 +7,9 @@ import java.time.Clock;
 import java.time.Instant;
 import java.util.Locale;
 import java.util.UUID;
+import lombok.RequiredArgsConstructor;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
-import org.springframework.beans.factory.annotation.Value;
 import org.springframework.boot.ApplicationArguments;
 import org.springframework.boot.ApplicationRunner;
 import org.springframework.core.annotation.Order;
@@ -19,6 +19,7 @@ import org.springframework.transaction.annotation.Transactional;
 
 @Component
 @Order(10)
+@RequiredArgsConstructor
 public class PlatformAdminBootstrap implements ApplicationRunner {
 
     private static final Logger log = LoggerFactory.getLogger(PlatformAdminBootstrap.class);
@@ -33,39 +34,17 @@ public class PlatformAdminBootstrap implements ApplicationRunner {
     private final PasswordHasherPort passwordHasher;
     private final MembershipEffectivePermissionProjectionRefresher permissionProjectionRefresher;
     private final Clock clock;
-    private final boolean enabled;
-    private final String adminEmail;
-    private final String adminPassword;
-    private final String adminPhone;
-
-    public PlatformAdminBootstrap(
-        NamedParameterJdbcTemplate jdbcTemplate,
-        PasswordHasherPort passwordHasher,
-        MembershipEffectivePermissionProjectionRefresher permissionProjectionRefresher,
-        Clock clock,
-        @Value("${app.bootstrap.platform-admin.enabled:false}") boolean enabled,
-        @Value("${app.bootstrap.platform-admin.email:platform.admin@attestry.local}") String adminEmail,
-        @Value("${app.bootstrap.platform-admin.password:PlatformAdm1n!2026}") String adminPassword,
-        @Value("${app.bootstrap.platform-admin.phone:010-0000-0000}") String adminPhone
-    ) {
-        this.jdbcTemplate = jdbcTemplate;
-        this.passwordHasher = passwordHasher;
-        this.permissionProjectionRefresher = permissionProjectionRefresher;
-        this.clock = clock;
-        this.enabled = enabled;
-        this.adminEmail = adminEmail;
-        this.adminPassword = adminPassword;
-        this.adminPhone = adminPhone;
-    }
+    private final BootstrapProperties bootstrapProperties;
 
     @Override
     @Transactional
     public void run(ApplicationArguments args) {
-        if (!enabled) {
+        BootstrapProperties.PlatformAdmin admin = bootstrapProperties.getPlatformAdmin();
+        if (!admin.isEnabled()) {
             return;
         }
 
-        String normalizedEmail = adminEmail.trim().toLowerCase(Locale.ROOT);
+        String normalizedEmail = admin.getEmail().trim().toLowerCase(Locale.ROOT);
         String userId = ensureUser(normalizedEmail);
 
         ensureTenant();
@@ -73,7 +52,7 @@ public class PlatformAdminBootstrap implements ApplicationRunner {
         ensureAssignment(userId, membershipId);
         permissionProjectionRefresher.refreshMembership(membershipId);
 
-        log.info("Platform admin bootstrap ready. email={}, password={}", normalizedEmail, adminPassword);
+        log.info("Platform admin bootstrap ready. email={}, password={}", normalizedEmail, admin.getPassword());
     }
 
     private String ensureUser(String normalizedEmail) {
@@ -92,8 +71,8 @@ public class PlatformAdminBootstrap implements ApplicationRunner {
             """,
             DEFAULT_USER_ID,
             normalizedEmail,
-            passwordHasher.hash(adminPassword),
-            adminPhone
+            passwordHasher.hash(bootstrapProperties.getPlatformAdmin().getPassword()),
+            bootstrapProperties.getPlatformAdmin().getPhone()
         );
         return DEFAULT_USER_ID;
     }

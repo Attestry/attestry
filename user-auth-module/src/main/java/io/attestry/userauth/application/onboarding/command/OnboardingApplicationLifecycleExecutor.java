@@ -1,10 +1,9 @@
 package io.attestry.userauth.application.onboarding.command;
 
-import io.attestry.userauth.application.dto.command.ActorContext;
-import io.attestry.userauth.application.dto.command.CreateApplicationCommand;
-import io.attestry.userauth.application.dto.result.ApplicationResult;
-import io.attestry.userauth.application.dto.result.ApproveApplicationResult;
+import io.attestry.userauth.application.common.ActorContext;
 import io.attestry.userauth.application.onboarding.assembler.OnboardingApplicationViewAssembler;
+import io.attestry.userauth.application.onboarding.result.ApplicationResult;
+import io.attestry.userauth.application.onboarding.result.ApproveApplicationResult;
 import io.attestry.userauth.application.onboarding.command.OnboardingProvisioningService.ProvisioningResult;
 import io.attestry.userauth.application.port.onboarding.OrganizationApplicationRepositoryPort;
 import io.attestry.userauth.domain.UserAuthDomainException;

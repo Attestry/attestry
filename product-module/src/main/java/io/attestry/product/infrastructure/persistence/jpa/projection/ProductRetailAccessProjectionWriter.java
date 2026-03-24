@@ -16,7 +16,43 @@ public class ProductRetailAccessProjectionWriter implements ProductRetailAccessP
     }
 
     @Override
-    public void refreshB2cTransferAccess(String passportId, String transferId, String sourceEventId, Instant updatedAt) {
+    public void refreshB2cTransferAccess(RetailAccessPayload payload, String sourceEventId, Instant updatedAt) {
+        Timestamp timestamp = Timestamp.from(updatedAt);
+
+        if (payload.tenantId() == null || payload.tenantId().isBlank()
+            || payload.completedAt() == null) {
+            return;
+        }
+
+        jdbcTemplate.getJdbcOperations().update(
+            """
+                INSERT INTO product_retail_access_projection (
+                    tenant_id,
+                    passport_id,
+                    access_source_type,
+                    access_source_id,
+                    source_tenant_id,
+                    permission_id,
+                    expires_at,
+                    access_status,
+                    granted_at,
+                    updated_at
+                ) VALUES (?, ?, 'B2C_TRANSFER', ?, NULL, NULL, NULL, 'COMPLETED', ?, ?)
+                ON CONFLICT (tenant_id, passport_id, access_source_type, access_source_id) DO UPDATE SET
+                    access_status = EXCLUDED.access_status,
+                    granted_at = EXCLUDED.granted_at,
+                    updated_at = EXCLUDED.updated_at
+            """,
+            payload.tenantId(),
+            payload.passportId(),
+            payload.transferId(),
+            Timestamp.from(payload.completedAt()),
+            timestamp
+        );
+    }
+
+    @Override
+    public void syncPermissionAccess(String permissionId, String sourceEventId, Instant updatedAt) {
         Timestamp timestamp = Timestamp.from(updatedAt);
 
         jdbcTemplate.getJdbcOperations().update(
@@ -33,29 +69,36 @@ public class ProductRetailAccessProjectionWriter implements ProductRetailAccessP
                     granted_at,
                     updated_at
                 )
-                SELECT tt.tenant_id,
-                       tt.passport_id,
-                       'B2C_TRANSFER',
-                       tt.transfer_id,
-                       NULL,
-                       NULL,
-                       NULL,
-                       'COMPLETED',
-                       tt.completed_at,
+                SELECT pp.target_tenant_id,
+                       pp.passport_id,
+                       'PERMISSION',
+                       pp.permission_id,
+                       pp.source_tenant_id,
+                       pp.permission_id,
+                       pp.expires_at,
+                       CASE
+                           WHEN pp.status = 'ACTIVE'
+                            AND (pp.expires_at IS NULL OR pp.expires_at > CURRENT_TIMESTAMP)
+                           THEN 'ACTIVE'
+                           WHEN pp.status = 'ACTIVE'
+                           THEN 'EXPIRED'
+                           ELSE pp.status
+                       END,
+                       pp.created_at,
                        ?
-                FROM token_transfers tt
-                WHERE tt.transfer_id = ?
-                  AND tt.transfer_type = 'B2C'
-                  AND tt.status = 'COMPLETED'
-                  AND tt.tenant_id IS NOT NULL
-                  AND tt.completed_at IS NOT NULL
+                FROM passport_permissions pp
+                WHERE pp.permission_id = ?
+                  AND pp.target_tenant_id IS NOT NULL
                 ON CONFLICT (tenant_id, passport_id, access_source_type, access_source_id) DO UPDATE SET
+                    source_tenant_id = EXCLUDED.source_tenant_id,
+                    permission_id = EXCLUDED.permission_id,
+                    expires_at = EXCLUDED.expires_at,
                     access_status = EXCLUDED.access_status,
                     granted_at = EXCLUDED.granted_at,
                     updated_at = EXCLUDED.updated_at
             """,
             timestamp,
-            transferId
+            permissionId
         );
     }
 }

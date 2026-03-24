@@ -1,6 +1,6 @@
 package io.attestry.userauth.application.port.auth;
 
-import io.attestry.userauth.domain.identity.model.SignUpEmailVerification;
+import io.attestry.userauth.domain.auth.model.SignUpEmailVerification;
 import java.util.Optional;
 
 public interface SignUpEmailVerificationRepositoryPort {

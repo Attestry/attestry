@@ -8,7 +8,8 @@ public interface SignUpEmailVerificationNotificationPort {
         String verificationId,
         String email,
         String code,
-        long expiresInSeconds
+        long expiresInSeconds,
+        String dedupeKey
     ) {
     }
 }

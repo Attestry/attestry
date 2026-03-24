@@ -4,14 +4,15 @@ import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 
-import io.attestry.userauth.domain.identity.model.VerificationLevel;
-import io.attestry.userauth.security.AuthPrincipal;
+import io.attestry.userauth.domain.auth.model.VerificationLevel;
+import io.attestry.workflow.application.common.WorkflowActorContext;
+import io.attestry.workflow.application.shipment.query.ShipmentQueryService;
 import io.attestry.workflow.application.port.common.UserReadPort;
 import io.attestry.workflow.application.port.shipment.ShipmentProductReadPort;
 import io.attestry.workflow.application.shipment.assembler.ShipmentEvidenceViewAssembler;
 import io.attestry.workflow.application.shipment.assembler.ShipmentQueryViewAssembler;
 import io.attestry.workflow.application.shipment.policy.ShipmentQueryAccessPolicy;
-import io.attestry.workflow.application.shipment.result.ShipmentDetailResult;
+import io.attestry.workflow.application.shipment.view.ShipmentDetailView;
 import io.attestry.workflow.domain.shipment.model.Shipment;
 import io.attestry.workflow.domain.shipment.model.ShipmentStatus;
 import io.attestry.workflow.domain.shipment.repository.ShipmentRepository;
@@ -39,7 +40,7 @@ class ShipmentQueryServiceTest {
 
     private ShipmentQueryService service;
 
-    private static final AuthPrincipal PRINCIPAL = new AuthPrincipal(
+    private static final WorkflowActorContext PRINCIPAL = new WorkflowActorContext(
         "token-1",
         "user-1",
         "tenant-1",
@@ -99,9 +100,9 @@ class ShipmentQueryServiceTest {
         );
         when(shipmentRepository.findByShipmentId("shipment-1")).thenReturn(Optional.of(shipment));
         when(evidenceViewAssembler.toDetailEvidenceFiles("release-group"))
-            .thenReturn(List.of(new ShipmentDetailResult.EvidenceFileResult("e1", "r1.jpg", "image/jpeg", 10L, "u1")));
+            .thenReturn(List.of(new ShipmentDetailView.EvidenceFileView("e1", "r1.jpg", "image/jpeg", 10L, "u1")));
         when(evidenceViewAssembler.toDetailEvidenceFiles("return-group"))
-            .thenReturn(List.of(new ShipmentDetailResult.EvidenceFileResult("e2", "r2.jpg", "image/jpeg", 20L, "u2")));
+            .thenReturn(List.of(new ShipmentDetailView.EvidenceFileView("e2", "r2.jpg", "image/jpeg", 20L, "u2")));
         when(shipmentProductReadPort.findPassportAssetInfoByIds(List.of("passport-1")))
             .thenReturn(Map.of(
                 "passport-1",
@@ -109,13 +110,13 @@ class ShipmentQueryServiceTest {
                     "passport-1", "asset-1", "SN-1", "model-1", "Model 1", "batch", "factory"
                 )
             ));
-        when(userReadPort.findEmailsByUserIds(List.of("release-user", "return-user")))
+        when(userReadPort.findEmailMapByUserIds(List.of("release-user", "return-user")))
             .thenReturn(Map.of(
                 "release-user", "release@test.com",
                 "return-user", "return@test.com"
             ));
 
-        ShipmentDetailResult result = service.getShipmentDetail(PRINCIPAL, "shipment-1");
+        ShipmentDetailView result = service.getShipmentDetail(PRINCIPAL, "shipment-1");
 
         assertEquals("Model 1", result.modelName());
         assertEquals("SN-1", result.serialNumber());

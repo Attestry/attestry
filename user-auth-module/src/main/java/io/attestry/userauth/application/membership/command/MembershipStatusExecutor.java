@@ -1,8 +1,7 @@
 package io.attestry.userauth.application.membership.command;
 
-import io.attestry.userauth.application.dto.command.ActorContext;
-import io.attestry.userauth.application.dto.command.UpdateMembershipStatusCommand;
-import io.attestry.userauth.application.dto.result.MembershipResult;
+import io.attestry.userauth.application.common.ActorContext;
+import io.attestry.userauth.application.membership.result.MembershipResult;
 import io.attestry.userauth.application.membership.assembler.MembershipResultAssembler;
 import io.attestry.userauth.application.membership.policy.ActiveOwnerGuard;
 import io.attestry.userauth.application.membership.policy.MembershipAccessPolicy;

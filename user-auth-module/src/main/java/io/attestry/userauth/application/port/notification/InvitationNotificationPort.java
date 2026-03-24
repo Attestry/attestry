@@ -7,7 +7,8 @@ public interface InvitationNotificationPort {
     record InvitationNotification(
         String invitationId,
         String tenantId,
-        String inviteeEmail
+        String inviteeEmail,
+        String dedupeKey
     ) {
     }
 }

@@ -2,10 +2,11 @@ package io.attestry.workflow.interfaces.claim;
 
 import io.attestry.commonlib.infrastructure.ApiResponse;
 import io.attestry.userauth.security.AuthPrincipal;
+import io.attestry.workflow.application.common.WorkflowActorContext;
 import io.attestry.workflow.application.claim.command.ApprovePurchaseClaimCommand;
 import io.attestry.workflow.application.claim.result.ApprovePurchaseClaimResult;
 import io.attestry.workflow.application.claim.result.RejectPurchaseClaimResult;
-import io.attestry.workflow.application.usecase.PurchaseClaimAdminUseCase;
+import io.attestry.workflow.application.claim.usecase.PurchaseClaimAdminUseCase;
 import io.attestry.workflow.interfaces.claim.dto.request.ApproveClaimRequest;
 import io.attestry.workflow.interfaces.claim.dto.request.RejectClaimRequest;
 import io.attestry.workflow.interfaces.claim.dto.response.ApproveClaimResponse;
@@ -39,7 +40,7 @@ public class PurchaseClaimAdminHttp {
     public ApiResponse<List<PendingClaimResponse>> listAllPendingClaims(
         @AuthenticationPrincipal AuthPrincipal principal
     ) {
-        return ApiResponse.success(purchaseClaimAdminUseCase.listPendingClaims(principal).stream()
+        return ApiResponse.success(purchaseClaimAdminUseCase.listPendingClaims(actor(principal)).stream()
             .map(PendingClaimResponse::from)
             .toList());
     }
@@ -50,7 +51,7 @@ public class PurchaseClaimAdminHttp {
         @AuthenticationPrincipal AuthPrincipal principal,
         @PathVariable("claimId") String claimId
     ) {
-        return ApiResponse.success(purchaseClaimAdminUseCase.listClaimEvidences(principal, claimId).stream()
+        return ApiResponse.success(purchaseClaimAdminUseCase.listClaimEvidences(actor(principal), claimId).stream()
             .map(ClaimEvidenceResponse::from)
             .toList());
     }
@@ -64,7 +65,7 @@ public class PurchaseClaimAdminHttp {
         @RequestBody ApproveClaimRequest request
     ) {
         ApprovePurchaseClaimResult result = purchaseClaimAdminUseCase.approve(
-            principal, claimId,
+            actor(principal), claimId,
             new ApprovePurchaseClaimCommand(request.manufacturedAt(), request.productionBatch(), request.factoryCode())
         );
         return ApiResponse.success(ApproveClaimResponse.from(result));
@@ -79,8 +80,12 @@ public class PurchaseClaimAdminHttp {
         @Valid @RequestBody RejectClaimRequest request
     ) {
         RejectPurchaseClaimResult result = purchaseClaimAdminUseCase.reject(
-            principal, claimId, request.reason()
+            actor(principal), claimId, request.reason()
         );
         return ApiResponse.success(RejectClaimResponse.from(result));
+    }
+
+    private WorkflowActorContext actor(AuthPrincipal principal) {
+        return WorkflowActorContext.from(principal);
     }
 }

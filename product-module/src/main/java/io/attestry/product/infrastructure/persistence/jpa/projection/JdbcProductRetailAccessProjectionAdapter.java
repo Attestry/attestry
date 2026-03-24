@@ -1,7 +1,7 @@
 package io.attestry.product.infrastructure.persistence.jpa.projection;
 
-import io.attestry.product.application.dto.view.DistributedPassportDetailView;
-import io.attestry.product.application.dto.view.DistributedPassportView;
+import io.attestry.product.application.query.view.DistributedPassportDetailView;
+import io.attestry.product.application.query.view.DistributedPassportView;
 import io.attestry.product.application.port.query.DistributedPassportQueryPort;
 import io.attestry.product.application.port.projection.ProductRetailAccessProjectionPort;
 import io.attestry.product.domain.ProductDomainException;

@@ -1,6 +1,6 @@
 package io.attestry.product.application.port.query;
 
-import io.attestry.product.application.dto.view.MyPassportView;
+import io.attestry.product.application.query.view.MyPassportView;
 import java.util.List;
 
 public interface MyPassportQueryPort {

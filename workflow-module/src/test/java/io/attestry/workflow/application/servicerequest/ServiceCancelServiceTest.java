@@ -9,8 +9,9 @@ import static org.mockito.Mockito.doNothing;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 
-import io.attestry.userauth.domain.identity.model.VerificationLevel;
-import io.attestry.userauth.security.AuthPrincipal;
+import io.attestry.userauth.domain.auth.model.VerificationLevel;
+import io.attestry.workflow.application.common.WorkflowActorContext;
+import io.attestry.workflow.application.servicerequest.command.ServiceCancelService;
 import io.attestry.workflow.application.port.servicerequest.ServicePermissionPort;
 import io.attestry.workflow.application.servicerequest.policy.ServiceRequestAccessPolicy;
 import io.attestry.workflow.application.servicerequest.result.CancelServiceRequestResult;
@@ -42,7 +43,7 @@ class ServiceCancelServiceTest {
     private ServiceCancelService service;
 
     private static final Instant SUBMITTED_AT = Instant.parse("2026-03-01T09:00:00Z");
-    private static final AuthPrincipal OWNER = new AuthPrincipal(
+    private static final WorkflowActorContext OWNER = new WorkflowActorContext(
         "token1", "owner1", null, VerificationLevel.PHONE_VERIFIED, Set.of("SCOPE_OWNER_SERVICE_CREATE"), Instant.parse("2026-03-02T00:00:00Z")
     );
 

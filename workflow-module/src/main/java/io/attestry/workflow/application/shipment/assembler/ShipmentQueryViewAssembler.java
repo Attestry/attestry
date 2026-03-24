@@ -2,11 +2,11 @@ package io.attestry.workflow.application.shipment.assembler;
 
 import io.attestry.workflow.application.port.shipment.ShipmentProductReadPort;
 import io.attestry.workflow.application.port.shipment.ShipmentProductReadPort.PassportAssetInfo;
-import io.attestry.workflow.application.shipment.result.ShipmentDetailResult;
-import io.attestry.workflow.application.shipment.result.ShipmentReleaseCandidateResult;
-import io.attestry.workflow.application.shipment.result.ShipmentViewResult;
-import io.attestry.workflow.application.usecase.ShipmentQueryUseCase.PagedReleaseCandidateResponse;
-import io.attestry.workflow.application.usecase.ShipmentQueryUseCase.PagedShipmentViewResponse;
+import io.attestry.workflow.application.shipment.view.PagedReleaseCandidateView;
+import io.attestry.workflow.application.shipment.view.PagedShipmentView;
+import io.attestry.workflow.application.shipment.view.ShipmentDetailView;
+import io.attestry.workflow.application.shipment.view.ShipmentReleaseCandidateView;
+import io.attestry.workflow.application.shipment.view.ShipmentView;
 import io.attestry.workflow.domain.shipment.model.Shipment;
 import java.util.List;
 import java.util.Map;
@@ -15,9 +15,9 @@ import org.springframework.stereotype.Component;
 @Component
 public class ShipmentQueryViewAssembler {
 
-    public PagedShipmentViewResponse toPagedShipmentViewResponse(ShipmentProductReadPort.PagedShipmentReadResult result) {
-        List<ShipmentViewResult> content = result.content().stream()
-            .map(v -> new ShipmentViewResult(
+    public PagedShipmentView toPagedShipmentView(ShipmentProductReadPort.PagedShipmentReadResult result) {
+        List<ShipmentView> content = result.content().stream()
+            .map(v -> new ShipmentView(
                 v.shipmentId(),
                 v.tenantId(),
                 v.passportId(),
@@ -39,7 +39,7 @@ public class ShipmentQueryViewAssembler {
                 v.createdAt()
             ))
             .toList();
-        return new PagedShipmentViewResponse(
+        return new PagedShipmentView(
             content,
             result.page(),
             result.size(),
@@ -48,11 +48,11 @@ public class ShipmentQueryViewAssembler {
         );
     }
 
-    public PagedReleaseCandidateResponse toPagedReleaseCandidateResponse(
+    public PagedReleaseCandidateView toPagedReleaseCandidateView(
         ShipmentProductReadPort.PagedReleaseCandidateResult result
     ) {
-        List<ShipmentReleaseCandidateResult> content = result.content().stream()
-            .map(candidate -> new ShipmentReleaseCandidateResult(
+        List<ShipmentReleaseCandidateView> content = result.content().stream()
+            .map(candidate -> new ShipmentReleaseCandidateView(
                 candidate.passportId(),
                 candidate.assetId(),
                 candidate.serialNumber(),
@@ -62,7 +62,7 @@ public class ShipmentQueryViewAssembler {
                 candidate.factoryCode()
             ))
             .toList();
-        return new PagedReleaseCandidateResponse(
+        return new PagedReleaseCandidateView(
             content,
             result.page(),
             result.size(),
@@ -71,14 +71,14 @@ public class ShipmentQueryViewAssembler {
         );
     }
 
-    public ShipmentDetailResult toShipmentDetailResult(
+    public ShipmentDetailView toShipmentDetailView(
         Shipment shipment,
         PassportAssetInfo assetInfo,
         Map<String, String> emailMap,
-        List<ShipmentDetailResult.EvidenceFileResult> releaseFiles,
-        List<ShipmentDetailResult.EvidenceFileResult> returnFiles
+        List<ShipmentDetailView.EvidenceFileView> releaseFiles,
+        List<ShipmentDetailView.EvidenceFileView> returnFiles
     ) {
-        return new ShipmentDetailResult(
+        return new ShipmentDetailView(
             shipment.shipmentId(),
             shipment.tenantId(),
             shipment.passportId(),
@@ -96,14 +96,14 @@ public class ShipmentQueryViewAssembler {
         );
     }
 
-    public List<ShipmentViewResult> toShipmentViewResults(
+    public List<ShipmentView> toShipmentViews(
         List<Shipment> shipments,
         Map<String, PassportAssetInfo> assetMap
     ) {
         return shipments.stream()
             .map(shipment -> {
                 PassportAssetInfo asset = assetMap.get(shipment.passportId());
-                return new ShipmentViewResult(
+                return new ShipmentView(
                     shipment.shipmentId(),
                     shipment.tenantId(),
                     shipment.passportId(),

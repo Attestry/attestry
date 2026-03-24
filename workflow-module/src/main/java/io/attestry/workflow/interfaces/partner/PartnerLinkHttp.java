@@ -2,9 +2,11 @@ package io.attestry.workflow.interfaces.partner;
 
 import io.attestry.commonlib.infrastructure.ApiResponse;
 import io.attestry.userauth.security.AuthPrincipal;
+import io.attestry.workflow.application.common.WorkflowActorContext;
 import io.attestry.workflow.application.partner.command.CreatePartnerLinkCommand;
+import io.attestry.workflow.application.partner.usecase.PartnerLinkCommandUseCase;
+import io.attestry.workflow.application.partner.usecase.PartnerLinkQueryUseCase;
 import io.attestry.workflow.application.partner.result.PartnerLinkResult;
-import io.attestry.workflow.application.usecase.PartnerLinkUseCase;
 import io.attestry.workflow.domain.partner.model.PartnerLinkStatus;
 import io.attestry.workflow.domain.WorkflowDomainException;
 import io.attestry.workflow.domain.WorkflowErrorCode;
@@ -33,7 +35,8 @@ import org.springframework.web.bind.annotation.RequestParam;
 @RequestMapping("/workflows")
 public class PartnerLinkHttp {
 
-    private final PartnerLinkUseCase partnerLinkUseCase;
+    private final PartnerLinkCommandUseCase partnerLinkCommandUseCase;
+    private final PartnerLinkQueryUseCase partnerLinkQueryUseCase;
 
 
     @PostMapping("/partner-links")
@@ -43,8 +46,8 @@ public class PartnerLinkHttp {
         @AuthenticationPrincipal AuthPrincipal principal,
         @RequestBody CreatePartnerLinkRequest request
     ) {
-        PartnerLinkResult result = partnerLinkUseCase.create(
-            principal,
+        PartnerLinkResult result = partnerLinkCommandUseCase.create(
+            actor(principal),
             new CreatePartnerLinkCommand(
                 request.targetTenantId(),
                 request.partnerType(),
@@ -62,7 +65,7 @@ public class PartnerLinkHttp {
         @RequestParam(name = "status", required = false) String status
     ) {
         PartnerLinkStatus statusFilter = parseStatus(status);
-        return ApiResponse.success(partnerLinkUseCase.listByTenant(principal, statusFilter).stream().map(PartnerLinkResponse::from).toList());
+        return ApiResponse.success(partnerLinkQueryUseCase.listByTenant(actor(principal), statusFilter).stream().map(PartnerLinkResponse::from).toList());
     }
 
     @PostMapping("/admin/partner-links/{id}/approve")
@@ -71,7 +74,7 @@ public class PartnerLinkHttp {
         @AuthenticationPrincipal AuthPrincipal principal,
         @PathVariable("id") String partnerLinkId
     ) {
-        return ApiResponse.success(PartnerLinkResponse.from(partnerLinkUseCase.approve(principal, partnerLinkId)));
+        return ApiResponse.success(PartnerLinkResponse.from(partnerLinkCommandUseCase.approve(actor(principal), partnerLinkId)));
     }
 
     @PostMapping("/admin/partner-links/{id}/reject")
@@ -81,7 +84,7 @@ public class PartnerLinkHttp {
         @PathVariable("id") String partnerLinkId,
         @Valid @RequestBody ReasonRequest request
     ) {
-        return ApiResponse.success(PartnerLinkResponse.from(partnerLinkUseCase.reject(principal, partnerLinkId, request.reason())));
+        return ApiResponse.success(PartnerLinkResponse.from(partnerLinkCommandUseCase.reject(actor(principal), partnerLinkId, request.reason())));
     }
 
     @PostMapping("/partner-links/{id}/suspend")
@@ -90,7 +93,7 @@ public class PartnerLinkHttp {
         @AuthenticationPrincipal AuthPrincipal principal,
         @PathVariable("id") String partnerLinkId
     ) {
-        return ApiResponse.success(PartnerLinkResponse.from(partnerLinkUseCase.suspend(principal, partnerLinkId)));
+        return ApiResponse.success(PartnerLinkResponse.from(partnerLinkCommandUseCase.suspend(actor(principal), partnerLinkId)));
     }
 
     @PostMapping("/partner-links/{id}/resume")
@@ -99,7 +102,7 @@ public class PartnerLinkHttp {
         @AuthenticationPrincipal AuthPrincipal principal,
         @PathVariable("id") String partnerLinkId
     ) {
-        return ApiResponse.success(PartnerLinkResponse.from(partnerLinkUseCase.resume(principal, partnerLinkId)));
+        return ApiResponse.success(PartnerLinkResponse.from(partnerLinkCommandUseCase.resume(actor(principal), partnerLinkId)));
     }
 
     @PostMapping("/partner-links/{id}/terminate")
@@ -109,7 +112,7 @@ public class PartnerLinkHttp {
         @PathVariable("id") String partnerLinkId,
         @Valid @RequestBody ReasonRequest request
     ) {
-        return ApiResponse.success(PartnerLinkResponse.from(partnerLinkUseCase.terminate(principal, partnerLinkId, request.reason())));
+        return ApiResponse.success(PartnerLinkResponse.from(partnerLinkCommandUseCase.terminate(actor(principal), partnerLinkId, request.reason())));
     }
 
     private PartnerLinkStatus parseStatus(String status) {
@@ -123,5 +126,8 @@ public class PartnerLinkHttp {
         }
     }
 
+    private WorkflowActorContext actor(AuthPrincipal principal) {
+        return WorkflowActorContext.from(principal);
+    }
 
 }

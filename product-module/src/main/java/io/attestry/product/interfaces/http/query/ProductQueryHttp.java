@@ -2,8 +2,8 @@ package io.attestry.product.interfaces.http.query;
 
 import io.attestry.commonlib.infrastructure.ApiResponse;
 import io.attestry.commonlib.web.CurrentActor;
-import io.attestry.product.application.dto.command.ProductActor;
-import io.attestry.product.application.usecase.ProductQueryUseCase;
+import io.attestry.product.application.common.ProductActor;
+import io.attestry.product.application.query.usecase.ProductQueryUseCase;
 import io.attestry.product.interfaces.http.query.dto.response.AssetStateResponse;
 import io.attestry.product.interfaces.http.query.dto.response.DistributedPassportDetailResponse;
 import io.attestry.product.interfaces.http.query.dto.response.MyPassportResponse;

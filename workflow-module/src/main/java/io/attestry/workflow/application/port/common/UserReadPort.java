@@ -5,5 +5,5 @@ import java.util.Map;
 
 public interface UserReadPort {
 
-    Map<String, String> findEmailsByUserIds(List<String> userIds);
+    Map<String, String> findEmailMapByUserIds(List<String> userIds);
 }

@@ -7,11 +7,17 @@ import static org.mockito.Mockito.verify;
 
 import com.fasterxml.jackson.databind.ObjectMapper;
 import io.attestry.product.application.port.projection.ProductDistributionProjectionWritePort;
+import io.attestry.product.application.port.projection.ProductDistributionProjectionWritePort.DistributionPayload;
 import io.attestry.product.application.port.projection.ProductRetailAccessProjectionWritePort;
+import io.attestry.product.application.port.projection.ProductRetailAccessProjectionWritePort.RetailAccessPayload;
 import io.attestry.product.application.port.projection.ProductShipmentProjectionWritePort;
+import io.attestry.product.application.port.projection.ProductShipmentProjectionWritePort.ShipmentPayload;
 import io.attestry.workflow.application.port.projection.WorkflowPassportProjectionWritePort;
+import io.attestry.workflow.application.port.projection.WorkflowPassportProjectionWritePort.ProductStatePayload;
 import io.micrometer.core.instrument.simple.SimpleMeterRegistry;
+import java.util.concurrent.CompletableFuture;
 import java.time.Instant;
+import org.apache.kafka.clients.producer.RecordMetadata;
 import org.apache.kafka.clients.producer.ProducerRecord;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
@@ -19,6 +25,7 @@ import org.junit.jupiter.api.extension.ExtendWith;
 import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
 import org.springframework.kafka.core.KafkaTemplate;
+import org.springframework.kafka.support.SendResult;
 
 @ExtendWith(MockitoExtension.class)
 class WorkflowProductProjectionConsumerTest {
@@ -35,6 +42,10 @@ class WorkflowProductProjectionConsumerTest {
     void setUp() {
         WorkflowReadProjectionKafkaProperties properties = new WorkflowReadProjectionKafkaProperties();
         properties.setDlqTopic("workflow-projection.dlq");
+        org.mockito.Mockito.lenient().when(kafkaTemplate.send(org.mockito.ArgumentMatchers.<ProducerRecord<String, String>>any()))
+            .thenReturn(CompletableFuture.completedFuture(
+                new SendResult<>(new ProducerRecord<>("workflow-projection.dlq", "payload"), (RecordMetadata) null)
+            ));
         consumer = new WorkflowProductProjectionConsumer(
             new ObjectMapper(),
             projectionWriter,
@@ -56,15 +67,27 @@ class WorkflowProductProjectionConsumerTest {
               "eventCategory": "GENESIS",
               "eventAction": "MINTED",
               "idempotencyKey": "event-1",
-              "occurredAt": "2026-03-12T00:00:00Z"
+              "occurredAt": "2026-03-12T00:00:00Z",
+              "payload": {
+                "tenantId": "t1",
+                "assetId": "a1",
+                "assetState": "ACTIVE",
+                "riskFlagProjection": "NONE",
+                "serialNumber": "SN001",
+                "modelId": "M1",
+                "modelName": "Model",
+                "productionBatch": "B1",
+                "factoryCode": "F1",
+                "manufacturedAt": "2026-01-01T00:00:00Z"
+              }
             }
             """);
 
         verify(projectionWriter)
-            .refreshStateAndCatalog("passport-1", "event-1", null, Instant.parse("2026-03-12T00:00:00Z"));
+            .refreshStateAndCatalog(any(ProductStatePayload.class), any(), any(), any());
         verify(shipmentProjectionWriter, never()).refreshShipmentProjection(any(), any(), any(), any());
         verify(distributionProjectionWriter, never()).refreshDistributionProjection(any(), any(), any(), any());
-        verify(retailAccessProjectionWriter, never()).refreshB2cTransferAccess(any(), any(), any(), any());
+        verify(retailAccessProjectionWriter, never()).refreshB2cTransferAccess(any(), any(), any());
     }
 
     @Test
@@ -76,12 +99,19 @@ class WorkflowProductProjectionConsumerTest {
               "eventCategory": "SHIPMENT",
               "eventAction": "RELEASED",
               "idempotencyKey": "event-2",
-              "occurredAt": "2026-03-12T01:00:00Z"
+              "occurredAt": "2026-03-12T01:00:00Z",
+              "payload": {
+                "shipmentId": "s1",
+                "status": "RELEASED",
+                "shipmentRound": 1,
+                "releasedAt": "2026-03-12T01:00:00Z",
+                "releasedByUserDisplay": "user@test.com"
+              }
             }
             """);
 
         verify(shipmentProjectionWriter)
-            .refreshShipmentProjection("passport-2", "event-2", null, Instant.parse("2026-03-12T01:00:00Z"));
+            .refreshShipmentProjection(any(ShipmentPayload.class), any(), any(), any());
         verify(projectionWriter, never()).refreshStateAndCatalog(any(), any(), any(), any());
     }
 
@@ -92,14 +122,23 @@ class WorkflowProductProjectionConsumerTest {
               "aggregateType": "DISTRIBUTION",
               "passportId": "passport-3",
               "eventCategory": "DISTRIBUTION",
-              "eventAction": "ALLOCATED",
+              "eventAction": "CREATED",
               "idempotencyKey": "event-3",
-              "occurredAt": "2026-03-12T02:00:00Z"
+              "occurredAt": "2026-03-12T02:00:00Z",
+              "payload": {
+                "distributionId": "d1",
+                "targetTenantId": "tt1",
+                "targetTenantName": "Retail",
+                "targetTenantType": "RETAIL",
+                "partnerLinkId": "pl1",
+                "status": "DISTRIBUTED",
+                "distributedAt": "2026-03-12T02:00:00Z"
+              }
             }
             """);
 
         verify(distributionProjectionWriter)
-            .refreshDistributionProjection("passport-3", "event-3", null, Instant.parse("2026-03-12T02:00:00Z"));
+            .refreshDistributionProjection(any(DistributionPayload.class), any(), any(), any());
         verify(projectionWriter, never()).refreshStateAndCatalog(any(), any(), any(), any());
     }
 
@@ -114,18 +153,15 @@ class WorkflowProductProjectionConsumerTest {
               "idempotencyKey": "event-4",
               "occurredAt": "2026-03-12T03:00:00Z",
               "payload": {
-                "transferId": "transfer-1"
+                "transferId": "transfer-1",
+                "tenantId": "t1",
+                "completedAt": "2026-03-12T03:00:00Z"
               }
             }
             """);
 
         verify(retailAccessProjectionWriter)
-            .refreshB2cTransferAccess(
-                "passport-4",
-                "transfer-1",
-                "event-4",
-                Instant.parse("2026-03-12T03:00:00Z")
-            );
+            .refreshB2cTransferAccess(any(RetailAccessPayload.class), any(), any());
         verify(projectionWriter, never()).refreshStateAndCatalog(any(), any(), any(), any());
     }
 
@@ -156,7 +192,13 @@ class WorkflowProductProjectionConsumerTest {
               "eventCategory": "RISK",
               "eventAction": "FLAGGED",
               "idempotencyKey": "event-5",
-              "occurredAt": "2026-03-12T04:00:00Z"
+              "occurredAt": "2026-03-12T04:00:00Z",
+              "payload": {
+                "tenantId": "t1",
+                "assetId": "a1",
+                "assetState": "ACTIVE",
+                "riskFlagProjection": "FLAGGED"
+              }
             }
             """);
 

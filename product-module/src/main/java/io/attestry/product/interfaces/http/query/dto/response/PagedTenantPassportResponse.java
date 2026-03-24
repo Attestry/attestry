@@ -1,6 +1,6 @@
 package io.attestry.product.interfaces.http.query.dto.response;
 
-import io.attestry.product.application.dto.view.PagedTenantPassportView;
+import io.attestry.product.application.query.view.PagedTenantPassportView;
 import java.util.List;
 
 public record PagedTenantPassportResponse(

@@ -1,6 +1,6 @@
 package io.attestry.workflow.interfaces.distribution.dto.response;
 
-import io.attestry.workflow.application.usecase.DistributionUseCase.BatchDistributeResult;
+import io.attestry.workflow.application.distribution.result.BatchDistributeResult;
 import java.util.List;
 
 public record BatchDistributionResponse(

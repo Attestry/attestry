@@ -9,21 +9,15 @@ import io.attestry.workflow.domain.transfer.model.TransferType;
 import io.attestry.workflow.domain.transfer.policy.TransferAcceptPolicy.TransferAcceptContext;
 import io.attestry.workflow.domain.transfer.policy.TransferCreatePolicy.TransferCreateContext;
 import io.attestry.workflow.domain.transfer.repository.TokenTransferRepository;
+import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Component;
 
 @Component
+@RequiredArgsConstructor
 public class TransferContextResolver {
 
     private final TransferProductReadPort productReadPort;
     private final TokenTransferRepository transferRepository;
-
-    public TransferContextResolver(
-        TransferProductReadPort productReadPort,
-        TokenTransferRepository transferRepository
-    ) {
-        this.productReadPort = productReadPort;
-        this.transferRepository = transferRepository;
-    }
 
     public TransferCreateContext resolveCreateContext(String actorUserId, String requestTenantId, String passportId) {
         TransferPassportState state = productReadPort.findPassportState(passportId).orElse(null);

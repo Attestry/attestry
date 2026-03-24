@@ -9,8 +9,10 @@ import static org.mockito.Mockito.doThrow;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 
-import io.attestry.userauth.domain.identity.model.VerificationLevel;
-import io.attestry.userauth.security.AuthPrincipal;
+import io.attestry.userauth.domain.auth.model.VerificationLevel;
+import io.attestry.workflow.application.common.WorkflowActorContext;
+import io.attestry.workflow.application.transfer.command.TransferAcceptService;
+import io.attestry.workflow.application.transfer.support.TransferAcceptExecutor;
 import io.attestry.workflow.application.transfer.command.AcceptTransferCommand;
 import io.attestry.workflow.application.transfer.policy.TransferAccessPolicy;
 import io.attestry.workflow.application.transfer.result.AcceptTransferResult;
@@ -35,7 +37,7 @@ class TransferAcceptServiceTest {
 
     private TransferAcceptService service;
 
-    private static final AuthPrincipal CONSUMER = new AuthPrincipal(
+    private static final WorkflowActorContext CONSUMER = new WorkflowActorContext(
         "token1", "consumer1", null, VerificationLevel.PHONE_VERIFIED, Set.of("SCOPE_OWNER_TRANSFER_ACCEPT"), Instant.parse("2026-03-02T00:00:00Z")
     );
 

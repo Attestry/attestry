@@ -2,13 +2,14 @@ package io.attestry.workflow.interfaces.claim;
 
 import io.attestry.commonlib.infrastructure.ApiResponse;
 import io.attestry.userauth.security.AuthPrincipal;
+import io.attestry.workflow.application.common.WorkflowActorContext;
 import io.attestry.workflow.application.claim.command.CompleteClaimEvidenceCommand;
 import io.attestry.workflow.application.claim.command.PresignClaimEvidenceCommand;
 import io.attestry.workflow.application.claim.command.SubmitPurchaseClaimCommand;
 import io.attestry.workflow.application.claim.result.SubmitPurchaseClaimResult;
+import io.attestry.workflow.application.claim.usecase.PurchaseClaimSubmitUseCase;
 import io.attestry.workflow.application.shipment.result.EvidenceCompleteResult;
 import io.attestry.workflow.application.shipment.result.PresignedEvidenceUploadResult;
-import io.attestry.workflow.application.usecase.PurchaseClaimSubmitUseCase;
 import io.attestry.workflow.interfaces.claim.dto.request.CompleteEvidenceRequest;
 import io.attestry.workflow.interfaces.claim.dto.request.PresignEvidenceRequest;
 import io.attestry.workflow.interfaces.claim.dto.request.SubmitClaimRequest;
@@ -47,7 +48,7 @@ public class PurchaseClaimHttp {
         @RequestBody PresignEvidenceRequest request
     ) {
         PresignedEvidenceUploadResult result = purchaseClaimSubmitUseCase.presignEvidence(
-            principal,
+            actor(principal),
             new PresignClaimEvidenceCommand(
                 request.evidenceGroupId(), request.fileName(), request.contentType()
             )
@@ -62,7 +63,7 @@ public class PurchaseClaimHttp {
         @RequestBody CompleteEvidenceRequest request
     ) {
         EvidenceCompleteResult result = purchaseClaimSubmitUseCase.completeEvidence(
-            principal,
+            actor(principal),
             new CompleteClaimEvidenceCommand(
                 request.evidenceGroupId(), request.evidenceId(),
                 request.sizeBytes(), request.fileHash()
@@ -79,7 +80,7 @@ public class PurchaseClaimHttp {
         @RequestBody SubmitClaimRequest request
     ) {
         SubmitPurchaseClaimResult result = purchaseClaimSubmitUseCase.submit(
-            principal,
+            actor(principal),
             new SubmitPurchaseClaimCommand(
                 request.serialNumber(), request.modelName(),
                 request.evidenceGroupId(), request.note()
@@ -91,7 +92,7 @@ public class PurchaseClaimHttp {
     @GetMapping("/me")
     @PreAuthorize("isAuthenticated()")
     public ApiResponse<List<MyClaimResponse>> listMyClaims(@AuthenticationPrincipal AuthPrincipal principal) {
-        return ApiResponse.success(purchaseClaimSubmitUseCase.listMyClaims(principal).stream()
+        return ApiResponse.success(purchaseClaimSubmitUseCase.listMyClaims(actor(principal)).stream()
             .map(MyClaimResponse::from)
             .toList());
     }
@@ -102,8 +103,12 @@ public class PurchaseClaimHttp {
         @AuthenticationPrincipal AuthPrincipal principal,
         @PathVariable("claimId") String claimId
     ) {
-        return ApiResponse.success(purchaseClaimSubmitUseCase.listMyClaimEvidences(principal, claimId).stream()
+        return ApiResponse.success(purchaseClaimSubmitUseCase.listMyClaimEvidences(actor(principal), claimId).stream()
             .map(ClaimEvidenceResponse::from)
             .toList());
+    }
+
+    private WorkflowActorContext actor(AuthPrincipal principal) {
+        return WorkflowActorContext.from(principal);
     }
 }

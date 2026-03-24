@@ -1,6 +1,6 @@
 package io.attestry.product.interfaces.http.query.dto.response;
 
-import io.attestry.product.application.dto.view.AssetStateView;
+import io.attestry.product.application.query.view.AssetStateView;
 
 public record AssetStateResponse(
     String assetId,

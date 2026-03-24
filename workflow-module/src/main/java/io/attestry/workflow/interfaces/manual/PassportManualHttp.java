@@ -2,15 +2,16 @@ package io.attestry.workflow.interfaces.manual;
 
 import io.attestry.commonlib.infrastructure.ApiResponse;
 import io.attestry.userauth.security.AuthPrincipal;
+import io.attestry.workflow.application.common.WorkflowActorContext;
 import io.attestry.workflow.application.manual.command.SendPassportManualCommand;
 import io.attestry.workflow.application.manual.result.PassportManualRecipientResult;
 import io.attestry.workflow.application.manual.result.SendPassportManualResult;
+import io.attestry.workflow.application.manual.usecase.PassportManualEvidenceUseCase;
+import io.attestry.workflow.application.manual.usecase.PassportManualUseCase;
 import io.attestry.workflow.application.shipment.command.CompleteShipmentEvidenceUploadCommand;
 import io.attestry.workflow.application.shipment.command.PresignShipmentEvidenceUploadCommand;
 import io.attestry.workflow.application.shipment.result.EvidenceCompleteResult;
 import io.attestry.workflow.application.shipment.result.PresignedEvidenceUploadResult;
-import io.attestry.workflow.application.usecase.PassportManualEvidenceUseCase;
-import io.attestry.workflow.application.usecase.PassportManualUseCase;
 import io.attestry.workflow.interfaces.manual.dto.request.CompletePassportManualEvidenceRequest;
 import io.attestry.workflow.interfaces.manual.dto.request.PresignPassportManualEvidenceRequest;
 import io.attestry.workflow.interfaces.manual.dto.request.SendPassportManualRequest;
@@ -46,7 +47,7 @@ public class PassportManualHttp {
         @PathVariable("tenantId") String tenantId,
         @PathVariable("passportId") String passportId
     ) {
-        PassportManualRecipientResult result = passportManualUseCase.getRecipient(principal, tenantId, passportId);
+        PassportManualRecipientResult result = passportManualUseCase.getRecipient(actor(principal), tenantId, passportId);
         return ApiResponse.success(PassportManualRecipientResponse.from(result));
     }
 
@@ -59,7 +60,7 @@ public class PassportManualHttp {
         @Valid @RequestBody SendPassportManualRequest request
     ) {
         SendPassportManualResult result = passportManualUseCase.send(
-            principal,
+            actor(principal),
             tenantId,
             new SendPassportManualCommand(request.passportIds(), request.message(), request.evidenceGroupId())
         );
@@ -75,7 +76,7 @@ public class PassportManualHttp {
         @RequestBody PresignPassportManualEvidenceRequest request
     ) {
         PresignedEvidenceUploadResult result = passportManualEvidenceUseCase.presignEvidenceUpload(
-            principal,
+            actor(principal),
             tenantId,
             new PresignShipmentEvidenceUploadCommand(
                 request.evidenceGroupId(),
@@ -94,7 +95,7 @@ public class PassportManualHttp {
         @RequestBody CompletePassportManualEvidenceRequest request
     ) {
         EvidenceCompleteResult result = passportManualEvidenceUseCase.completeEvidenceUpload(
-            principal,
+            actor(principal),
             tenantId,
             new CompleteShipmentEvidenceUploadCommand(
                 request.evidenceGroupId(),
@@ -104,5 +105,9 @@ public class PassportManualHttp {
             )
         );
         return ApiResponse.success(CompletePassportManualEvidenceResponse.from(result));
+    }
+
+    private WorkflowActorContext actor(AuthPrincipal principal) {
+        return WorkflowActorContext.from(principal);
     }
 }

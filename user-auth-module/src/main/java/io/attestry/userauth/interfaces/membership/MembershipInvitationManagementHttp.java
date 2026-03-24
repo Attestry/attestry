@@ -2,11 +2,11 @@ package io.attestry.userauth.interfaces.membership;
 
 import io.attestry.commonlib.web.CurrentActor;
 import io.attestry.commonlib.infrastructure.ApiResponse;
-import io.attestry.userauth.application.dto.command.ActorContext;
-import io.attestry.userauth.application.dto.command.InviteCommand;
-import io.attestry.userauth.application.dto.result.InvitationResult;
-import io.attestry.userauth.application.dto.result.MembershipResult;
-import io.attestry.userauth.application.usecase.membership.MembershipCommandUseCase;
+import io.attestry.userauth.application.common.ActorContext;
+import io.attestry.userauth.application.membership.command.InviteCommand;
+import io.attestry.userauth.application.membership.result.InvitationResult;
+import io.attestry.userauth.application.membership.result.MembershipResult;
+import io.attestry.userauth.application.membership.usecase.MembershipCommandUseCase;
 import io.attestry.userauth.interfaces.membership.dto.request.InviteRequest;
 import io.attestry.userauth.interfaces.membership.dto.response.InvitationResponse;
 import io.attestry.userauth.interfaces.membership.dto.response.MembershipResponse;

@@ -1,6 +1,6 @@
 package io.attestry.product.application.policy;
 
-import io.attestry.product.application.dto.command.ProductActor;
+import io.attestry.product.application.common.ProductActor;
 import io.attestry.product.application.port.ownership.PassportOwnershipPort;
 import io.attestry.product.application.port.auth.ProductAuthorizationPort;
 import io.attestry.product.domain.ProductDomainException;

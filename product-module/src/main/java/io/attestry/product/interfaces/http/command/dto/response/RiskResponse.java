@@ -1,6 +1,6 @@
 package io.attestry.product.interfaces.http.command.dto.response;
 
-import io.attestry.product.application.dto.result.RiskResult;
+import io.attestry.product.application.command.result.RiskResult;
 
 public record RiskResponse(
     String assetId,

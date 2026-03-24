@@ -1,6 +1,6 @@
 package io.attestry.workflow.interfaces.claim.dto.response;
 
-import io.attestry.workflow.application.claim.result.PendingClaimView;
+import io.attestry.workflow.application.claim.view.PendingClaimView;
 import java.time.Instant;
 
 public record PendingClaimResponse(

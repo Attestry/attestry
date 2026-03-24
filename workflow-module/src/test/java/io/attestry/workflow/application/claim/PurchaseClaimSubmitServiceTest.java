@@ -7,8 +7,10 @@ import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.Mockito.when;
 
 import io.attestry.commonlib.application.port.ObjectStoragePort;
-import io.attestry.userauth.domain.identity.model.VerificationLevel;
-import io.attestry.userauth.security.AuthPrincipal;
+import io.attestry.userauth.domain.auth.model.VerificationLevel;
+import io.attestry.workflow.application.claim.command.PurchaseClaimEvidenceService;
+import io.attestry.workflow.application.claim.command.PurchaseClaimSubmitService;
+import io.attestry.workflow.application.common.WorkflowActorContext;
 import io.attestry.workflow.application.claim.command.SubmitPurchaseClaimCommand;
 import io.attestry.workflow.application.claim.result.SubmitPurchaseClaimResult;
 import io.attestry.workflow.application.port.common.WorkflowEvidencePort;
@@ -39,7 +41,7 @@ class PurchaseClaimSubmitServiceTest {
 
     private PurchaseClaimSubmitService service;
 
-    private static final AuthPrincipal CONSUMER = new AuthPrincipal(
+    private static final WorkflowActorContext CONSUMER = new WorkflowActorContext(
         "token1", "consumer1", null,
         VerificationLevel.PHONE_VERIFIED, Set.of(), Instant.parse("2026-03-02T00:00:00Z")
     );
@@ -88,7 +90,7 @@ class PurchaseClaimSubmitServiceTest {
 
     @Test
     void submit_noUser_throws() {
-        AuthPrincipal noUser = new AuthPrincipal(
+        WorkflowActorContext noUser = new WorkflowActorContext(
             "token1", null, null,
             VerificationLevel.PHONE_VERIFIED, Set.of(), Instant.parse("2026-03-02T00:00:00Z")
         );

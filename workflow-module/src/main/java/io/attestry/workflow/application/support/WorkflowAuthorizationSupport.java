@@ -1,11 +1,11 @@
 package io.attestry.workflow.application.support;
 
-import io.attestry.userauth.application.dto.command.ActorContext;
-import io.attestry.userauth.application.dto.command.AuthzEvaluateCommand;
-import io.attestry.userauth.application.dto.command.PolicyDecisionMode;
-import io.attestry.userauth.application.dto.result.AuthzEvaluateResult;
-import io.attestry.userauth.application.usecase.policy.EvaluateAuthorizationUseCase;
-import io.attestry.userauth.security.AuthPrincipal;
+import io.attestry.userauth.application.common.ActorContext;
+import io.attestry.userauth.application.policy.command.AuthzEvaluateCommand;
+import io.attestry.userauth.application.policy.command.PolicyDecisionMode;
+import io.attestry.userauth.application.policy.result.AuthzEvaluateResult;
+import io.attestry.userauth.application.policy.usecase.EvaluateAuthorizationUseCase;
+import io.attestry.workflow.application.common.WorkflowActorContext;
 import io.attestry.workflow.domain.WorkflowDomainException;
 import io.attestry.workflow.domain.WorkflowErrorCode;
 import java.util.Set;
@@ -25,7 +25,7 @@ public class WorkflowAuthorizationSupport {
         this.evaluateAuthorizationUseCase = evaluateAuthorizationUseCase;
     }
 
-    public void assertTenantContext(AuthPrincipal principal, String tenantId) {
+    public void assertTenantContext(WorkflowActorContext principal, String tenantId) {
         if (principal.scopes() != null && principal.scopes().stream().anyMatch(PLATFORM_ADMIN_BYPASS_SCOPES::contains)) {
             return;
         }
@@ -34,16 +34,23 @@ public class WorkflowAuthorizationSupport {
         }
     }
 
-    public void assertPermissionOnly(AuthPrincipal principal, String action, String resourceRef) {
+    public void assertPermissionOnly(WorkflowActorContext principal, String action, String resourceRef) {
         assertLivePermission(principal, principal.tenantId(), action, resourceRef);
     }
 
-    public void assertLivePermission(AuthPrincipal principal, String tenantId, String action, String resourceRef) {
+    public void assertLivePermission(WorkflowActorContext principal, String tenantId, String action, String resourceRef) {
         if (principal.scopes() != null && principal.scopes().stream().anyMatch(PLATFORM_ADMIN_BYPASS_SCOPES::contains)) {
             return;
         }
         AuthzEvaluateResult decision = evaluateAuthorizationUseCase.evaluate(
-            ActorContext.from(principal),
+            new ActorContext(
+                principal.tokenId(),
+                principal.userId(),
+                principal.tenantId(),
+                principal.verificationLevel(),
+                principal.scopes(),
+                principal.expiresAt()
+            ),
             new AuthzEvaluateCommand(tenantId, action, resourceRef, PolicyDecisionMode.LIVE_RECHECK)
         );
         if (!decision.allowed()) {

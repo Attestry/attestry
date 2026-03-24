@@ -1,7 +1,7 @@
 package io.attestry.userauth.infrastructure.persistence.jpa.identity;
 
 import io.attestry.userauth.application.port.identity.UserAccountRepositoryPort;
-import io.attestry.userauth.domain.identity.model.UserAccount;
+import io.attestry.userauth.domain.auth.model.UserAccount;
 import io.attestry.userauth.infrastructure.persistence.jpa.mapper.UserAccountMapper;
 import io.attestry.userauth.infrastructure.persistence.jpa.repository.UserAccountJpaRepository;
 import java.util.List;

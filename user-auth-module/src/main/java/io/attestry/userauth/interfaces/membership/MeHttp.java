@@ -2,13 +2,13 @@ package io.attestry.userauth.interfaces.membership;
 
 import io.attestry.commonlib.web.CurrentActor;
 import io.attestry.commonlib.infrastructure.ApiResponse;
-import io.attestry.userauth.application.dto.command.ActorContext;
-import io.attestry.userauth.application.dto.command.UpdateMyAccountCommand;
+import io.attestry.userauth.application.auth.command.UpdateMyAccountCommand;
+import io.attestry.userauth.application.auth.view.MyAccountView;
+import io.attestry.userauth.application.common.ActorContext;
+import io.attestry.userauth.application.auth.usecase.MyAccountQueryUseCase;
+import io.attestry.userauth.application.membership.usecase.MembershipQueryUseCase;
+import io.attestry.userauth.application.membership.view.MembershipView;
 import io.attestry.userauth.interfaces.membership.dto.request.UpdateMyAccountRequest;
-import io.attestry.userauth.application.dto.view.MembershipView;
-import io.attestry.userauth.application.dto.view.MyAccountView;
-import io.attestry.userauth.application.usecase.auth.MyAccountQueryUseCase;
-import io.attestry.userauth.application.usecase.membership.MembershipQueryUseCase;
 import java.util.List;
 
 import jakarta.validation.Valid;

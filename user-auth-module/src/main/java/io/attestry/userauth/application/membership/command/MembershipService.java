@@ -1,17 +1,11 @@
 package io.attestry.userauth.application.membership.command;
 
-import io.attestry.userauth.application.dto.result.InvitationResult;
-import io.attestry.userauth.application.dto.result.MembershipResult;
-import io.attestry.userauth.application.dto.result.MembershipPermissionTemplateResult;
-import io.attestry.userauth.application.dto.result.MembershipRoleAssignmentsResult;
-import io.attestry.userauth.application.dto.command.ActorContext;
-import io.attestry.userauth.application.dto.command.ApplyPermissionTemplateCommand;
-import io.attestry.userauth.application.dto.command.AssignMembershipRoleCommand;
-import io.attestry.userauth.application.dto.command.InviteCommand;
-import io.attestry.userauth.application.dto.command.RevokeMembershipRoleCommand;
-import io.attestry.userauth.application.dto.command.RevokePermissionTemplateCommand;
-import io.attestry.userauth.application.dto.command.UpdateMembershipStatusCommand;
-import io.attestry.userauth.application.usecase.membership.MembershipCommandUseCase;
+import io.attestry.userauth.application.common.ActorContext;
+import io.attestry.userauth.application.membership.result.InvitationResult;
+import io.attestry.userauth.application.membership.result.MembershipPermissionTemplateResult;
+import io.attestry.userauth.application.membership.result.MembershipResult;
+import io.attestry.userauth.application.membership.result.MembershipRoleAssignmentsResult;
+import io.attestry.userauth.application.membership.usecase.MembershipCommandUseCase;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;

@@ -1,6 +1,6 @@
 package io.attestry.workflow.interfaces.shipment.dto.response;
 
-import io.attestry.workflow.application.shipment.result.ShipmentViewResult;
+import io.attestry.workflow.application.shipment.view.ShipmentView;
 import java.time.Instant;
 
 public record ShipmentResponse(
@@ -17,7 +17,7 @@ public record ShipmentResponse(
         Instant releasedAt,
         Instant returnedAt,
         Instant createdAt) {
-    public static ShipmentResponse from(ShipmentViewResult result) {
+    public static ShipmentResponse from(ShipmentView result) {
         return new ShipmentResponse(
                 result.shipmentId(),
                 result.passportId(),

@@ -2,20 +2,21 @@ package io.attestry.userauth.interfaces.membership;
 
 import io.attestry.commonlib.web.CurrentActor;
 import io.attestry.commonlib.infrastructure.ApiResponse;
-import io.attestry.userauth.application.dto.command.ActorContext;
-import io.attestry.userauth.application.dto.command.ApplyPermissionTemplateCommand;
-import io.attestry.userauth.application.dto.command.AssignMembershipRoleCommand;
-import io.attestry.userauth.application.dto.command.RevokeMembershipRoleCommand;
-import io.attestry.userauth.application.dto.command.RevokePermissionTemplateCommand;
-import io.attestry.userauth.application.dto.command.UpdateMembershipStatusCommand;
-import io.attestry.userauth.application.dto.result.MembershipAssignableRolesResult;
-import io.attestry.userauth.application.dto.result.MembershipDetailResult;
-import io.attestry.userauth.application.dto.result.MembershipPermissionTemplateResult;
-import io.attestry.userauth.application.dto.result.MembershipResult;
-import io.attestry.userauth.application.dto.result.MembershipRoleAssignmentsResult;
-import io.attestry.userauth.application.dto.result.TenantAvailableTemplateCodesResult;
-import io.attestry.userauth.application.usecase.membership.MembershipCommandUseCase;
-import io.attestry.userauth.application.usecase.membership.MembershipQueryUseCase;
+import io.attestry.userauth.application.common.ActorContext;
+import io.attestry.userauth.application.membership.command.ApplyPermissionTemplateCommand;
+import io.attestry.userauth.application.membership.command.AssignMembershipRoleCommand;
+import io.attestry.userauth.application.membership.command.RevokeMembershipRoleCommand;
+import io.attestry.userauth.application.membership.command.RevokePermissionTemplateCommand;
+import io.attestry.userauth.application.membership.command.UpdateMembershipStatusCommand;
+import io.attestry.userauth.application.membership.result.MembershipPermissionTemplateResult;
+import io.attestry.userauth.application.membership.result.MembershipResult;
+import io.attestry.userauth.application.membership.result.MembershipRoleAssignmentsResult;
+import io.attestry.userauth.application.membership.usecase.MembershipCommandUseCase;
+import io.attestry.userauth.application.membership.usecase.MembershipQueryUseCase;
+import io.attestry.userauth.application.membership.view.MembershipAssignableRolesView;
+import io.attestry.userauth.application.membership.view.MembershipDetailView;
+import io.attestry.userauth.application.membership.view.MembershipRoleAssignmentsView;
+import io.attestry.userauth.application.membership.view.TenantAvailableTemplateCodesView;
 import io.attestry.userauth.interfaces.membership.dto.request.MutatePermissionTemplateRequest;
 import io.attestry.userauth.interfaces.membership.dto.request.UpdateMembershipStatusRequest;
 import io.attestry.userauth.interfaces.membership.dto.response.MembershipAssignableRolesResponse;
@@ -60,7 +61,7 @@ public class MembershipManagementHttp {
     public ApiResponse<MembershipDetailResponse> getMembershipDetail(
             @CurrentActor ActorContext actor,
             @PathVariable("id") String membershipId) {
-        MembershipDetailResult result = membershipQueryUseCase.getMembershipDetail(actor, membershipId);
+        MembershipDetailView result = membershipQueryUseCase.getMembershipDetail(actor, membershipId);
         return ApiResponse.success(MembershipDetailResponse.from(result));
     }
 
@@ -82,7 +83,7 @@ public class MembershipManagementHttp {
     public ApiResponse<MembershipRoleAssignmentsResponse> listMembershipRoles(
             @CurrentActor ActorContext actor,
             @PathVariable("id") String membershipId) {
-        MembershipRoleAssignmentsResult result = membershipQueryUseCase.listMembershipRoleAssignments(actor, membershipId);
+        MembershipRoleAssignmentsView result = membershipQueryUseCase.listMembershipRoleAssignments(actor, membershipId);
         return ApiResponse.success(MembershipRoleAssignmentsResponse.from(result));
     }
 
@@ -91,7 +92,7 @@ public class MembershipManagementHttp {
     public ApiResponse<MembershipAssignableRolesResponse> listAssignableRoleCodes(
             @CurrentActor ActorContext actor,
             @PathVariable("id") String membershipId) {
-        MembershipAssignableRolesResult result = membershipQueryUseCase.listAssignableRoleCodes(actor, membershipId);
+        MembershipAssignableRolesView result = membershipQueryUseCase.listAssignableRoleCodes(actor, membershipId);
         return ApiResponse.success(MembershipAssignableRolesResponse.from(result));
     }
 
@@ -99,7 +100,7 @@ public class MembershipManagementHttp {
     @PreAuthorize("hasAuthority('SCOPE_TENANT_ROLE_ASSIGN')")
     public ApiResponse<TenantAvailableTemplateCodesResponse> listTenantAvailableTemplateCodes(
             @CurrentActor ActorContext actor) {
-        TenantAvailableTemplateCodesResult result = membershipQueryUseCase.listTenantAvailableTemplateCodes(actor);
+        TenantAvailableTemplateCodesView result = membershipQueryUseCase.listTenantAvailableTemplateCodes(actor);
         return ApiResponse.success(TenantAvailableTemplateCodesResponse.from(result));
     }
 

@@ -1,6 +1,6 @@
 package io.attestry.userauth.interfaces.tenant.dto.response;
 
-import io.attestry.userauth.application.dto.result.TenantPageResult;
+import io.attestry.userauth.application.tenant.view.TenantPageView;
 import java.util.List;
 
 public record TenantPageResponse(
@@ -10,7 +10,7 @@ public record TenantPageResponse(
         long totalElements,
         int totalPages) {
 
-    public static TenantPageResponse from(TenantPageResult result) {
+    public static TenantPageResponse from(TenantPageView result) {
         return new TenantPageResponse(
                 result.items().stream().map(TenantResponse::from).toList(),
                 result.page(),

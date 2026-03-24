@@ -15,6 +15,8 @@ public class NotificationOutbox {
     private final Instant createdAt;
     private Instant sentAt;
     private Instant nextRetryAt;
+    private Instant processingStartedAt;
+    private String processingOwner;
 
     private NotificationOutbox(
         String id,
@@ -26,7 +28,9 @@ public class NotificationOutbox {
         String lastError,
         Instant createdAt,
         Instant sentAt,
-        Instant nextRetryAt
+        Instant nextRetryAt,
+        Instant processingStartedAt,
+        String processingOwner
     ) {
         this.id = id;
         this.notificationType = notificationType;
@@ -38,6 +42,8 @@ public class NotificationOutbox {
         this.createdAt = createdAt;
         this.sentAt = sentAt;
         this.nextRetryAt = nextRetryAt;
+        this.processingStartedAt = processingStartedAt;
+        this.processingOwner = processingOwner;
     }
 
     public static NotificationOutbox create(
@@ -56,6 +62,8 @@ public class NotificationOutbox {
             null,
             now,
             null,
+            null,
+            null,
             null
         );
     }
@@ -70,24 +78,38 @@ public class NotificationOutbox {
         String lastError,
         Instant createdAt,
         Instant sentAt,
-        Instant nextRetryAt
+        Instant nextRetryAt,
+        Instant processingStartedAt,
+        String processingOwner
     ) {
         return new NotificationOutbox(
             id, notificationType, recipient, payload,
-            status, retryCount, lastError, createdAt, sentAt, nextRetryAt
+            status, retryCount, lastError, createdAt, sentAt, nextRetryAt, processingStartedAt, processingOwner
         );
+    }
+
+    public void markProcessing(Instant now, String owner) {
+        this.status = NotificationOutboxStatus.PROCESSING;
+        this.processingStartedAt = now;
+        this.processingOwner = owner;
+        this.lastError = null;
     }
 
     public void markSent(Instant now) {
         this.status = NotificationOutboxStatus.SENT;
         this.sentAt = now;
         this.nextRetryAt = null;
+        this.processingStartedAt = null;
+        this.processingOwner = null;
     }
 
     public void markFailed(String error, Instant nextRetryAt) {
         this.retryCount++;
+        this.status = NotificationOutboxStatus.PENDING;
         this.lastError = error;
         this.nextRetryAt = nextRetryAt;
+        this.processingStartedAt = null;
+        this.processingOwner = null;
     }
 
     public void markPermanentlyFailed(String error) {
@@ -95,6 +117,8 @@ public class NotificationOutbox {
         this.status = NotificationOutboxStatus.FAILED;
         this.lastError = error;
         this.nextRetryAt = null;
+        this.processingStartedAt = null;
+        this.processingOwner = null;
     }
 
     public String id() { return id; }
@@ -107,4 +131,6 @@ public class NotificationOutbox {
     public Instant createdAt() { return createdAt; }
     public Instant sentAt() { return sentAt; }
     public Instant nextRetryAt() { return nextRetryAt; }
+    public Instant processingStartedAt() { return processingStartedAt; }
+    public String processingOwner() { return processingOwner; }
 }

@@ -1,10 +1,10 @@
 package io.attestry.product.application.policy;
 
-import io.attestry.product.application.dto.command.ProductActor;
-import io.attestry.product.application.dto.command.ProductTenantType;
+import io.attestry.product.application.common.ProductActor;
+import io.attestry.product.application.common.ProductTenantType;
 import io.attestry.product.application.port.auth.ProductAuthorizationPort;
 import io.attestry.product.application.port.auth.TenantContextAccessPort;
-import io.attestry.product.application.command.dto.LedgerActor;
+import io.attestry.product.application.command.support.LedgerActor;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Component;
 

@@ -1,7 +1,7 @@
 package io.attestry.userauth.application.membership.command;
 
-import io.attestry.userauth.application.dto.command.ActorContext;
-import io.attestry.userauth.application.dto.result.MembershipRoleAssignmentsResult;
+import io.attestry.userauth.application.common.ActorContext;
+import io.attestry.userauth.application.membership.result.MembershipRoleAssignmentsResult;
 import io.attestry.userauth.application.membership.policy.ActiveOwnerGuard;
 import io.attestry.userauth.application.membership.policy.MembershipAccessPolicy;
 import io.attestry.userauth.application.port.auth.AccessTokenPort;

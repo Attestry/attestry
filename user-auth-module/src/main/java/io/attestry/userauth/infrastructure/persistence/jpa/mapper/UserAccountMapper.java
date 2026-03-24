@@ -1,8 +1,8 @@
 package io.attestry.userauth.infrastructure.persistence.jpa.mapper;
 
 import io.attestry.commonlib.infrastructure.DomainMapper;
-import io.attestry.userauth.domain.identity.model.Email;
-import io.attestry.userauth.domain.identity.model.UserAccount;
+import io.attestry.userauth.domain.auth.model.Email;
+import io.attestry.userauth.domain.auth.model.UserAccount;
 import io.attestry.userauth.infrastructure.persistence.jpa.entity.UserAccountJpaEntity;
 import org.springframework.stereotype.Component;
 

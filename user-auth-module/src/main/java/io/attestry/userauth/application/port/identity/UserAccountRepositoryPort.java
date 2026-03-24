@@ -1,6 +1,6 @@
 package io.attestry.userauth.application.port.identity;
 
-import io.attestry.userauth.domain.identity.model.UserAccount;
+import io.attestry.userauth.domain.auth.model.UserAccount;
 import java.util.List;
 import java.util.Optional;
 

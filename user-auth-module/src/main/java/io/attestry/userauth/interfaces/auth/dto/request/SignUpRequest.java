@@ -1,6 +1,6 @@
 package io.attestry.userauth.interfaces.auth.dto.request;
 
-import io.attestry.userauth.domain.identity.model.Email;
+import io.attestry.userauth.domain.auth.model.Email;
 import jakarta.validation.constraints.NotBlank;
 import jakarta.validation.constraints.Pattern;
 

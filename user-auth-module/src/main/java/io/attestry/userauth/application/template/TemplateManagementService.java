@@ -1,13 +1,13 @@
 package io.attestry.userauth.application.template;
 
-import io.attestry.userauth.application.dto.command.ActorContext;
-import io.attestry.userauth.application.dto.result.PermissionResult;
-import io.attestry.userauth.application.dto.result.PermissionTemplateResult;
-import io.attestry.userauth.application.dto.result.TenantRoleTemplateBindingResult;
+import io.attestry.userauth.application.common.ActorContext;
 import io.attestry.userauth.application.port.template.PermissionCatalogPort;
 import io.attestry.userauth.application.port.template.PermissionTemplatePort;
 import io.attestry.userauth.application.port.template.TenantRoleTemplateBindingPort;
-import io.attestry.userauth.application.usecase.template.TemplateManagementUseCase;
+import io.attestry.userauth.application.template.result.PermissionResult;
+import io.attestry.userauth.application.template.result.PermissionTemplateResult;
+import io.attestry.userauth.application.template.result.TenantRoleTemplateBindingResult;
+import io.attestry.userauth.application.template.usecase.TemplateManagementUseCase;
 import io.attestry.userauth.domain.UserAuthErrorCode;
 import io.attestry.userauth.domain.UserAuthDomainException;
 import io.attestry.userauth.domain.authorization.policy.TenantRoleTemplateBindingPolicy;
