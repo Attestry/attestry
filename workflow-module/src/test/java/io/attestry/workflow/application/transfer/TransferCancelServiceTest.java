@@ -9,7 +9,9 @@ import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 
 import io.attestry.userauth.domain.auth.model.VerificationLevel;
-import io.attestry.userauth.security.AuthPrincipal;
+import io.attestry.workflow.application.common.WorkflowActorContext;
+import io.attestry.workflow.application.transfer.command.TransferCancelService;
+import io.attestry.workflow.application.transfer.support.TransferCancelExecutor;
 import io.attestry.workflow.application.transfer.policy.TransferAccessPolicy;
 import io.attestry.workflow.application.transfer.result.CancelTransferResult;
 import io.attestry.workflow.domain.WorkflowDomainException;
@@ -49,7 +51,7 @@ class TransferCancelServiceTest {
 
     @Test
     void cancel_c2c_byCreator_success() {
-        AuthPrincipal creator = new AuthPrincipal(
+        WorkflowActorContext creator = new WorkflowActorContext(
             "token1", "owner1", "tenant1", VerificationLevel.PHONE_VERIFIED, Set.of(), Instant.parse("2026-03-02T00:00:00Z")
         );
         TokenTransfer pending = TokenTransfer.createC2C(
@@ -72,7 +74,7 @@ class TransferCancelServiceTest {
 
     @Test
     void cancel_c2c_byNonCreator_throws() {
-        AuthPrincipal other = new AuthPrincipal(
+        WorkflowActorContext other = new WorkflowActorContext(
             "token2", "otherUser", "tenant1", VerificationLevel.PHONE_VERIFIED, Set.of(), Instant.parse("2026-03-02T00:00:00Z")
         );
         TokenTransfer pending = TokenTransfer.createC2C(
@@ -93,7 +95,7 @@ class TransferCancelServiceTest {
 
     @Test
     void cancel_b2c_withTenantAuth_success() {
-        AuthPrincipal retailPrincipal = new AuthPrincipal(
+        WorkflowActorContext retailPrincipal = new WorkflowActorContext(
             "token3", "retailUser", "tenant1", VerificationLevel.PHONE_VERIFIED, Set.of(), Instant.parse("2026-03-02T00:00:00Z")
         );
         TokenTransfer pending = TokenTransfer.createB2C(
@@ -115,7 +117,7 @@ class TransferCancelServiceTest {
 
     @Test
     void cancel_notFound_throws() {
-        AuthPrincipal principal = new AuthPrincipal(
+        WorkflowActorContext principal = new WorkflowActorContext(
             "token1", "user1", "tenant1", VerificationLevel.PHONE_VERIFIED, Set.of(), Instant.parse("2026-03-02T00:00:00Z")
         );
 
@@ -129,7 +131,7 @@ class TransferCancelServiceTest {
 
     @Test
     void cancel_alreadyCompleted_throws() {
-        AuthPrincipal creator = new AuthPrincipal(
+        WorkflowActorContext creator = new WorkflowActorContext(
             "token1", "owner1", "tenant1", VerificationLevel.PHONE_VERIFIED, Set.of(), Instant.parse("2026-03-02T00:00:00Z")
         );
         TokenTransfer completed = TokenTransfer.createC2C(

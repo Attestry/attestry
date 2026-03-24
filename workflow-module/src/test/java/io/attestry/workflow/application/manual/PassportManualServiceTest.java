@@ -16,7 +16,8 @@ import io.attestry.userauth.domain.auth.model.VerificationLevel;
 import io.attestry.userauth.domain.membership.model.NotificationOutbox;
 import io.attestry.userauth.domain.membership.model.NotificationType;
 import io.attestry.userauth.domain.membership.model.PassportManualNotificationPayload;
-import io.attestry.userauth.security.AuthPrincipal;
+import io.attestry.workflow.application.common.WorkflowActorContext;
+import io.attestry.workflow.application.manual.command.PassportManualService;
 import io.attestry.workflow.application.manual.command.SendPassportManualCommand;
 import io.attestry.workflow.application.manual.result.PassportManualRecipientResult;
 import io.attestry.workflow.application.manual.result.SendPassportManualResult;
@@ -52,7 +53,7 @@ class PassportManualServiceTest {
 
     private PassportManualService service;
 
-    private static final AuthPrincipal BRAND = new AuthPrincipal(
+    private static final WorkflowActorContext BRAND = new WorkflowActorContext(
         "token-1",
         "brand-user",
         "tenant-1",

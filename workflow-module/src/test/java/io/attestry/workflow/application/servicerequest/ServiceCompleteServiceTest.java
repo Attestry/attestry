@@ -10,7 +10,8 @@ import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 
 import io.attestry.userauth.domain.auth.model.VerificationLevel;
-import io.attestry.userauth.security.AuthPrincipal;
+import io.attestry.workflow.application.common.WorkflowActorContext;
+import io.attestry.workflow.application.servicerequest.command.ServiceCompleteService;
 import io.attestry.workflow.application.port.servicerequest.ServicePermissionPort;
 import io.attestry.workflow.application.port.servicerequest.ServiceProductReadPort;
 import io.attestry.workflow.application.port.servicerequest.ServiceProductReadPort.ServicePassportState;
@@ -55,7 +56,7 @@ class ServiceCompleteServiceTest {
     private ServiceCompleteService service;
 
     private static final Instant SUBMITTED_AT = Instant.parse("2026-03-01T09:00:00Z");
-    private static final AuthPrincipal PROVIDER = new AuthPrincipal(
+    private static final WorkflowActorContext PROVIDER = new WorkflowActorContext(
         "token1", "provider1", "provT1", VerificationLevel.PHONE_VERIFIED, Set.of("SCOPE_SERVICE_COMPLETE"), Instant.parse("2026-03-02T00:00:00Z")
     );
 

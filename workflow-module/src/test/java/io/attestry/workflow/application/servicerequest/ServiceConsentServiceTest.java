@@ -10,7 +10,8 @@ import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 
 import io.attestry.userauth.domain.auth.model.VerificationLevel;
-import io.attestry.userauth.security.AuthPrincipal;
+import io.attestry.workflow.application.common.WorkflowActorContext;
+import io.attestry.workflow.application.servicerequest.command.ServiceConsentService;
 import io.attestry.workflow.application.port.servicerequest.ServicePermissionPort;
 import io.attestry.workflow.application.port.servicerequest.ServiceProductReadPort;
 import io.attestry.workflow.application.port.servicerequest.ServiceProductReadPort.ServicePassportState;
@@ -20,7 +21,7 @@ import io.attestry.workflow.application.servicerequest.result.GrantServiceConsen
 import io.attestry.workflow.application.servicerequest.result.RevokeServiceConsentResult;
 import io.attestry.workflow.application.servicerequest.support.ServiceConsentExecutor;
 import io.attestry.workflow.application.support.WorkflowAuthorizationSupport;
-import io.attestry.workflow.application.usecase.ServiceSubmitUseCase;
+import io.attestry.workflow.application.servicerequest.usecase.ServiceSubmitUseCase;
 import io.attestry.workflow.domain.WorkflowDomainException;
 import io.attestry.workflow.domain.WorkflowErrorCode;
 import io.attestry.workflow.domain.servicerequest.policy.ServiceConsentPolicy;
@@ -48,7 +49,7 @@ class ServiceConsentServiceTest {
 
     private ServiceConsentService service;
 
-    private static final AuthPrincipal OWNER = new AuthPrincipal(
+    private static final WorkflowActorContext OWNER = new WorkflowActorContext(
         "token1", "owner1", null, VerificationLevel.PHONE_VERIFIED, Set.of("SCOPE_OWNER_SERVICE_CREATE"), Instant.parse("2026-03-02T00:00:00Z")
     );
 

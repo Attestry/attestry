@@ -10,8 +10,10 @@ import static org.mockito.Mockito.when;
 
 import io.attestry.userauth.domain.authorization.model.PermissionCodes;
 import io.attestry.userauth.domain.auth.model.VerificationLevel;
-import io.attestry.userauth.security.AuthPrincipal;
+import io.attestry.workflow.application.common.WorkflowActorContext;
 import io.attestry.workflow.application.partner.command.CreatePartnerLinkCommand;
+import io.attestry.workflow.application.partner.command.PartnerLinkCommandService;
+import io.attestry.workflow.application.partner.query.PartnerLinkQueryService;
 import io.attestry.workflow.application.partner.result.PartnerLinkResult;
 import io.attestry.workflow.application.port.common.TenantReadPort;
 import io.attestry.workflow.application.support.WorkflowAuthorizationSupport;
@@ -45,9 +47,10 @@ class PartnerLinkServiceTest {
     private final Clock clock = Clock.fixed(Instant.parse("2026-03-12T01:00:00Z"), ZoneOffset.UTC);
     private final PartnerLinkCreatePolicy createPolicy = new PartnerLinkCreatePolicy();
 
-    private PartnerLinkService service;
+    private PartnerLinkCommandService commandService;
+    private PartnerLinkQueryService queryService;
 
-    private static final AuthPrincipal SOURCE_PRINCIPAL = new AuthPrincipal(
+    private static final WorkflowActorContext SOURCE_PRINCIPAL = new WorkflowActorContext(
         "token-1",
         "user-1",
         "tenant-source",
@@ -55,7 +58,7 @@ class PartnerLinkServiceTest {
         Set.of("SCOPE_PARTNER_LINK_CREATE", "SCOPE_PARTNER_LINK_APPROVE", "SCOPE_TENANT_READ_ONLY"),
         Instant.parse("2026-03-13T00:00:00Z")
     );
-    private static final AuthPrincipal TARGET_PRINCIPAL = new AuthPrincipal(
+    private static final WorkflowActorContext TARGET_PRINCIPAL = new WorkflowActorContext(
         "token-3",
         "user-3",
         "tenant-target",
@@ -66,7 +69,8 @@ class PartnerLinkServiceTest {
 
     @BeforeEach
     void setUp() {
-        service = new PartnerLinkService(repository, tenantReadPort, authorizationSupport, createPolicy, clock);
+        commandService = new PartnerLinkCommandService(repository, tenantReadPort, authorizationSupport, createPolicy, clock);
+        queryService = new PartnerLinkQueryService(repository, tenantReadPort, authorizationSupport);
     }
 
     @Test
@@ -107,7 +111,7 @@ class PartnerLinkServiceTest {
         when(tenantReadPort.findTenantSummariesByIds(List.of("tenant-target")))
             .thenReturn(Map.of("tenant-target", new TenantReadPort.TenantSummary("tenant-target", "Target Tenant", "KR", "addr", "PARTNER")));
 
-        PartnerLinkResult result = service.create(SOURCE_PRINCIPAL, command);
+        PartnerLinkResult result = commandService.create(SOURCE_PRINCIPAL, command);
 
         assertEquals("pl-1", result.partnerLinkId());
         assertEquals("tenant-source", result.sourceTenantId());
@@ -133,7 +137,7 @@ class PartnerLinkServiceTest {
         );
         when(tenantReadPort.existsActiveTenant("tenant-source")).thenReturn(true);
 
-        WorkflowDomainException ex = assertThrows(WorkflowDomainException.class, () -> service.create(SOURCE_PRINCIPAL, command));
+        WorkflowDomainException ex = assertThrows(WorkflowDomainException.class, () -> commandService.create(SOURCE_PRINCIPAL, command));
 
         assertEquals(WorkflowErrorCode.INVALID_REQUEST, ex.getErrorCode());
         verify(repository, never()).save(any());
@@ -155,7 +159,7 @@ class PartnerLinkServiceTest {
         when(tenantReadPort.existsActiveTenant("tenant-source")).thenReturn(true);
         when(tenantReadPort.existsActiveTenant("tenant-target")).thenReturn(false);
 
-        WorkflowDomainException ex = assertThrows(WorkflowDomainException.class, () -> service.create(SOURCE_PRINCIPAL, command));
+        WorkflowDomainException ex = assertThrows(WorkflowDomainException.class, () -> commandService.create(SOURCE_PRINCIPAL, command));
 
         assertEquals(WorkflowErrorCode.INVALID_REQUEST, ex.getErrorCode());
         verify(repository, never()).save(any());
@@ -180,7 +184,7 @@ class PartnerLinkServiceTest {
             "tenant-source", "tenant-target", PartnerType.RETAIL, PartnerLinkStatus.ACTIVE
         )).thenReturn(true);
 
-        WorkflowDomainException ex = assertThrows(WorkflowDomainException.class, () -> service.create(SOURCE_PRINCIPAL, command));
+        WorkflowDomainException ex = assertThrows(WorkflowDomainException.class, () -> commandService.create(SOURCE_PRINCIPAL, command));
 
         assertEquals(WorkflowErrorCode.PARTNER_LINK_ALREADY_ACTIVE, ex.getErrorCode());
         verify(repository, never()).save(any());
@@ -205,7 +209,7 @@ class PartnerLinkServiceTest {
             "tenant-source", "tenant-target", PartnerType.RETAIL, PartnerLinkStatus.ACTIVE
         )).thenReturn(false);
 
-        WorkflowDomainException ex = assertThrows(WorkflowDomainException.class, () -> service.create(SOURCE_PRINCIPAL, command));
+        WorkflowDomainException ex = assertThrows(WorkflowDomainException.class, () -> commandService.create(SOURCE_PRINCIPAL, command));
 
         assertEquals(WorkflowErrorCode.INVALID_REQUEST, ex.getErrorCode());
         verify(repository, never()).save(any());
@@ -240,7 +244,7 @@ class PartnerLinkServiceTest {
         when(tenantReadPort.findTenantSummariesByIds(List.of("tenant-target")))
             .thenReturn(Map.of("tenant-target", new TenantReadPort.TenantSummary("tenant-target", "Target Tenant", "KR", "addr", "PARTNER")));
 
-        PartnerLinkResult result = service.approve(TARGET_PRINCIPAL, "pl-1");
+        PartnerLinkResult result = commandService.approve(TARGET_PRINCIPAL, "pl-1");
 
         assertEquals("ACTIVE", result.status());
         verify(repository).findById("pl-1");
@@ -275,7 +279,7 @@ class PartnerLinkServiceTest {
         when(tenantReadPort.findTenantSummariesByIds(List.of("tenant-target")))
             .thenReturn(Map.of("tenant-target", new TenantReadPort.TenantSummary("tenant-target", "Target Tenant", "KR", "addr", "PARTNER")));
 
-        List<PartnerLinkResult> results = service.listByTenant(SOURCE_PRINCIPAL, PartnerLinkStatus.ACTIVE);
+        List<PartnerLinkResult> results = queryService.listByTenant(SOURCE_PRINCIPAL, PartnerLinkStatus.ACTIVE);
 
         assertEquals(1, results.size());
         assertEquals("ACTIVE", results.get(0).status());
@@ -287,7 +291,7 @@ class PartnerLinkServiceTest {
 
     @Test
     void approve_checksTargetTenantContext() {
-        AuthPrincipal foreignPrincipal = new AuthPrincipal(
+        WorkflowActorContext foreignPrincipal = new WorkflowActorContext(
             "token-2",
             "user-9",
             "tenant-foreign",
@@ -318,7 +322,7 @@ class PartnerLinkServiceTest {
         when(tenantReadPort.findTenantSummariesByIds(List.of("tenant-target")))
             .thenReturn(Map.of("tenant-target", new TenantReadPort.TenantSummary("tenant-target", "Target Tenant", "KR", "addr", "PARTNER")));
 
-        service.approve(foreignPrincipal, "pl-1");
+        commandService.approve(foreignPrincipal, "pl-1");
 
         verify(authorizationSupport).assertTenantContext(foreignPrincipal, "tenant-target");
         verify(authorizationSupport).assertLivePermission(

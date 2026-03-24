@@ -6,7 +6,8 @@ import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 
 import io.attestry.userauth.domain.auth.model.VerificationLevel;
-import io.attestry.userauth.security.AuthPrincipal;
+import io.attestry.workflow.application.common.WorkflowActorContext;
+import io.attestry.workflow.application.transfer.query.TransferQueryService;
 import io.attestry.workflow.application.port.transfer.CompletedTransferQueryPort;
 import io.attestry.workflow.application.support.WorkflowAuthorizationSupport;
 import java.time.Instant;
@@ -26,7 +27,7 @@ class TransferQueryServiceTest {
 
     private TransferQueryService service;
 
-    private static final AuthPrincipal RETAIL_PRINCIPAL = new AuthPrincipal(
+    private static final WorkflowActorContext RETAIL_PRINCIPAL = new WorkflowActorContext(
         "token1", "retail-user", "tenant-retail", VerificationLevel.PHONE_VERIFIED,
         Set.of("SCOPE_TENANT_READ_ONLY"), Instant.parse("2026-03-12T00:00:00Z")
     );

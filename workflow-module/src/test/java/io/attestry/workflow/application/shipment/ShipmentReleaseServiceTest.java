@@ -10,7 +10,8 @@ import static org.mockito.Mockito.when;
 
 import io.attestry.userauth.domain.authorization.model.PermissionCodes;
 import io.attestry.userauth.domain.auth.model.VerificationLevel;
-import io.attestry.userauth.security.AuthPrincipal;
+import io.attestry.workflow.application.common.WorkflowActorContext;
+import io.attestry.workflow.application.shipment.command.ShipmentReleaseService;
 import io.attestry.workflow.application.port.common.UserReadPort;
 import io.attestry.workflow.application.port.common.WorkflowEvidencePort;
 import io.attestry.workflow.application.port.common.WorkflowLedgerOutboxPort;
@@ -54,7 +55,7 @@ class ShipmentReleaseServiceTest {
 
     private ShipmentReleaseService service;
 
-    private static final AuthPrincipal PRINCIPAL = new AuthPrincipal(
+    private static final WorkflowActorContext PRINCIPAL = new WorkflowActorContext(
         "token-1",
         "user-1",
         "tenant-1",

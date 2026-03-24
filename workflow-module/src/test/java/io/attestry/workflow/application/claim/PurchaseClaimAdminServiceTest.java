@@ -12,7 +12,8 @@ import static org.mockito.Mockito.when;
 
 import io.attestry.commonlib.application.port.ObjectStoragePort;
 import io.attestry.userauth.domain.auth.model.VerificationLevel;
-import io.attestry.userauth.security.AuthPrincipal;
+import io.attestry.workflow.application.common.WorkflowActorContext;
+import io.attestry.workflow.application.claim.command.PurchaseClaimAdminService;
 import io.attestry.workflow.application.claim.command.ApprovePurchaseClaimCommand;
 import io.attestry.workflow.application.claim.result.ApprovePurchaseClaimResult;
 import io.attestry.workflow.application.claim.result.RejectPurchaseClaimResult;
@@ -55,7 +56,7 @@ class PurchaseClaimAdminServiceTest {
 
     private PurchaseClaimAdminService service;
 
-    private static final AuthPrincipal ADMIN = new AuthPrincipal(
+    private static final WorkflowActorContext ADMIN = new WorkflowActorContext(
         "token1", "admin1", "t1",
         VerificationLevel.PHONE_VERIFIED,
         Set.of("SCOPE_PURCHASE_CLAIM_APPROVE"),

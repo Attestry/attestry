@@ -9,7 +9,9 @@ import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 
 import io.attestry.userauth.domain.auth.model.VerificationLevel;
-import io.attestry.userauth.security.AuthPrincipal;
+import io.attestry.workflow.application.common.WorkflowActorContext;
+import io.attestry.workflow.application.transfer.command.TransferCreateService;
+import io.attestry.workflow.application.transfer.support.TransferCreateExecutor;
 import io.attestry.workflow.application.transfer.command.CreateB2CTransferCommand;
 import io.attestry.workflow.application.transfer.command.CreateC2CTransferCommand;
 import io.attestry.workflow.application.transfer.policy.TransferAccessPolicy;
@@ -47,10 +49,10 @@ class TransferCreateServiceTest {
     private TransferCreateService service;
 
     private static final Instant EXPIRES = Instant.parse("2026-03-01T11:00:00Z");
-    private static final AuthPrincipal OWNER_PRINCIPAL = new AuthPrincipal(
+    private static final WorkflowActorContext OWNER_PRINCIPAL = new WorkflowActorContext(
         "token1", "user1", "tenant1", VerificationLevel.PHONE_VERIFIED, Set.of("SCOPE_OWNER_TRANSFER_CREATE"), Instant.parse("2026-03-02T00:00:00Z")
     );
-    private static final AuthPrincipal RETAIL_PRINCIPAL = new AuthPrincipal(
+    private static final WorkflowActorContext RETAIL_PRINCIPAL = new WorkflowActorContext(
         "token2", "retailUser", "tenant1", VerificationLevel.PHONE_VERIFIED, Set.of("SCOPE_RETAIL_TRANSFER_CREATE"), Instant.parse("2026-03-02T00:00:00Z")
     );
 
