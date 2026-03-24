@@ -2,6 +2,7 @@ package io.attestry.workflow.interfaces.shipment;
 
 import io.attestry.commonlib.infrastructure.ApiResponse;
 import io.attestry.userauth.security.AuthPrincipal;
+import io.attestry.workflow.application.common.WorkflowActorContext;
 import io.attestry.workflow.application.shipment.command.CompleteShipmentEvidenceUploadCommand;
 import io.attestry.workflow.application.shipment.command.PresignShipmentEvidenceUploadCommand;
 import io.attestry.workflow.application.shipment.command.ReleaseShipmentCommand;
@@ -10,9 +11,11 @@ import io.attestry.workflow.application.shipment.result.EvidenceCompleteResult;
 import io.attestry.workflow.application.shipment.result.PresignedEvidenceUploadResult;
 import io.attestry.workflow.application.shipment.result.ReleaseShipmentResult;
 import io.attestry.workflow.application.shipment.result.ReturnShipmentResult;
-import io.attestry.workflow.application.usecase.ShipmentEvidenceUseCase;
-import io.attestry.workflow.application.usecase.ShipmentQueryUseCase;
-import io.attestry.workflow.application.usecase.ShipmentReleaseUseCase;
+import io.attestry.workflow.application.shipment.usecase.ShipmentEvidenceUseCase;
+import io.attestry.workflow.application.shipment.usecase.ShipmentQueryUseCase;
+import io.attestry.workflow.application.shipment.usecase.ShipmentReleaseUseCase;
+import io.attestry.workflow.application.shipment.view.PagedReleaseCandidateView;
+import io.attestry.workflow.application.shipment.view.PagedShipmentView;
 import io.attestry.workflow.interfaces.shipment.dto.request.CompleteShipmentEvidenceUploadRequest;
 import io.attestry.workflow.interfaces.shipment.dto.request.PresignShipmentEvidenceUploadRequest;
 import io.attestry.workflow.interfaces.shipment.dto.request.ReleaseShipmentRequest;
@@ -58,7 +61,7 @@ public class ShipmentHttp {
             @AuthenticationPrincipal AuthPrincipal principal,
             @RequestBody PresignShipmentEvidenceUploadRequest request) {
         PresignedEvidenceUploadResult result = shipmentEvidenceUseCase.presignEvidenceUpload(
-                principal,
+                actor(principal),
                 new PresignShipmentEvidenceUploadCommand(
                         request.evidenceGroupId(),
                         request.fileName(),
@@ -72,7 +75,7 @@ public class ShipmentHttp {
             @AuthenticationPrincipal AuthPrincipal principal,
             @RequestBody CompleteShipmentEvidenceUploadRequest request) {
         EvidenceCompleteResult result = shipmentEvidenceUseCase.completeEvidenceUpload(
-                principal,
+                actor(principal),
                 new CompleteShipmentEvidenceUploadCommand(
                         request.evidenceGroupId(),
                         request.evidenceId(),
@@ -89,7 +92,7 @@ public class ShipmentHttp {
             @PathVariable("passportId") String passportId,
             @RequestBody ReleaseShipmentRequest request) {
         ReleaseShipmentResult result = shipmentReleaseUseCase.release(
-                principal,
+                actor(principal),
                 passportId,
                 new ReleaseShipmentCommand(request.evidenceGroupId()));
         return ApiResponse.success(ReleaseShipmentResponse.from(result));
@@ -103,8 +106,8 @@ public class ShipmentHttp {
             @RequestParam(name = "page", defaultValue = "0") int page,
             @RequestParam(name = "size", defaultValue = "20") int size,
             @RequestParam(name = "keyword", required = false) String keyword) {
-        ShipmentQueryUseCase.PagedReleaseCandidateResponse result =
-                shipmentQueryUseCase.listReleaseCandidates(principal, page, size, keyword);
+        PagedReleaseCandidateView result =
+                shipmentQueryUseCase.listReleaseCandidates(actor(principal), page, size, keyword);
         List<ShipmentReleaseCandidateResponse> content = result.content().stream()
                 .map(ShipmentReleaseCandidateResponse::from)
                 .toList();
@@ -120,8 +123,8 @@ public class ShipmentHttp {
             @RequestParam(name = "page", defaultValue = "0") int page,
             @RequestParam(name = "size", defaultValue = "20") int size,
             @RequestParam(name = "keyword", required = false) String keyword) {
-        ShipmentQueryUseCase.PagedShipmentViewResponse result =
-                shipmentQueryUseCase.listByTenant(principal, page, size, keyword);
+        PagedShipmentView result =
+                shipmentQueryUseCase.listByTenant(actor(principal), page, size, keyword);
         List<ShipmentResponse> content = result.content().stream()
                 .map(ShipmentResponse::from)
                 .toList();
@@ -135,7 +138,7 @@ public class ShipmentHttp {
     public ApiResponse<ShipmentDetailResponse> getShipmentDetail(
             @AuthenticationPrincipal AuthPrincipal principal,
             @PathVariable("shipmentId") String shipmentId) {
-        return ApiResponse.success(ShipmentDetailResponse.from(shipmentQueryUseCase.getShipmentDetail(principal, shipmentId)));
+        return ApiResponse.success(ShipmentDetailResponse.from(shipmentQueryUseCase.getShipmentDetail(actor(principal), shipmentId)));
     }
 
     @PostMapping("/shipments/{shipmentId}/return")
@@ -146,11 +149,15 @@ public class ShipmentHttp {
             @PathVariable("shipmentId") String shipmentId,
             @RequestBody(required = false) ReturnShipmentRequest request) {
         ReturnShipmentResult result = shipmentReleaseUseCase.returnShipment(
-                principal,
+                actor(principal),
                 shipmentId,
                 new ReturnShipmentCommand(
                         request == null ? null : request.returnEvidenceGroupId(),
                         request == null ? null : request.reason()));
         return ApiResponse.success(ReturnShipmentResponse.from(result));
+    }
+
+    private WorkflowActorContext actor(AuthPrincipal principal) {
+        return WorkflowActorContext.from(principal);
     }
 }

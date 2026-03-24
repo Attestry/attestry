@@ -1,12 +1,12 @@
 package io.attestry.userauth.application.membership.assembler;
 
-import io.attestry.userauth.application.dto.result.MembershipDetailResult;
-import io.attestry.userauth.application.dto.view.MembershipAdminView;
-import io.attestry.userauth.application.dto.view.MembershipView;
+import io.attestry.userauth.application.membership.view.MembershipAdminView;
+import io.attestry.userauth.application.membership.view.MembershipDetailView;
+import io.attestry.userauth.application.membership.view.MembershipView;
 import io.attestry.userauth.application.port.membership.MembershipProjectionPort;
 import io.attestry.userauth.application.port.tenant.TenantRepositoryPort;
 import io.attestry.userauth.application.port.identity.UserAccountRepositoryPort;
-import io.attestry.userauth.domain.identity.model.UserAccount;
+import io.attestry.userauth.domain.auth.model.UserAccount;
 import io.attestry.userauth.domain.membership.model.Membership;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Component;
@@ -44,13 +44,13 @@ public class MembershipQueryViewAssembler {
         );
     }
 
-    public MembershipDetailResult toDetailResult(Membership membership, UserAccount userAccount) {
-        return new MembershipDetailResult(
+    public MembershipDetailView toDetailResult(Membership membership, UserAccount userAccount) {
+        return new MembershipDetailView(
             membership.membershipId(),
             membership.tenantId(),
             membership.currentRoleCodes().stream().sorted().toList(),
             membership.status().name(),
-            new MembershipDetailResult.UserAccountSummary(
+            new MembershipDetailView.UserAccountSummary(
                 userAccount.userId(),
                 userAccount.email().value(),
                 userAccount.phone(),

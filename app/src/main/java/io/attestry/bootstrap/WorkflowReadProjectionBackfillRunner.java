@@ -1,34 +1,30 @@
 package io.attestry.bootstrap;
 
+import lombok.RequiredArgsConstructor;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
-import org.springframework.beans.factory.annotation.Value;
 import org.springframework.boot.ApplicationArguments;
 import org.springframework.boot.ApplicationRunner;
 import org.springframework.jdbc.core.namedparam.NamedParameterJdbcTemplate;
 import org.springframework.stereotype.Component;
 import org.springframework.transaction.annotation.Transactional;
 
+// Backfill runner는 app 모듈 전용 bootstrap 코드로, 의도적으로 cross-module 테이블을 직접 쿼리합니다.
+// 런타임 projection 동기화는 이벤트 payload 기반 (WorkflowProductProjectionConsumer)으로 동작하며,
+// 이 runner는 전체 projection 재생성이 필요할 때만 enabled=true로 실행합니다.
 @Component
+@RequiredArgsConstructor
 public class WorkflowReadProjectionBackfillRunner implements ApplicationRunner {
 
     private static final Logger log = LoggerFactory.getLogger(WorkflowReadProjectionBackfillRunner.class);
 
     private final NamedParameterJdbcTemplate jdbcTemplate;
-    private final boolean enabled;
-
-    public WorkflowReadProjectionBackfillRunner(
-        NamedParameterJdbcTemplate jdbcTemplate,
-        @Value("${app.workflow.read-projection.backfill.enabled:false}") boolean enabled
-    ) {
-        this.jdbcTemplate = jdbcTemplate;
-        this.enabled = enabled;
-    }
+    private final ProjectionRunnerProperties runnerProperties;
 
     @Override
     @Transactional
     public void run(ApplicationArguments args) {
-        if (!enabled) {
+        if (!runnerProperties.getWorkflow().getReadProjection().getBackfill().isEnabled()) {
             return;
         }
 

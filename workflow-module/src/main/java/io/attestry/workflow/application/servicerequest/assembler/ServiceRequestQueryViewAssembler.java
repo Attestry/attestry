@@ -1,8 +1,8 @@
 package io.attestry.workflow.application.servicerequest.assembler;
 
 import io.attestry.workflow.application.port.servicerequest.ServiceProductReadPort;
-import io.attestry.workflow.application.usecase.ServiceRequestQueryUseCase.PagedServiceRequestResult;
-import io.attestry.workflow.application.usecase.ServiceRequestQueryUseCase.ServiceRequestListItemResult;
+import io.attestry.workflow.application.servicerequest.view.PagedServiceRequestView;
+import io.attestry.workflow.application.servicerequest.view.ServiceRequestListItemView;
 import io.attestry.workflow.domain.servicerequest.model.ServiceRequest;
 import io.attestry.workflow.domain.servicerequest.model.ServiceRequestStatus;
 import java.util.List;
@@ -18,12 +18,12 @@ public class ServiceRequestQueryViewAssembler {
         this.evidenceAssembler = evidenceAssembler;
     }
 
-    public ServiceRequestListItemResult toListItem(
+    public ServiceRequestListItemView toListItem(
         ServiceRequest request,
         String providerTenantName,
         ServiceProductReadPort.ServicePassportAssetInfo passportAssetInfo
     ) {
-        return new ServiceRequestListItemResult(
+        return new ServiceRequestListItemView(
             request.serviceRequestId(),
             request.passportId(),
             passportAssetInfo.serialNumber(),
@@ -50,14 +50,14 @@ public class ServiceRequestQueryViewAssembler {
         );
     }
 
-    public PagedServiceRequestResult toPagedResult(
-        List<ServiceRequestListItemResult> content,
+    public PagedServiceRequestView toPagedView(
+        List<ServiceRequestListItemView> content,
         int page,
         int size,
         long totalElements
     ) {
         int totalPages = (int) Math.ceil((double) totalElements / size);
-        return new PagedServiceRequestResult(content, page, size, totalElements, totalPages);
+        return new PagedServiceRequestView(content, page, size, totalElements, totalPages);
     }
 
     public ServiceProductReadPort.ServicePassportAssetInfo defaultAssetInfo(String passportId) {

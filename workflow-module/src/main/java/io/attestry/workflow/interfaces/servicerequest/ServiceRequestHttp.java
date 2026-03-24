@@ -2,6 +2,7 @@ package io.attestry.workflow.interfaces.servicerequest;
 
 import io.attestry.commonlib.infrastructure.ApiResponse;
 import io.attestry.userauth.security.AuthPrincipal;
+import io.attestry.workflow.application.common.WorkflowActorContext;
 import io.attestry.workflow.application.servicerequest.command.AcceptServiceRequestCommand;
 import io.attestry.workflow.application.servicerequest.command.CompleteServiceRequestCommand;
 import io.attestry.workflow.application.servicerequest.command.GrantServiceConsentCommand;
@@ -18,14 +19,15 @@ import io.attestry.workflow.application.shipment.command.CompleteShipmentEvidenc
 import io.attestry.workflow.application.shipment.command.PresignShipmentEvidenceUploadCommand;
 import io.attestry.workflow.application.shipment.result.EvidenceCompleteResult;
 import io.attestry.workflow.application.shipment.result.PresignedEvidenceUploadResult;
-import io.attestry.workflow.application.usecase.ServiceAcceptUseCase;
-import io.attestry.workflow.application.usecase.ServiceCancelUseCase;
-import io.attestry.workflow.application.usecase.ServiceCompleteUseCase;
-import io.attestry.workflow.application.usecase.ServiceConsentUseCase;
-import io.attestry.workflow.application.usecase.ServiceEvidenceUseCase;
-import io.attestry.workflow.application.usecase.ServiceRejectUseCase;
-import io.attestry.workflow.application.usecase.ServiceRequestQueryUseCase;
-import io.attestry.workflow.application.usecase.ServiceSubmitUseCase;
+import io.attestry.workflow.application.servicerequest.usecase.ServiceAcceptUseCase;
+import io.attestry.workflow.application.servicerequest.usecase.ServiceCancelUseCase;
+import io.attestry.workflow.application.servicerequest.usecase.ServiceCompleteUseCase;
+import io.attestry.workflow.application.servicerequest.usecase.ServiceConsentUseCase;
+import io.attestry.workflow.application.servicerequest.usecase.ServiceEvidenceUseCase;
+import io.attestry.workflow.application.servicerequest.usecase.ServiceRejectUseCase;
+import io.attestry.workflow.application.servicerequest.usecase.ServiceRequestQueryUseCase;
+import io.attestry.workflow.application.servicerequest.usecase.ServiceSubmitUseCase;
+import io.attestry.workflow.application.servicerequest.view.PagedServiceRequestView;
 import io.attestry.workflow.interfaces.servicerequest.dto.request.AcceptServiceRequestRequest;
 import io.attestry.workflow.interfaces.servicerequest.dto.request.CancelServiceRequestRequest;
 import io.attestry.workflow.interfaces.servicerequest.dto.request.CompleteEvidenceRequest;
@@ -83,7 +85,7 @@ public class ServiceRequestHttp {
         @Valid @RequestBody GrantServiceConsentRequest request
     ) {
         GrantServiceConsentResult result = serviceConsentUseCase.submit(
-            principal,
+            actor(principal),
             passportId,
             new GrantServiceConsentCommand(
                 request.providerTenantId(),
@@ -105,7 +107,7 @@ public class ServiceRequestHttp {
         @RequestBody RevokeServiceConsentRequest request
     ) {
         RevokeServiceConsentResult result = serviceConsentUseCase.revokeConsent(
-            principal,
+            actor(principal),
             passportId,
             request.providerTenantId()
         );
@@ -122,7 +124,7 @@ public class ServiceRequestHttp {
         @Valid @RequestBody SubmitServiceRequestRequest request
     ) {
         SubmitServiceRequestResult result = serviceSubmitUseCase.submit(
-            principal,
+            actor(principal),
             new SubmitServiceRequestCommand(
                 request.passportId(),
                 request.providerTenantId(),
@@ -144,8 +146,8 @@ public class ServiceRequestHttp {
         @RequestParam(name = "page", defaultValue = "0") int page,
         @RequestParam(name = "size", defaultValue = "20") int size
     ) {
-        ServiceRequestQueryUseCase.PagedServiceRequestResult result = serviceRequestQueryUseCase
-            .listMyRequests(principal, status, page, size);
+        PagedServiceRequestView result = serviceRequestQueryUseCase
+            .listMyRequests(actor(principal), status, page, size);
         return ApiResponse.success(PagedServiceRequestResponse.from(result));
     }
 
@@ -158,8 +160,8 @@ public class ServiceRequestHttp {
         @RequestParam(name = "page", defaultValue = "0") int page,
         @RequestParam(name = "size", defaultValue = "20") int size
     ) {
-        ServiceRequestQueryUseCase.PagedServiceRequestResult result = serviceRequestQueryUseCase
-            .listProviderRequests(principal, tenantId, status, page, size);
+        PagedServiceRequestView result = serviceRequestQueryUseCase
+            .listProviderRequests(actor(principal), tenantId, status, page, size);
         return ApiResponse.success(PagedServiceRequestResponse.from(result));
     }
 
@@ -172,7 +174,7 @@ public class ServiceRequestHttp {
         @RequestBody AcceptServiceRequestRequest request
     ) {
         AcceptServiceRequestResult result = serviceAcceptUseCase.accept(
-            principal,
+            actor(principal),
             tenantId,
             serviceRequestId,
             new AcceptServiceRequestCommand(request.serviceType(), request.description())
@@ -189,7 +191,7 @@ public class ServiceRequestHttp {
         @Valid @RequestBody(required = false) RejectServiceRequestRequest request
     ) {
         RejectServiceRequestResult result = serviceRejectUseCase.reject(
-            principal,
+            actor(principal),
             tenantId,
             serviceRequestId,
             new RejectServiceRequestCommand(request == null ? null : request.reason())
@@ -206,7 +208,7 @@ public class ServiceRequestHttp {
         @Valid @RequestBody CompleteServiceRequestRequest request
     ) {
         CompleteServiceRequestResult result = serviceCompleteUseCase.complete(
-            principal,
+            actor(principal),
             tenantId,
             serviceRequestId,
             new CompleteServiceRequestCommand(
@@ -227,7 +229,7 @@ public class ServiceRequestHttp {
         @Valid @RequestBody(required = false) CancelServiceRequestRequest request
     ) {
         CancelServiceRequestResult result = serviceCancelUseCase.cancel(
-            principal,
+            actor(principal),
             serviceRequestId,
             request == null ? null : request.cancelReason()
         );
@@ -242,7 +244,7 @@ public class ServiceRequestHttp {
         @RequestBody PresignEvidenceRequest request
     ) {
         PresignedEvidenceUploadResult result = serviceEvidenceUseCase.presignOwnerEvidenceUpload(
-            principal,
+            actor(principal),
             new PresignShipmentEvidenceUploadCommand(
                 request.evidenceGroupId(),
                 request.fileName(),
@@ -259,7 +261,7 @@ public class ServiceRequestHttp {
         @RequestBody CompleteEvidenceRequest request
     ) {
         EvidenceCompleteResult result = serviceEvidenceUseCase.completeOwnerEvidenceUpload(
-            principal,
+            actor(principal),
             new CompleteShipmentEvidenceUploadCommand(
                 request.evidenceGroupId(),
                 request.evidenceId(),
@@ -279,7 +281,7 @@ public class ServiceRequestHttp {
         @RequestBody PresignEvidenceRequest request
     ) {
         PresignedEvidenceUploadResult result = serviceEvidenceUseCase.presignEvidenceUpload(
-            principal,
+            actor(principal),
             tenantId,
             new PresignShipmentEvidenceUploadCommand(
                 request.evidenceGroupId(),
@@ -298,7 +300,7 @@ public class ServiceRequestHttp {
         @RequestBody CompleteEvidenceRequest request
     ) {
         EvidenceCompleteResult result = serviceEvidenceUseCase.completeEvidenceUpload(
-            principal,
+            actor(principal),
             tenantId,
             new CompleteShipmentEvidenceUploadCommand(
                 request.evidenceGroupId(),
@@ -308,5 +310,9 @@ public class ServiceRequestHttp {
             )
         );
         return ApiResponse.success(CompleteEvidenceResponse.from(result));
+    }
+
+    private WorkflowActorContext actor(AuthPrincipal principal) {
+        return WorkflowActorContext.from(principal);
     }
 }

@@ -2,11 +2,11 @@ package io.attestry.userauth.interfaces.policy;
 
 import io.attestry.commonlib.web.CurrentActor;
 import io.attestry.commonlib.infrastructure.ApiResponse;
-import io.attestry.userauth.application.dto.command.AuthzEvaluateCommand;
-import io.attestry.userauth.application.dto.command.ActorContext;
-import io.attestry.userauth.application.dto.command.PolicyDecisionMode;
-import io.attestry.userauth.application.dto.result.AuthzEvaluateResult;
-import io.attestry.userauth.application.usecase.policy.EvaluateAuthorizationUseCase;
+import io.attestry.userauth.application.common.ActorContext;
+import io.attestry.userauth.application.policy.command.AuthzEvaluateCommand;
+import io.attestry.userauth.application.policy.command.PolicyDecisionMode;
+import io.attestry.userauth.application.policy.result.AuthzEvaluateResult;
+import io.attestry.userauth.application.policy.usecase.EvaluateAuthorizationUseCase;
 import lombok.RequiredArgsConstructor;
 import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.RequestBody;

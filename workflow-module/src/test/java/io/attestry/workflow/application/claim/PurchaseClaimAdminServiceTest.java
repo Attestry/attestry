@@ -11,8 +11,7 @@ import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 
 import io.attestry.commonlib.application.port.ObjectStoragePort;
-import io.attestry.userauth.application.dto.command.ActorContext;
-import io.attestry.userauth.domain.identity.model.VerificationLevel;
+import io.attestry.userauth.domain.auth.model.VerificationLevel;
 import io.attestry.userauth.security.AuthPrincipal;
 import io.attestry.workflow.application.claim.command.ApprovePurchaseClaimCommand;
 import io.attestry.workflow.application.claim.result.ApprovePurchaseClaimResult;

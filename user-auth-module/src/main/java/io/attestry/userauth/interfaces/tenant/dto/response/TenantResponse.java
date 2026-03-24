@@ -1,6 +1,6 @@
 package io.attestry.userauth.interfaces.tenant.dto.response;
 
-import io.attestry.userauth.application.dto.result.TenantResult;
+import io.attestry.userauth.application.tenant.view.TenantView;
 
 public record TenantResponse(
         String tenantId,
@@ -10,7 +10,7 @@ public record TenantResponse(
         String type,
         String status) {
 
-    public static TenantResponse from(TenantResult result) {
+    public static TenantResponse from(TenantView result) {
         return new TenantResponse(
                 result.tenantId(),
                 result.name(),

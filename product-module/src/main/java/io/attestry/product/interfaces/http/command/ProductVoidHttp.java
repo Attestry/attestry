@@ -2,9 +2,9 @@ package io.attestry.product.interfaces.http.command;
 
 import io.attestry.commonlib.infrastructure.ApiResponse;
 import io.attestry.commonlib.web.CurrentActor;
-import io.attestry.product.application.dto.command.ProductActor;
-import io.attestry.product.application.dto.command.VoidCommand;
-import io.attestry.product.application.usecase.ProductVoidUseCase;
+import io.attestry.product.application.common.ProductActor;
+import io.attestry.product.application.command.model.VoidCommand;
+import io.attestry.product.application.command.usecase.ProductVoidUseCase;
 import io.attestry.product.interfaces.http.command.dto.request.VoidRequest;
 import io.attestry.product.interfaces.http.command.dto.response.VoidResponse;
 import lombok.RequiredArgsConstructor;

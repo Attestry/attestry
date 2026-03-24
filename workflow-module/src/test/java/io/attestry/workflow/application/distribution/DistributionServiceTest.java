@@ -9,7 +9,7 @@ import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 
 import io.attestry.userauth.domain.authorization.model.PermissionCodes;
-import io.attestry.userauth.domain.identity.model.VerificationLevel;
+import io.attestry.userauth.domain.auth.model.VerificationLevel;
 import io.attestry.userauth.security.AuthPrincipal;
 import io.attestry.workflow.application.delegation.command.GrantDelegationCommand;
 import io.attestry.workflow.application.delegation.result.DelegationResult;
@@ -87,6 +87,8 @@ class DistributionServiceTest {
             return delegationResultFor(cmd.resourceId());
         });
         when(distributionRepository.save(any(Distribution.class))).thenAnswer(inv -> inv.getArgument(0));
+        when(tenantReadPort.findTenantSummary(TARGET_TENANT))
+            .thenReturn(new TenantReadPort.TenantSummary(TARGET_TENANT, "Target", "", "", "RETAIL"));
 
         BatchDistributeResult result = service.distribute(
             PRINCIPAL, SOURCE_TENANT, PARTNER_LINK_ID,
@@ -225,6 +227,8 @@ class DistributionServiceTest {
         );
         when(distributionRepository.findById(recalled.distributionId())).thenReturn(java.util.Optional.of(distribution));
         when(distributionRepository.save(any(Distribution.class))).thenReturn(recalled);
+        when(tenantReadPort.findTenantSummary(TARGET_TENANT))
+            .thenReturn(new TenantReadPort.TenantSummary(TARGET_TENANT, "Target Tenant", "", "", "RETAIL"));
         stubDistributionGrantAuthorization(SOURCE_TENANT, "distribution:recall:" + recalled.distributionId());
         when(delegationUseCase.revoke(PRINCIPAL, "delegation-1", "reason"))
             .thenReturn(new DelegationResult("delegation-1", PARTNER_LINK_ID, SOURCE_TENANT, TARGET_TENANT, "PASSPORT", "passport-1", "RETAIL_TRANSFER_CREATE", "REVOKED", null, "reason"));

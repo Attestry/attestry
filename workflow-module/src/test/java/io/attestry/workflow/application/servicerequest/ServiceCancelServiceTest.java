@@ -9,7 +9,7 @@ import static org.mockito.Mockito.doNothing;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 
-import io.attestry.userauth.domain.identity.model.VerificationLevel;
+import io.attestry.userauth.domain.auth.model.VerificationLevel;
 import io.attestry.userauth.security.AuthPrincipal;
 import io.attestry.workflow.application.port.servicerequest.ServicePermissionPort;
 import io.attestry.workflow.application.servicerequest.policy.ServiceRequestAccessPolicy;

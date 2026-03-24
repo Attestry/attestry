@@ -5,14 +5,20 @@ import static org.junit.jupiter.api.Assertions.assertNotNull;
 import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
-import io.attestry.userauth.application.dto.result.AuthTokenResult;
-import io.attestry.userauth.application.dto.command.LoginCommand;
-import io.attestry.userauth.application.dto.command.SignUpCommand;
+import io.attestry.userauth.application.auth.command.LoginCommand;
+import io.attestry.userauth.application.auth.command.SignUpCommand;
+import io.attestry.userauth.application.auth.result.AuthTokenResult;
+import io.attestry.userauth.application.auth.command.AuthApplicationService;
+import io.attestry.userauth.application.auth.command.SignUpApplicationService;
+import io.attestry.userauth.application.auth.support.AuthTokenIssuer;
+import io.attestry.userauth.application.auth.support.LoginContextResolver;
+import io.attestry.userauth.application.auth.support.UserEffectiveScopeResolver;
 import io.attestry.userauth.application.port.auth.AccessTokenPort;
 import io.attestry.userauth.application.port.membership.MembershipPort;
 import io.attestry.userauth.application.port.membership.MembershipProjectionPort;
 import io.attestry.userauth.application.port.auth.PasswordHasherPort;
 import io.attestry.userauth.application.port.auth.SignUpEmailVerificationRepositoryPort;
+import io.attestry.userauth.application.port.auth.VerificationCodeHasherPort;
 import io.attestry.userauth.application.port.identity.UserAccountRepositoryPort;
 import io.attestry.userauth.application.port.notification.NotificationOutboxRepositoryPort;
 import io.attestry.userauth.domain.UserAuthDomainException;
@@ -20,17 +26,19 @@ import io.attestry.userauth.domain.UserAuthErrorCode;
 import io.attestry.userauth.security.AuthPrincipal;
 import io.attestry.userauth.domain.authorization.model.PermissionCodes;
 import io.attestry.userauth.domain.authorization.model.RoleCodes;
-import io.attestry.userauth.domain.identity.model.SignUpEmailVerification;
+import io.attestry.userauth.domain.auth.model.SignUpEmailVerification;
 import io.attestry.userauth.domain.tenant.model.TenantType;
 import io.attestry.userauth.domain.membership.model.Membership;
 import io.attestry.userauth.domain.membership.model.MembershipRole;
 import io.attestry.userauth.domain.membership.model.MembershipStatus;
 import io.attestry.userauth.domain.membership.model.NotificationOutbox;
 import io.attestry.userauth.domain.tenant.model.TenantStatus;
-import io.attestry.userauth.domain.identity.model.Email;
-import io.attestry.userauth.domain.identity.model.UserAccount;
-import io.attestry.userauth.domain.identity.model.UserStatus;
-import io.attestry.userauth.domain.identity.model.VerificationLevel;
+import io.attestry.userauth.domain.auth.model.Email;
+import io.attestry.userauth.domain.auth.model.UserAccount;
+import io.attestry.userauth.domain.auth.model.UserStatus;
+import io.attestry.userauth.domain.auth.model.VerificationLevel;
+import io.attestry.userauth.infrastructure.config.AuthTokenProperties;
+import io.attestry.userauth.infrastructure.config.SignUpEmailVerificationProperties;
 import java.time.Clock;
 import java.time.Duration;
 import java.time.Instant;
@@ -54,7 +62,9 @@ class AuthApplicationServiceTest {
     private InMemoryMembershipPermissionQueryPort permissionQueryPort;
     private InMemorySignUpEmailVerificationRepo verificationRepo;
     private InMemoryNotificationOutboxRepo notificationOutboxRepo;
-    private AuthApplicationService service;
+    private FakePasswordHasher verificationCodeHasher;
+    private AuthApplicationService authService;
+    private SignUpApplicationService signUpService;
 
     @BeforeEach
     void setUp() {
@@ -65,6 +75,7 @@ class AuthApplicationServiceTest {
         permissionQueryPort = new InMemoryMembershipPermissionQueryPort();
         verificationRepo = new InMemorySignUpEmailVerificationRepo();
         notificationOutboxRepo = new InMemoryNotificationOutboxRepo();
+        verificationCodeHasher = passwordHasher;
         permissionQueryPort.seedGlobalRole(RoleCodes.OWNER_DEFAULT, Set.of(
             PermissionCodes.OWNER_TRANSFER_CREATE,
             PermissionCodes.OWNER_TRANSFER_ACCEPT,
@@ -80,27 +91,36 @@ class AuthApplicationServiceTest {
             )
         );
 
-        AuthTokenIssuer authTokenIssuer = new AuthTokenIssuer(tokenPort, clock);
-        service = new AuthApplicationService(
+        AuthTokenProperties authTokenProperties = new AuthTokenProperties();
+        authTokenProperties.setAccessTtl(Duration.ofMinutes(15));
+        AuthTokenIssuer authTokenIssuer = new AuthTokenIssuer(tokenPort, clock, authTokenProperties);
+        authService = new AuthApplicationService(
             userRepo,
             loginContextResolver,
             passwordHasher,
             authTokenIssuer,
             tokenPort,
-            membershipRepo,
+            membershipRepo
+        );
+        SignUpEmailVerificationProperties verificationProps = new SignUpEmailVerificationProperties();
+        verificationProps.setTtl(Duration.ofMinutes(10));
+        verificationProps.setFixedCode("12345678");
+        signUpService = new SignUpApplicationService(
+            userRepo,
+            passwordHasher,
+            verificationCodeHasher,
             verificationRepo,
             notificationOutboxRepo,
             clock,
-            Duration.ofMinutes(10),
-            "12345678"
+            verificationProps
         );
     }
 
     @Test
     void signUpShouldHashPasswordAndReturnUserId() {
-        service.requestSignUpEmailVerification("a@b.co");
-        service.confirmSignUpEmailVerification("a@b.co", "12345678");
-        String userId = service.signUp(new SignUpCommand("a@b.co", "plain", "010-0000")).userId();
+        signUpService.requestSignUpEmailVerification("a@b.co");
+        signUpService.confirmSignUpEmailVerification("a@b.co", "12345678");
+        String userId = signUpService.signUp(new SignUpCommand("a@b.co", "plain", "010-0000")).userId();
 
         UserAccount saved = userRepo.findById(userId).orElseThrow();
         assertEquals("hashed:plain", saved.passwordHash());
@@ -110,7 +130,7 @@ class AuthApplicationServiceTest {
     @Test
     void signUpShouldFailWhenEmailVerificationIsMissing() {
         UserAuthDomainException ex = assertThrows(UserAuthDomainException.class,
-            () -> service.signUp(new SignUpCommand("a@b.co", "plain", "010-0000")));
+            () -> signUpService.signUp(new SignUpCommand("a@b.co", "plain", "010-0000")));
 
         assertEquals(UserAuthErrorCode.EMAIL_VERIFICATION_REQUIRED, ex.getErrorCode());
     }
@@ -128,7 +148,7 @@ class AuthApplicationServiceTest {
             PermissionCodes.BRAND_MINT
         ));
 
-        AuthTokenResult result = service.login(new LoginCommand("admin@brand.com", "pw", "t1"));
+        AuthTokenResult result = authService.login(new LoginCommand("admin@brand.com", "pw", "t1"));
         AuthPrincipal principal = tokenPort.parse(result.accessToken()).orElseThrow();
 
         assertEquals("t1", result.tenantId());
@@ -141,7 +161,7 @@ class AuthApplicationServiceTest {
     void loginWithoutMembershipShouldStillIssueOwnerScopes() {
         userRepo.seed("u2", "owner@x.com", "hashed:pw", UserStatus.ACTIVE, VerificationLevel.NONE);
 
-        AuthTokenResult result = service.login(new LoginCommand("owner@x.com", "pw", null));
+        AuthTokenResult result = authService.login(new LoginCommand("owner@x.com", "pw", null));
         AuthPrincipal principal = tokenPort.parse(result.accessToken()).orElseThrow();
 
         assertEquals(null, result.tenantId());
@@ -157,7 +177,7 @@ class AuthApplicationServiceTest {
     @Test
     void loginShouldFailWhenUserNotFound() {
         UserAuthDomainException ex = assertThrows(UserAuthDomainException.class,
-            () -> service.login(new LoginCommand("missing@x.com", "pw", null)));
+            () -> authService.login(new LoginCommand("missing@x.com", "pw", null)));
 
         assertEquals(UserAuthErrorCode.USER_NOT_FOUND, ex.getErrorCode());
     }
@@ -167,7 +187,7 @@ class AuthApplicationServiceTest {
         userRepo.seed("u1", "a@b.co", "hashed:pw", UserStatus.ACTIVE, VerificationLevel.NONE);
 
         UserAuthDomainException ex = assertThrows(UserAuthDomainException.class,
-            () -> service.login(new LoginCommand("a@b.co", "wrong", null)));
+            () -> authService.login(new LoginCommand("a@b.co", "wrong", null)));
 
         assertEquals(UserAuthErrorCode.INVALID_CREDENTIALS, ex.getErrorCode());
     }
@@ -177,7 +197,7 @@ class AuthApplicationServiceTest {
         userRepo.seed("u1", "a@b.co", "hashed:pw", UserStatus.SUSPENDED, VerificationLevel.NONE);
 
         UserAuthDomainException ex = assertThrows(UserAuthDomainException.class,
-            () -> service.login(new LoginCommand("a@b.co", "pw", null)));
+            () -> authService.login(new LoginCommand("a@b.co", "pw", null)));
 
         assertEquals(UserAuthErrorCode.USER_SUSPENDED, ex.getErrorCode());
     }
@@ -192,7 +212,7 @@ class AuthApplicationServiceTest {
         ));
 
         UserAuthDomainException ex = assertThrows(UserAuthDomainException.class,
-            () -> service.login(new LoginCommand("a@b.co", "pw", "t2")));
+            () -> authService.login(new LoginCommand("a@b.co", "pw", "t2")));
 
         assertEquals(UserAuthErrorCode.MEMBERSHIP_NOT_FOUND, ex.getErrorCode());
     }
@@ -207,7 +227,7 @@ class AuthApplicationServiceTest {
         ));
 
         UserAuthDomainException ex = assertThrows(UserAuthDomainException.class,
-            () -> service.login(new LoginCommand("a@b.co", "pw", "t1")));
+            () -> authService.login(new LoginCommand("a@b.co", "pw", "t1")));
 
         assertEquals(UserAuthErrorCode.MEMBERSHIP_NOT_FOUND, ex.getErrorCode());
     }
@@ -215,9 +235,9 @@ class AuthApplicationServiceTest {
     @Test
     void logoutShouldRevokeToken() {
         userRepo.seed("u1", "a@b.co", "hashed:pw", UserStatus.ACTIVE, VerificationLevel.NONE);
-        AuthTokenResult result = service.login(new LoginCommand("a@b.co", "pw", null));
+        AuthTokenResult result = authService.login(new LoginCommand("a@b.co", "pw", null));
 
-        service.logout(result.accessToken());
+        authService.logout(result.accessToken());
 
         assertTrue(tokenPort.parse(result.accessToken()).isEmpty());
     }
@@ -225,9 +245,9 @@ class AuthApplicationServiceTest {
     @Test
     void authenticateShouldReturnPrincipal() {
         userRepo.seed("u1", "a@b.co", "hashed:pw", UserStatus.ACTIVE, VerificationLevel.NONE);
-        AuthTokenResult result = service.login(new LoginCommand("a@b.co", "pw", null));
+        AuthTokenResult result = authService.login(new LoginCommand("a@b.co", "pw", null));
 
-        AuthPrincipal principal = service.authenticate(result.accessToken());
+        AuthPrincipal principal = authService.authenticate(result.accessToken());
 
         assertNotNull(principal);
         assertEquals("u1", principal.userId());
@@ -235,7 +255,7 @@ class AuthApplicationServiceTest {
 
     @Test
     void authenticateShouldFailForInvalidToken() {
-        UserAuthDomainException ex = assertThrows(UserAuthDomainException.class, () -> service.authenticate("bad-token"));
+        UserAuthDomainException ex = assertThrows(UserAuthDomainException.class, () -> authService.authenticate("bad-token"));
 
         assertEquals(UserAuthErrorCode.ACCESS_TOKEN_INVALID, ex.getErrorCode());
     }
@@ -244,7 +264,7 @@ class AuthApplicationServiceTest {
     void verifyPhoneShouldUpdateVerificationLevel() {
         userRepo.seed("u1", "a@b.co", "hashed:pw", UserStatus.ACTIVE, VerificationLevel.NONE);
 
-        service.verifyPhone("u1");
+        authService.verifyPhone("u1");
 
         VerificationLevel updated = userRepo.findById("u1").orElseThrow().verificationLevel();
         assertEquals(VerificationLevel.PHONE_VERIFIED, updated);
@@ -252,7 +272,7 @@ class AuthApplicationServiceTest {
 
     @Test
     void verifyPhoneShouldFailWhenUserNotFound() {
-        UserAuthDomainException ex = assertThrows(UserAuthDomainException.class, () -> service.verifyPhone("missing"));
+        UserAuthDomainException ex = assertThrows(UserAuthDomainException.class, () -> authService.verifyPhone("missing"));
 
         assertEquals(UserAuthErrorCode.USER_NOT_FOUND, ex.getErrorCode());
     }
@@ -272,7 +292,7 @@ class AuthApplicationServiceTest {
         ));
         permissionQueryPort.seed("m2", Set.of(PermissionCodes.SERVICE_COMPLETE));
 
-        AuthTokenResult result = service.switchTenant("u1", "m2");
+        AuthTokenResult result = authService.switchTenant("u1", "m2");
         AuthPrincipal principal = tokenPort.parse(result.accessToken()).orElseThrow();
 
         assertEquals("t-service", result.tenantId());
@@ -291,7 +311,7 @@ class AuthApplicationServiceTest {
         ));
 
         UserAuthDomainException ex = assertThrows(UserAuthDomainException.class,
-            () -> service.switchTenant("u1", "m2"));
+            () -> authService.switchTenant("u1", "m2"));
 
         assertEquals(UserAuthErrorCode.MEMBERSHIP_NOT_FOUND, ex.getErrorCode());
     }
@@ -306,7 +326,7 @@ class AuthApplicationServiceTest {
         ));
 
         UserAuthDomainException ex = assertThrows(UserAuthDomainException.class,
-            () -> service.switchTenant("u1", "m2"));
+            () -> authService.switchTenant("u1", "m2"));
 
         assertEquals(UserAuthErrorCode.MEMBERSHIP_NOT_FOUND, ex.getErrorCode());
     }
@@ -429,7 +449,7 @@ class AuthApplicationServiceTest {
         }
     }
 
-    private static class FakePasswordHasher implements PasswordHasherPort {
+    private static class FakePasswordHasher implements PasswordHasherPort, VerificationCodeHasherPort {
 
         @Override
         public String hash(String rawPassword) {
@@ -528,8 +548,49 @@ class AuthApplicationServiceTest {
         }
 
         @Override
-        public List<NotificationOutbox> findPendingRetryable(Instant now, int batchSize) {
+        public List<NotificationOutbox> claimPendingRetryable(Instant now, int batchSize, String processingOwner) {
             return entries;
+        }
+
+        @Override
+        public int recoverTimedOutProcessing(Instant threshold) {
+            return 0;
+        }
+
+        @Override
+        public long countPending() {
+            return entries.stream().filter(entry -> entry.status() == io.attestry.userauth.domain.membership.model.NotificationOutboxStatus.PENDING).count();
+        }
+
+        @Override
+        public long countProcessing() {
+            return entries.stream().filter(entry -> entry.status() == io.attestry.userauth.domain.membership.model.NotificationOutboxStatus.PROCESSING).count();
+        }
+
+        @Override
+        public long countFailed() {
+            return entries.stream().filter(entry -> entry.status() == io.attestry.userauth.domain.membership.model.NotificationOutboxStatus.FAILED).count();
+        }
+
+        @Override
+        public long findOldestPendingAgeSeconds(Instant now) {
+            return entries.stream()
+                .filter(entry -> entry.status() == io.attestry.userauth.domain.membership.model.NotificationOutboxStatus.PENDING)
+                .map(NotificationOutbox::createdAt)
+                .mapToLong(createdAt -> Math.max(0, now.getEpochSecond() - createdAt.getEpochSecond()))
+                .max()
+                .orElse(0);
+        }
+
+        @Override
+        public long findOldestProcessingAgeSeconds(Instant now) {
+            return entries.stream()
+                .filter(entry -> entry.status() == io.attestry.userauth.domain.membership.model.NotificationOutboxStatus.PROCESSING)
+                .map(NotificationOutbox::processingStartedAt)
+                .filter(java.util.Objects::nonNull)
+                .mapToLong(startedAt -> Math.max(0, now.getEpochSecond() - startedAt.getEpochSecond()))
+                .max()
+                .orElse(0);
         }
     }
 }

@@ -8,5 +8,17 @@ public interface NotificationOutboxRepositoryPort {
 
     NotificationOutbox save(NotificationOutbox outbox);
 
-    List<NotificationOutbox> findPendingRetryable(Instant now, int batchSize);
+    List<NotificationOutbox> claimPendingRetryable(Instant now, int batchSize, String processingOwner);
+
+    int recoverTimedOutProcessing(Instant threshold);
+
+    long countPending();
+
+    long countProcessing();
+
+    long countFailed();
+
+    long findOldestPendingAgeSeconds(Instant now);
+
+    long findOldestProcessingAgeSeconds(Instant now);
 }

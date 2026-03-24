@@ -1,6 +1,6 @@
 package io.attestry.workflow.interfaces.servicerequest.dto.response;
 
-import io.attestry.workflow.application.usecase.ServiceRequestQueryUseCase;
+import io.attestry.workflow.application.servicerequest.view.ServiceRequestListItemView;
 import java.time.Instant;
 import java.util.List;
 
@@ -29,7 +29,7 @@ public record ServiceRequestListItemResponse(
     Instant submittedAt,
     Instant completedAt
 ) {
-    public static ServiceRequestListItemResponse from(ServiceRequestQueryUseCase.ServiceRequestListItemResult result) {
+    public static ServiceRequestListItemResponse from(ServiceRequestListItemView result) {
         return new ServiceRequestListItemResponse(
             result.serviceRequestId(),
             result.passportId(),

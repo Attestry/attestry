@@ -1,25 +1,25 @@
 package io.attestry.userauth.application.membership.query;
 
-import io.attestry.userauth.application.dto.command.ActorContext;
-import io.attestry.userauth.application.dto.result.MembershipAssignableRolesResult;
-import io.attestry.userauth.application.dto.result.MembershipDetailResult;
-import io.attestry.userauth.application.dto.result.MembershipRoleAssignmentsResult;
-import io.attestry.userauth.application.dto.result.TenantAvailableTemplateCodesResult;
-import io.attestry.userauth.application.dto.view.MembershipAdminView;
-import io.attestry.userauth.application.dto.view.MembershipView;
+import io.attestry.userauth.application.common.ActorContext;
 import io.attestry.userauth.application.membership.assembler.MembershipQueryViewAssembler;
 import io.attestry.userauth.application.membership.policy.MembershipAccessPolicy;
 import io.attestry.userauth.application.membership.policy.MembershipQueryAccessPolicy;
+import io.attestry.userauth.application.membership.usecase.MembershipQueryUseCase;
+import io.attestry.userauth.application.membership.view.MembershipAdminView;
+import io.attestry.userauth.application.membership.view.MembershipAssignableRolesView;
+import io.attestry.userauth.application.membership.view.MembershipDetailView;
+import io.attestry.userauth.application.membership.view.MembershipRoleAssignmentsView;
+import io.attestry.userauth.application.membership.view.MembershipView;
+import io.attestry.userauth.application.membership.view.TenantAvailableTemplateCodesView;
 import io.attestry.userauth.application.port.membership.MembershipPort;
 import io.attestry.userauth.application.port.membership.MembershipProjectionPort;
 import io.attestry.userauth.application.port.template.TenantRoleTemplateBindingPort;
 import io.attestry.userauth.application.port.identity.UserAccountRepositoryPort;
-import io.attestry.userauth.application.usecase.membership.MembershipQueryUseCase;
 import java.util.List;
 import java.util.Set;
 import io.attestry.userauth.domain.UserAuthErrorCode;
 import io.attestry.userauth.domain.UserAuthDomainException;
-import io.attestry.userauth.domain.identity.model.UserAccount;
+import io.attestry.userauth.domain.auth.model.UserAccount;
 import io.attestry.userauth.domain.membership.model.Membership;
 import io.attestry.userauth.domain.membership.service.RoleAssignmentDomainService;
 import lombok.RequiredArgsConstructor;
@@ -56,7 +56,7 @@ public class MembershipQueryService implements MembershipQueryUseCase {
 
     @Override
     @Transactional(readOnly = true)
-    public MembershipDetailResult getMembershipDetail(ActorContext actor, String membershipId) {
+    public MembershipDetailView getMembershipDetail(ActorContext actor, String membershipId) {
         Membership membership = membershipAccessPolicy.loadTenantMembership(membershipId, actor.tenantId());
 
         UserAccount userAccount = userAccountRepository.findById(membership.userId())
@@ -67,14 +67,14 @@ public class MembershipQueryService implements MembershipQueryUseCase {
 
     @Override
     @Transactional(readOnly = true)
-    public MembershipRoleAssignmentsResult listMembershipRoleAssignments(ActorContext actor, String membershipId) {
+    public MembershipRoleAssignmentsView listMembershipRoleAssignments(ActorContext actor, String membershipId) {
         Membership target = membershipAccessPolicy.loadTenantMembership(membershipId, actor.tenantId());
-        return new MembershipRoleAssignmentsResult(membershipId, target.currentRoleCodes().stream().sorted().toList());
+        return new MembershipRoleAssignmentsView(membershipId, target.currentRoleCodes().stream().sorted().toList());
     }
 
     @Override
     @Transactional(readOnly = true)
-    public MembershipAssignableRolesResult listAssignableRoleCodes(ActorContext actor, String membershipId) {
+    public MembershipAssignableRolesView listAssignableRoleCodes(ActorContext actor, String membershipId) {
         String tenantId = actor.tenantId();
         membershipAccessPolicy.loadTenantMembership(membershipId, tenantId);
 
@@ -92,12 +92,12 @@ public class MembershipQueryService implements MembershipQueryUseCase {
                 .sorted()
                 .toList();
 
-        return new MembershipAssignableRolesResult(membershipId, assignableRoleCodes);
+        return new MembershipAssignableRolesView(membershipId, assignableRoleCodes);
     }
 
     @Override
     @Transactional(readOnly = true)
-    public TenantAvailableTemplateCodesResult listTenantAvailableTemplateCodes(ActorContext actor) {
+    public TenantAvailableTemplateCodesView listTenantAvailableTemplateCodes(ActorContext actor) {
         String tenantId = actor.tenantId();
         membershipAccessPolicy.resolveActiveActorMembership(actor.userId(), tenantId);
         List<String> templateCodes = tenantRoleTemplateBindingPort.findTenantRoleTemplateBindings(tenantId).stream()
@@ -106,7 +106,7 @@ public class MembershipQueryService implements MembershipQueryUseCase {
                 .distinct()
                 .sorted()
                 .toList();
-        return new TenantAvailableTemplateCodesResult(tenantId, templateCodes);
+        return new TenantAvailableTemplateCodesView(tenantId, templateCodes);
     }
 
 }

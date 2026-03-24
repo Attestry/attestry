@@ -9,7 +9,7 @@ import static org.mockito.Mockito.doNothing;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 
-import io.attestry.userauth.domain.identity.model.VerificationLevel;
+import io.attestry.userauth.domain.auth.model.VerificationLevel;
 import io.attestry.userauth.security.AuthPrincipal;
 import io.attestry.workflow.application.port.servicerequest.ServicePermissionPort;
 import io.attestry.workflow.application.port.servicerequest.ServiceProductReadPort;
@@ -18,6 +18,7 @@ import io.attestry.workflow.application.servicerequest.command.GrantServiceConse
 import io.attestry.workflow.application.servicerequest.policy.ServiceRequestAccessPolicy;
 import io.attestry.workflow.application.servicerequest.result.GrantServiceConsentResult;
 import io.attestry.workflow.application.servicerequest.result.RevokeServiceConsentResult;
+import io.attestry.workflow.application.servicerequest.support.ServiceConsentExecutor;
 import io.attestry.workflow.application.support.WorkflowAuthorizationSupport;
 import io.attestry.workflow.application.usecase.ServiceSubmitUseCase;
 import io.attestry.workflow.domain.WorkflowDomainException;

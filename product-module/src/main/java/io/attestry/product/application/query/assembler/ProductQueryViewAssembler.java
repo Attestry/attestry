@@ -1,11 +1,11 @@
 package io.attestry.product.application.query.assembler;
 
-import io.attestry.product.application.dto.view.DistributionDetailView;
-import io.attestry.product.application.dto.view.PagedDistributedPassportView;
-import io.attestry.product.application.dto.view.PagedTenantPassportView;
-import io.attestry.product.application.dto.view.PassportDetailView;
-import io.attestry.product.application.dto.view.ShipmentDetailView;
-import io.attestry.product.application.dto.view.TenantPassportView;
+import io.attestry.product.application.query.view.DistributionDetailView;
+import io.attestry.product.application.query.view.PagedDistributedPassportView;
+import io.attestry.product.application.query.view.PagedTenantPassportView;
+import io.attestry.product.application.query.view.PassportDetailView;
+import io.attestry.product.application.query.view.ShipmentDetailView;
+import io.attestry.product.application.query.view.TenantPassportView;
 import io.attestry.product.application.port.query.DistributedPassportQueryPort;
 import io.attestry.product.application.port.query.GroupPassportQueryPort;
 import io.attestry.product.application.port.query.PassportDistributionQueryPort;

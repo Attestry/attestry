@@ -9,7 +9,7 @@ import static org.mockito.Mockito.doNothing;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 
-import io.attestry.userauth.domain.identity.model.VerificationLevel;
+import io.attestry.userauth.domain.auth.model.VerificationLevel;
 import io.attestry.userauth.security.AuthPrincipal;
 import io.attestry.workflow.application.port.servicerequest.ServicePermissionPort;
 import io.attestry.workflow.application.port.servicerequest.ServiceProductReadPort;
@@ -18,6 +18,7 @@ import io.attestry.workflow.application.port.common.WorkflowEvidencePort;
 import io.attestry.workflow.application.port.common.WorkflowLedgerOutboxPort;
 import io.attestry.workflow.application.servicerequest.command.CompleteServiceRequestCommand;
 import io.attestry.workflow.application.servicerequest.result.CompleteServiceRequestResult;
+import io.attestry.workflow.application.servicerequest.support.ServiceCompleteExecutor;
 import io.attestry.workflow.application.servicerequest.support.ServiceRequestContextResolver;
 import io.attestry.commonlib.outbox.OutboxEventEnvelope;
 import io.attestry.workflow.application.support.WorkflowAuthorizationSupport;

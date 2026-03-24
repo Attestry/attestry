@@ -3,10 +3,10 @@ package io.attestry.workflow.application.distribution.assembler;
 import io.attestry.workflow.application.port.common.TenantReadPort;
 import io.attestry.workflow.application.port.distribution.DistributionCandidateQueryPort;
 import io.attestry.workflow.application.port.distribution.DistributionQueryPort;
-import io.attestry.workflow.application.usecase.DistributionUseCase.DistributionCandidateView;
-import io.attestry.workflow.application.usecase.DistributionUseCase.DistributionView;
-import io.attestry.workflow.application.usecase.DistributionUseCase.PagedDistributionCandidateResponse;
-import io.attestry.workflow.application.usecase.DistributionUseCase.PagedDistributionResponse;
+import io.attestry.workflow.application.distribution.view.DistributionCandidateView;
+import io.attestry.workflow.application.distribution.view.DistributionView;
+import io.attestry.workflow.application.distribution.view.PagedDistributionCandidateView;
+import io.attestry.workflow.application.distribution.view.PagedDistributionView;
 import java.util.List;
 import org.springframework.stereotype.Component;
 
@@ -37,14 +37,14 @@ public class DistributionViewAssembler {
         );
     }
 
-    public PagedDistributionResponse toPagedDistributionResponse(
+    public PagedDistributionView toPagedDistributionResponse(
         DistributionQueryPort.PagedDistributionResult result,
         java.util.Map<String, TenantReadPort.TenantSummary> targetTenants
     ) {
         List<DistributionView> content = result.content().stream()
             .map(row -> toView(row, targetTenants.get(row.targetTenantId())))
             .toList();
-        return new PagedDistributionResponse(
+        return new PagedDistributionView(
             content,
             result.page(),
             result.size(),
@@ -53,7 +53,7 @@ public class DistributionViewAssembler {
         );
     }
 
-    public PagedDistributionCandidateResponse toPagedDistributionCandidateResponse(
+    public PagedDistributionCandidateView toPagedDistributionCandidateResponse(
         DistributionCandidateQueryPort.PagedDistributionCandidateResult result
     ) {
         List<DistributionCandidateView> content = result.content().stream()
@@ -67,7 +67,7 @@ public class DistributionViewAssembler {
                 candidate.factoryCode()
             ))
             .toList();
-        return new PagedDistributionCandidateResponse(
+        return new PagedDistributionCandidateView(
             content,
             result.page(),
             result.size(),

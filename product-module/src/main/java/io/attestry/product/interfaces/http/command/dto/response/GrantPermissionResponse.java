@@ -1,6 +1,6 @@
 package io.attestry.product.interfaces.http.command.dto.response;
 
-import io.attestry.product.application.dto.result.GrantResult;
+import io.attestry.product.application.command.result.GrantResult;
 
 public record GrantPermissionResponse(
     String permissionId,

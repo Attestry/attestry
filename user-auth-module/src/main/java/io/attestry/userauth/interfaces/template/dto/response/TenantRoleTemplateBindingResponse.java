@@ -1,6 +1,6 @@
 package io.attestry.userauth.interfaces.template.dto.response;
 
-import io.attestry.userauth.application.dto.result.TenantRoleTemplateBindingResult;
+import io.attestry.userauth.application.template.result.TenantRoleTemplateBindingResult;
 
 public record TenantRoleTemplateBindingResponse(
     String bindingId,

@@ -1,8 +1,8 @@
 package io.attestry.security;
 
 import io.attestry.commonlib.web.CurrentActor;
-import io.attestry.product.application.dto.command.ProductActor;
-import io.attestry.userauth.application.dto.command.ActorContext;
+import io.attestry.product.application.common.ProductActor;
+import io.attestry.userauth.application.common.ActorContext;
 import io.attestry.userauth.domain.authorization.model.PermissionCodes;
 import io.attestry.userauth.security.AuthPrincipal;
 import org.springframework.core.MethodParameter;

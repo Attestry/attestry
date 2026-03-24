@@ -1,6 +1,12 @@
 package io.attestry.product.application.query;
 
-import io.attestry.product.application.dto.view.*;
+import io.attestry.product.application.query.view.AssetStateView;
+import io.attestry.product.application.query.view.DistributedPassportDetailView;
+import io.attestry.product.application.query.view.MyPassportView;
+import io.attestry.product.application.query.view.OwnerView;
+import io.attestry.product.application.query.view.PagedDistributedPassportView;
+import io.attestry.product.application.query.view.PagedTenantPassportView;
+import io.attestry.product.application.query.view.PassportDetailView;
 import io.attestry.product.application.port.query.DistributedPassportQueryPort;
 import io.attestry.product.application.port.query.GroupPassportQueryPort;
 import io.attestry.product.application.port.query.MyPassportQueryPort;
@@ -10,18 +16,20 @@ import io.attestry.product.application.port.permission.PassportPermissionPort;
 import io.attestry.product.application.port.passport.PassportPort;
 import io.attestry.product.application.port.query.PassportShipmentQueryPort;
 import io.attestry.product.application.query.assembler.ProductQueryViewAssembler;
-import io.attestry.product.application.usecase.ProductQueryUseCase;
+import io.attestry.product.application.query.usecase.ProductQueryUseCase;
 import io.attestry.product.domain.ProductDomainException;
 import io.attestry.product.domain.ProductErrorCode;
 import io.attestry.product.domain.ownership.model.PassportOwnership;
 import io.attestry.product.domain.passport.model.ProductPassport;
+import io.attestry.product.infrastructure.config.ProductProperties;
 import java.time.Instant;
 import java.util.List;
-import org.springframework.beans.factory.annotation.Value;
+import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
 @Service
+@RequiredArgsConstructor
 @Transactional(readOnly = true)
 public class ProductQueryService implements ProductQueryUseCase {
 
@@ -34,33 +42,7 @@ public class ProductQueryService implements ProductQueryUseCase {
     private final PassportShipmentQueryPort shipmentQueryPort;
     private final PassportDistributionQueryPort distributionQueryPort;
     private final ProductQueryViewAssembler viewAssembler;
-    private final @Value("${app.product.public-base-url}")String publicBaseUrl;
-
-    public ProductQueryService(
-        PassportPort passportPort,
-        PassportOwnershipPort ownershipPort,
-        PassportPermissionPort permissionPort,
-        MyPassportQueryPort myPassportQueryPort,
-        GroupPassportQueryPort groupPassportQueryPort,
-        DistributedPassportQueryPort distributedPassportQueryPort,
-        PassportShipmentQueryPort shipmentQueryPort,
-        PassportDistributionQueryPort distributionQueryPort,
-        ProductQueryViewAssembler viewAssembler,
-        @Value("${app.product.public-base-url}") String publicBaseUrl
-    ) {
-        this.passportPort = passportPort;
-        this.ownershipPort = ownershipPort;
-        this.permissionPort = permissionPort;
-        this.myPassportQueryPort = myPassportQueryPort;
-        this.groupPassportQueryPort = groupPassportQueryPort;
-        this.distributedPassportQueryPort = distributedPassportQueryPort;
-        this.shipmentQueryPort = shipmentQueryPort;
-        this.distributionQueryPort = distributionQueryPort;
-        this.viewAssembler = viewAssembler;
-        this.publicBaseUrl = publicBaseUrl;
-    }
-
-    // --- ProductQueryUseCase ---
+    private final ProductProperties productProperties;
 
     @Override
     public AssetStateView getAssetState(String passportId) {
@@ -93,7 +75,7 @@ public class ProductQueryService implements ProductQueryUseCase {
             throw new ProductDomainException(ProductErrorCode.ASSET_NOT_FOUND,
                 "Passport not found for tenant: " + passportId);
         }
-        String publicUrl = publicBaseUrl + "/products/passports/" + passportId;
+        String publicUrl = productProperties.getPublicBaseUrl() + "/products/passports/" + passportId;
         return viewAssembler.toPassportDetailView(
             passport,
             publicUrl,

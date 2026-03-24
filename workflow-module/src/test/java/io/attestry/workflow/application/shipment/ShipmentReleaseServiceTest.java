@@ -9,8 +9,9 @@ import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 
 import io.attestry.userauth.domain.authorization.model.PermissionCodes;
-import io.attestry.userauth.domain.identity.model.VerificationLevel;
+import io.attestry.userauth.domain.auth.model.VerificationLevel;
 import io.attestry.userauth.security.AuthPrincipal;
+import io.attestry.workflow.application.port.common.UserReadPort;
 import io.attestry.workflow.application.port.common.WorkflowEvidencePort;
 import io.attestry.workflow.application.port.common.WorkflowLedgerOutboxPort;
 import io.attestry.workflow.application.port.shipment.ShipmentProductReadPort;
@@ -47,6 +48,7 @@ class ShipmentReleaseServiceTest {
     @Mock WorkflowLedgerOutboxPort workflowLedgerOutboxPort;
     @Mock WorkflowAuthorizationSupport authorizationSupport;
     @Mock EvidenceUploadSupport evidenceUploadSupport;
+    @Mock UserReadPort userReadPort;
 
     private final Clock clock = Clock.fixed(Instant.parse("2026-03-12T02:00:00Z"), ZoneOffset.UTC);
 
@@ -72,6 +74,7 @@ class ShipmentReleaseServiceTest {
             evidenceUploadSupport,
             new ShipmentReleasePolicy(),
             new ShipmentReturnPolicy(),
+            userReadPort,
             clock
         );
     }

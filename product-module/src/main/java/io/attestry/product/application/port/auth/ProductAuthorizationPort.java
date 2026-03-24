@@ -1,6 +1,6 @@
 package io.attestry.product.application.port.auth;
 
-import io.attestry.product.application.dto.command.ProductActor;
+import io.attestry.product.application.common.ProductActor;
 
 public interface ProductAuthorizationPort {
 

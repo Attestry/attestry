@@ -2,11 +2,12 @@ package io.attestry.workflow.interfaces.delegation;
 
 import io.attestry.commonlib.infrastructure.ApiResponse;
 import io.attestry.userauth.security.AuthPrincipal;
+import io.attestry.workflow.application.common.WorkflowActorContext;
 import io.attestry.workflow.application.delegation.command.GrantDelegationCommand;
 import io.attestry.workflow.application.delegation.result.DelegationEvaluateResult;
 import io.attestry.workflow.application.delegation.result.DelegationResult;
-import io.attestry.workflow.application.usecase.DelegationLifecycleUseCase;
-import io.attestry.workflow.application.usecase.DelegationUseCase;
+import io.attestry.workflow.application.delegation.usecase.DelegationLifecycleUseCase;
+import io.attestry.workflow.application.delegation.usecase.DelegationUseCase;
 import io.attestry.workflow.interfaces.delegation.dto.request.DelegationEvaluateRequest;
 import io.attestry.workflow.interfaces.delegation.dto.request.GrantDelegationRequest;
 import io.attestry.workflow.interfaces.delegation.dto.request.ReasonRequest;
@@ -41,7 +42,7 @@ public class DelegationHttp {
         @RequestBody GrantDelegationRequest request
     ) {
         DelegationResult result = delegationUseCase.grant(
-            principal,
+            actor(principal),
             sourceTenantId,
             new GrantDelegationCommand(
                 request.partnerLinkId(),
@@ -62,7 +63,7 @@ public class DelegationHttp {
         @PathVariable("id") String delegationId,
         @RequestBody ReasonRequest request
     ) {
-        return ApiResponse.success(DelegationResponse.from(delegationUseCase.revoke(principal, delegationId, request.reason())));
+        return ApiResponse.success(DelegationResponse.from(delegationUseCase.revoke(actor(principal), delegationId, request.reason())));
     }
 
     @PostMapping("/internal/delegations/evaluate")
@@ -75,5 +76,9 @@ public class DelegationHttp {
             request.permissionCode()
         );
         return ApiResponse.success(new DelegationEvaluateResponse(result.allowed(), result.reason()));
+    }
+
+    private WorkflowActorContext actor(AuthPrincipal principal) {
+        return WorkflowActorContext.from(principal);
     }
 }

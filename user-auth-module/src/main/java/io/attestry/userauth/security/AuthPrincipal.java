@@ -1,6 +1,6 @@
 package io.attestry.userauth.security;
 
-import io.attestry.userauth.domain.identity.model.VerificationLevel;
+import io.attestry.userauth.domain.auth.model.VerificationLevel;
 import java.time.Duration;
 import java.time.Instant;
 import java.util.Set;

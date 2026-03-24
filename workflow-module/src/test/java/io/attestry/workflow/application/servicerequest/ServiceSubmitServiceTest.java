@@ -9,7 +9,7 @@ import static org.mockito.Mockito.doNothing;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 
-import io.attestry.userauth.domain.identity.model.VerificationLevel;
+import io.attestry.userauth.domain.auth.model.VerificationLevel;
 import io.attestry.userauth.security.AuthPrincipal;
 import io.attestry.workflow.application.port.servicerequest.ServicePermissionPort;
 import io.attestry.workflow.application.port.servicerequest.ServiceProductReadPort;
@@ -18,6 +18,7 @@ import io.attestry.workflow.application.port.common.TenantReadPort;
 import io.attestry.workflow.application.port.common.WorkflowEvidencePort;
 import io.attestry.workflow.application.servicerequest.command.SubmitServiceRequestCommand;
 import io.attestry.workflow.application.servicerequest.result.SubmitServiceRequestResult;
+import io.attestry.workflow.application.servicerequest.support.ServiceCompleteExecutor;
 import io.attestry.workflow.application.servicerequest.support.ServiceRequestContextResolver;
 import io.attestry.workflow.application.support.WorkflowAuthorizationSupport;
 import io.attestry.workflow.domain.WorkflowDomainException;
@@ -64,7 +65,7 @@ class ServiceSubmitServiceTest {
             servicePermissionPort,
             tenantReadPort
         );
-        ServiceSubmitExecutor submitExecutor = new ServiceSubmitExecutor(
+        ServiceCompleteExecutor.ServiceSubmitExecutor submitExecutor = new ServiceCompleteExecutor.ServiceSubmitExecutor(
             serviceRequestRepository,
             shipmentEvidencePort,
             servicePermissionPort,

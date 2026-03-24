@@ -1,6 +1,6 @@
 package io.attestry.workflow.interfaces.claim.dto.response;
 
-import io.attestry.workflow.application.claim.result.ClaimEvidenceView;
+import io.attestry.workflow.application.claim.view.ClaimEvidenceView;
 import java.time.Instant;
 
 public record ClaimEvidenceResponse(

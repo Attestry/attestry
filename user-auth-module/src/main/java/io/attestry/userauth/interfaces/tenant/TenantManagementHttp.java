@@ -1,9 +1,9 @@
 package io.attestry.userauth.interfaces.tenant;
 
 import io.attestry.commonlib.infrastructure.ApiResponse;
-import io.attestry.userauth.application.dto.result.TenantPageResult;
-import io.attestry.userauth.application.dto.result.TenantResult;
-import io.attestry.userauth.application.usecase.tenant.TenantQueryUseCase;
+import io.attestry.userauth.application.tenant.usecase.TenantQueryUseCase;
+import io.attestry.userauth.application.tenant.view.TenantPageView;
+import io.attestry.userauth.application.tenant.view.TenantView;
 import io.attestry.userauth.interfaces.tenant.dto.response.TenantPageResponse;
 import io.attestry.userauth.interfaces.tenant.dto.response.TenantResponse;
 import lombok.RequiredArgsConstructor;
@@ -22,7 +22,7 @@ public class TenantManagementHttp {
 
     @GetMapping("/{tenantId}")
     public ApiResponse<TenantResponse> getTenant(@PathVariable("tenantId") String tenantId) {
-        TenantResult result = tenantQueryUseCase.getTenant(tenantId);
+        TenantView result = tenantQueryUseCase.getTenant(tenantId);
         return ApiResponse.success(TenantResponse.from(result));
     }
 
@@ -33,7 +33,7 @@ public class TenantManagementHttp {
             @RequestParam(value = "name", required = false) String name,
             @RequestParam(value = "page", defaultValue = "0") int page,
             @RequestParam(value = "size", defaultValue = "20") int size) {
-        TenantPageResult result = tenantQueryUseCase.listTenants(type, status, name, page, size);
+        TenantPageView result = tenantQueryUseCase.listTenants(type, status, name, page, size);
         return ApiResponse.success(TenantPageResponse.from(result));
     }
 }

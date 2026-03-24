@@ -1,6 +1,6 @@
 package io.attestry.product.interfaces.http.command.dto.response;
 
-import io.attestry.product.application.dto.result.MintedProductResult;
+import io.attestry.product.application.command.result.MintedProductResult;
 
 public record MintedProductResponse(
     String assetId,

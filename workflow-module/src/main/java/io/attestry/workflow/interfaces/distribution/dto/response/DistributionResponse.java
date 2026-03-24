@@ -1,6 +1,6 @@
 package io.attestry.workflow.interfaces.distribution.dto.response;
 
-import io.attestry.workflow.application.usecase.DistributionUseCase.DistributionView;
+import io.attestry.workflow.application.distribution.view.DistributionView;
 import java.time.Instant;
 
 public record DistributionResponse(

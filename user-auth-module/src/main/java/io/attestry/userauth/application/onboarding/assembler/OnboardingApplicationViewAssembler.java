@@ -1,7 +1,7 @@
 package io.attestry.userauth.application.onboarding.assembler;
 
-import io.attestry.userauth.application.dto.result.ApplicationResult;
-import io.attestry.userauth.application.dto.view.ApplicationView;
+import io.attestry.userauth.application.onboarding.result.ApplicationResult;
+import io.attestry.userauth.application.onboarding.view.ApplicationView;
 import io.attestry.commonlib.application.port.ObjectStoragePort;
 import io.attestry.userauth.application.port.onboarding.OnboardingEvidenceBundleRepositoryPort;
 import io.attestry.userauth.domain.onboarding.model.OnboardingEvidenceBundle;

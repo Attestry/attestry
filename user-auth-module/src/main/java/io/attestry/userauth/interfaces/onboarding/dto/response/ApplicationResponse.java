@@ -1,7 +1,7 @@
 package io.attestry.userauth.interfaces.onboarding.dto.response;
 
-import io.attestry.userauth.application.dto.result.ApplicationResult;
-import io.attestry.userauth.application.dto.view.ApplicationView;
+import io.attestry.userauth.application.onboarding.result.ApplicationResult;
+import io.attestry.userauth.application.onboarding.view.ApplicationView;
 import java.util.List;
 
 public record ApplicationResponse(

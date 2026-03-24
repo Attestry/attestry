@@ -7,7 +7,7 @@ import static org.mockito.Mockito.when;
 
 import io.attestry.commonlib.application.port.ObjectStoragePort;
 import io.attestry.userauth.domain.authorization.model.PermissionCodes;
-import io.attestry.userauth.domain.identity.model.VerificationLevel;
+import io.attestry.userauth.domain.auth.model.VerificationLevel;
 import io.attestry.userauth.security.AuthPrincipal;
 import io.attestry.workflow.application.port.common.WorkflowEvidencePort;
 import io.attestry.workflow.application.shipment.command.CompleteShipmentEvidenceUploadCommand;

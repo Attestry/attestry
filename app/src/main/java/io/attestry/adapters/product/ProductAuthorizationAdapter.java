@@ -1,6 +1,6 @@
 package io.attestry.adapters.product;
 
-import io.attestry.product.application.dto.command.ProductActor;
+import io.attestry.product.application.common.ProductActor;
 import io.attestry.product.application.port.auth.ProductAuthorizationPort;
 import io.attestry.product.domain.ProductDomainException;
 import io.attestry.product.domain.ProductErrorCode;

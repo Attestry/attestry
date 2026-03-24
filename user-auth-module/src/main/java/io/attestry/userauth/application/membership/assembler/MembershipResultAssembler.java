@@ -1,7 +1,7 @@
 package io.attestry.userauth.application.membership.assembler;
 
-import io.attestry.userauth.application.dto.result.InvitationResult;
-import io.attestry.userauth.application.dto.result.MembershipResult;
+import io.attestry.userauth.application.membership.result.InvitationResult;
+import io.attestry.userauth.application.membership.result.MembershipResult;
 import io.attestry.userauth.application.port.identity.UserAccountRepositoryPort;
 import io.attestry.userauth.domain.membership.model.Invitation;
 import io.attestry.userauth.domain.membership.model.Membership;

@@ -1,9 +1,9 @@
 package io.attestry.userauth.application.tenant;
 
-import io.attestry.userauth.application.dto.result.TenantPageResult;
-import io.attestry.userauth.application.dto.result.TenantResult;
 import io.attestry.userauth.application.port.tenant.TenantRepositoryPort;
-import io.attestry.userauth.application.usecase.tenant.TenantQueryUseCase;
+import io.attestry.userauth.application.tenant.usecase.TenantQueryUseCase;
+import io.attestry.userauth.application.tenant.view.TenantPageView;
+import io.attestry.userauth.application.tenant.view.TenantView;
 import io.attestry.userauth.domain.UserAuthDomainException;
 import io.attestry.userauth.domain.UserAuthErrorCode;
 import io.attestry.userauth.domain.tenant.model.Tenant;
@@ -28,7 +28,7 @@ public class TenantQueryService implements TenantQueryUseCase {
 
     @Override
     @Transactional(readOnly = true)
-    public TenantResult getTenant(String tenantId) {
+    public TenantView getTenant(String tenantId) {
         Tenant tenant = tenantRepositoryPort.findById(tenantId)
                 .orElseThrow(() -> new UserAuthDomainException(UserAuthErrorCode.TENANT_NOT_FOUND, "Tenant not found"));
         return toResult(tenant);
@@ -36,7 +36,7 @@ public class TenantQueryService implements TenantQueryUseCase {
 
     @Override
     @Transactional(readOnly = true)
-    public Map<String, TenantResult> getTenants(List<String> tenantIds) {
+    public Map<String, TenantView> getTenants(List<String> tenantIds) {
         if (tenantIds == null || tenantIds.isEmpty()) {
             return Map.of();
         }
@@ -55,7 +55,7 @@ public class TenantQueryService implements TenantQueryUseCase {
 
     @Override
     @Transactional(readOnly = true)
-    public TenantPageResult listTenants(String type, String status, String name, int page, int size) {
+    public TenantPageView listTenants(String type, String status, String name, int page, int size) {
         validatePage(page, size);
         String trimmedName = (name == null || name.isBlank()) ? null : name.trim();
         Page<Tenant> tenantPage = tenantRepositoryPort.findPage(
@@ -63,7 +63,7 @@ public class TenantQueryService implements TenantQueryUseCase {
                 parseStatusOrNull(status),
                 trimmedName,
                 PageRequest.of(page, size));
-        return new TenantPageResult(
+        return new TenantPageView(
                 tenantPage.getContent().stream().map(this::toResult).toList(),
                 tenantPage.getNumber(),
                 tenantPage.getSize(),
@@ -104,8 +104,8 @@ public class TenantQueryService implements TenantQueryUseCase {
         }
     }
 
-    private TenantResult toResult(Tenant tenant) {
-        return new TenantResult(
+    private TenantView toResult(Tenant tenant) {
+        return new TenantView(
                 tenant.tenantId(),
                 tenant.name(),
                 tenant.region(),

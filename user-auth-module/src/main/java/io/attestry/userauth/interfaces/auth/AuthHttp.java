@@ -2,15 +2,18 @@ package io.attestry.userauth.interfaces.auth;
 
 import io.attestry.commonlib.web.CurrentActor;
 import io.attestry.commonlib.infrastructure.ApiResponse;
-import io.attestry.userauth.application.dto.result.AuthTokenResult;
-import io.attestry.userauth.application.dto.result.SignUpResult;
-import io.attestry.userauth.application.dto.result.SignUpEmailVerificationResult;
-import io.attestry.userauth.application.dto.command.LoginCommand;
-import io.attestry.userauth.application.dto.command.SignUpCommand;
-import io.attestry.userauth.application.usecase.auth.AuthUseCase;
-import io.attestry.userauth.application.dto.command.ActorContext;
+import io.attestry.userauth.application.auth.command.LoginCommand;
+import io.attestry.userauth.application.auth.command.ResetPasswordCommand;
+import io.attestry.userauth.application.auth.command.SignUpCommand;
+import io.attestry.userauth.application.auth.result.AuthTokenResult;
+import io.attestry.userauth.application.auth.result.SignUpEmailVerificationResult;
+import io.attestry.userauth.application.auth.result.SignUpResult;
+import io.attestry.userauth.application.auth.usecase.AuthUseCase;
+import io.attestry.userauth.application.auth.usecase.SignUpUseCase;
+import io.attestry.userauth.application.common.ActorContext;
 import io.attestry.userauth.interfaces.auth.dto.request.ConfirmSignUpEmailVerificationRequest;
 import io.attestry.userauth.interfaces.auth.dto.request.LoginRequest;
+import io.attestry.userauth.interfaces.auth.dto.request.ResetPasswordRequest;
 import io.attestry.userauth.interfaces.auth.dto.request.SendSignUpEmailVerificationRequest;
 import io.attestry.userauth.interfaces.auth.dto.request.SignUpRequest;
 import io.attestry.userauth.interfaces.auth.dto.request.TenantSwitchRequest;
@@ -33,13 +36,14 @@ import org.springframework.web.bind.annotation.RestController;
 public class AuthHttp {
 
     private final AuthUseCase authApplicationService;
+    private final SignUpUseCase signUpApplicationService;
 
     @PostMapping("/signup/email-verifications")
     @ResponseStatus(HttpStatus.CREATED)
     public ApiResponse<SignUpEmailVerificationResponse> requestSignUpEmailVerification(
         @Valid @RequestBody SendSignUpEmailVerificationRequest request
     ) {
-        SignUpEmailVerificationResult result = authApplicationService.requestSignUpEmailVerification(request.email());
+        SignUpEmailVerificationResult result = signUpApplicationService.requestSignUpEmailVerification(request.email());
         return ApiResponse.success(SignUpEmailVerificationResponse.from(result));
     }
 
@@ -47,7 +51,7 @@ public class AuthHttp {
     public ApiResponse<SignUpEmailVerificationResponse> confirmSignUpEmailVerification(
         @Valid @RequestBody ConfirmSignUpEmailVerificationRequest request
     ) {
-        SignUpEmailVerificationResult result = authApplicationService.confirmSignUpEmailVerification(
+        SignUpEmailVerificationResult result = signUpApplicationService.confirmSignUpEmailVerification(
             request.email(),
             request.code()
         );
@@ -57,7 +61,7 @@ public class AuthHttp {
     @PostMapping("/signup")
     @ResponseStatus(HttpStatus.CREATED)
     public ApiResponse<SignUpResponse> signup(@Valid @RequestBody SignUpRequest request) {
-        SignUpResult result = authApplicationService.signUp(
+        SignUpResult result = signUpApplicationService.signUp(
                 new SignUpCommand(
                         request.email(),
                         request.password(),
@@ -91,7 +95,6 @@ public class AuthHttp {
         authApplicationService.verifyPhone(actor.userId());
     }
 
-    //TODO("어차피 tenantId는 principal에서 가져올 수 있잖아")
     @PostMapping("/token-reissue")
     public ApiResponse<LoginResponse> reissueToken(
         @CurrentActor ActorContext actor
@@ -107,6 +110,20 @@ public class AuthHttp {
                 result.expiresAt(),
                 result.userId(),
                 result.tenantId()));
+    }
+
+    //TODO("비밀번호 찾기 기능 추가")
+    //TODO("ApiResponse<Void>를 반환하는 대신 별도의 응답 객체를 만들어서 반환하도록 변경 고려")
+    @PostMapping("/password-reset")
+    public ApiResponse<Void> resetPassword(
+        @CurrentActor ActorContext actor,
+        @Valid @RequestBody ResetPasswordRequest request
+    ) {
+        authApplicationService.resetPassword(
+            actor.userId(),
+            new ResetPasswordCommand(request.currentPassword(), request.newPassword())
+        );
+        return ApiResponse.success(null);
     }
 
     @PostMapping("/tenant-switch")

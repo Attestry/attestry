@@ -2,7 +2,7 @@ package io.attestry.notification;
 
 import com.fasterxml.jackson.databind.ObjectMapper;
 import io.attestry.userauth.application.port.notification.NotificationPayloadSerializerPort;
-import io.attestry.userauth.domain.identity.model.SignUpEmailVerificationNotificationPayload;
+import io.attestry.userauth.domain.auth.model.SignUpEmailVerificationNotificationPayload;
 import io.attestry.userauth.domain.membership.model.InvitationNotificationPayload;
 import io.attestry.userauth.domain.membership.model.NotificationType;
 import io.attestry.userauth.domain.membership.model.PassportManualNotificationPayload;

@@ -1,6 +1,6 @@
 package io.attestry.workflow.infrastructure.persistence.jpa.common;
 
-import io.attestry.userauth.application.usecase.identity.UserAccountQueryUseCase;
+import io.attestry.userauth.application.port.identity.UserAccountReadPort;
 import io.attestry.workflow.application.port.common.UserReadPort;
 import java.util.List;
 import java.util.Map;
@@ -9,14 +9,14 @@ import org.springframework.stereotype.Repository;
 @Repository
 public class UserAuthUserReadAdapter implements UserReadPort {
 
-    private final UserAccountQueryUseCase userAccountQueryUseCase;
+    private final UserAccountReadPort userAccountReadPort;
 
-    public UserAuthUserReadAdapter(UserAccountQueryUseCase userAccountQueryUseCase) {
-        this.userAccountQueryUseCase = userAccountQueryUseCase;
+    public UserAuthUserReadAdapter(UserAccountReadPort userAccountReadPort) {
+        this.userAccountReadPort = userAccountReadPort;
     }
 
     @Override
-    public Map<String, String> findEmailsByUserIds(List<String> userIds) {
-        return userAccountQueryUseCase.getEmailsByUserIds(userIds);
+    public Map<String, String> findEmailMapByUserIds(List<String> userIds) {
+        return userAccountReadPort.getEmailMapByUserIds(userIds);
     }
 }

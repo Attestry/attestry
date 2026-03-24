@@ -1,6 +1,6 @@
 package io.attestry.userauth.interfaces.auth.dto.response;
 
-import io.attestry.userauth.application.dto.result.SignUpEmailVerificationResult;
+import io.attestry.userauth.application.auth.result.SignUpEmailVerificationResult;
 import java.time.Instant;
 
 public record SignUpEmailVerificationResponse(

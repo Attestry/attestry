@@ -29,7 +29,8 @@ public interface PassportManualNotificationPort {
         String message,
         String evidenceGroupId,
         List<AttachmentReference> attachmentFiles,
-        List<ManualAttachment> attachments
+        List<ManualAttachment> attachments,
+        String dedupeKey
     ) {
     }
 }

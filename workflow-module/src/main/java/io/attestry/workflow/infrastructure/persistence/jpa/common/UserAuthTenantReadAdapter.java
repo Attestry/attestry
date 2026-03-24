@@ -1,7 +1,7 @@
 package io.attestry.workflow.infrastructure.persistence.jpa.common;
 
-import io.attestry.userauth.application.dto.result.TenantResult;
-import io.attestry.userauth.application.usecase.tenant.TenantQueryUseCase;
+import io.attestry.userauth.application.tenant.usecase.TenantQueryUseCase;
+import io.attestry.userauth.application.tenant.view.TenantView;
 import io.attestry.userauth.domain.UserAuthDomainException;
 import io.attestry.userauth.domain.UserAuthErrorCode;
 import io.attestry.workflow.application.port.common.TenantReadPort;
@@ -57,7 +57,7 @@ public class UserAuthTenantReadAdapter implements TenantReadPort {
             .toList();
     }
 
-    private TenantSummary toSummary(TenantResult tenant) {
+    private TenantSummary toSummary(TenantView tenant) {
         return new TenantSummary(
             tenant.tenantId(),
             tenant.name(),

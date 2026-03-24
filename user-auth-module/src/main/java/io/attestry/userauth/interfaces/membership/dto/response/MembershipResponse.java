@@ -1,7 +1,7 @@
 package io.attestry.userauth.interfaces.membership.dto.response;
 
-import io.attestry.userauth.application.dto.result.MembershipResult;
-import io.attestry.userauth.application.dto.view.MembershipAdminView;
+import io.attestry.userauth.application.membership.result.MembershipResult;
+import io.attestry.userauth.application.membership.view.MembershipAdminView;
 import java.util.List;
 
 public record MembershipResponse(

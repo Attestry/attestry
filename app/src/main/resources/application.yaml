@@ -76,6 +76,7 @@ app:
   user-auth:
     signup-email-verification:
       ttl: ${SIGNUP_EMAIL_VERIFICATION_TTL:PT10M}
+      hash-secret: ${SIGNUP_EMAIL_VERIFICATION_HASH_SECRET:dev-signup-code-secret-change-me}
       mail:
         provider: ${SIGNUP_EMAIL_VERIFICATION_MAIL_PROVIDER:LOG}
         enabled: ${SIGNUP_EMAIL_VERIFICATION_MAIL_ENABLED:true}

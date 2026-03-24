@@ -2,7 +2,7 @@ package io.attestry.userauth.domain.membership.model;
 
 import io.attestry.commonlib.domain.AggregateRoot;
 import io.attestry.userauth.domain.UserAuthErrorCode;
-import io.attestry.userauth.domain.UserAuthDomainException;import io.attestry.userauth.domain.identity.model.Email;
+import io.attestry.userauth.domain.UserAuthDomainException;import io.attestry.userauth.domain.auth.model.Email;
 import java.time.Instant;
 import java.util.UUID;
 

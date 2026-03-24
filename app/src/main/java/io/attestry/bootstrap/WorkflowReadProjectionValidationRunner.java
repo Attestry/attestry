@@ -1,32 +1,25 @@
 package io.attestry.bootstrap;
 
+import lombok.RequiredArgsConstructor;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
-import org.springframework.beans.factory.annotation.Value;
 import org.springframework.boot.ApplicationArguments;
 import org.springframework.boot.ApplicationRunner;
 import org.springframework.jdbc.core.namedparam.NamedParameterJdbcTemplate;
 import org.springframework.stereotype.Component;
 
 @Component
+@RequiredArgsConstructor
 public class WorkflowReadProjectionValidationRunner implements ApplicationRunner {
 
     private static final Logger log = LoggerFactory.getLogger(WorkflowReadProjectionValidationRunner.class);
 
     private final NamedParameterJdbcTemplate jdbcTemplate;
-    private final boolean enabled;
-
-    public WorkflowReadProjectionValidationRunner(
-        NamedParameterJdbcTemplate jdbcTemplate,
-        @Value("${app.workflow.read-projection.validation.enabled:false}") boolean enabled
-    ) {
-        this.jdbcTemplate = jdbcTemplate;
-        this.enabled = enabled;
-    }
+    private final ProjectionRunnerProperties runnerProperties;
 
     @Override
     public void run(ApplicationArguments args) {
-        if (!enabled) {
+        if (!runnerProperties.getWorkflow().getReadProjection().getValidation().isEnabled()) {
             return;
         }
 

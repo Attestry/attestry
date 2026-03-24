@@ -1,6 +1,6 @@
 package io.attestry.product.infrastructure.persistence.jpa.query;
 
-import io.attestry.product.application.dto.view.MyPassportView;
+import io.attestry.product.application.query.view.MyPassportView;
 import io.attestry.product.application.port.query.MyPassportQueryPort;
 import io.attestry.product.infrastructure.persistence.jpa.repository.PassportOwnershipJpaRepository;
 import java.time.ZoneOffset;

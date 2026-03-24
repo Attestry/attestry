@@ -9,7 +9,7 @@ import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 
 import io.attestry.userauth.domain.authorization.model.PermissionCodes;
-import io.attestry.userauth.domain.identity.model.VerificationLevel;
+import io.attestry.userauth.domain.auth.model.VerificationLevel;
 import io.attestry.userauth.security.AuthPrincipal;
 import io.attestry.workflow.application.delegation.command.GrantDelegationCommand;
 import io.attestry.workflow.application.delegation.result.DelegationResult;

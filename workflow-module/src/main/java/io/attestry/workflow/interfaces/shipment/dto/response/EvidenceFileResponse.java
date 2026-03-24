@@ -1,6 +1,6 @@
 package io.attestry.workflow.interfaces.shipment.dto.response;
 
-import io.attestry.workflow.application.shipment.result.ShipmentDetailResult;
+import io.attestry.workflow.application.shipment.view.ShipmentDetailView;
 
 public record EvidenceFileResponse(
         String evidenceId,
@@ -8,7 +8,7 @@ public record EvidenceFileResponse(
         String contentType,
         long sizeBytes,
         String downloadUrl) {
-    public static EvidenceFileResponse from(ShipmentDetailResult.EvidenceFileResult result) {
+    public static EvidenceFileResponse from(ShipmentDetailView.EvidenceFileView result) {
         return new EvidenceFileResponse(
                 result.evidenceId(),
                 result.originalFileName(),

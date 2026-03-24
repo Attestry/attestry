@@ -1,6 +1,6 @@
 package io.attestry.workflow.interfaces.claim.dto.response;
 
-import io.attestry.workflow.application.claim.result.MyClaimView;
+import io.attestry.workflow.application.claim.view.MyClaimView;
 import java.time.Instant;
 import java.util.List;
 

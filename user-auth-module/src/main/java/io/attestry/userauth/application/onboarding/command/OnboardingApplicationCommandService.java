@@ -1,14 +1,11 @@
 package io.attestry.userauth.application.onboarding.command;
 
-import io.attestry.userauth.application.dto.command.ActorContext;
-import io.attestry.userauth.application.dto.command.CompleteEvidenceUploadCommand;
-import io.attestry.userauth.application.dto.command.CreateApplicationCommand;
-import io.attestry.userauth.application.dto.command.PresignEvidenceUploadCommand;
-import io.attestry.userauth.application.dto.result.ApplicationResult;
-import io.attestry.userauth.application.dto.result.ApproveApplicationResult;
-import io.attestry.userauth.application.dto.result.EvidenceBundleResult;
-import io.attestry.userauth.application.dto.result.PresignedEvidenceUploadResult;
-import io.attestry.userauth.application.usecase.onboarding.OnboardingApplicationCommandUseCase;
+import io.attestry.userauth.application.common.ActorContext;
+import io.attestry.userauth.application.onboarding.result.ApplicationResult;
+import io.attestry.userauth.application.onboarding.result.ApproveApplicationResult;
+import io.attestry.userauth.application.onboarding.result.EvidenceBundleResult;
+import io.attestry.userauth.application.onboarding.result.PresignedEvidenceUploadResult;
+import io.attestry.userauth.application.onboarding.usecase.OnboardingApplicationCommandUseCase;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;

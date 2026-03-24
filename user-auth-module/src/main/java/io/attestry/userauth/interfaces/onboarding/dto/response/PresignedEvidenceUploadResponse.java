@@ -1,6 +1,6 @@
 package io.attestry.userauth.interfaces.onboarding.dto.response;
 
-import io.attestry.userauth.application.dto.result.PresignedEvidenceUploadResult;
+import io.attestry.userauth.application.onboarding.result.PresignedEvidenceUploadResult;
 import java.time.Instant;
 
 public record PresignedEvidenceUploadResponse(

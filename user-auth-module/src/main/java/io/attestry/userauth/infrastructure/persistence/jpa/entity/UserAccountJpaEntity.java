@@ -1,7 +1,7 @@
 package io.attestry.userauth.infrastructure.persistence.jpa.entity;
 
-import io.attestry.userauth.domain.identity.model.UserStatus;
-import io.attestry.userauth.domain.identity.model.VerificationLevel;
+import io.attestry.userauth.domain.auth.model.UserStatus;
+import io.attestry.userauth.domain.auth.model.VerificationLevel;
 import jakarta.persistence.Column;
 import jakarta.persistence.Entity;
 import jakarta.persistence.EnumType;

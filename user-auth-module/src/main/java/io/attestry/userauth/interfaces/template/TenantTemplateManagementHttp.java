@@ -2,11 +2,11 @@ package io.attestry.userauth.interfaces.template;
 
 import io.attestry.commonlib.web.CurrentActor;
 import io.attestry.commonlib.infrastructure.ApiResponse;
-import io.attestry.userauth.application.dto.command.ActorContext;
-import io.attestry.userauth.application.dto.result.PermissionResult;
-import io.attestry.userauth.application.dto.result.PermissionTemplateResult;
-import io.attestry.userauth.application.dto.result.TenantRoleTemplateBindingResult;
-import io.attestry.userauth.application.usecase.template.TemplateManagementUseCase;
+import io.attestry.userauth.application.common.ActorContext;
+import io.attestry.userauth.application.template.result.PermissionResult;
+import io.attestry.userauth.application.template.result.PermissionTemplateResult;
+import io.attestry.userauth.application.template.result.TenantRoleTemplateBindingResult;
+import io.attestry.userauth.application.template.usecase.TemplateManagementUseCase;
 import io.attestry.userauth.interfaces.template.dto.request.BindTenantRoleTemplateRequest;
 import io.attestry.userauth.interfaces.template.dto.request.CreatePermissionTemplateRequest;
 import io.attestry.userauth.interfaces.template.dto.request.SetTemplatePermissionsRequest;

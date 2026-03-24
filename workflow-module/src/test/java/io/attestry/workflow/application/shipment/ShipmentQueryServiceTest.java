@@ -4,7 +4,7 @@ import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 
-import io.attestry.userauth.domain.identity.model.VerificationLevel;
+import io.attestry.userauth.domain.auth.model.VerificationLevel;
 import io.attestry.userauth.security.AuthPrincipal;
 import io.attestry.workflow.application.port.common.UserReadPort;
 import io.attestry.workflow.application.port.shipment.ShipmentProductReadPort;
@@ -109,7 +109,7 @@ class ShipmentQueryServiceTest {
                     "passport-1", "asset-1", "SN-1", "model-1", "Model 1", "batch", "factory"
                 )
             ));
-        when(userReadPort.findEmailsByUserIds(List.of("release-user", "return-user")))
+        when(userReadPort.findEmailMapByUserIds(List.of("release-user", "return-user")))
             .thenReturn(Map.of(
                 "release-user", "release@test.com",
                 "return-user", "return@test.com"

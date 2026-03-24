@@ -2,13 +2,15 @@ package io.attestry.workflow.interfaces.distribution;
 
 import io.attestry.commonlib.infrastructure.ApiResponse;
 import io.attestry.userauth.security.AuthPrincipal;
-import io.attestry.workflow.application.usecase.DistributionUseCase;
-import io.attestry.workflow.application.usecase.DistributionUseCase.BatchDistributeResult;
-import io.attestry.workflow.application.usecase.DistributionUseCase.DistributeCommand;
-import io.attestry.workflow.application.usecase.DistributionUseCase.DistributionView;
-import io.attestry.workflow.application.usecase.DistributionUseCase.PagedDistributionCandidateResponse;
-import io.attestry.workflow.application.usecase.DistributionUseCase.PagedDistributionResponse;
-import io.attestry.workflow.application.usecase.DistributionUseCase.RecallCommand;
+import io.attestry.workflow.application.common.WorkflowActorContext;
+import io.attestry.workflow.application.distribution.command.DistributeCommand;
+import io.attestry.workflow.application.distribution.command.RecallDistributionCommand;
+import io.attestry.workflow.application.distribution.result.BatchDistributeResult;
+import io.attestry.workflow.application.distribution.usecase.DistributionCommandUseCase;
+import io.attestry.workflow.application.distribution.usecase.DistributionQueryUseCase;
+import io.attestry.workflow.application.distribution.view.DistributionView;
+import io.attestry.workflow.application.distribution.view.PagedDistributionCandidateView;
+import io.attestry.workflow.application.distribution.view.PagedDistributionView;
 import io.attestry.workflow.interfaces.distribution.dto.request.DistributeRequest;
 import io.attestry.workflow.interfaces.distribution.dto.request.RecallRequest;
 import io.attestry.workflow.interfaces.distribution.dto.response.BatchDistributionResponse;
@@ -29,10 +31,15 @@ import org.springframework.web.bind.annotation.RestController;
 @RequestMapping("/workflows")
 public class DistributionHttp {
 
-    private final DistributionUseCase distributionUseCase;
+    private final DistributionCommandUseCase distributionCommandUseCase;
+    private final DistributionQueryUseCase distributionQueryUseCase;
 
-    public DistributionHttp(DistributionUseCase distributionUseCase) {
-        this.distributionUseCase = distributionUseCase;
+    public DistributionHttp(
+        DistributionCommandUseCase distributionCommandUseCase,
+        DistributionQueryUseCase distributionQueryUseCase
+    ) {
+        this.distributionCommandUseCase = distributionCommandUseCase;
+        this.distributionQueryUseCase = distributionQueryUseCase;
     }
 
     @PostMapping("/tenants/{sourceTenantId}/partners/{partnerLinkId}/distributions")
@@ -44,8 +51,8 @@ public class DistributionHttp {
         @PathVariable("partnerLinkId") String partnerLinkId,
         @RequestBody DistributeRequest request
     ) {
-        BatchDistributeResult result = distributionUseCase.distribute(
-            principal,
+        BatchDistributeResult result = distributionCommandUseCase.distribute(
+            actor(principal),
             sourceTenantId,
             partnerLinkId,
             new DistributeCommand(
@@ -59,25 +66,25 @@ public class DistributionHttp {
 
     @GetMapping("/tenants/{tenantId}/distributions")
     @PreAuthorize("hasAuthority('SCOPE_TENANT_READ_ONLY')")
-    public ApiResponse<PagedDistributionResponse> list(
+    public ApiResponse<PagedDistributionView> list(
         @AuthenticationPrincipal AuthPrincipal principal,
         @PathVariable("tenantId") String tenantId,
         @RequestParam(value = "page", defaultValue = "0") int page,
         @RequestParam(value = "size", defaultValue = "20") int size,
         @RequestParam(value = "keyword", required = false) String keyword
     ) {
-        return ApiResponse.success(distributionUseCase.listByTenant(principal, tenantId, page, size, keyword));
+        return ApiResponse.success(distributionQueryUseCase.listByTenant(actor(principal), tenantId, page, size, keyword));
     }
 
     @GetMapping("/distributions/candidates")
     @PreAuthorize("hasAuthority('SCOPE_TENANT_READ_ONLY')")
-    public ApiResponse<PagedDistributionCandidateResponse> listCandidates(
+    public ApiResponse<PagedDistributionCandidateView> listCandidates(
         @AuthenticationPrincipal AuthPrincipal principal,
         @RequestParam(value = "page", defaultValue = "0") int page,
         @RequestParam(value = "size", defaultValue = "20") int size,
         @RequestParam(value = "keyword", required = false) String keyword
     ) {
-        return ApiResponse.success(distributionUseCase.listDistributionCandidates(principal, page, size, keyword));
+        return ApiResponse.success(distributionQueryUseCase.listDistributionCandidates(actor(principal), page, size, keyword));
     }
 
     @PostMapping("/distributions/{distributionId}/recall")
@@ -87,9 +94,13 @@ public class DistributionHttp {
         @PathVariable("distributionId") String distributionId,
         @RequestBody RecallRequest request
     ) {
-        DistributionView result = distributionUseCase.recall(
-            principal, distributionId, new RecallCommand(request.reason())
+        DistributionView result = distributionCommandUseCase.recall(
+            actor(principal), distributionId, new RecallDistributionCommand(request.reason())
         );
         return ApiResponse.success(DistributionResponse.from(result));
+    }
+
+    private WorkflowActorContext actor(AuthPrincipal principal) {
+        return WorkflowActorContext.from(principal);
     }
 }

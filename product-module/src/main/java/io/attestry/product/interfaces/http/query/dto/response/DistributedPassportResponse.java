@@ -1,6 +1,6 @@
 package io.attestry.product.interfaces.http.query.dto.response;
 
-import io.attestry.product.application.dto.view.DistributedPassportView;
+import io.attestry.product.application.query.view.DistributedPassportView;
 import java.time.Instant;
 
 public record DistributedPassportResponse(

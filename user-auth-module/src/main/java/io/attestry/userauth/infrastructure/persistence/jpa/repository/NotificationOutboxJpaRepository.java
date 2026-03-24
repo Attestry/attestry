@@ -13,11 +13,15 @@ public interface NotificationOutboxJpaRepository extends JpaRepository<Notificat
 
     @Query("SELECT e FROM NotificationOutboxJpaEntity e " +
         "WHERE e.status = :status " +
-        "AND (e.nextRetryAt IS NULL OR e.nextRetryAt <= :now) " +
-        "ORDER BY e.createdAt ASC")
-    List<NotificationOutboxJpaEntity> findRetryable(
+        "AND e.processingStartedAt IS NOT NULL " +
+        "AND e.processingStartedAt < :threshold")
+    List<NotificationOutboxJpaEntity> findTimedOutProcessing(
         @Param("status") NotificationOutboxStatus status,
-        @Param("now") Instant now,
-        Pageable pageable
+        @Param("threshold") Instant threshold
+    );
+
+    @Query("SELECT e FROM NotificationOutboxJpaEntity e WHERE e.id IN :ids")
+    List<NotificationOutboxJpaEntity> findRetryable(
+        @Param("ids") List<String> ids
     );
 }

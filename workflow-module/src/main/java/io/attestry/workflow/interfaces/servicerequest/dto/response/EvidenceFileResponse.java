@@ -1,6 +1,6 @@
 package io.attestry.workflow.interfaces.servicerequest.dto.response;
 
-import io.attestry.workflow.application.usecase.ServiceRequestQueryUseCase;
+import io.attestry.workflow.application.servicerequest.view.ServiceRequestEvidenceFileView;
 
 public record EvidenceFileResponse(
     String evidenceId,
@@ -9,7 +9,7 @@ public record EvidenceFileResponse(
     long sizeBytes,
     String downloadUrl
 ) {
-    public static EvidenceFileResponse from(ServiceRequestQueryUseCase.EvidenceFileResult result) {
+    public static EvidenceFileResponse from(ServiceRequestEvidenceFileView result) {
         return new EvidenceFileResponse(
             result.evidenceId(),
             result.originalFileName(),

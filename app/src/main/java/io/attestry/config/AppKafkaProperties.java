@@ -51,6 +51,7 @@ public class AppKafkaProperties {
         private int maxRetries = 10;
         private int cleanupRetentionDays = 7;
         private int processingTimeoutSeconds = 300;
+        private int publishParallelism = 0;
 
         public int getBatchSize() {
             return batchSize;
@@ -82,6 +83,14 @@ public class AppKafkaProperties {
 
         public void setProcessingTimeoutSeconds(int processingTimeoutSeconds) {
             this.processingTimeoutSeconds = processingTimeoutSeconds;
+        }
+
+        public int getPublishParallelism() {
+            return publishParallelism;
+        }
+
+        public void setPublishParallelism(int publishParallelism) {
+            this.publishParallelism = publishParallelism;
         }
     }
 }

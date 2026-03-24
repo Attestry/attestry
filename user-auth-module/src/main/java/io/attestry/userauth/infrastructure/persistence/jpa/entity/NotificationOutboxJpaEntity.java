@@ -47,6 +47,12 @@ public class NotificationOutboxJpaEntity {
     @Column(name = "next_retry_at")
     private Instant nextRetryAt;
 
+    @Column(name = "processing_started_at")
+    private Instant processingStartedAt;
+
+    @Column(name = "processing_owner", length = 100)
+    private String processingOwner;
+
     protected NotificationOutboxJpaEntity() {
     }
 
@@ -60,7 +66,9 @@ public class NotificationOutboxJpaEntity {
         String lastError,
         Instant createdAt,
         Instant sentAt,
-        Instant nextRetryAt
+        Instant nextRetryAt,
+        Instant processingStartedAt,
+        String processingOwner
     ) {
         this.id = id;
         this.notificationType = notificationType;
@@ -72,6 +80,8 @@ public class NotificationOutboxJpaEntity {
         this.createdAt = createdAt;
         this.sentAt = sentAt;
         this.nextRetryAt = nextRetryAt;
+        this.processingStartedAt = processingStartedAt;
+        this.processingOwner = processingOwner;
     }
 
     public String getId() { return id; }
@@ -84,4 +94,6 @@ public class NotificationOutboxJpaEntity {
     public Instant getCreatedAt() { return createdAt; }
     public Instant getSentAt() { return sentAt; }
     public Instant getNextRetryAt() { return nextRetryAt; }
+    public Instant getProcessingStartedAt() { return processingStartedAt; }
+    public String getProcessingOwner() { return processingOwner; }
 }

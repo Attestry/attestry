@@ -2,11 +2,11 @@ package io.attestry.product.interfaces.http.command;
 
 import io.attestry.commonlib.infrastructure.ApiResponse;
 import io.attestry.commonlib.web.CurrentActor;
-import io.attestry.product.application.dto.command.ClearRiskCommand;
-import io.attestry.product.application.dto.command.FlagLostCommand;
-import io.attestry.product.application.dto.command.FlagStolenCommand;
-import io.attestry.product.application.dto.command.ProductActor;
-import io.attestry.product.application.usecase.ProductRiskUseCase;
+import io.attestry.product.application.command.model.ClearRiskCommand;
+import io.attestry.product.application.command.model.FlagLostCommand;
+import io.attestry.product.application.command.model.FlagStolenCommand;
+import io.attestry.product.application.common.ProductActor;
+import io.attestry.product.application.command.usecase.ProductRiskUseCase;
 import io.attestry.product.interfaces.http.command.dto.request.FlagStolenRequest;
 import io.attestry.product.interfaces.http.command.dto.response.RiskResponse;
 import lombok.RequiredArgsConstructor;

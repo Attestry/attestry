@@ -2,9 +2,9 @@ package io.attestry.product.interfaces.http.command;
 
 import io.attestry.commonlib.infrastructure.ApiResponse;
 import io.attestry.commonlib.web.CurrentActor;
-import io.attestry.product.application.dto.command.ProductActor;
-import io.attestry.product.application.dto.command.RetireCommand;
-import io.attestry.product.application.usecase.ProductRetireUseCase;
+import io.attestry.product.application.common.ProductActor;
+import io.attestry.product.application.command.model.RetireCommand;
+import io.attestry.product.application.command.usecase.ProductRetireUseCase;
 import io.attestry.product.interfaces.http.command.dto.response.RetireResponse;
 import lombok.RequiredArgsConstructor;
 import org.springframework.security.access.prepost.PreAuthorize;

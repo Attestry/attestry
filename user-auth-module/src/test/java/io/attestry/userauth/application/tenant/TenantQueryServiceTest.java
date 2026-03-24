@@ -3,7 +3,7 @@ package io.attestry.userauth.application.tenant;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
-import io.attestry.userauth.application.dto.result.TenantResult;
+import io.attestry.userauth.application.tenant.view.TenantView;
 import io.attestry.userauth.application.port.tenant.TenantRepositoryPort;
 import io.attestry.userauth.domain.tenant.model.Tenant;
 import io.attestry.userauth.domain.tenant.model.TenantStatus;
@@ -24,7 +24,7 @@ class TenantQueryServiceTest {
         Tenant retail = Tenant.reconstitute("tenant-2", "Retail Two", "US", "addr2", TenantType.RETAIL, TenantStatus.SUSPENDED);
         TenantQueryService tenantQueryService = new TenantQueryService(new StubTenantRepositoryPort(List.of(brand, retail)));
 
-        Map<String, TenantResult> results = tenantQueryService.getTenants(List.of("tenant-1", "tenant-2", "tenant-1"));
+        Map<String, TenantView> results = tenantQueryService.getTenants(List.of("tenant-1", "tenant-2", "tenant-1"));
 
         assertEquals(2, results.size());
         assertEquals("Brand One", results.get("tenant-1").name());
