@@ -1,4 +1,4 @@
-package io.attestry.workflow.infrastructure.persistence.jpa.transfer;
+package io.attestry.workflow.infrastructure.persistence.jdbc.query;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertTrue;

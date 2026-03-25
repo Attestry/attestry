@@ -8,8 +8,10 @@ import io.attestry.userauth.domain.membership.model.MembershipRole;
 import io.attestry.userauth.domain.membership.model.MembershipStatus;
 import io.attestry.userauth.domain.membership.model.RoleAssignment;
 import io.attestry.userauth.application.port.tenant.TenantRepositoryPort;
+import io.attestry.userauth.infrastructure.persistence.jdbc.projection.MembershipEffectivePermissionProjectionRefresher;
 import io.attestry.userauth.infrastructure.persistence.jpa.entity.MembershipJpaEntity;
 import io.attestry.userauth.infrastructure.persistence.jpa.entity.MembershipRoleAssignmentJpaEntity;
+import io.attestry.userauth.infrastructure.persistence.jpa.mapper.MembershipMapper;
 import io.attestry.userauth.infrastructure.persistence.jpa.repository.MembershipJpaRepository;
 import io.attestry.userauth.infrastructure.persistence.jpa.repository.MembershipRoleAssignmentJpaRepository;
 import io.attestry.userauth.infrastructure.persistence.jpa.repository.RoleJpaRepository;
@@ -39,6 +41,7 @@ public class JpaMembershipAdminRepositoryAdapter implements MembershipPort {
     private final NamedParameterJdbcTemplate jdbcTemplate;
     private final MembershipEffectivePermissionProjectionRefresher permissionProjectionRefresher;
     private final EntityManager entityManager;
+    private final MembershipMapper membershipMapper;
 
 
     @Override
@@ -62,15 +65,17 @@ public class JpaMembershipAdminRepositoryAdapter implements MembershipPort {
     public Membership updateMembership(String tenantId, String membershipId, MembershipRole role, MembershipStatus status) {
         MembershipJpaEntity current = membershipRepository.findByMembershipIdAndTenantId(membershipId, tenantId)
             .orElseThrow(() -> new UserAuthDomainException(UserAuthErrorCode.MEMBERSHIP_NOT_FOUND, "Membership not found"));
-        MembershipJpaEntity saved = membershipRepository.save(new MembershipJpaEntity(
+        Membership updatedMembership = Membership.reconstitute(
             current.getMembershipId(),
             current.getUserId(),
             current.getTenantId(),
             current.getTenantType(),
             role,
             status,
-            current.getTenantStatus()
-        ));
+            current.getTenantStatus(),
+            loadRoleAssignments(current.getMembershipId())
+        );
+        MembershipJpaEntity saved = membershipRepository.save(membershipMapper.toEntity(updatedMembership));
         flushPendingJpaChanges();
         permissionProjectionRefresher.refreshMembership(saved.getMembershipId());
         return toMembershipDomainWithRoles(saved);
@@ -286,15 +291,7 @@ public class JpaMembershipAdminRepositoryAdapter implements MembershipPort {
 
     @Override
     public Membership save(Membership membership) {
-        MembershipJpaEntity saved = membershipRepository.save(new MembershipJpaEntity(
-            membership.membershipId(),
-            membership.userId(),
-            membership.tenantId(),
-            membership.groupType(),
-            membership.role(),
-            membership.status(),
-            membership.tenantStatus()
-        ));
+        MembershipJpaEntity saved = membershipRepository.save(membershipMapper.toEntity(membership));
         syncRoleAssignments(membership);
         flushPendingJpaChanges();
         permissionProjectionRefresher.refreshMembership(saved.getMembershipId());
@@ -399,19 +396,16 @@ public class JpaMembershipAdminRepositoryAdapter implements MembershipPort {
 
     private Membership toMembershipDomainWithRoles(MembershipJpaEntity entity) {
         Set<RoleAssignment> roles = loadRoleAssignments(entity.getMembershipId());
-        return toMembershipDomain(entity, roles);
-    }
-
-    private Membership toMembershipDomain(MembershipJpaEntity entity, Set<RoleAssignment> roleAssignments) {
+        Membership membership = membershipMapper.toDomain(entity);
         return Membership.reconstitute(
-            entity.getMembershipId(),
-            entity.getUserId(),
-            entity.getTenantId(),
-            entity.getTenantType(),
-            entity.getRole(),
-            entity.getStatus(),
-            entity.getTenantStatus(),
-            roleAssignments
+            membership.membershipId(),
+            membership.userId(),
+            membership.tenantId(),
+            membership.groupType(),
+            membership.role(),
+            membership.status(),
+            membership.tenantStatus(),
+            roles
         );
     }
 }

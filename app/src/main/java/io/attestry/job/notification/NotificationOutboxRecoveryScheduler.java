@@ -1,6 +1,6 @@
 package io.attestry.job.notification;
 
-import io.attestry.userauth.application.port.notification.NotificationOutboxRepositoryPort;
+import io.attestry.userauth.application.port.notification.NotificationOutboxOperationsPort;
 import java.time.Clock;
 import java.time.Instant;
 import java.time.temporal.ChronoUnit;
@@ -15,16 +15,16 @@ public class NotificationOutboxRecoveryScheduler {
 
     private static final Logger log = LoggerFactory.getLogger(NotificationOutboxRecoveryScheduler.class);
 
-    private final NotificationOutboxRepositoryPort notificationOutboxRepository;
+    private final NotificationOutboxOperationsPort notificationOutboxOperations;
     private final NotificationOutboxMetrics metrics;
     private final Clock clock;
 
     public NotificationOutboxRecoveryScheduler(
-        NotificationOutboxRepositoryPort notificationOutboxRepository,
+        NotificationOutboxOperationsPort notificationOutboxOperations,
         NotificationOutboxMetrics metrics,
         Clock clock
     ) {
-        this.notificationOutboxRepository = notificationOutboxRepository;
+        this.notificationOutboxOperations = notificationOutboxOperations;
         this.metrics = metrics;
         this.clock = clock;
     }
@@ -33,7 +33,7 @@ public class NotificationOutboxRecoveryScheduler {
     @Transactional
     public void recoverStuckProcessingRows() {
         Instant threshold = Instant.now(clock).minus(300, ChronoUnit.SECONDS);
-        int recovered = notificationOutboxRepository.recoverTimedOutProcessing(threshold);
+        int recovered = notificationOutboxOperations.recoverTimedOutProcessing(threshold);
         if (recovered > 0) {
             metrics.incrementRecoveredCount(recovered);
             metrics.incrementProcessingTimeoutCount(recovered);
@@ -44,10 +44,10 @@ public class NotificationOutboxRecoveryScheduler {
 
     private void refreshBacklogMetrics() {
         Instant now = Instant.now(clock);
-        metrics.setPendingSize(notificationOutboxRepository.countPending());
-        metrics.setProcessingSize(notificationOutboxRepository.countProcessing());
-        metrics.setFailedSize(notificationOutboxRepository.countFailed());
-        metrics.setOldestPendingAgeSeconds(notificationOutboxRepository.findOldestPendingAgeSeconds(now));
-        metrics.setOldestProcessingAgeSeconds(notificationOutboxRepository.findOldestProcessingAgeSeconds(now));
+        metrics.setPendingSize(notificationOutboxOperations.countPending());
+        metrics.setProcessingSize(notificationOutboxOperations.countProcessing());
+        metrics.setFailedSize(notificationOutboxOperations.countFailed());
+        metrics.setOldestPendingAgeSeconds(notificationOutboxOperations.findOldestPendingAgeSeconds(now));
+        metrics.setOldestProcessingAgeSeconds(notificationOutboxOperations.findOldestProcessingAgeSeconds(now));
     }
 }

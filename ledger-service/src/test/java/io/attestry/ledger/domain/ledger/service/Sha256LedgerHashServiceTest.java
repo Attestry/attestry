@@ -3,7 +3,7 @@ package io.attestry.ledger.domain.ledger.service;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertNotEquals;
 
-import io.attestry.ledger.infrastructure.persistence.jpa.Sha256LedgerHashService;
+import io.attestry.ledger.infrastructure.persistence.jpa.support.Sha256LedgerHashService;
 import java.time.Instant;
 import org.junit.jupiter.api.Test;
 

@@ -1,6 +1,6 @@
 package io.attestry.workflow.application.manual.command;
 
-import io.attestry.userauth.application.port.notification.NotificationOutboxRepositoryPort;
+import io.attestry.userauth.application.port.notification.NotificationOutboxWritePort;
 import io.attestry.userauth.domain.authorization.model.PermissionCodes;
 import io.attestry.userauth.domain.membership.model.NotificationOutbox;
 import io.attestry.userauth.domain.membership.model.NotificationType;
@@ -38,7 +38,7 @@ public class PassportManualService implements PassportManualUseCase {
     private final WorkflowEvidencePort evidencePort;
     private final WorkflowAuthorizationSupport authorizationSupport;
     private final EvidenceUploadSupport evidenceUploadSupport;
-    private final NotificationOutboxRepositoryPort notificationOutboxRepositoryPort;
+    private final NotificationOutboxWritePort notificationOutboxRepositoryPort;
     private final Clock clock;
 
     @Override

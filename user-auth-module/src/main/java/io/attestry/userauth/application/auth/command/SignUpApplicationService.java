@@ -6,7 +6,7 @@ import io.attestry.userauth.application.port.auth.PasswordHasherPort;
 import io.attestry.userauth.application.port.auth.SignUpEmailVerificationRepositoryPort;
 import io.attestry.userauth.application.port.auth.VerificationCodeHasherPort;
 import io.attestry.userauth.application.port.identity.UserAccountRepositoryPort;
-import io.attestry.userauth.application.port.notification.NotificationOutboxRepositoryPort;
+import io.attestry.userauth.application.port.notification.NotificationOutboxWritePort;
 import io.attestry.userauth.application.auth.usecase.SignUpUseCase;
 import io.attestry.userauth.domain.UserAuthDomainException;
 import io.attestry.userauth.domain.UserAuthErrorCode;
@@ -36,7 +36,7 @@ public class SignUpApplicationService implements SignUpUseCase {
     private final PasswordHasherPort passwordHasher;
     private final VerificationCodeHasherPort verificationCodeHasher;
     private final SignUpEmailVerificationRepositoryPort signUpEmailVerificationRepository;
-    private final NotificationOutboxRepositoryPort notificationOutboxRepository;
+    private final NotificationOutboxWritePort notificationOutboxRepository;
     private final Clock clock;
     private final SignUpEmailVerificationProperties verificationProperties;
 

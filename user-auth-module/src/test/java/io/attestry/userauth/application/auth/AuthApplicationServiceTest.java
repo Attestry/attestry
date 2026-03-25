@@ -20,7 +20,7 @@ import io.attestry.userauth.application.port.auth.PasswordHasherPort;
 import io.attestry.userauth.application.port.auth.SignUpEmailVerificationRepositoryPort;
 import io.attestry.userauth.application.port.auth.VerificationCodeHasherPort;
 import io.attestry.userauth.application.port.identity.UserAccountRepositoryPort;
-import io.attestry.userauth.application.port.notification.NotificationOutboxRepositoryPort;
+import io.attestry.userauth.application.port.notification.NotificationOutboxWritePort;
 import io.attestry.userauth.domain.UserAuthDomainException;
 import io.attestry.userauth.domain.UserAuthErrorCode;
 import io.attestry.userauth.security.AuthPrincipal;
@@ -537,7 +537,7 @@ class AuthApplicationServiceTest {
         }
     }
 
-    private static class InMemoryNotificationOutboxRepo implements NotificationOutboxRepositoryPort {
+    private static class InMemoryNotificationOutboxRepo implements NotificationOutboxWritePort {
         private final List<NotificationOutbox> entries = new ArrayList<>();
 
         @Override
@@ -545,52 +545,6 @@ class AuthApplicationServiceTest {
             entries.removeIf(entry -> entry.id().equals(outbox.id()));
             entries.add(outbox);
             return outbox;
-        }
-
-        @Override
-        public List<NotificationOutbox> claimPendingRetryable(Instant now, int batchSize, String processingOwner) {
-            return entries;
-        }
-
-        @Override
-        public int recoverTimedOutProcessing(Instant threshold) {
-            return 0;
-        }
-
-        @Override
-        public long countPending() {
-            return entries.stream().filter(entry -> entry.status() == io.attestry.userauth.domain.membership.model.NotificationOutboxStatus.PENDING).count();
-        }
-
-        @Override
-        public long countProcessing() {
-            return entries.stream().filter(entry -> entry.status() == io.attestry.userauth.domain.membership.model.NotificationOutboxStatus.PROCESSING).count();
-        }
-
-        @Override
-        public long countFailed() {
-            return entries.stream().filter(entry -> entry.status() == io.attestry.userauth.domain.membership.model.NotificationOutboxStatus.FAILED).count();
-        }
-
-        @Override
-        public long findOldestPendingAgeSeconds(Instant now) {
-            return entries.stream()
-                .filter(entry -> entry.status() == io.attestry.userauth.domain.membership.model.NotificationOutboxStatus.PENDING)
-                .map(NotificationOutbox::createdAt)
-                .mapToLong(createdAt -> Math.max(0, now.getEpochSecond() - createdAt.getEpochSecond()))
-                .max()
-                .orElse(0);
-        }
-
-        @Override
-        public long findOldestProcessingAgeSeconds(Instant now) {
-            return entries.stream()
-                .filter(entry -> entry.status() == io.attestry.userauth.domain.membership.model.NotificationOutboxStatus.PROCESSING)
-                .map(NotificationOutbox::processingStartedAt)
-                .filter(java.util.Objects::nonNull)
-                .mapToLong(startedAt -> Math.max(0, now.getEpochSecond() - startedAt.getEpochSecond()))
-                .max()
-                .orElse(0);
         }
     }
 }

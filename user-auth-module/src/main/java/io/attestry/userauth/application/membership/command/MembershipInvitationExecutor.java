@@ -6,7 +6,7 @@ import io.attestry.userauth.application.membership.result.MembershipResult;
 import io.attestry.userauth.application.membership.assembler.MembershipResultAssembler;
 import io.attestry.userauth.application.port.membership.InvitationPort;
 import io.attestry.userauth.application.port.membership.MembershipPort;
-import io.attestry.userauth.application.port.notification.NotificationOutboxRepositoryPort;
+import io.attestry.userauth.application.port.notification.NotificationOutboxWritePort;
 import io.attestry.userauth.application.port.tenant.TenantRepositoryPort;
 import io.attestry.userauth.domain.UserAuthDomainException;
 import io.attestry.userauth.domain.UserAuthErrorCode;
@@ -30,7 +30,7 @@ public class MembershipInvitationExecutor {
     private final InvitationPort invitationRepository;
     private final MembershipPort membershipPort;
     private final TenantRepositoryPort tenantRepository;
-    private final NotificationOutboxRepositoryPort notificationOutboxRepository;
+    private final NotificationOutboxWritePort notificationOutboxRepository;
     private final MembershipResultAssembler resultAssembler;
     private final Clock clock;
 
