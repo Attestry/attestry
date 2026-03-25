@@ -1,6 +1,7 @@
 package io.attestry.job.notification;
 
-import io.attestry.userauth.application.port.notification.NotificationOutboxRepositoryPort;
+import io.attestry.userauth.application.port.notification.NotificationOutboxOperationsPort;
+import io.attestry.userauth.application.port.notification.NotificationOutboxWritePort;
 import io.attestry.userauth.domain.membership.model.NotificationOutbox;
 import java.time.Clock;
 import java.time.Instant;
@@ -15,7 +16,8 @@ class NotificationOutboxCoordinator {
     private static final Logger log = LoggerFactory.getLogger(NotificationOutboxCoordinator.class);
     private static final int BATCH_SIZE = 20;
 
-    private final NotificationOutboxRepositoryPort notificationOutboxRepository;
+    private final NotificationOutboxOperationsPort notificationOutboxOperations;
+    private final NotificationOutboxWritePort notificationOutboxWritePort;
     private final NotificationOutboxDispatcher dispatcher;
     private final NotificationOutboxRetryPolicy retryPolicy;
     private final NotificationOutboxMetrics metrics;
@@ -23,13 +25,15 @@ class NotificationOutboxCoordinator {
     private final String processingOwner;
 
     NotificationOutboxCoordinator(
-        NotificationOutboxRepositoryPort notificationOutboxRepository,
+        NotificationOutboxOperationsPort notificationOutboxOperations,
+        NotificationOutboxWritePort notificationOutboxWritePort,
         NotificationOutboxDispatcher dispatcher,
         NotificationOutboxRetryPolicy retryPolicy,
         NotificationOutboxMetrics metrics,
         Clock clock
     ) {
-        this.notificationOutboxRepository = notificationOutboxRepository;
+        this.notificationOutboxOperations = notificationOutboxOperations;
+        this.notificationOutboxWritePort = notificationOutboxWritePort;
         this.dispatcher = dispatcher;
         this.retryPolicy = retryPolicy;
         this.metrics = metrics;
@@ -41,7 +45,7 @@ class NotificationOutboxCoordinator {
         metrics.recordBatch(() -> {
             Instant now = Instant.now(clock);
             List<NotificationOutbox> entries = metrics.recordClaim(
-                () -> notificationOutboxRepository.claimPendingRetryable(now, BATCH_SIZE, processingOwner)
+                () -> notificationOutboxOperations.claimPendingRetryable(now, BATCH_SIZE, processingOwner)
             );
             metrics.incrementClaimCount(entries.size());
 
@@ -54,7 +58,7 @@ class NotificationOutboxCoordinator {
                     metrics.incrementPublishFailureCount();
                     handleFailure(entry, ex, Instant.now(clock));
                 }
-                notificationOutboxRepository.save(entry);
+                notificationOutboxWritePort.save(entry);
             }
 
             refreshBacklogMetrics(Instant.now(clock));
@@ -91,10 +95,10 @@ class NotificationOutboxCoordinator {
     }
 
     private void refreshBacklogMetrics(Instant now) {
-        metrics.setPendingSize(notificationOutboxRepository.countPending());
-        metrics.setProcessingSize(notificationOutboxRepository.countProcessing());
-        metrics.setFailedSize(notificationOutboxRepository.countFailed());
-        metrics.setOldestPendingAgeSeconds(notificationOutboxRepository.findOldestPendingAgeSeconds(now));
-        metrics.setOldestProcessingAgeSeconds(notificationOutboxRepository.findOldestProcessingAgeSeconds(now));
+        metrics.setPendingSize(notificationOutboxOperations.countPending());
+        metrics.setProcessingSize(notificationOutboxOperations.countProcessing());
+        metrics.setFailedSize(notificationOutboxOperations.countFailed());
+        metrics.setOldestPendingAgeSeconds(notificationOutboxOperations.findOldestPendingAgeSeconds(now));
+        metrics.setOldestProcessingAgeSeconds(notificationOutboxOperations.findOldestProcessingAgeSeconds(now));
     }
 }

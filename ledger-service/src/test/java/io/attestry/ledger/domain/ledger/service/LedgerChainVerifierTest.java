@@ -8,7 +8,7 @@ import static org.junit.jupiter.api.Assertions.assertTrue;
 import io.attestry.ledger.domain.ledger.model.LedgerChainVerification;
 import io.attestry.ledger.domain.ledger.model.LedgerEntry;
 import io.attestry.ledger.domain.ledger.model.PassportId;
-import io.attestry.ledger.infrastructure.persistence.jpa.Sha256LedgerHashService;
+import io.attestry.ledger.infrastructure.persistence.jpa.support.Sha256LedgerHashService;
 import java.time.Instant;
 import java.util.List;
 import org.junit.jupiter.api.Test;

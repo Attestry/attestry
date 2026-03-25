@@ -63,6 +63,7 @@ public class AuthApplicationService implements AuthUseCase {
         return new VerifyPhoneResult(account.userId(), account.verificationLevel());
     }
 
+    // TODO("reissueToken가 필요한 이유 : 토큰에 대한 정보가 바뀜")
     @Override
     public AuthTokenResult reissueToken(String userId, String tenantId) {
         UserAccount account = userAccountRepository.findById(userId)

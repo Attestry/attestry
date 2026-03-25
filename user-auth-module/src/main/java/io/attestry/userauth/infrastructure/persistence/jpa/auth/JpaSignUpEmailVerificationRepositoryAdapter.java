@@ -11,17 +11,19 @@ import java.util.Optional;
 
 @Repository
 @RequiredArgsConstructor
-public class JpaSignUpEmailVerificationRepositoryAdapter extends SignUpEmailVerificationMapper implements SignUpEmailVerificationRepositoryPort {
+public class JpaSignUpEmailVerificationRepositoryAdapter implements SignUpEmailVerificationRepositoryPort {
+
+    private final SignUpEmailVerificationMapper mapper;
 
     private final SignUpEmailVerificationJpaRepository repository;
 
     @Override
     public Optional<SignUpEmailVerification> findByEmail(String email) {
-        return repository.findByEmail(email).map(this::toDomain);
+        return repository.findByEmail(email).map(mapper::toDomain);
     }
 
     @Override
     public SignUpEmailVerification save(SignUpEmailVerification verification) {
-        return toDomain(repository.save(toEntity(verification)));
+        return mapper.toDomain(repository.save(mapper.toEntity(verification)));
     }
 }

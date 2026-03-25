@@ -11,7 +11,7 @@ import static org.mockito.Mockito.times;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 
-import io.attestry.userauth.application.port.notification.NotificationOutboxRepositoryPort;
+import io.attestry.userauth.application.port.notification.NotificationOutboxWritePort;
 import io.attestry.userauth.domain.auth.model.VerificationLevel;
 import io.attestry.userauth.domain.membership.model.NotificationOutbox;
 import io.attestry.userauth.domain.membership.model.NotificationType;
@@ -49,7 +49,7 @@ class PassportManualServiceTest {
     @Mock UserReadPort userReadPort;
     @Mock WorkflowEvidencePort workflowEvidencePort;
     @Mock WorkflowAuthorizationSupport authorizationSupport;
-    @Mock NotificationOutboxRepositoryPort notificationOutboxRepositoryPort;
+    @Mock NotificationOutboxWritePort notificationOutboxRepositoryPort;
 
     private PassportManualService service;
 

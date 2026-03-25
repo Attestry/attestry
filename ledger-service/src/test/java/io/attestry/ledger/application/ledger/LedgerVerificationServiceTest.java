@@ -8,7 +8,7 @@ import io.attestry.ledger.application.ledger.verification.LedgerVerificationResu
 import io.attestry.ledger.application.port.LedgerQueryRepositoryPort;
 import io.attestry.ledger.domain.ledger.model.LedgerEntry;
 import io.attestry.ledger.domain.ledger.service.LedgerChainVerifier;
-import io.attestry.ledger.infrastructure.persistence.jpa.Sha256LedgerHashService;
+import io.attestry.ledger.infrastructure.persistence.jpa.support.Sha256LedgerHashService;
 import java.time.Instant;
 import java.util.ArrayList;
 import java.util.List;

@@ -30,7 +30,7 @@ import io.attestry.userauth.infrastructure.persistence.jpa.repository.Organizati
 import io.attestry.userauth.infrastructure.persistence.jpa.repository.RoleAssignmentAuditJpaRepository;
 import io.attestry.userauth.infrastructure.persistence.jpa.repository.TenantJpaRepository;
 import io.attestry.userauth.infrastructure.persistence.jpa.repository.UserAccountJpaRepository;
-import io.attestry.userauth.infrastructure.persistence.jpa.membership.MembershipEffectivePermissionProjectionRefresher;
+import io.attestry.userauth.infrastructure.persistence.jdbc.projection.MembershipEffectivePermissionProjectionRefresher;
 import java.util.Map;
 import java.util.UUID;
 import java.time.Instant;
@@ -111,6 +111,16 @@ class UserAuthApiIntegrationTests {
         onboardingEvidenceBundleRepository.deleteAll();
         tenantRepository.deleteAll();
         userAccountRepository.deleteAll();
+    }
+
+    @Test
+    void test(){
+        String str = "Attestry123!";
+        String admin = "PlatformAdm1n!2026";
+        String str1 = passwordHasher.hash(str);
+        System.out.println("str1 : " + str1);
+        String admin1 = passwordHasher.hash(admin);
+        System.out.println("admin1 : " + admin1);
     }
 
     @Test

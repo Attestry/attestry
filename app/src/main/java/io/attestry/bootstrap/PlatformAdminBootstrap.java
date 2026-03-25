@@ -1,7 +1,7 @@
 package io.attestry.bootstrap;
 
 import io.attestry.userauth.application.port.auth.PasswordHasherPort;
-import io.attestry.userauth.infrastructure.persistence.jpa.membership.MembershipEffectivePermissionProjectionRefresher;
+import io.attestry.userauth.infrastructure.persistence.jdbc.projection.MembershipEffectivePermissionProjectionRefresher;
 import java.sql.Timestamp;
 import java.time.Clock;
 import java.time.Instant;
