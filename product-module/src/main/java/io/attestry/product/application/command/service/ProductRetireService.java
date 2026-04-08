@@ -1,12 +1,12 @@
 package io.attestry.product.application.command.service;
 
-import io.attestry.product.application.command.support.RetireExecution;
-import io.attestry.product.application.common.ProductActor;
+import io.attestry.product.application.command.ProductRetireUseCase;
+import io.attestry.product.application.command.internal.ProductRetireAccessPolicy;
+import io.attestry.product.application.command.internal.ProductRetireExecutor;
+import io.attestry.product.application.command.internal.RetireExecution;
 import io.attestry.product.application.command.model.RetireCommand;
 import io.attestry.product.application.command.result.RetireResult;
-import io.attestry.product.application.command.support.ProductRetireExecutor;
-import io.attestry.product.application.policy.ProductRetireAccessPolicy;
-import io.attestry.product.application.command.usecase.ProductRetireUseCase;
+import io.attestry.product.application.common.ProductActor;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;

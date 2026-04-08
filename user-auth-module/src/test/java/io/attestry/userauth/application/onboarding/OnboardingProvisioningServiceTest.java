@@ -2,7 +2,7 @@ package io.attestry.userauth.application.onboarding;
 
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
-import io.attestry.userauth.application.onboarding.command.OnboardingProvisioningService;
+import io.attestry.userauth.application.onboarding.internal.OnboardingProvisioningService;
 import io.attestry.userauth.application.port.membership.MembershipPort;
 import io.attestry.userauth.application.port.tenant.TenantRepositoryPort;
 import io.attestry.userauth.application.port.template.TenantRoleTemplateBindingPort;

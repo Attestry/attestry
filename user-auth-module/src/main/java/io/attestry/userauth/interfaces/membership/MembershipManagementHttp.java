@@ -11,8 +11,8 @@ import io.attestry.userauth.application.membership.command.UpdateMembershipStatu
 import io.attestry.userauth.application.membership.result.MembershipPermissionTemplateResult;
 import io.attestry.userauth.application.membership.result.MembershipResult;
 import io.attestry.userauth.application.membership.result.MembershipRoleAssignmentsResult;
-import io.attestry.userauth.application.membership.usecase.MembershipCommandUseCase;
-import io.attestry.userauth.application.membership.usecase.MembershipQueryUseCase;
+import io.attestry.userauth.application.membership.command.MembershipCommandUseCase;
+import io.attestry.userauth.application.membership.query.MembershipQueryUseCase;
 import io.attestry.userauth.application.membership.view.MembershipAssignableRolesView;
 import io.attestry.userauth.application.membership.view.MembershipDetailView;
 import io.attestry.userauth.application.membership.view.MembershipRoleAssignmentsView;

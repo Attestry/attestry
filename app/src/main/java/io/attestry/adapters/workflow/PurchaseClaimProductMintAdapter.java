@@ -3,7 +3,7 @@ package io.attestry.adapters.workflow;
 import io.attestry.product.application.command.model.MintProductCommand;
 import io.attestry.product.application.common.ProductActor;
 import io.attestry.product.application.command.result.MintedProductResult;
-import io.attestry.product.application.command.usecase.ProductMintUseCase;
+import io.attestry.product.application.command.ProductMintUseCase;
 import io.attestry.workflow.application.port.claim.PurchaseClaimProductMintPort;
 import org.springframework.stereotype.Component;
 

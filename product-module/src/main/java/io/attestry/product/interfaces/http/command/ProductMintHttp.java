@@ -4,7 +4,7 @@ import io.attestry.commonlib.infrastructure.ApiResponse;
 import io.attestry.commonlib.web.CurrentActor;
 import io.attestry.product.application.command.model.MintProductCommand;
 import io.attestry.product.application.common.ProductActor;
-import io.attestry.product.application.command.usecase.ProductMintUseCase;
+import io.attestry.product.application.command.ProductMintUseCase;
 import io.attestry.product.domain.ProductDomainException;
 import io.attestry.product.domain.ProductErrorCode;
 import io.attestry.product.interfaces.http.command.dto.request.MintedProductRequest;

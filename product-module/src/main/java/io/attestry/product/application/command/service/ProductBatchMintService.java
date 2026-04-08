@@ -1,13 +1,13 @@
 package io.attestry.product.application.command.service;
 
 import io.attestry.product.application.command.model.MintProductCommand;
-import io.attestry.product.application.common.ProductActor;
+import io.attestry.product.application.command.internal.LedgerActor;
+import io.attestry.product.application.command.internal.ProductMintAccessPolicy;
+import io.attestry.product.application.command.internal.ProductMintCsvParser;
+import io.attestry.product.application.command.internal.ProductMintExecutor;
 import io.attestry.product.application.command.result.BatchMintError;
 import io.attestry.product.application.command.result.BatchMintResult;
-import io.attestry.product.application.command.support.LedgerActor;
-import io.attestry.product.application.command.support.ProductMintCsvParser;
-import io.attestry.product.application.command.support.ProductMintExecutor;
-import io.attestry.product.application.policy.ProductMintAccessPolicy;
+import io.attestry.product.application.common.ProductActor;
 import io.attestry.product.domain.passport.model.MintProductInput;
 import java.io.InputStream;
 import java.util.ArrayList;

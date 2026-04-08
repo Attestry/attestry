@@ -3,14 +3,14 @@ package io.attestry.userauth.application.membership;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
+import io.attestry.userauth.application.membership.internal.MembershipQueryViewAssembler;
 import io.attestry.userauth.application.membership.view.MembershipView;
-import io.attestry.userauth.application.membership.assembler.MembershipQueryViewAssembler;
 import io.attestry.userauth.application.membership.query.MembershipQueryService;
 import io.attestry.userauth.application.port.membership.MembershipPort;
 import io.attestry.userauth.application.port.membership.MembershipProjectionPort;
-import io.attestry.userauth.application.port.tenant.TenantRepositoryPort;
-import io.attestry.userauth.application.port.template.TenantRoleTemplateBindingPort;
 import io.attestry.userauth.application.port.identity.UserAccountRepositoryPort;
+import io.attestry.userauth.application.port.template.TenantRoleTemplateBindingPort;
+import io.attestry.userauth.application.port.tenant.TenantRepositoryPort;
 import io.attestry.userauth.domain.authorization.model.PermissionCodes;
 import io.attestry.userauth.domain.membership.model.Membership;
 import io.attestry.userauth.domain.membership.model.MembershipRole;

@@ -1,8 +1,7 @@
 package io.attestry.userauth.application.onboarding.query;
 
 import io.attestry.userauth.application.common.ActorContext;
-import io.attestry.userauth.application.onboarding.assembler.OnboardingApplicationViewAssembler;
-import io.attestry.userauth.application.onboarding.usecase.OnboardingApplicationQueryUseCase;
+import io.attestry.userauth.application.onboarding.internal.OnboardingApplicationViewAssembler;
 import io.attestry.userauth.application.onboarding.view.ApplicationView;
 import io.attestry.userauth.application.port.onboarding.OrganizationApplicationRepositoryPort;
 import io.attestry.userauth.domain.UserAuthDomainException;

@@ -12,7 +12,7 @@ import io.attestry.product.application.port.ownership.PassportOwnershipPort;
 import io.attestry.product.application.port.permission.PassportPermissionPort;
 import io.attestry.product.application.port.passport.PassportPort;
 import io.attestry.product.application.port.query.PassportShipmentQueryPort;
-import io.attestry.product.application.query.assembler.ProductQueryViewAssembler;
+import io.attestry.product.application.query.internal.ProductQueryViewAssembler;
 import io.attestry.product.application.query.view.DistributedPassportView;
 import io.attestry.product.application.query.view.DistributedPassportDetailView;
 import io.attestry.product.application.query.view.PagedDistributedPassportView;

@@ -5,12 +5,12 @@ import static org.mockito.Mockito.doAnswer;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 
-import io.attestry.product.application.command.support.ProductMintCsvParser;
-import io.attestry.product.application.command.support.ProductMintExecutor;
-import io.attestry.product.application.command.support.LedgerActor;
+import io.attestry.product.application.command.internal.LedgerActor;
+import io.attestry.product.application.command.internal.ProductMintAccessPolicy;
+import io.attestry.product.application.command.internal.ProductMintCsvParser;
+import io.attestry.product.application.command.internal.ProductMintExecutor;
 import io.attestry.product.application.command.model.MintProductCommand;
 import io.attestry.product.application.common.ProductActor;
-import io.attestry.product.application.policy.ProductMintAccessPolicy;
 import java.time.Instant;
 import java.util.List;
 import java.util.Set;
