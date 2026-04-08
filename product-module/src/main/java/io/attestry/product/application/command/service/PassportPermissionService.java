@@ -1,12 +1,12 @@
 package io.attestry.product.application.command.service;
 
 import io.attestry.product.application.command.model.GrantCommand;
-import io.attestry.product.application.common.ProductActor;
+import io.attestry.product.application.command.PassportPermissionUseCase;
 import io.attestry.product.application.command.result.GrantResult;
+import io.attestry.product.application.common.ProductActor;
 import io.attestry.product.application.port.permission.PassportPermissionPort;
 import io.attestry.product.application.port.passport.PassportPort;
 import io.attestry.product.application.port.auth.ProductAuthorizationPort;
-import io.attestry.product.application.command.usecase.PassportPermissionUseCase;
 import io.attestry.product.domain.ProductDomainException;
 import io.attestry.product.domain.ProductErrorCode;
 import io.attestry.product.domain.permission.model.PassportPermission;

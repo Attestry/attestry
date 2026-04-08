@@ -1,18 +1,17 @@
 package io.attestry.product.application.command.service;
 
 import io.attestry.product.application.command.model.MintProductCommand;
-import io.attestry.product.application.common.ProductActor;
+import io.attestry.product.application.command.ProductMintUseCase;
+import io.attestry.product.application.command.internal.MintExecution;
+import io.attestry.product.application.command.internal.ProductMintAccessPolicy;
+import io.attestry.product.application.command.internal.ProductMintExecutor;
 import io.attestry.product.application.command.result.BatchMintResult;
 import io.attestry.product.application.command.result.MintedProductResult;
-import io.attestry.product.application.command.support.MintExecution;
-import io.attestry.product.application.command.support.ProductMintExecutor;
-import io.attestry.product.application.policy.ProductMintAccessPolicy;
-import io.attestry.product.application.command.usecase.ProductMintUseCase;
+import io.attestry.product.application.common.ProductActor;
 import io.attestry.commonlib.outbox.OutboxEventEnvelope;
 import io.attestry.product.domain.passport.model.MintProductInput;
 import io.attestry.product.domain.passport.model.ProductPassport;
 import java.io.InputStream;
-import java.util.List;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;

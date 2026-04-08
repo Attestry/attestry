@@ -4,7 +4,7 @@ import io.attestry.commonlib.infrastructure.ApiResponse;
 import io.attestry.commonlib.web.CurrentActor;
 import io.attestry.product.application.command.model.GrantCommand;
 import io.attestry.product.application.common.ProductActor;
-import io.attestry.product.application.command.usecase.PassportPermissionUseCase;
+import io.attestry.product.application.command.PassportPermissionUseCase;
 import io.attestry.product.interfaces.http.command.dto.request.GrantPermissionRequest;
 import io.attestry.product.interfaces.http.command.dto.response.GrantPermissionResponse;
 import lombok.RequiredArgsConstructor;

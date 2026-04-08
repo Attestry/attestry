@@ -1,13 +1,13 @@
 package io.attestry.product.application.command.service;
 
-import io.attestry.product.application.common.ProductActor;
+import io.attestry.product.application.command.ProductVoidUseCase;
 import io.attestry.product.application.command.model.VoidCommand;
 import io.attestry.product.application.command.result.VoidResult;
+import io.attestry.product.application.command.internal.ProductVoidAccessPolicy;
+import io.attestry.product.application.command.internal.ProductVoidExecutor;
+import io.attestry.product.application.command.internal.VoidExecution;
+import io.attestry.product.application.common.ProductActor;
 import io.attestry.product.application.port.passport.VoidCommandPort;
-import io.attestry.product.application.command.support.VoidExecution;
-import io.attestry.product.application.command.support.ProductVoidExecutor;
-import io.attestry.product.application.policy.ProductVoidAccessPolicy;
-import io.attestry.product.application.command.usecase.ProductVoidUseCase;
 import io.attestry.product.domain.passport.model.VoidReason;
 import io.attestry.product.domain.ProductDomainException;
 import io.attestry.product.domain.ProductErrorCode;

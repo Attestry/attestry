@@ -6,7 +6,7 @@ import io.attestry.product.application.command.model.ClearRiskCommand;
 import io.attestry.product.application.command.model.FlagLostCommand;
 import io.attestry.product.application.command.model.FlagStolenCommand;
 import io.attestry.product.application.common.ProductActor;
-import io.attestry.product.application.command.usecase.ProductRiskUseCase;
+import io.attestry.product.application.command.ProductRiskUseCase;
 import io.attestry.product.interfaces.http.command.dto.request.FlagStolenRequest;
 import io.attestry.product.interfaces.http.command.dto.response.RiskResponse;
 import lombok.RequiredArgsConstructor;
