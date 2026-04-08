@@ -3,6 +3,7 @@ package io.attestry.workflow.application.transfer;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.junit.jupiter.api.Assertions.assertTrue;
+import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.Mockito.doNothing;
 import static org.mockito.Mockito.doThrow;
 import static org.mockito.Mockito.verify;
@@ -11,12 +12,14 @@ import static org.mockito.Mockito.when;
 import io.attestry.userauth.domain.auth.model.VerificationLevel;
 import io.attestry.workflow.application.common.WorkflowActorContext;
 import io.attestry.workflow.application.transfer.command.TransferCreateService;
-import io.attestry.workflow.application.transfer.support.TransferCreateExecutor;
 import io.attestry.workflow.application.transfer.command.CreateB2CTransferCommand;
 import io.attestry.workflow.application.transfer.command.CreateC2CTransferCommand;
-import io.attestry.workflow.application.transfer.policy.TransferAccessPolicy;
+import io.attestry.workflow.application.transfer.internal.TransferAccessPolicy;
+import io.attestry.workflow.application.transfer.internal.TransferContextResolver;
+import io.attestry.workflow.application.transfer.internal.TransferCreateExecutor;
+import io.attestry.workflow.application.transfer.internal.TransferCreateResultMapper;
+import io.attestry.workflow.application.transfer.internal.TransferLookupService;
 import io.attestry.workflow.application.transfer.result.CreateTransferResult;
-import io.attestry.workflow.application.transfer.support.TransferContextResolver;
 import io.attestry.workflow.domain.WorkflowDomainException;
 import io.attestry.workflow.domain.WorkflowErrorCode;
 import io.attestry.workflow.domain.transfer.model.AcceptMethod;
@@ -24,7 +27,6 @@ import io.attestry.workflow.domain.transfer.model.TokenTransfer;
 import io.attestry.workflow.domain.transfer.model.TransferType;
 import io.attestry.workflow.domain.transfer.model.TransferStatus;
 import io.attestry.workflow.domain.transfer.policy.TransferCreatePolicy.TransferCreateContext;
-import io.attestry.workflow.domain.transfer.repository.TokenTransferRepository;
 import java.time.Clock;
 import java.time.Instant;
 import java.time.ZoneOffset;
@@ -39,10 +41,11 @@ import org.mockito.junit.jupiter.MockitoExtension;
 @ExtendWith(MockitoExtension.class)
 class TransferCreateServiceTest {
 
-    @Mock TokenTransferRepository transferRepository;
     @Mock TransferAccessPolicy accessPolicy;
     @Mock TransferContextResolver contextResolver;
     @Mock TransferCreateExecutor createExecutor;
+    @Mock TransferLookupService transferLookupService;
+    @Mock TransferCreateResultMapper resultMapper;
 
     private final Clock clock = Clock.fixed(Instant.parse("2026-03-01T10:00:00Z"), ZoneOffset.UTC);
 
@@ -58,7 +61,14 @@ class TransferCreateServiceTest {
 
     @BeforeEach
     void setUp() {
-        service = new TransferCreateService(transferRepository, accessPolicy, contextResolver, createExecutor, clock);
+        service = new TransferCreateService(
+            accessPolicy,
+            contextResolver,
+            createExecutor,
+            transferLookupService,
+            resultMapper,
+            clock
+        );
     }
 
     @Test
@@ -172,7 +182,7 @@ class TransferCreateServiceTest {
     @Test
     void findLatestActivePendingB2CByPassportId_returnsRetailPendingTransfer() {
         doNothing().when(accessPolicy).assertFindPendingB2CAccess(RETAIL_PRINCIPAL, "tenant1", "p1");
-        when(transferRepository.findLatestActivePendingByPassportId(
+        when(transferLookupService.findLatestActivePendingByPassportId(
             "p1",
             Instant.parse("2026-03-01T10:00:00Z"),
             TransferType.B2C,
@@ -198,11 +208,15 @@ class TransferCreateServiceTest {
                 null,
                 null
             )));
+        when(resultMapper.toResult(any(TokenTransfer.class))).thenReturn(new CreateTransferResult(
+            "t1", "p1", "B2C", "PENDING", "QR", "nonce-1", EXPIRES
+        ));
 
         Optional<CreateTransferResult> result = service.findLatestActivePendingB2CByPassportId(RETAIL_PRINCIPAL, "tenant1", "p1");
 
         assertTrue(result.isPresent());
         assertEquals("t1", result.get().transferId());
         assertEquals("B2C", result.get().transferType());
+        verify(resultMapper).toResult(any(TokenTransfer.class));
     }
 }

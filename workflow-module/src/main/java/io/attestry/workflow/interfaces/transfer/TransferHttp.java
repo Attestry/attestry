@@ -9,10 +9,10 @@ import io.attestry.workflow.application.transfer.command.CreateC2CTransferComman
 import io.attestry.workflow.application.transfer.result.AcceptTransferResult;
 import io.attestry.workflow.application.transfer.result.CancelTransferResult;
 import io.attestry.workflow.application.transfer.result.CreateTransferResult;
-import io.attestry.workflow.application.transfer.usecase.TransferAcceptUseCase;
-import io.attestry.workflow.application.transfer.usecase.TransferCancelUseCase;
-import io.attestry.workflow.application.transfer.usecase.TransferCreateUseCase;
-import io.attestry.workflow.application.transfer.usecase.TransferQueryUseCase;
+import io.attestry.workflow.application.transfer.command.TransferAcceptUseCase;
+import io.attestry.workflow.application.transfer.command.TransferCancelUseCase;
+import io.attestry.workflow.application.transfer.command.TransferCreateUseCase;
+import io.attestry.workflow.application.transfer.query.TransferQueryUseCase;
 import io.attestry.workflow.application.transfer.view.PagedCompletedTransferView;
 import io.attestry.workflow.interfaces.transfer.dto.request.AcceptTransferRequest;
 import io.attestry.workflow.interfaces.transfer.dto.request.CreateTransferRequest;

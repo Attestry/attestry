@@ -13,17 +13,17 @@ import io.attestry.userauth.domain.auth.model.VerificationLevel;
 import io.attestry.workflow.application.common.WorkflowActorContext;
 import io.attestry.workflow.application.servicerequest.command.ServiceCancelService;
 import io.attestry.workflow.application.port.servicerequest.ServicePermissionPort;
-import io.attestry.workflow.application.servicerequest.policy.ServiceRequestAccessPolicy;
+import io.attestry.workflow.application.servicerequest.internal.ServiceRequestAccessPolicy;
 import io.attestry.workflow.application.servicerequest.result.CancelServiceRequestResult;
+import io.attestry.workflow.application.servicerequest.internal.ServiceRequestResultFactory;
+import io.attestry.workflow.application.servicerequest.internal.ServiceRequestLookupService;
 import io.attestry.workflow.application.support.WorkflowAuthorizationSupport;
 import io.attestry.workflow.domain.WorkflowDomainException;
 import io.attestry.workflow.domain.WorkflowErrorCode;
 import io.attestry.workflow.domain.servicerequest.model.ServiceRequest;
-import io.attestry.workflow.domain.servicerequest.repository.ServiceRequestRepository;
 import java.time.Clock;
 import java.time.Instant;
 import java.time.ZoneOffset;
-import java.util.Optional;
 import java.util.Set;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
@@ -34,7 +34,8 @@ import org.mockito.junit.jupiter.MockitoExtension;
 @ExtendWith(MockitoExtension.class)
 class ServiceCancelServiceTest {
 
-    @Mock ServiceRequestRepository serviceRequestRepository;
+    @Mock ServiceRequestLookupService serviceRequestLookupService;
+    @Mock io.attestry.workflow.domain.servicerequest.repository.ServiceRequestRepository serviceRequestRepository;
     @Mock ServicePermissionPort servicePermissionPort;
     @Mock WorkflowAuthorizationSupport authorizationSupport;
 
@@ -51,7 +52,12 @@ class ServiceCancelServiceTest {
     void setUp() {
         ServiceRequestAccessPolicy accessPolicy = new ServiceRequestAccessPolicy(authorizationSupport);
         service = new ServiceCancelService(
-            serviceRequestRepository, servicePermissionPort, accessPolicy, clock
+            accessPolicy,
+            serviceRequestLookupService,
+            serviceRequestRepository,
+            servicePermissionPort,
+            new ServiceRequestResultFactory(),
+            clock
         );
     }
 
@@ -63,7 +69,7 @@ class ServiceCancelServiceTest {
         );
 
         doNothing().when(authorizationSupport).assertPermissionOnly(any(), anyString(), anyString());
-        when(serviceRequestRepository.findById("sr1")).thenReturn(Optional.of(pending));
+        when(serviceRequestLookupService.getPendingById("sr1")).thenReturn(pending);
         when(serviceRequestRepository.save(any(ServiceRequest.class))).thenAnswer(inv -> inv.getArgument(0));
 
         CancelServiceRequestResult result = service.cancel(OWNER, "sr1", "No longer needed");
@@ -82,7 +88,7 @@ class ServiceCancelServiceTest {
         );
 
         doNothing().when(authorizationSupport).assertPermissionOnly(any(), anyString(), anyString());
-        when(serviceRequestRepository.findById("sr1")).thenReturn(Optional.of(pending));
+        when(serviceRequestLookupService.getPendingById("sr1")).thenReturn(pending);
 
         WorkflowDomainException ex = assertThrows(WorkflowDomainException.class, () ->
             service.cancel(OWNER, "sr1", "reason")
@@ -98,7 +104,8 @@ class ServiceCancelServiceTest {
         ).reject("reason", Instant.parse("2026-03-01T09:30:00Z"));
 
         doNothing().when(authorizationSupport).assertPermissionOnly(any(), anyString(), anyString());
-        when(serviceRequestRepository.findById("sr1")).thenReturn(Optional.of(rejected));
+        when(serviceRequestLookupService.getPendingById("sr1"))
+            .thenThrow(new WorkflowDomainException(WorkflowErrorCode.SERVICE_REQUEST_INVALID_STATE, "Only PENDING service request can be processed"));
 
         WorkflowDomainException ex = assertThrows(WorkflowDomainException.class, () ->
             service.cancel(OWNER, "sr1", "reason")
@@ -118,7 +125,8 @@ class ServiceCancelServiceTest {
         );
 
         doNothing().when(authorizationSupport).assertPermissionOnly(any(), anyString(), anyString());
-        when(serviceRequestRepository.findById("sr1")).thenReturn(Optional.of(accepted));
+        when(serviceRequestLookupService.getPendingById("sr1"))
+            .thenThrow(new WorkflowDomainException(WorkflowErrorCode.SERVICE_REQUEST_INVALID_STATE, "Only PENDING service request can be processed"));
 
         WorkflowDomainException ex = assertThrows(WorkflowDomainException.class, () ->
             service.cancel(OWNER, "sr1", "reason")
@@ -129,7 +137,8 @@ class ServiceCancelServiceTest {
     @Test
     void cancel_notFound_throws() {
         doNothing().when(authorizationSupport).assertPermissionOnly(any(), anyString(), anyString());
-        when(serviceRequestRepository.findById("missing")).thenReturn(Optional.empty());
+        when(serviceRequestLookupService.getPendingById("missing"))
+            .thenThrow(new WorkflowDomainException(WorkflowErrorCode.SERVICE_REQUEST_NOT_FOUND, "Service request not found"));
 
         WorkflowDomainException ex = assertThrows(WorkflowDomainException.class, () ->
             service.cancel(OWNER, "missing", "reason")

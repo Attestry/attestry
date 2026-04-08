@@ -1,16 +1,12 @@
 package io.attestry.workflow.application.servicerequest.command;
 
 import io.attestry.workflow.application.common.WorkflowActorContext;
-import io.attestry.workflow.application.port.servicerequest.ServiceProductReadPort;
-import io.attestry.workflow.application.servicerequest.policy.ServiceRequestAccessPolicy;
+import io.attestry.workflow.application.servicerequest.internal.ServiceRequestAccessPolicy;
 import io.attestry.workflow.application.servicerequest.result.GrantServiceConsentResult;
 import io.attestry.workflow.application.servicerequest.result.RevokeServiceConsentResult;
-import io.attestry.workflow.application.servicerequest.support.ServiceConsentExecutor;
-import io.attestry.workflow.application.servicerequest.usecase.ServiceConsentUseCase;
-import io.attestry.workflow.domain.WorkflowDomainException;
-import io.attestry.workflow.domain.WorkflowErrorCode;
+import io.attestry.workflow.application.servicerequest.internal.ServiceConsentContextResolver;
+import io.attestry.workflow.application.servicerequest.internal.ServiceConsentExecutor;
 import io.attestry.workflow.domain.servicerequest.policy.ServiceConsentPolicy;
-import io.attestry.workflow.domain.servicerequest.policy.ServiceConsentPolicy.ServiceConsentContext;
 
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
@@ -20,9 +16,9 @@ import org.springframework.transaction.annotation.Transactional;
 @Service
 public class ServiceConsentService implements ServiceConsentUseCase {
 
-    private final ServiceProductReadPort serviceProductReadPort;
     private final ServiceRequestAccessPolicy accessPolicy;
     private final ServiceConsentPolicy consentPolicy;
+    private final ServiceConsentContextResolver consentContextResolver;
     private final ServiceConsentExecutor consentExecutor;
 
 
@@ -34,19 +30,7 @@ public class ServiceConsentService implements ServiceConsentUseCase {
         GrantServiceConsentCommand command
     ) {
         accessPolicy.assertOwnerCreatePermission(principal, "service:consent:" + passportId);
-
-        ServiceProductReadPort.ServicePassportState state = serviceProductReadPort.findPassportState(passportId)
-            .orElseThrow(() -> new WorkflowDomainException(WorkflowErrorCode.INVALID_REQUEST, "Passport not found"));
-
-        String currentOwnerId = serviceProductReadPort.findCurrentOwnerId(passportId)
-            .orElseThrow(() -> new WorkflowDomainException(WorkflowErrorCode.INVALID_REQUEST, "Passport owner not found"));
-
-        ServiceConsentContext context = new ServiceConsentContext(
-            principal.userId(),
-            currentOwnerId,
-            state.assetState(),
-            state.riskFlag()
-        );
+        var context = consentContextResolver.resolveGrantContext(principal.userId(), passportId);
         consentPolicy.assertConsentGrantable(context);
         return consentExecutor.grant(principal, passportId, command);
     }
@@ -59,9 +43,7 @@ public class ServiceConsentService implements ServiceConsentUseCase {
         String providerTenantId
     ) {
         accessPolicy.assertOwnerCreatePermission(principal, "service:consent-revoke:" + passportId);
-
-        String currentOwnerId = serviceProductReadPort.findCurrentOwnerId(passportId)
-            .orElseThrow(() -> new WorkflowDomainException(WorkflowErrorCode.INVALID_REQUEST, "Passport owner not found"));
+        String currentOwnerId = consentContextResolver.resolveCurrentOwnerId(passportId);
         accessPolicy.assertOwnerConsentAccess(principal, currentOwnerId, "revoke consent");
         return consentExecutor.revoke(passportId, providerTenantId);
     }

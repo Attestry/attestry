@@ -7,7 +7,7 @@ import io.attestry.workflow.application.claim.command.CompleteClaimEvidenceComma
 import io.attestry.workflow.application.claim.command.PresignClaimEvidenceCommand;
 import io.attestry.workflow.application.claim.command.SubmitPurchaseClaimCommand;
 import io.attestry.workflow.application.claim.result.SubmitPurchaseClaimResult;
-import io.attestry.workflow.application.claim.usecase.PurchaseClaimSubmitUseCase;
+import io.attestry.workflow.application.claim.command.PurchaseClaimSubmitUseCase;
 import io.attestry.workflow.application.shipment.result.EvidenceCompleteResult;
 import io.attestry.workflow.application.shipment.result.PresignedEvidenceUploadResult;
 import io.attestry.workflow.interfaces.claim.dto.request.CompleteEvidenceRequest;

@@ -13,11 +13,13 @@ import io.attestry.userauth.domain.auth.model.VerificationLevel;
 import io.attestry.workflow.application.common.WorkflowActorContext;
 import io.attestry.workflow.application.delegation.command.GrantDelegationCommand;
 import io.attestry.workflow.application.delegation.result.DelegationResult;
-import io.attestry.workflow.application.delegation.usecase.DelegationUseCase;
-import io.attestry.workflow.application.distribution.assembler.DistributionViewAssembler;
+import io.attestry.workflow.application.delegation.command.DelegationUseCase;
 import io.attestry.workflow.application.distribution.command.DistributeCommand;
 import io.attestry.workflow.application.distribution.command.DistributionCommandService;
 import io.attestry.workflow.application.distribution.command.RecallDistributionCommand;
+import io.attestry.workflow.application.distribution.internal.DistributionLookupService;
+import io.attestry.workflow.application.distribution.internal.DistributionViewAssembler;
+import io.attestry.workflow.application.distribution.internal.DistributionViewReader;
 import io.attestry.workflow.application.distribution.query.DistributionQueryService;
 import io.attestry.workflow.application.distribution.result.BatchDistributeResult;
 import io.attestry.workflow.application.distribution.view.DistributionView;
@@ -35,6 +37,7 @@ import java.time.Clock;
 import java.time.Instant;
 import java.time.ZoneOffset;
 import java.util.List;
+import java.util.Optional;
 import java.util.Set;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
@@ -74,7 +77,8 @@ class DistributionServiceTest {
         commandService = new DistributionCommandService(
             delegationUseCase,
             distributionRepository,
-            distributionQueryPort,
+            new DistributionLookupService(distributionRepository),
+            new DistributionViewReader(distributionQueryPort, tenantReadPort, viewAssembler),
             tenantReadPort,
             authorizationSupport,
             projectionOutboxPort,
@@ -242,12 +246,30 @@ class DistributionServiceTest {
         stubDistributionGrantAuthorization(SOURCE_TENANT, "distribution:recall:" + recalled.distributionId());
         when(delegationUseCase.revoke(PRINCIPAL, "delegation-1", "reason"))
             .thenReturn(new DelegationResult("delegation-1", PARTNER_LINK_ID, SOURCE_TENANT, TARGET_TENANT, "PASSPORT", "passport-1", "RETAIL_TRANSFER_CREATE", "REVOKED", null, "reason"));
-        when(distributionQueryPort.findById(recalled.distributionId())).thenReturn(java.util.Optional.of(row));
+        when(distributionQueryPort.findById(recalled.distributionId())).thenReturn(Optional.of(row));
         when(tenantReadPort.findTenantSummariesByIds(List.of(TARGET_TENANT)))
             .thenReturn(java.util.Map.of(
                 TARGET_TENANT,
                 new TenantReadPort.TenantSummary(TARGET_TENANT, "Target Tenant", "KR", "addr", "RETAIL")
             ));
+        when(viewAssembler.toView(any(), any())).thenReturn(new DistributionView(
+            recalled.distributionId(),
+            recalled.passportId(),
+            SOURCE_TENANT,
+            TARGET_TENANT,
+            "Target Tenant",
+            "RETAIL",
+            PARTNER_LINK_ID,
+            "delegation-1",
+            "RECALLED",
+            "SN-1",
+            "Model X",
+            recalled.distributedByUserId(),
+            recalled.distributedAt(),
+            recalled.recalledByUserId(),
+            recalled.recalledAt(),
+            recalled.recallReason()
+        ));
 
         DistributionView result = commandService.recall(PRINCIPAL, recalled.distributionId(), new RecallDistributionCommand("reason"));
 

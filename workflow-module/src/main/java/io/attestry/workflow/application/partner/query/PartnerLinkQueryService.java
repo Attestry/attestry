@@ -2,7 +2,6 @@ package io.attestry.workflow.application.partner.query;
 
 import io.attestry.workflow.application.common.WorkflowActorContext;
 import io.attestry.workflow.application.partner.result.PartnerLinkResult;
-import io.attestry.workflow.application.partner.usecase.PartnerLinkQueryUseCase;
 import io.attestry.workflow.application.port.common.TenantReadPort;
 import io.attestry.workflow.application.support.WorkflowAuthorizationSupport;
 import io.attestry.workflow.domain.WorkflowDomainException;

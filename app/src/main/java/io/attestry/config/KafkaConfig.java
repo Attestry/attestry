@@ -1,6 +1,6 @@
 package io.attestry.config;
 
-import io.attestry.kafka.workflow.WorkflowReadProjectionKafkaProperties;
+import io.attestry.runtime.workflowprojection.WorkflowReadProjectionKafkaProperties;
 import org.apache.kafka.clients.producer.ProducerConfig;
 import org.apache.kafka.common.serialization.StringSerializer;
 import org.springframework.boot.autoconfigure.condition.ConditionalOnProperty;

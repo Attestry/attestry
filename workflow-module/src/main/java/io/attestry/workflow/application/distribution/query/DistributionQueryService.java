@@ -2,8 +2,7 @@ package io.attestry.workflow.application.distribution.query;
 
 import io.attestry.userauth.domain.authorization.model.PermissionCodes;
 import io.attestry.workflow.application.common.WorkflowActorContext;
-import io.attestry.workflow.application.distribution.assembler.DistributionViewAssembler;
-import io.attestry.workflow.application.distribution.usecase.DistributionQueryUseCase;
+import io.attestry.workflow.application.distribution.internal.DistributionViewAssembler;
 import io.attestry.workflow.application.distribution.view.PagedDistributionCandidateView;
 import io.attestry.workflow.application.distribution.view.PagedDistributionView;
 import io.attestry.workflow.application.port.common.TenantReadPort;

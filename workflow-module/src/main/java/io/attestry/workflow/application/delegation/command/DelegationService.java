@@ -5,7 +5,6 @@ import io.attestry.userauth.domain.authorization.model.PermissionCodes;
 import io.attestry.workflow.application.port.delegation.PassportAuthorityQueryPort;
 import io.attestry.workflow.application.delegation.result.DelegationResult;
 import io.attestry.workflow.application.delegation.support.RelationshipValidator;
-import io.attestry.workflow.application.delegation.usecase.DelegationUseCase;
 import io.attestry.workflow.application.port.delegation.DelegationPermissionProjectionPort;
 import io.attestry.workflow.application.port.common.TenantReadPort;
 import io.attestry.workflow.application.support.WorkflowAuthorizationSupport;

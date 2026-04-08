@@ -2,10 +2,9 @@ package io.attestry.workflow.application.servicerequest.command;
 
 import io.attestry.userauth.domain.authorization.model.PermissionCodes;
 import io.attestry.workflow.application.common.WorkflowActorContext;
-import io.attestry.workflow.application.servicerequest.support.ServiceCompleteExecutor;
+import io.attestry.workflow.application.servicerequest.internal.ServiceCompleteExecutor;
 import io.attestry.workflow.application.servicerequest.result.CompleteServiceRequestResult;
-import io.attestry.workflow.application.servicerequest.support.ServiceRequestContextResolver;
-import io.attestry.workflow.application.servicerequest.usecase.ServiceCompleteUseCase;
+import io.attestry.workflow.application.servicerequest.internal.ServiceRequestContextResolver;
 import io.attestry.workflow.application.support.WorkflowAuthorizationSupport;
 import io.attestry.workflow.domain.servicerequest.policy.ServiceCompletePolicy;
 import lombok.RequiredArgsConstructor;

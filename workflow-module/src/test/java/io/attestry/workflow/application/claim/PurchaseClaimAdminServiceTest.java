@@ -10,13 +10,14 @@ import static org.mockito.Mockito.never;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 
-import io.attestry.commonlib.application.port.ObjectStoragePort;
 import io.attestry.userauth.domain.auth.model.VerificationLevel;
 import io.attestry.workflow.application.common.WorkflowActorContext;
 import io.attestry.workflow.application.claim.command.PurchaseClaimAdminService;
 import io.attestry.workflow.application.claim.command.ApprovePurchaseClaimCommand;
 import io.attestry.workflow.application.claim.result.ApprovePurchaseClaimResult;
 import io.attestry.workflow.application.claim.result.RejectPurchaseClaimResult;
+import io.attestry.workflow.application.claim.internal.PurchaseClaimEvidenceViewResolver;
+import io.attestry.workflow.application.claim.internal.PurchaseClaimLookupService;
 import io.attestry.workflow.application.port.claim.PurchaseClaimProductMintPort;
 import io.attestry.workflow.application.port.common.WorkflowEvidencePort;
 import io.attestry.workflow.application.port.common.WorkflowLedgerOutboxPort;
@@ -48,7 +49,8 @@ class PurchaseClaimAdminServiceTest {
     @Mock TransferOwnershipUpdatePort ownershipUpdatePort;
     @Mock WorkflowLedgerOutboxPort ledgerOutboxPort;
     @Mock WorkflowEvidencePort shipmentEvidencePort;
-    @Mock ObjectStoragePort objectStoragePort;
+    @Mock PurchaseClaimLookupService claimLookupService;
+    @Mock PurchaseClaimEvidenceViewResolver evidenceViewResolver;
     @Mock WorkflowAuthorizationSupport authorizationSupport;
 
     private final Clock clock = Clock.fixed(Instant.parse("2026-03-01T10:00:00Z"), ZoneOffset.UTC);
@@ -84,8 +86,15 @@ class PurchaseClaimAdminServiceTest {
     @BeforeEach
     void setUp() {
         service = new PurchaseClaimAdminService(
-            purchaseClaimRepository, productMintPort, ownershipUpdatePort,
-            ledgerOutboxPort, shipmentEvidencePort, objectStoragePort, authorizationSupport, clock
+            purchaseClaimRepository,
+            productMintPort,
+            ownershipUpdatePort,
+            ledgerOutboxPort,
+            shipmentEvidencePort,
+            claimLookupService,
+            evidenceViewResolver,
+            authorizationSupport,
+            clock
         );
     }
 
@@ -93,7 +102,7 @@ class PurchaseClaimAdminServiceTest {
     void approve_success() {
         PurchaseClaim claim = submittedClaim();
         doNothing().when(authorizationSupport).assertLivePermission(any(), anyString(), anyString(), anyString());
-        when(purchaseClaimRepository.findById("claim-1")).thenReturn(Optional.of(claim));
+        when(claimLookupService.getSubmitted("claim-1")).thenReturn(claim);
         when(productMintPort.mint(any(PurchaseClaimProductMintPort.MintRequest.class)))
             .thenReturn(new PurchaseClaimProductMintPort.MintResult("asset-1", "passport-1", "QR-ABC", "outbox-1", "GENESIS", "MINTED"));
         doNothing().when(ownershipUpdatePort).upsertOwner(anyString(), anyString(), any(Instant.class));
@@ -117,7 +126,7 @@ class PurchaseClaimAdminServiceTest {
     void reject_success() {
         PurchaseClaim claim = submittedClaim();
         doNothing().when(authorizationSupport).assertLivePermission(any(), anyString(), anyString(), anyString());
-        when(purchaseClaimRepository.findById("claim-1")).thenReturn(Optional.of(claim));
+        when(claimLookupService.getSubmitted("claim-1")).thenReturn(claim);
         when(purchaseClaimRepository.save(any(PurchaseClaim.class))).thenAnswer(inv -> inv.getArgument(0));
 
         RejectPurchaseClaimResult result = service.reject(ADMIN, "claim-1", "시리얼 번호 불일치");
@@ -132,7 +141,8 @@ class PurchaseClaimAdminServiceTest {
     void approve_alreadyApproved_throws() {
         PurchaseClaim claim = submittedClaim().approve("admin1", "p1", "a1", NOW);
         doNothing().when(authorizationSupport).assertLivePermission(any(), anyString(), anyString(), anyString());
-        when(purchaseClaimRepository.findById("claim-1")).thenReturn(Optional.of(claim));
+        when(claimLookupService.getSubmitted("claim-1"))
+            .thenThrow(new WorkflowDomainException(WorkflowErrorCode.CLAIM_INVALID_STATE, "Claim is not in SUBMITTED state"));
 
         WorkflowDomainException ex = assertThrows(WorkflowDomainException.class, () ->
             service.approve(ADMIN, "claim-1",
@@ -144,7 +154,8 @@ class PurchaseClaimAdminServiceTest {
     @Test
     void approve_notFound_throws() {
         doNothing().when(authorizationSupport).assertLivePermission(any(), anyString(), anyString(), anyString());
-        when(purchaseClaimRepository.findById("missing")).thenReturn(Optional.empty());
+        when(claimLookupService.getSubmitted("missing"))
+            .thenThrow(new WorkflowDomainException(WorkflowErrorCode.CLAIM_NOT_FOUND, "Purchase claim not found"));
 
         WorkflowDomainException ex = assertThrows(WorkflowDomainException.class, () ->
             service.approve(ADMIN, "missing",
@@ -152,5 +163,4 @@ class PurchaseClaimAdminServiceTest {
         );
         assertEquals(WorkflowErrorCode.CLAIM_NOT_FOUND, ex.getErrorCode());
     }
-
 }

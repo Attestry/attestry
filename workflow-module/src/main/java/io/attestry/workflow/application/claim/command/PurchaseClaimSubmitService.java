@@ -1,9 +1,10 @@
 package io.attestry.workflow.application.claim.command;
 
-import io.attestry.commonlib.application.port.ObjectStoragePort;
 import io.attestry.workflow.application.common.WorkflowActorContext;
 import io.attestry.workflow.application.claim.result.SubmitPurchaseClaimResult;
-import io.attestry.workflow.application.claim.usecase.PurchaseClaimSubmitUseCase;
+import io.attestry.workflow.application.claim.internal.PurchaseClaimEvidenceViewResolver;
+import io.attestry.workflow.application.claim.internal.PurchaseClaimLookupService;
+import io.attestry.workflow.application.claim.internal.PurchaseClaimViewFactory;
 import io.attestry.workflow.application.claim.view.ClaimEvidenceView;
 import io.attestry.workflow.application.claim.view.MyClaimView;
 import io.attestry.workflow.application.port.common.WorkflowEvidencePort;
@@ -14,11 +15,9 @@ import io.attestry.workflow.domain.WorkflowErrorCode;
 import io.attestry.workflow.domain.claim.model.PurchaseClaim;
 import io.attestry.workflow.domain.claim.repository.PurchaseClaimRepository;
 import java.time.Clock;
-import java.time.Duration;
 import java.time.Instant;
 import java.util.List;
 import java.util.UUID;
-
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
@@ -26,11 +25,13 @@ import org.springframework.transaction.annotation.Transactional;
 @Service
 @RequiredArgsConstructor
 public class PurchaseClaimSubmitService implements PurchaseClaimSubmitUseCase {
-    private static final Duration DOWNLOAD_TTL = Duration.ofDays(3);
+
     private final PurchaseClaimRepository purchaseClaimRepository;
     private final WorkflowEvidencePort evidencePort;
     private final PurchaseClaimEvidenceService evidenceService;
-    private final ObjectStoragePort objectStoragePort;
+    private final PurchaseClaimLookupService claimLookupService;
+    private final PurchaseClaimEvidenceViewResolver evidenceViewResolver;
+    private final PurchaseClaimViewFactory claimViewFactory;
     private final Clock clock;
 
 
@@ -59,19 +60,16 @@ public class PurchaseClaimSubmitService implements PurchaseClaimSubmitUseCase {
         );
 
         PurchaseClaim saved = purchaseClaimRepository.save(claim);
-        return new SubmitPurchaseClaimResult(saved.claimId(), saved.status().name(), saved.submittedAt());
+        return claimViewFactory.toSubmitResult(saved);
     }
 
     @Override
     @Transactional(readOnly = true)
     public List<MyClaimView> listMyClaims(WorkflowActorContext principal) {
         return purchaseClaimRepository.findByClaimantUserId(principal.userId()).stream()
-            .map(c -> new MyClaimView(
-                c.claimId(),
-                c.serialNumber(), c.modelName(),
-                c.status().name(), c.submittedAt(),
-                c.rejectionReason(), c.passportId(), c.assetId(),
-                resolveClaimEvidences(c.evidenceGroupId())
+            .map(claim -> claimViewFactory.toMyClaimView(
+                claim,
+                evidenceViewResolver.resolveReadyEvidenceViews(claim.evidenceGroupId())
             ))
             .toList();
     }
@@ -79,14 +77,8 @@ public class PurchaseClaimSubmitService implements PurchaseClaimSubmitUseCase {
     @Override
     @Transactional(readOnly = true)
     public List<ClaimEvidenceView> listMyClaimEvidences(WorkflowActorContext principal, String claimId) {
-        PurchaseClaim claim = purchaseClaimRepository.findById(claimId)
-            .orElseThrow(() -> new WorkflowDomainException(WorkflowErrorCode.CLAIM_NOT_FOUND, "Purchase claim not found"));
-
-        if (!claim.claimantUserId().equals(principal.userId())) {
-            throw new WorkflowDomainException(WorkflowErrorCode.FORBIDDEN_SCOPE, "Only claimant can access evidences");
-        }
-
-        return resolveClaimEvidences(claim.evidenceGroupId());
+        PurchaseClaim claim = claimLookupService.getOwnedByClaimant(claimId, principal.userId());
+        return evidenceViewResolver.resolveReadyEvidenceViews(claim.evidenceGroupId());
     }
 
     @Override
@@ -101,19 +93,6 @@ public class PurchaseClaimSubmitService implements PurchaseClaimSubmitUseCase {
         return evidenceService.completeEvidence(principal, command);
     }
 
-    private ClaimEvidenceView toEvidenceView(WorkflowEvidencePort.EvidenceRecord evidence) {
-        ObjectStoragePort.PresignedDownload download = objectStoragePort.issuePresignedDownload(
-            evidence.objectKey(),
-            DOWNLOAD_TTL
-        );
-        return new ClaimEvidenceView(
-            evidence.evidenceId(),
-            evidence.status(),
-            download.downloadUrl(),
-            download.expiresAt()
-        );
-    }
-
     private void assertEvidenceGroupOwnedByClaimant(String evidenceGroupId, String claimantUserId) {
         if (evidenceGroupId == null || evidenceGroupId.isBlank()) {
             throw new WorkflowDomainException(WorkflowErrorCode.INVALID_REQUEST, "evidenceGroupId is required");
@@ -126,12 +105,5 @@ public class PurchaseClaimSubmitService implements PurchaseClaimSubmitUseCase {
                 "Evidence group is not owned by claimant"
             );
         }
-    }
-
-    private List<ClaimEvidenceView> resolveClaimEvidences(String evidenceGroupId) {
-        return evidencePort.findEvidenceByEvidenceGroupId(evidenceGroupId).stream()
-            .filter(e -> "READY".equalsIgnoreCase(e.status()))
-            .map(this::toEvidenceView)
-            .toList();
     }
 }

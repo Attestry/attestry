@@ -6,7 +6,6 @@ import io.attestry.workflow.application.port.common.UserReadPort;
 import io.attestry.workflow.application.shipment.assembler.ShipmentEvidenceViewAssembler;
 import io.attestry.workflow.application.shipment.assembler.ShipmentQueryViewAssembler;
 import io.attestry.workflow.application.shipment.policy.ShipmentQueryAccessPolicy;
-import io.attestry.workflow.application.shipment.usecase.ShipmentQueryUseCase;
 import io.attestry.workflow.application.shipment.view.PagedReleaseCandidateView;
 import io.attestry.workflow.application.shipment.view.PagedShipmentView;
 import io.attestry.workflow.application.shipment.view.ShipmentDetailView;

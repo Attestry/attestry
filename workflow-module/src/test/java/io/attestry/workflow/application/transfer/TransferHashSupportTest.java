@@ -6,7 +6,7 @@ import static org.junit.jupiter.api.Assertions.assertNotEquals;
 import static org.junit.jupiter.api.Assertions.assertNotNull;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
-import io.attestry.workflow.application.transfer.support.TransferHashSupport;
+import io.attestry.workflow.application.transfer.internal.TransferHashSupport;
 import org.junit.jupiter.api.Test;
 
 class TransferHashSupportTest {
