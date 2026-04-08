@@ -4,13 +4,13 @@ import io.attestry.userauth.domain.authorization.model.PermissionCodes;
 import io.attestry.workflow.application.common.WorkflowActorContext;
 import io.attestry.workflow.application.delegation.command.GrantDelegationCommand;
 import io.attestry.workflow.application.delegation.result.DelegationResult;
-import io.attestry.workflow.application.delegation.usecase.DelegationUseCase;
 import io.attestry.workflow.application.distribution.result.BatchDistributeResult;
-import io.attestry.workflow.application.distribution.usecase.DistributionCommandUseCase;
+import io.attestry.workflow.application.distribution.internal.DistributionLookupService;
+import io.attestry.workflow.application.distribution.internal.DistributionViewReader;
+import io.attestry.workflow.application.delegation.command.DelegationUseCase;
 import io.attestry.workflow.application.distribution.view.DistributionView;
 import io.attestry.workflow.application.port.common.TenantReadPort;
 import io.attestry.workflow.application.port.common.WorkflowProjectionOutboxPort;
-import io.attestry.workflow.application.port.distribution.DistributionQueryPort;
 import io.attestry.workflow.application.support.WorkflowAuthorizationSupport;
 import io.attestry.workflow.application.event.WorkflowLedgerEvents;
 import io.attestry.workflow.domain.WorkflowDomainException;
@@ -30,7 +30,8 @@ public class DistributionCommandService implements DistributionCommandUseCase {
 
     private final DelegationUseCase delegationUseCase;
     private final DistributionRepository distributionRepository;
-    private final DistributionQueryPort distributionQueryPort;
+    private final DistributionLookupService distributionLookupService;
+    private final DistributionViewReader distributionViewReader;
     private final TenantReadPort tenantReadPort;
     private final WorkflowAuthorizationSupport authorizationSupport;
     private final WorkflowProjectionOutboxPort projectionOutboxPort;
@@ -68,10 +69,7 @@ public class DistributionCommandService implements DistributionCommandUseCase {
     ) {
         Instant now = Instant.now(clock);
 
-        Distribution distribution = distributionRepository.findById(distributionId)
-            .orElseThrow(() -> new WorkflowDomainException(
-                WorkflowErrorCode.DISTRIBUTION_NOT_FOUND, "Distribution not found: " + distributionId
-            ));
+        Distribution distribution = distributionLookupService.getById(distributionId);
 
         assertDistributionGrantAccess(principal, distribution.sourceTenantId(), "distribution:recall:" + distributionId);
 
@@ -84,12 +82,7 @@ public class DistributionCommandService implements DistributionCommandUseCase {
         ));
 
         delegationUseCase.revoke(principal, distribution.delegationId(), command.reason());
-
-        DistributionQueryPort.DistributionRow row = distributionQueryPort.findById(distributionId)
-            .orElseThrow(() -> new WorkflowDomainException(
-                WorkflowErrorCode.DISTRIBUTION_NOT_FOUND, "Distribution not found: " + distributionId
-            ));
-        return toView(row);
+        return distributionViewReader.resolveById(distributionId);
     }
 
     private BatchDistributeResult.Entry distributeOne(
@@ -131,29 +124,6 @@ public class DistributionCommandService implements DistributionCommandUseCase {
 
         return BatchDistributeResult.Entry.success(
             passportId, distribution.distributionId(), delegationResult.delegationId()
-        );
-    }
-
-    private DistributionView toView(DistributionQueryPort.DistributionRow row) {
-        TenantReadPort.TenantSummary target = tenantReadPort.findTenantSummariesByIds(List.of(row.targetTenantId()))
-            .get(row.targetTenantId());
-        return new DistributionView(
-            row.distributionId(),
-            row.passportId(),
-            row.sourceTenantId(),
-            row.targetTenantId(),
-            target != null ? target.name() : null,
-            target != null ? target.type() : null,
-            row.partnerLinkId(),
-            row.delegationId(),
-            row.status(),
-            row.serialNumber(),
-            row.modelName(),
-            row.distributedByUserId(),
-            row.distributedAt(),
-            row.recalledByUserId(),
-            row.recalledAt(),
-            row.recallReason()
         );
     }
 

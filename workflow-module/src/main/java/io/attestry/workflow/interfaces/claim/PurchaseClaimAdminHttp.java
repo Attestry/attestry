@@ -6,7 +6,7 @@ import io.attestry.workflow.application.common.WorkflowActorContext;
 import io.attestry.workflow.application.claim.command.ApprovePurchaseClaimCommand;
 import io.attestry.workflow.application.claim.result.ApprovePurchaseClaimResult;
 import io.attestry.workflow.application.claim.result.RejectPurchaseClaimResult;
-import io.attestry.workflow.application.claim.usecase.PurchaseClaimAdminUseCase;
+import io.attestry.workflow.application.claim.command.PurchaseClaimAdminUseCase;
 import io.attestry.workflow.interfaces.claim.dto.request.ApproveClaimRequest;
 import io.attestry.workflow.interfaces.claim.dto.request.RejectClaimRequest;
 import io.attestry.workflow.interfaces.claim.dto.response.ApproveClaimResponse;

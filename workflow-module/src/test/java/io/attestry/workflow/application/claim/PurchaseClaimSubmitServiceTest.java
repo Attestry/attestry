@@ -6,13 +6,15 @@ import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.Mockito.when;
 
-import io.attestry.commonlib.application.port.ObjectStoragePort;
 import io.attestry.userauth.domain.auth.model.VerificationLevel;
 import io.attestry.workflow.application.claim.command.PurchaseClaimEvidenceService;
 import io.attestry.workflow.application.claim.command.PurchaseClaimSubmitService;
 import io.attestry.workflow.application.common.WorkflowActorContext;
 import io.attestry.workflow.application.claim.command.SubmitPurchaseClaimCommand;
 import io.attestry.workflow.application.claim.result.SubmitPurchaseClaimResult;
+import io.attestry.workflow.application.claim.internal.PurchaseClaimEvidenceViewResolver;
+import io.attestry.workflow.application.claim.internal.PurchaseClaimLookupService;
+import io.attestry.workflow.application.claim.internal.PurchaseClaimViewFactory;
 import io.attestry.workflow.application.port.common.WorkflowEvidencePort;
 import io.attestry.workflow.domain.WorkflowDomainException;
 import io.attestry.workflow.domain.WorkflowErrorCode;
@@ -35,7 +37,8 @@ class PurchaseClaimSubmitServiceTest {
     @Mock PurchaseClaimRepository purchaseClaimRepository;
     @Mock WorkflowEvidencePort shipmentEvidencePort;
     @Mock PurchaseClaimEvidenceService evidenceService;
-    @Mock ObjectStoragePort objectStoragePort;
+    @Mock PurchaseClaimLookupService claimLookupService;
+    @Mock PurchaseClaimEvidenceViewResolver evidenceViewResolver;
 
     private final Clock clock = Clock.fixed(Instant.parse("2026-03-01T10:00:00Z"), ZoneOffset.UTC);
 
@@ -49,7 +52,13 @@ class PurchaseClaimSubmitServiceTest {
     @BeforeEach
     void setUp() {
         service = new PurchaseClaimSubmitService(
-            purchaseClaimRepository, shipmentEvidencePort, evidenceService, objectStoragePort, clock
+            purchaseClaimRepository,
+            shipmentEvidencePort,
+            evidenceService,
+            claimLookupService,
+            evidenceViewResolver,
+            new PurchaseClaimViewFactory(),
+            clock
         );
     }
 

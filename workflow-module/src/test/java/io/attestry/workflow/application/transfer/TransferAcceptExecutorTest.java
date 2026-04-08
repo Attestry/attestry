@@ -14,9 +14,9 @@ import io.attestry.workflow.application.port.common.WorkflowLedgerOutboxPort;
 import io.attestry.workflow.application.port.transfer.TransferOwnershipUpdatePort;
 import io.attestry.workflow.application.transfer.command.AcceptTransferCommand;
 import io.attestry.workflow.application.transfer.result.AcceptTransferResult;
-import io.attestry.workflow.application.delegation.usecase.DelegationLifecycleUseCase;
-import io.attestry.workflow.application.transfer.support.TransferAcceptExecutor;
-import io.attestry.workflow.application.transfer.support.TransferHashSupport;
+import io.attestry.workflow.application.delegation.command.DelegationLifecycleUseCase;
+import io.attestry.workflow.application.transfer.internal.TransferAcceptExecutor;
+import io.attestry.workflow.application.transfer.internal.TransferHashSupport;
 import io.attestry.workflow.domain.WorkflowDomainException;
 import io.attestry.workflow.domain.WorkflowErrorCode;
 import io.attestry.workflow.domain.transfer.model.AcceptCredential;
@@ -29,7 +29,6 @@ import io.attestry.workflow.domain.transfer.repository.TokenTransferRepository;
 import java.time.Clock;
 import java.time.Instant;
 import java.time.ZoneOffset;
-import java.util.Optional;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
@@ -70,7 +69,6 @@ class TransferAcceptExecutorTest {
         TokenTransfer completed = pending.complete("consumer-1", NOW);
         TransferAcceptContext context = new TransferAcceptContext(true, "NONE", "owner-1", "owner-1");
 
-        when(transferRepository.findById("t1")).thenReturn(Optional.of(pending));
         doNothing().when(acceptPolicy).assertAcceptable(context);
         when(transferRepository.save(any(TokenTransfer.class))).thenReturn(completed);
         when(outboxPort.enqueue(any())).thenReturn("outbox-1");
@@ -79,7 +77,7 @@ class TransferAcceptExecutorTest {
             "consumer-1",
             new AcceptTransferCommand("nonce-1", null),
             context,
-            "t1"
+            pending
         );
 
         assertEquals("COMPLETED", result.status());
@@ -97,7 +95,6 @@ class TransferAcceptExecutorTest {
         TokenTransfer completed = pending.complete("consumer-1", NOW);
         TransferAcceptContext context = new TransferAcceptContext(false, "NONE", null, null);
 
-        when(transferRepository.findById("t2")).thenReturn(Optional.of(pending));
         doNothing().when(acceptPolicy).assertAcceptable(context);
         when(transferRepository.save(any(TokenTransfer.class))).thenReturn(completed);
         when(outboxPort.enqueue(any())).thenReturn("outbox-2");
@@ -106,7 +103,7 @@ class TransferAcceptExecutorTest {
             "consumer-1",
             new AcceptTransferCommand("nonce-b2c", null),
             context,
-            "t2"
+            pending
         );
 
         assertEquals("COMPLETED", result.status());
@@ -120,11 +117,10 @@ class TransferAcceptExecutorTest {
         TokenTransfer pending = pendingC2CQr();
         TransferAcceptContext context = new TransferAcceptContext(true, "NONE", "owner-1", "owner-1");
 
-        when(transferRepository.findById("t1")).thenReturn(Optional.of(pending));
         doNothing().when(acceptPolicy).assertAcceptable(context);
 
         WorkflowDomainException ex = assertThrows(WorkflowDomainException.class, () ->
-            executor.accept("consumer-1", new AcceptTransferCommand("wrong-nonce", null), context, "t1")
+            executor.accept("consumer-1", new AcceptTransferCommand("wrong-nonce", null), context, pending)
         );
 
         assertEquals(WorkflowErrorCode.TRANSFER_NONCE_MISMATCH, ex.getErrorCode());
@@ -139,13 +135,12 @@ class TransferAcceptExecutorTest {
         TokenTransfer incremented = pending.incrementAttempt();
         TransferAcceptContext context = new TransferAcceptContext(false, "NONE", null, null);
 
-        when(transferRepository.findById("t3")).thenReturn(Optional.of(pending));
         doNothing().when(acceptPolicy).assertAcceptable(context);
         when(transferRepository.save(any(TokenTransfer.class))).thenReturn(incremented);
         when(hashSupport.verify("wrong-code", incremented.codeHash(), incremented.codeSalt())).thenReturn(false);
 
         WorkflowDomainException ex = assertThrows(WorkflowDomainException.class, () ->
-            executor.accept("consumer-1", new AcceptTransferCommand(null, "wrong-code"), context, "t3")
+            executor.accept("consumer-1", new AcceptTransferCommand(null, "wrong-code"), context, pending)
         );
 
         assertEquals(WorkflowErrorCode.TRANSFER_CODE_MISMATCH, ex.getErrorCode());
@@ -161,7 +156,6 @@ class TransferAcceptExecutorTest {
         TokenTransfer cancelled = incremented.cancel(null, NOW);
         TransferAcceptContext context = new TransferAcceptContext(false, "NONE", null, null);
 
-        when(transferRepository.findById("t3")).thenReturn(Optional.of(pending));
         doNothing().when(acceptPolicy).assertAcceptable(context);
         when(transferRepository.save(any(TokenTransfer.class)))
             .thenReturn(incremented)
@@ -169,7 +163,7 @@ class TransferAcceptExecutorTest {
         when(hashSupport.verify("wrong-code", incremented.codeHash(), incremented.codeSalt())).thenReturn(false);
 
         WorkflowDomainException ex = assertThrows(WorkflowDomainException.class, () ->
-            executor.accept("consumer-1", new AcceptTransferCommand(null, "wrong-code"), context, "t3")
+            executor.accept("consumer-1", new AcceptTransferCommand(null, "wrong-code"), context, pending)
         );
 
         assertEquals(WorkflowErrorCode.TRANSFER_CODE_MISMATCH, ex.getErrorCode());

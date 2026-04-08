@@ -16,12 +16,13 @@ import io.attestry.workflow.application.port.servicerequest.ServicePermissionPor
 import io.attestry.workflow.application.port.servicerequest.ServiceProductReadPort;
 import io.attestry.workflow.application.port.servicerequest.ServiceProductReadPort.ServicePassportState;
 import io.attestry.workflow.application.servicerequest.command.GrantServiceConsentCommand;
-import io.attestry.workflow.application.servicerequest.policy.ServiceRequestAccessPolicy;
+import io.attestry.workflow.application.servicerequest.internal.ServiceConsentContextResolver;
+import io.attestry.workflow.application.servicerequest.internal.ServiceConsentExecutor;
+import io.attestry.workflow.application.servicerequest.internal.ServiceRequestAccessPolicy;
 import io.attestry.workflow.application.servicerequest.result.GrantServiceConsentResult;
 import io.attestry.workflow.application.servicerequest.result.RevokeServiceConsentResult;
-import io.attestry.workflow.application.servicerequest.support.ServiceConsentExecutor;
 import io.attestry.workflow.application.support.WorkflowAuthorizationSupport;
-import io.attestry.workflow.application.servicerequest.usecase.ServiceSubmitUseCase;
+import io.attestry.workflow.application.servicerequest.command.ServiceSubmitUseCase;
 import io.attestry.workflow.domain.WorkflowDomainException;
 import io.attestry.workflow.domain.WorkflowErrorCode;
 import io.attestry.workflow.domain.servicerequest.policy.ServiceConsentPolicy;
@@ -62,9 +63,9 @@ class ServiceConsentServiceTest {
             clock
         );
         service = new ServiceConsentService(
-            serviceProductReadPort,
             accessPolicy,
             consentPolicy,
+            new ServiceConsentContextResolver(serviceProductReadPort),
             consentExecutor
         );
     }

@@ -1,15 +1,11 @@
 package io.attestry.workflow.application.servicerequest.command;
 
-import io.attestry.userauth.domain.authorization.model.PermissionCodes;
 import io.attestry.workflow.application.common.WorkflowActorContext;
-import io.attestry.workflow.application.servicerequest.command.RejectServiceRequestCommand;
-import io.attestry.workflow.application.servicerequest.policy.ServiceRequestAccessPolicy;
+import io.attestry.workflow.application.servicerequest.internal.ServiceRequestAccessPolicy;
 import io.attestry.workflow.application.servicerequest.result.RejectServiceRequestResult;
-import io.attestry.workflow.application.servicerequest.usecase.ServiceRejectUseCase;
-import io.attestry.workflow.domain.WorkflowDomainException;
-import io.attestry.workflow.domain.WorkflowErrorCode;
+import io.attestry.workflow.application.servicerequest.internal.ServiceRequestResultFactory;
+import io.attestry.workflow.application.servicerequest.internal.ServiceRequestLookupService;
 import io.attestry.workflow.domain.servicerequest.model.ServiceRequest;
-import io.attestry.workflow.domain.servicerequest.model.ServiceRequestStatus;
 import io.attestry.workflow.domain.servicerequest.repository.ServiceRequestRepository;
 import java.time.Clock;
 import java.time.Instant;
@@ -22,8 +18,10 @@ import org.springframework.transaction.annotation.Transactional;
 @RequiredArgsConstructor
 public class ServiceRejectService implements ServiceRejectUseCase {
 
-    private final ServiceRequestRepository serviceRequestRepository;
     private final ServiceRequestAccessPolicy accessPolicy;
+    private final ServiceRequestLookupService serviceRequestLookupService;
+    private final ServiceRequestRepository serviceRequestRepository;
+    private final ServiceRequestResultFactory resultFactory;
     private final Clock clock;
 
 
@@ -37,23 +35,12 @@ public class ServiceRejectService implements ServiceRejectUseCase {
     ) {
         accessPolicy.assertProviderCompletePermission(principal, tenantId, "service:reject:" + serviceRequestId);
 
-        ServiceRequest request = serviceRequestRepository.findById(serviceRequestId)
-            .orElseThrow(() -> new WorkflowDomainException(WorkflowErrorCode.SERVICE_REQUEST_NOT_FOUND, "Service request not found"));
-
+        ServiceRequest request = serviceRequestLookupService.getPendingById(serviceRequestId);
         accessPolicy.assertProviderRequestAccess(tenantId, request, "reject");
-        if (request.status() != ServiceRequestStatus.PENDING) {
-            throw new WorkflowDomainException(WorkflowErrorCode.SERVICE_REQUEST_INVALID_STATE, "Only PENDING service request can be rejected");
-        }
 
         Instant now = Instant.now(clock);
         ServiceRequest rejected = request.reject(command.reason(), now);
         ServiceRequest saved = serviceRequestRepository.save(rejected);
-
-        return new RejectServiceRequestResult(
-            saved.serviceRequestId(),
-            saved.passportId(),
-            saved.status().name(),
-            now
-        );
+        return resultFactory.toRejectResult(saved, now);
     }
 }

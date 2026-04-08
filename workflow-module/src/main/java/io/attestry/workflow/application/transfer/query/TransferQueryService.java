@@ -4,7 +4,6 @@ import io.attestry.userauth.domain.authorization.model.PermissionCodes;
 import io.attestry.workflow.application.common.WorkflowActorContext;
 import io.attestry.workflow.application.port.transfer.CompletedTransferQueryPort;
 import io.attestry.workflow.application.support.WorkflowAuthorizationSupport;
-import io.attestry.workflow.application.transfer.usecase.TransferQueryUseCase;
 import io.attestry.workflow.application.transfer.view.CompletedTransferView;
 import io.attestry.workflow.application.transfer.view.PagedCompletedTransferView;
 import lombok.RequiredArgsConstructor;

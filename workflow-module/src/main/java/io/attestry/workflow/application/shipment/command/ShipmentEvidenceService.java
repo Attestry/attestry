@@ -5,7 +5,6 @@ import io.attestry.workflow.application.common.WorkflowActorContext;
 import io.attestry.workflow.application.port.common.WorkflowEvidencePort;
 import io.attestry.workflow.application.shipment.result.PresignedEvidenceUploadResult;
 import io.attestry.workflow.application.shipment.result.EvidenceCompleteResult;
-import io.attestry.workflow.application.shipment.usecase.ShipmentEvidenceUseCase;
 import io.attestry.workflow.application.support.EvidenceUploadSupport;
 import io.attestry.workflow.application.support.WorkflowAuthorizationSupport;
 import io.attestry.userauth.domain.authorization.model.PermissionCodes;

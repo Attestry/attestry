@@ -1,15 +1,14 @@
 package io.attestry.workflow.application.transfer.command;
 
 import io.attestry.workflow.application.common.WorkflowActorContext;
-import io.attestry.workflow.application.transfer.policy.TransferAccessPolicy;
-import io.attestry.workflow.application.transfer.support.TransferContextResolver;
+import io.attestry.workflow.application.transfer.internal.TransferAccessPolicy;
+import io.attestry.workflow.application.transfer.internal.TransferContextResolver;
 import io.attestry.workflow.application.transfer.result.CreateTransferResult;
-import io.attestry.workflow.application.transfer.support.TransferCreateExecutor;
+import io.attestry.workflow.application.transfer.internal.TransferCreateResultMapper;
+import io.attestry.workflow.application.transfer.internal.TransferCreateExecutor;
+import io.attestry.workflow.application.transfer.internal.TransferLookupService;
 import io.attestry.workflow.domain.transfer.policy.TransferCreatePolicy.TransferCreateContext;
-import io.attestry.workflow.application.transfer.usecase.TransferCreateUseCase;
-import io.attestry.workflow.domain.transfer.model.TokenTransfer;
 import io.attestry.workflow.domain.transfer.model.TransferType;
-import io.attestry.workflow.domain.transfer.repository.TokenTransferRepository;
 import java.time.Clock;
 import java.time.Instant;
 import java.util.Optional;
@@ -21,10 +20,11 @@ import org.springframework.transaction.annotation.Transactional;
 @RequiredArgsConstructor
 public class TransferCreateService implements TransferCreateUseCase {
 
-    private final TokenTransferRepository transferRepository;
     private final TransferAccessPolicy accessPolicy;
     private final TransferContextResolver contextResolver;
     private final TransferCreateExecutor createExecutor;
+    private final TransferLookupService transferLookupService;
+    private final TransferCreateResultMapper resultMapper;
     private final Clock clock;
 
     @Override
@@ -59,7 +59,7 @@ public class TransferCreateService implements TransferCreateUseCase {
         String passportId
     ) {
         accessPolicy.assertFindPendingC2CAccess(principal, passportId);
-        return findLatestActivePending(passportId).map(this::toResult);
+        return findLatestActivePending(passportId).map(resultMapper::toResult);
     }
 
     @Override
@@ -70,36 +70,23 @@ public class TransferCreateService implements TransferCreateUseCase {
         String passportId
     ) {
         accessPolicy.assertFindPendingB2CAccess(principal, tenantId, passportId);
-        return findLatestActivePending(passportId, TransferType.B2C, tenantId)
-            .map(this::toResult);
+        return findLatestActivePending(passportId, TransferType.B2C, tenantId).map(resultMapper::toResult);
     }
 
-    private Optional<TokenTransfer> findLatestActivePending(String passportId) {
+    private Optional<io.attestry.workflow.domain.transfer.model.TokenTransfer> findLatestActivePending(String passportId) {
         return findLatestActivePending(passportId, null, null);
     }
 
-    private Optional<TokenTransfer> findLatestActivePending(
+    private Optional<io.attestry.workflow.domain.transfer.model.TokenTransfer> findLatestActivePending(
         String passportId,
         TransferType transferType,
         String tenantId
     ) {
-        return transferRepository.findLatestActivePendingByPassportId(
+        return transferLookupService.findLatestActivePendingByPassportId(
             passportId,
             Instant.now(clock),
             transferType,
             tenantId
-        );
-    }
-
-    private CreateTransferResult toResult(TokenTransfer saved) {
-        return new CreateTransferResult(
-            saved.transferId(),
-            saved.passportId(),
-            saved.transferType().name(),
-            saved.status().name(),
-            saved.acceptMethod().name(),
-            saved.qrNonce(),
-            saved.expiresAt()
         );
     }
 }

@@ -11,18 +11,17 @@ import static org.mockito.Mockito.when;
 import io.attestry.userauth.domain.auth.model.VerificationLevel;
 import io.attestry.workflow.application.common.WorkflowActorContext;
 import io.attestry.workflow.application.transfer.command.TransferCancelService;
-import io.attestry.workflow.application.transfer.support.TransferCancelExecutor;
-import io.attestry.workflow.application.transfer.policy.TransferAccessPolicy;
+import io.attestry.workflow.application.transfer.internal.TransferCancelExecutor;
+import io.attestry.workflow.application.transfer.internal.TransferLookupService;
+import io.attestry.workflow.application.transfer.internal.TransferAccessPolicy;
 import io.attestry.workflow.application.transfer.result.CancelTransferResult;
 import io.attestry.workflow.domain.WorkflowDomainException;
 import io.attestry.workflow.domain.WorkflowErrorCode;
 import io.attestry.workflow.domain.transfer.model.AcceptCredential;
 import io.attestry.workflow.domain.transfer.model.TokenTransfer;
-import io.attestry.workflow.domain.transfer.repository.TokenTransferRepository;
 import java.time.Clock;
 import java.time.Instant;
 import java.time.ZoneOffset;
-import java.util.Optional;
 import java.util.Set;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
@@ -33,9 +32,9 @@ import org.mockito.junit.jupiter.MockitoExtension;
 @ExtendWith(MockitoExtension.class)
 class TransferCancelServiceTest {
 
-    @Mock TokenTransferRepository transferRepository;
     @Mock TransferAccessPolicy accessPolicy;
     @Mock TransferCancelExecutor cancelExecutor;
+    @Mock TransferLookupService transferLookupService;
 
     private final Clock clock = Clock.fixed(Instant.parse("2026-03-01T10:00:00Z"), ZoneOffset.UTC);
 
@@ -46,7 +45,7 @@ class TransferCancelServiceTest {
 
     @BeforeEach
     void setUp() {
-        service = new TransferCancelService(transferRepository, accessPolicy, cancelExecutor, clock);
+        service = new TransferCancelService(accessPolicy, cancelExecutor, transferLookupService, clock);
     }
 
     @Test
@@ -60,7 +59,7 @@ class TransferCancelServiceTest {
             EXPIRES, CREATED, "owner1"
         );
 
-        when(transferRepository.findById("t1")).thenReturn(Optional.of(pending));
+        when(transferLookupService.getPendingForCancel("t1")).thenReturn(pending);
         doNothing().when(accessPolicy).assertCancelAccess(creator, "t1", pending);
         when(cancelExecutor.cancel(pending, "owner1", Instant.parse("2026-03-01T10:00:00Z")))
             .thenReturn(new CancelTransferResult("t1", "p1", "CANCELLED", Instant.parse("2026-03-01T10:00:00Z")));
@@ -83,7 +82,7 @@ class TransferCancelServiceTest {
             EXPIRES, CREATED, "owner1"
         );
 
-        when(transferRepository.findById("t1")).thenReturn(Optional.of(pending));
+        when(transferLookupService.getPendingForCancel("t1")).thenReturn(pending);
         org.mockito.Mockito.doThrow(new WorkflowDomainException(WorkflowErrorCode.FORBIDDEN_SCOPE, "Only the transfer creator can cancel a C2C transfer"))
             .when(accessPolicy).assertCancelAccess(other, "t1", pending);
 
@@ -104,7 +103,7 @@ class TransferCancelServiceTest {
             EXPIRES, CREATED, "retailUser"
         );
 
-        when(transferRepository.findById("t1")).thenReturn(Optional.of(pending));
+        when(transferLookupService.getPendingForCancel("t1")).thenReturn(pending);
         doNothing().when(accessPolicy).assertCancelAccess(retailPrincipal, "t1", pending);
         when(cancelExecutor.cancel(pending, "retailUser", Instant.parse("2026-03-01T10:00:00Z")))
             .thenReturn(new CancelTransferResult("t1", "p1", "CANCELLED", Instant.parse("2026-03-01T10:00:00Z")));
@@ -121,7 +120,8 @@ class TransferCancelServiceTest {
             "token1", "user1", "tenant1", VerificationLevel.PHONE_VERIFIED, Set.of(), Instant.parse("2026-03-02T00:00:00Z")
         );
 
-        when(transferRepository.findById("missing")).thenReturn(Optional.empty());
+        when(transferLookupService.getPendingForCancel("missing"))
+            .thenThrow(new WorkflowDomainException(WorkflowErrorCode.TRANSFER_NOT_FOUND, "Transfer not found"));
 
         WorkflowDomainException ex = assertThrows(WorkflowDomainException.class, () ->
             service.cancel(principal, "missing")
@@ -140,7 +140,8 @@ class TransferCancelServiceTest {
             EXPIRES, CREATED, "owner1"
         ).complete("consumer1", Instant.parse("2026-03-01T09:30:00Z"));
 
-        when(transferRepository.findById("t1")).thenReturn(Optional.of(completed));
+        when(transferLookupService.getPendingForCancel("t1"))
+            .thenThrow(new WorkflowDomainException(WorkflowErrorCode.TRANSFER_INVALID_STATE, "Only PENDING transfer can be cancelled"));
 
         WorkflowDomainException ex = assertThrows(WorkflowDomainException.class, () ->
             service.cancel(creator, "t1")

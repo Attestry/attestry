@@ -21,6 +21,10 @@ import io.attestry.workflow.application.manual.command.PassportManualService;
 import io.attestry.workflow.application.manual.command.SendPassportManualCommand;
 import io.attestry.workflow.application.manual.result.PassportManualRecipientResult;
 import io.attestry.workflow.application.manual.result.SendPassportManualResult;
+import io.attestry.workflow.application.manual.internal.PassportManualAttachmentResolver;
+import io.attestry.workflow.application.manual.internal.PassportManualContextAccessService;
+import io.attestry.workflow.application.manual.internal.PassportManualNotificationFactory;
+import io.attestry.workflow.application.manual.internal.PassportManualRecipientResolver;
 import io.attestry.workflow.application.port.common.UserReadPort;
 import io.attestry.workflow.application.port.common.WorkflowEvidencePort;
 import io.attestry.workflow.application.port.manual.PassportManualReadPort;
@@ -64,14 +68,13 @@ class PassportManualServiceTest {
 
     @BeforeEach
     void setUp() {
+        Clock clock = Clock.fixed(Instant.parse("2026-03-17T10:00:00Z"), ZoneOffset.UTC);
         service = new PassportManualService(
-            passportManualReadPort,
-            userReadPort,
-            workflowEvidencePort,
-            authorizationSupport,
-            new EvidenceUploadSupport(),
-            notificationOutboxRepositoryPort,
-            Clock.fixed(Instant.parse("2026-03-17T10:00:00Z"), ZoneOffset.UTC)
+            new PassportManualContextAccessService(passportManualReadPort, authorizationSupport),
+            new PassportManualRecipientResolver(userReadPort),
+            new PassportManualAttachmentResolver(workflowEvidencePort, new EvidenceUploadSupport()),
+            new PassportManualNotificationFactory(clock),
+            notificationOutboxRepositoryPort
         );
     }
 

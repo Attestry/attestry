@@ -1,12 +1,14 @@
 package io.attestry.workflow.application.transfer.command;
 
 import io.attestry.workflow.application.common.WorkflowActorContext;
-import io.attestry.workflow.application.transfer.policy.TransferAccessPolicy;
+import io.attestry.workflow.application.transfer.internal.TransferAccessPolicy;
 import io.attestry.workflow.application.transfer.result.AcceptTransferResult;
-import io.attestry.workflow.application.transfer.support.TransferAcceptExecutor;
-import io.attestry.workflow.application.transfer.support.TransferContextResolver;
-import io.attestry.workflow.application.transfer.usecase.TransferAcceptUseCase;
+import io.attestry.workflow.application.transfer.internal.TransferAcceptExecutor;
+import io.attestry.workflow.application.transfer.internal.TransferContextResolver;
+import io.attestry.workflow.application.transfer.internal.TransferLookupService;
+import io.attestry.workflow.domain.transfer.model.TokenTransfer;
 import io.attestry.workflow.domain.transfer.policy.TransferAcceptPolicy.TransferAcceptContext;
+import java.time.Clock;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
@@ -18,6 +20,8 @@ public class TransferAcceptService implements TransferAcceptUseCase {
     private final TransferAccessPolicy accessPolicy;
     private final TransferContextResolver contextResolver;
     private final TransferAcceptExecutor acceptExecutor;
+    private final TransferLookupService transferLookupService;
+    private final Clock clock;
 
     @Override
     @Transactional
@@ -27,7 +31,8 @@ public class TransferAcceptService implements TransferAcceptUseCase {
         AcceptTransferCommand command
     ) {
         accessPolicy.assertAcceptAccess(principal, transferId);
-        TransferAcceptContext context = contextResolver.resolveAcceptContext(transferId);
-        return acceptExecutor.accept(principal.userId(), command, context, transferId);
+        TokenTransfer transfer = transferLookupService.getPendingForAccept(transferId, java.time.Instant.now(clock));
+        TransferAcceptContext context = contextResolver.resolveAcceptContext(transfer);
+        return acceptExecutor.accept(principal.userId(), command, context, transfer);
     }
 }
