@@ -299,6 +299,56 @@ Ledger:
 
 현재 저장소 기준으로 `./gradlew test`는 통과합니다.
 
+## 각 모듈의 application 레이어 구조 규칙
+
+아래 다이어그램은 전체 디렉터리 트리를 그대로 옮긴 것이 아니라,  
+이 프로젝트에서 유지하는 **핵심 구조 규칙**을 요약한 것입니다.
+
+```text
+app
+  ├─ bootstrap / security / adapters
+  ├─ runtime
+  │  ├─ ledgeroutbox
+  │  ├─ notificationoutbox
+  │  └─ workflowprojection
+  └─ notification / storage / config
+
+product-module
+  └─ application
+     ├─ command
+     │  ├─ service
+     │  └─ internal
+     └─ query
+        ├─ service
+        └─ internal
+
+user-auth-module
+  └─ application
+     ├─ membership
+     │  ├─ command
+     │  ├─ query
+     │  └─ internal
+     └─ onboarding
+        ├─ command
+        ├─ query
+        └─ internal
+
+workflow-module
+  └─ application
+     ├─ <context>/command
+     ├─ <context>/query
+     └─ <context>/internal
+```
+
+- `product-module`은 command/query entrypoint와 내부 협력 객체를 분리해, 서비스는 진입점으로 남기고 `internal`에 실행 세부를 모읍니다.
+- `user-auth-module`은 `membership`, `onboarding`부터 `command/query/internal` 규칙을 적용해 내부 협력 객체를 명시적으로 격리합니다.
+- `workflow-module`은 유스케이스 진입점을 `command/query`로 드러내고, 내부 협력 객체는 `internal`에 격리합니다.
+- `app`은 도메인 로직보다 런타임 서브시스템 조립과 운영 파이프라인에 집중합니다.
+
+
+
+
+
 ## 저장소 구조
 
 ```text
