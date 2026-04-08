@@ -156,16 +156,16 @@ Ledger는 단순 조회 모듈이 아니라, append-only 기록과 무결성 검
 
 README만 읽고 끝나는 프로젝트가 아니라, 실제 코드 구조는 아래 클래스들에서 바로 확인할 수 있습니다.
 
-| 역할 | 코드 진입점                                                                                                                                              |
-| --- |-----------------------------------------------------------------------------------------------------------------------------------------------------|
-| 앱 시작점 | [AttestryApplication.java](/attestry-api/attestry/app/src/main/java/io/attestry/AttestryApplication.java)                                           |
-| 원장 서비스 시작점 | [LedgerServiceApplication.java](/attestry-api/attestry/ledger-service/src/main/java/io/attestry/ledgerservice/LedgerServiceApplication.java)        |
-| Outbox 스케줄러 | [LedgerOutboxPublisher.java](/attestry-api/attestry/app/src/main/java/io/attestry/job/outbox/schedule/...java)                                      |
-| Outbox 발행 조정 | [LedgerOutboxPublishCoordinator.java](/attestry-api/attestry/app/src/main/java/io/attestry/job/outbox/publish/LedgerOutboxPublishCoordinator.java)  |
-| Projection consumer | [WorkflowProductProjectionConsumer.java](/attestry-api/attestry/app/src/main/java/io/attestry/kafka/workflow/WorkflowProductProjectionConsumer.java) |
-| 인증 API | [AuthHttp.java](/attestry-api/attestry/user-auth-module/src/main/java/io/attestry/userauth/interfaces/auth/AuthHttp.java)                           |
-| 제품 발행 API | [ProductMintHttp.java](/attestry-api/attestry/product-module/src/main/java/io/attestry/product/interfaces/http/command/ProductMintHttp.java)        |
-| 원장 조회 API | [LedgerHttp.java](/attestry-api/attestry/ledger-service/src/main/java/io/attestry/ledger/interfaces/ledger/LedgerHttp.java)                         |
+| 역할 | 코드 진입점 |
+| --- | --- |
+| 앱 시작점 | [AttestryApplication.java](./app/src/main/java/io/attestry/AttestryApplication.java) |
+| 원장 서비스 시작점 | [LedgerServiceApplication.java](./ledger-service/src/main/java/io/attestry/ledgerservice/LedgerServiceApplication.java) |
+| Outbox 스케줄러 | [LedgerOutboxPublisher.java](./app/src/main/java/io/attestry/job/outbox/schedule/LedgerOutboxPublisher.java) |
+| Outbox 발행 조정 | [LedgerOutboxPublishCoordinator.java](./app/src/main/java/io/attestry/job/outbox/publish/LedgerOutboxPublishCoordinator.java) |
+| Projection consumer | [WorkflowProductProjectionConsumer.java](./app/src/main/java/io/attestry/kafka/workflow/WorkflowProductProjectionConsumer.java) |
+| 인증 API | [AuthHttp.java](./user-auth-module/src/main/java/io/attestry/userauth/interfaces/auth/AuthHttp.java) |
+| 제품 발행 API | [ProductMintHttp.java](./product-module/src/main/java/io/attestry/product/interfaces/http/command/ProductMintHttp.java) |
+| 원장 조회 API | [LedgerHttp.java](./ledger-service/src/main/java/io/attestry/ledger/interfaces/ledger/LedgerHttp.java) |
 
 패키지 규율 역시 일관되게 유지합니다.
 
