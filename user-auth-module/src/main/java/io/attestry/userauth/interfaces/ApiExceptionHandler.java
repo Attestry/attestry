@@ -46,21 +46,21 @@ public class ApiExceptionHandler {
                     .map(fieldError -> fieldError.getDefaultMessage())
                     .filter(m -> m != null && !m.isBlank())
                     .findFirst()
-                    .orElse("입력값을 다시 확인해주세요.");
+                    .orElse("Please check your input.");
             case BindException bind ->
                 bind.getBindingResult().getFieldErrors().stream()
                     .map(fieldError -> fieldError.getDefaultMessage())
                     .filter(m -> m != null && !m.isBlank())
                     .findFirst()
-                    .orElse("입력값을 다시 확인해주세요.");
+                    .orElse("Please check your input.");
             case ConstraintViolationException violation ->
                 violation.getConstraintViolations().stream()
                     .map(v -> v.getMessage())
                     .filter(m -> m != null && !m.isBlank())
                     .findFirst()
-                    .orElse("입력값을 다시 확인해주세요.");
-            case HttpMessageNotReadableException ignored -> "요청 본문 형식이 올바르지 않습니다.";
-            default -> "입력값을 다시 확인해주세요.";
+                    .orElse("Please check your input.");
+            case HttpMessageNotReadableException ignored -> "Invalid request body format.";
+            default -> "Please check your input.";
         };
 
         ErrorResponse error = new ErrorResponse("INVALID_INPUT", message, "VALIDATION");

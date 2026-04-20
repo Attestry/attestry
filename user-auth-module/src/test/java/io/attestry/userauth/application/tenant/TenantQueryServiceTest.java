@@ -3,7 +3,8 @@ package io.attestry.userauth.application.tenant;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
-import io.attestry.userauth.application.tenant.view.TenantView;
+import io.attestry.userauth.application.tenant.query.TenantQueryService;
+import io.attestry.userauth.application.tenant.query.TenantView;
 import io.attestry.userauth.application.port.tenant.TenantRepositoryPort;
 import io.attestry.userauth.domain.tenant.model.Tenant;
 import io.attestry.userauth.domain.tenant.model.TenantStatus;

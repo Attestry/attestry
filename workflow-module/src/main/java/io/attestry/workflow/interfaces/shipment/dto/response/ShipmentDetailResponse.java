@@ -1,6 +1,6 @@
 package io.attestry.workflow.interfaces.shipment.dto.response;
 
-import io.attestry.workflow.application.shipment.view.ShipmentDetailView;
+import io.attestry.workflow.application.shipment.query.ShipmentDetailView;
 import java.time.Instant;
 import java.util.List;
 

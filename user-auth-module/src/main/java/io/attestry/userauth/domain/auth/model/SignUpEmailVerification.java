@@ -49,7 +49,7 @@ public class SignUpEmailVerification {
     public static SignUpEmailVerification issue(String email, String codeHash, Instant now, Duration ttl) {
         String normalizedEmail = Email.of(email).value();
         if (codeHash == null || codeHash.isBlank()) {
-            throw new UserAuthDomainException(UserAuthErrorCode.INVALID_REQUEST, "인증코드 해시가 필요합니다");
+            throw new UserAuthDomainException(UserAuthErrorCode.INVALID_REQUEST, "Verification code hash is required");
         }
 
         return new SignUpEmailVerification(
@@ -98,18 +98,18 @@ public class SignUpEmailVerification {
     public void regenerate(String newCodeHash, Instant now, Duration ttl, Duration cooldown, int maxResends) {
         assertReusable(now);
         if (newCodeHash == null || newCodeHash.isBlank()) {
-            throw new UserAuthDomainException(UserAuthErrorCode.INVALID_REQUEST, "인증코드 해시가 필요합니다");
+            throw new UserAuthDomainException(UserAuthErrorCode.INVALID_REQUEST, "Verification code hash is required");
         }
         if (lastSentAt != null && lastSentAt.plus(cooldown).isAfter(now)) {
             throw new UserAuthDomainException(
                 UserAuthErrorCode.EMAIL_VERIFICATION_RESEND_COOLDOWN,
-                "인증코드 재발송 대기시간이 남아 있습니다"
+                "Verification code resend cooldown active"
             );
         }
         if (resendCount >= maxResends) {
             throw new UserAuthDomainException(
                 UserAuthErrorCode.EMAIL_VERIFICATION_RESEND_LIMIT_EXCEEDED,
-                "인증코드 재발송 가능 횟수를 초과했습니다"
+                "Verification code resend limit exceeded"
             );
         }
 
@@ -129,7 +129,7 @@ public class SignUpEmailVerification {
         if (!matcher.matches(rawCode, codeHash)) {
             throw new UserAuthDomainException(
                 UserAuthErrorCode.EMAIL_VERIFICATION_CODE_INVALID,
-                "인증코드가 올바르지 않습니다"
+                "Invalid verification code"
             );
         }
         this.verifiedAt = now;
@@ -140,13 +140,13 @@ public class SignUpEmailVerification {
         if (consumedAt != null) {
             throw new UserAuthDomainException(
                 UserAuthErrorCode.EMAIL_VERIFICATION_ALREADY_USED,
-                "이미 사용된 이메일 인증입니다"
+                "Email verification already used"
             );
         }
         if (verifiedAt == null || expiresAt.isBefore(now)) {
             throw new UserAuthDomainException(
                 UserAuthErrorCode.EMAIL_VERIFICATION_REQUIRED,
-                "회원가입 전에 이메일 인증이 필요합니다"
+                "Email verification required before sign up"
             );
         }
         this.consumedAt = now;
@@ -161,13 +161,13 @@ public class SignUpEmailVerification {
         if (consumedAt != null) {
             throw new UserAuthDomainException(
                 UserAuthErrorCode.EMAIL_VERIFICATION_ALREADY_USED,
-                "이미 사용된 이메일 인증입니다"
+                "Email verification already used"
             );
         }
         if (verifiedAt != null && !expiresAt.isBefore(now)) {
             throw new UserAuthDomainException(
                 UserAuthErrorCode.EMAIL_VERIFICATION_ALREADY_VERIFIED,
-                "이미 이메일 인증이 완료되었습니다"
+                "Email already verified"
             );
         }
     }
@@ -176,19 +176,19 @@ public class SignUpEmailVerification {
         if (consumedAt != null) {
             throw new UserAuthDomainException(
                 UserAuthErrorCode.EMAIL_VERIFICATION_ALREADY_USED,
-                "이미 사용된 이메일 인증입니다"
+                "Email verification already used"
             );
         }
         if (verifiedAt != null && !expiresAt.isBefore(now)) {
             throw new UserAuthDomainException(
                 UserAuthErrorCode.EMAIL_VERIFICATION_ALREADY_VERIFIED,
-                "이미 이메일 인증이 완료되었습니다"
+                "Email already verified"
             );
         }
         if (expiresAt.isBefore(now)) {
             throw new UserAuthDomainException(
                 UserAuthErrorCode.EMAIL_VERIFICATION_EXPIRED,
-                "인증코드 유효시간이 만료되었습니다"
+                "Verification code expired"
             );
         }
     }

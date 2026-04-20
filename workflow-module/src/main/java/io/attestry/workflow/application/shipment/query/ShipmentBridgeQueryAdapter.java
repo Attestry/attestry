@@ -2,7 +2,7 @@ package io.attestry.workflow.application.shipment.query;
 
 import io.attestry.workflow.application.port.common.UserReadPort;
 import io.attestry.workflow.application.port.shipment.WorkflowShipmentHistoryPort;
-import io.attestry.workflow.application.shipment.assembler.ShipmentEvidenceViewAssembler;
+import io.attestry.workflow.application.shipment.internal.ShipmentEvidenceViewAssembler;
 import io.attestry.workflow.domain.shipment.repository.ShipmentRepository;
 import java.util.ArrayList;
 import java.util.List;

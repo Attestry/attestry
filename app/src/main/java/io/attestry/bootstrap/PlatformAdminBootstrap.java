@@ -1,7 +1,7 @@
 package io.attestry.bootstrap;
 
 import io.attestry.userauth.application.port.auth.PasswordHasherPort;
-import io.attestry.userauth.infrastructure.persistence.jdbc.projection.MembershipEffectivePermissionProjectionRefresher;
+import io.attestry.userauth.application.port.membership.MembershipPermissionProjectionRefreshPort;
 import java.sql.Timestamp;
 import java.time.Clock;
 import java.time.Instant;
@@ -32,7 +32,7 @@ public class PlatformAdminBootstrap implements ApplicationRunner {
 
     private final NamedParameterJdbcTemplate jdbcTemplate;
     private final PasswordHasherPort passwordHasher;
-    private final MembershipEffectivePermissionProjectionRefresher permissionProjectionRefresher;
+    private final MembershipPermissionProjectionRefreshPort permissionProjectionRefresher;
     private final Clock clock;
     private final BootstrapProperties bootstrapProperties;
 

@@ -1,7 +1,14 @@
 package io.attestry.workflow.interfaces.claim.dto.request;
 
+import jakarta.validation.constraints.NotBlank;
+
 public record SubmitClaimRequest(
-    String serialNumber, String modelName,
-    String evidenceGroupId, String note
+    @NotBlank(message = "Serial number is required")
+    String serialNumber,
+    @NotBlank(message = "Model name is required")
+    String modelName,
+    @NotBlank(message = "Evidence group ID is required")
+    String evidenceGroupId,
+    String note
 ) {
 }

@@ -85,7 +85,7 @@ public class LedgerKafkaConsumer {
                 .add("x-failed-at", safeBytes(Instant.now().toString()));
             kafkaTemplate.send(dlqRecord);
             log.warn("ledger outbox DLQ: errorType={}, errorMessage={}",
-                ex.getClass().getName(), ex.getMessage());
+                ex.getClass().getName(), ex.getMessage(), ex);
         }
     }
 

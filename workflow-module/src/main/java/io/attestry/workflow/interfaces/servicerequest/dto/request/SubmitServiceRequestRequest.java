@@ -8,10 +8,10 @@ public record SubmitServiceRequestRequest(
     String providerTenantId,
     String beforeEvidenceGroupId,
     String serviceRequestMethod,
-    @Size(max = 1000, message = "증상 설명은 1000자 이하로 입력해주세요.")
+    @Size(max = 1000, message = "Symptom description must be 1000 characters or less.")
     String symptomDescription,
     Instant requestedReservationAt,
-    @Size(max = 300, message = "연락 메모는 300자 이하로 입력해주세요.")
+    @Size(max = 300, message = "Contact memo must be 300 characters or less.")
     String contactMemo
 ) {
 }

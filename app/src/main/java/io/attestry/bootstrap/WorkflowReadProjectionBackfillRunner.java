@@ -9,9 +9,9 @@ import org.springframework.jdbc.core.namedparam.NamedParameterJdbcTemplate;
 import org.springframework.stereotype.Component;
 import org.springframework.transaction.annotation.Transactional;
 
-// Backfill runner는 app 모듈 전용 bootstrap 코드로, 의도적으로 cross-module 테이블을 직접 쿼리합니다.
-// 런타임 projection 동기화는 이벤트 payload 기반 (WorkflowProductProjectionConsumer)으로 동작하며,
-// 이 runner는 전체 projection 재생성이 필요할 때만 enabled=true로 실행합니다.
+// Backfill runner is app-module-only bootstrap code that intentionally queries cross-module tables directly.
+// Runtime projection sync operates via event payload (WorkflowProductProjectionConsumer).
+// This runner should only be executed with enabled=true when full projection rebuild is needed.
 @Component
 @RequiredArgsConstructor
 public class WorkflowReadProjectionBackfillRunner implements ApplicationRunner {

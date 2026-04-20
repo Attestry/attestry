@@ -15,7 +15,7 @@ public enum WorkflowErrorCode implements ErrorCode {
     PARTNER_LINK_ALREADY_ACTIVE("PARTNER", "Partner link already active", ErrorCategory.BAD_REQUEST),
     PARTNER_LINK_DUPLICATE_STATUS("PARTNER", "Partner link duplicate status", ErrorCategory.CONFLICT),
     PARTNER_LINK_INVALID_STATE("PARTNER", "Partner link invalid state", ErrorCategory.BAD_REQUEST),
-    PARTNER_LINK_INVALID_TYPE("PARTNER", "해당 파트너는 유통(판매) 권한이 없는 서비스 타입 업체입니다.", ErrorCategory.BAD_REQUEST),
+    PARTNER_LINK_INVALID_TYPE("PARTNER", "This partner is a service-type tenant without distribution permission", ErrorCategory.BAD_REQUEST),
 
     // Transfer
     TRANSFER_NOT_FOUND("TRANSFER", "Transfer not found", ErrorCategory.NOT_FOUND),
@@ -34,12 +34,12 @@ public enum WorkflowErrorCode implements ErrorCode {
     // Service Request
     SERVICE_REQUEST_NOT_FOUND("SERVICE_REQUEST", "Service request not found", ErrorCategory.NOT_FOUND),
     SERVICE_REQUEST_INVALID_STATE("SERVICE_REQUEST", "Service request invalid state", ErrorCategory.BAD_REQUEST),
-    SERVICE_REQUEST_ALREADY_SUBMITTED("SERVICE_REQUEST", "이미 처리 중인 서비스 요청이 있습니다.", ErrorCategory.CONFLICT),
+    SERVICE_REQUEST_ALREADY_SUBMITTED("SERVICE_REQUEST", "A service request is already in progress", ErrorCategory.CONFLICT),
 
     // Passport Manual
-    PASSPORT_MANUAL_OWNER_NOT_FOUND("PASSPORT_MANUAL", "현재 소유주가 없습니다.", ErrorCategory.BAD_REQUEST),
-    PASSPORT_MANUAL_RECIPIENT_NOT_FOUND("PASSPORT_MANUAL", "현재 소유자의 이메일 정보를 확인할 수 없습니다.", ErrorCategory.BAD_REQUEST),
-    PASSPORT_MANUAL_CONTENT_REQUIRED("PASSPORT_MANUAL", "메뉴얼 내용을 입력하거나 첨부 파일을 추가해주세요.", ErrorCategory.BAD_REQUEST),
+    PASSPORT_MANUAL_OWNER_NOT_FOUND("PASSPORT_MANUAL", "No current owner found", ErrorCategory.BAD_REQUEST),
+    PASSPORT_MANUAL_RECIPIENT_NOT_FOUND("PASSPORT_MANUAL", "Cannot find current owner's email information", ErrorCategory.BAD_REQUEST),
+    PASSPORT_MANUAL_CONTENT_REQUIRED("PASSPORT_MANUAL", "Please provide manual content or attachments", ErrorCategory.BAD_REQUEST),
 
     // Distribution
     DISTRIBUTION_NOT_FOUND("DISTRIBUTION", "Distribution not found", ErrorCategory.NOT_FOUND),

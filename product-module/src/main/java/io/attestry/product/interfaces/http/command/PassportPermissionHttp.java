@@ -6,6 +6,7 @@ import io.attestry.product.application.command.model.GrantCommand;
 import io.attestry.product.application.common.ProductActor;
 import io.attestry.product.application.command.PassportPermissionUseCase;
 import io.attestry.product.interfaces.http.command.dto.request.GrantPermissionRequest;
+import jakarta.validation.Valid;
 import io.attestry.product.interfaces.http.command.dto.response.GrantPermissionResponse;
 import lombok.RequiredArgsConstructor;
 import org.springframework.http.HttpStatus;
@@ -30,7 +31,7 @@ public class PassportPermissionHttp {
     public ApiResponse<GrantPermissionResponse> grantPermission(
         @CurrentActor ProductActor actor,
         @PathVariable("passportId") String passportId,
-        @RequestBody GrantPermissionRequest request
+        @Valid @RequestBody GrantPermissionRequest request
     ) {
         return ApiResponse.success(GrantPermissionResponse.from(permissionUseCase.grantPermission(
             actor,

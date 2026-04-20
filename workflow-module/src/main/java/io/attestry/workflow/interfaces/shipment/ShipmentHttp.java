@@ -7,15 +7,16 @@ import io.attestry.workflow.application.shipment.command.CompleteShipmentEvidenc
 import io.attestry.workflow.application.shipment.command.PresignShipmentEvidenceUploadCommand;
 import io.attestry.workflow.application.shipment.command.ReleaseShipmentCommand;
 import io.attestry.workflow.application.shipment.command.ReturnShipmentCommand;
-import io.attestry.workflow.application.shipment.result.EvidenceCompleteResult;
-import io.attestry.workflow.application.shipment.result.PresignedEvidenceUploadResult;
-import io.attestry.workflow.application.shipment.result.ReleaseShipmentResult;
-import io.attestry.workflow.application.shipment.result.ReturnShipmentResult;
+import io.attestry.workflow.application.shipment.command.EvidenceCompleteResult;
+import io.attestry.workflow.application.shipment.command.PresignedEvidenceUploadResult;
+import io.attestry.workflow.application.shipment.command.ReleaseShipmentResult;
+import io.attestry.workflow.application.shipment.command.ReturnShipmentResult;
 import io.attestry.workflow.application.shipment.command.ShipmentEvidenceUseCase;
 import io.attestry.workflow.application.shipment.command.ShipmentReleaseUseCase;
 import io.attestry.workflow.application.shipment.query.ShipmentQueryUseCase;
-import io.attestry.workflow.application.shipment.view.PagedReleaseCandidateView;
-import io.attestry.workflow.application.shipment.view.PagedShipmentView;
+import io.attestry.workflow.application.shipment.query.PagedReleaseCandidateView;
+import io.attestry.workflow.application.shipment.query.PagedShipmentView;
+import jakarta.validation.Valid;
 import io.attestry.workflow.interfaces.shipment.dto.request.CompleteShipmentEvidenceUploadRequest;
 import io.attestry.workflow.interfaces.shipment.dto.request.PresignShipmentEvidenceUploadRequest;
 import io.attestry.workflow.interfaces.shipment.dto.request.ReleaseShipmentRequest;
@@ -59,7 +60,7 @@ public class ShipmentHttp {
     @PreAuthorize("hasAuthority('SCOPE_BRAND_RELEASE')")
     public ApiResponse<PresignedShipmentEvidenceUploadResponse> presignEvidenceUpload(
             @AuthenticationPrincipal AuthPrincipal principal,
-            @RequestBody PresignShipmentEvidenceUploadRequest request) {
+            @Valid @RequestBody PresignShipmentEvidenceUploadRequest request) {
         PresignedEvidenceUploadResult result = shipmentEvidenceUseCase.presignEvidenceUpload(
                 actor(principal),
                 new PresignShipmentEvidenceUploadCommand(
@@ -73,7 +74,7 @@ public class ShipmentHttp {
     @PreAuthorize("hasAuthority('SCOPE_BRAND_RELEASE')")
     public ApiResponse<ShipmentEvidenceCompleteResponse> completeEvidenceUpload(
             @AuthenticationPrincipal AuthPrincipal principal,
-            @RequestBody CompleteShipmentEvidenceUploadRequest request) {
+            @Valid @RequestBody CompleteShipmentEvidenceUploadRequest request) {
         EvidenceCompleteResult result = shipmentEvidenceUseCase.completeEvidenceUpload(
                 actor(principal),
                 new CompleteShipmentEvidenceUploadCommand(
@@ -90,7 +91,7 @@ public class ShipmentHttp {
     public ApiResponse<ReleaseShipmentResponse> release(
             @AuthenticationPrincipal AuthPrincipal principal,
             @PathVariable("passportId") String passportId,
-            @RequestBody ReleaseShipmentRequest request) {
+            @Valid @RequestBody ReleaseShipmentRequest request) {
         ReleaseShipmentResult result = shipmentReleaseUseCase.release(
                 actor(principal),
                 passportId,
@@ -147,7 +148,7 @@ public class ShipmentHttp {
     public ApiResponse<ReturnShipmentResponse> returnShipment(
             @AuthenticationPrincipal AuthPrincipal principal,
             @PathVariable("shipmentId") String shipmentId,
-            @RequestBody(required = false) ReturnShipmentRequest request) {
+            @Valid @RequestBody(required = false) ReturnShipmentRequest request) {
         ReturnShipmentResult result = shipmentReleaseUseCase.returnShipment(
                 actor(principal),
                 shipmentId,

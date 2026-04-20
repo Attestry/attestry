@@ -3,10 +3,10 @@ package io.attestry.userauth.interfaces.template;
 import io.attestry.commonlib.web.CurrentActor;
 import io.attestry.commonlib.infrastructure.ApiResponse;
 import io.attestry.userauth.application.common.ActorContext;
-import io.attestry.userauth.application.template.result.PermissionResult;
-import io.attestry.userauth.application.template.result.PermissionTemplateResult;
-import io.attestry.userauth.application.template.result.TenantRoleTemplateBindingResult;
-import io.attestry.userauth.application.template.usecase.TemplateManagementUseCase;
+import io.attestry.userauth.application.template.command.PermissionResult;
+import io.attestry.userauth.application.template.command.PermissionTemplateResult;
+import io.attestry.userauth.application.template.command.TemplateManagementUseCase;
+import io.attestry.userauth.application.template.command.TenantRoleTemplateBindingResult;
 import io.attestry.userauth.interfaces.template.dto.request.BindTenantRoleTemplateRequest;
 import io.attestry.userauth.interfaces.template.dto.request.CreatePermissionTemplateRequest;
 import io.attestry.userauth.interfaces.template.dto.request.SetTemplatePermissionsRequest;
@@ -14,6 +14,7 @@ import io.attestry.userauth.interfaces.template.dto.request.UpdatePermissionTemp
 import io.attestry.userauth.interfaces.template.dto.response.PermissionResponse;
 import io.attestry.userauth.interfaces.template.dto.response.PermissionTemplateResponse;
 import io.attestry.userauth.interfaces.template.dto.response.TenantRoleTemplateBindingResponse;
+import jakarta.validation.Valid;
 import java.util.List;
 import lombok.RequiredArgsConstructor;
 import org.springframework.security.access.prepost.PreAuthorize;
@@ -39,7 +40,7 @@ public class TenantTemplateManagementHttp {
     public ApiResponse<PermissionTemplateResponse> createTenantTemplate(
         @CurrentActor ActorContext actor,
         @PathVariable("tenantId") String tenantId,
-        @RequestBody CreatePermissionTemplateRequest request
+        @Valid @RequestBody CreatePermissionTemplateRequest request
     ) {
         PermissionTemplateResult result = templateManagementUseCase.createTenantTemplate(
             actor,
@@ -83,7 +84,7 @@ public class TenantTemplateManagementHttp {
         @CurrentActor ActorContext actor,
         @PathVariable("tenantId") String tenantId,
         @PathVariable("templateCode") String templateCode,
-        @RequestBody UpdatePermissionTemplateRequest request
+        @Valid @RequestBody UpdatePermissionTemplateRequest request
     ) {
         PermissionTemplateResult result = templateManagementUseCase.updateTenantTemplate(
             actor,
@@ -99,7 +100,7 @@ public class TenantTemplateManagementHttp {
         @CurrentActor ActorContext actor,
         @PathVariable("tenantId") String tenantId,
         @PathVariable("templateCode") String templateCode,
-        @RequestBody SetTemplatePermissionsRequest request
+        @Valid @RequestBody SetTemplatePermissionsRequest request
     ) {
         PermissionTemplateResult result = templateManagementUseCase.replaceTenantTemplatePermissions(
             actor,
@@ -115,7 +116,7 @@ public class TenantTemplateManagementHttp {
         @CurrentActor ActorContext actor,
         @PathVariable("tenantId") String tenantId,
         @PathVariable("templateCode") String templateCode,
-        @RequestBody SetTemplatePermissionsRequest request
+        @Valid @RequestBody SetTemplatePermissionsRequest request
     ) {
         PermissionTemplateResult result = templateManagementUseCase.addTenantTemplatePermissions(
             actor,
@@ -142,7 +143,7 @@ public class TenantTemplateManagementHttp {
     public ApiResponse<TenantRoleTemplateBindingResponse> bindTenantRoleTemplate(
         @CurrentActor ActorContext actor,
         @PathVariable("tenantId") String tenantId,
-        @RequestBody BindTenantRoleTemplateRequest request
+        @Valid @RequestBody BindTenantRoleTemplateRequest request
     ) {
         TenantRoleTemplateBindingResult result = templateManagementUseCase.bindTenantRoleTemplate(
             actor,

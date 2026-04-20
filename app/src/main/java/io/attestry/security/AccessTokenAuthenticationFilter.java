@@ -54,15 +54,14 @@ public class AccessTokenAuthenticationFilter extends OncePerRequestFilter {
 
         try {
             String token = BearerTokenExtractor.extract(authorization);
-            AuthPrincipal principal = accessTokenPort.parse(token).orElse(null);
-            if (principal != null) {
+            accessTokenPort.parse(token).ifPresent(principal -> {
                 UsernamePasswordAuthenticationToken authentication = new UsernamePasswordAuthenticationToken(
                     principal,
                     token,
                     authorities(principal)
                 );
                 SecurityContextHolder.getContext().setAuthentication(authentication);
-            }
+            });
             filterChain.doFilter(request, response);
         } catch (DomainException ex) {
             response.setStatus(HttpServletResponse.SC_UNAUTHORIZED);

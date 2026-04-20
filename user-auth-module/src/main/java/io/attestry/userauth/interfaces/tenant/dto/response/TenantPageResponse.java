@@ -1,6 +1,6 @@
 package io.attestry.userauth.interfaces.tenant.dto.response;
 
-import io.attestry.userauth.application.tenant.view.TenantPageView;
+import io.attestry.userauth.application.tenant.query.TenantPageView;
 import java.util.List;
 
 public record TenantPageResponse(

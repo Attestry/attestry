@@ -3,7 +3,6 @@ package io.attestry.userauth.infrastructure.persistence.jdbc.projection;
 import io.attestry.userauth.domain.authorization.policy.PermissionCatalog;
 import io.attestry.userauth.domain.authorization.policy.SystemPermissionTemplateCatalog;
 import io.attestry.userauth.domain.authorization.policy.SystemPermissionTemplateCatalog.TemplateDefinition;
-import io.attestry.userauth.infrastructure.persistence.jdbc.projection.MembershipEffectivePermissionProjectionRefresher;
 import java.sql.Timestamp;
 import java.time.Instant;
 import java.util.List;

@@ -47,7 +47,7 @@ public class ServiceSubmitPolicy {
         if (context.openRequestExists()) {
             throw new WorkflowDomainException(
                 WorkflowErrorCode.SERVICE_REQUEST_ALREADY_SUBMITTED,
-                "이미 처리 중인 서비스 요청이 있습니다."
+                "A service request is already in progress."
             );
         }
     }

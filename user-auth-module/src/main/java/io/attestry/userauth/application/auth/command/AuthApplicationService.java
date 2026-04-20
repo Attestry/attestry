@@ -1,14 +1,11 @@
 package io.attestry.userauth.application.auth.command;
 
-import io.attestry.userauth.application.auth.result.AuthTokenResult;
-import io.attestry.userauth.application.auth.result.VerifyPhoneResult;
-import io.attestry.userauth.application.auth.support.AuthTokenIssuer;
-import io.attestry.userauth.application.auth.support.LoginContextResolver;
+import io.attestry.userauth.application.auth.internal.AuthTokenIssuer;
+import io.attestry.userauth.application.auth.internal.LoginContextResolver;
 import io.attestry.userauth.application.port.auth.AccessTokenPort;
 import io.attestry.userauth.application.port.auth.PasswordHasherPort;
 import io.attestry.userauth.application.port.identity.UserAccountRepositoryPort;
 import io.attestry.userauth.application.port.membership.MembershipPort;
-import io.attestry.userauth.application.auth.usecase.AuthUseCase;
 import io.attestry.userauth.domain.UserAuthErrorCode;
 import io.attestry.userauth.domain.UserAuthDomainException;
 import io.attestry.userauth.domain.authorization.model.LoginContext;
@@ -34,7 +31,7 @@ public class AuthApplicationService implements AuthUseCase {
     @Override
     public AuthTokenResult login(LoginCommand command) {
         UserAccount account = userAccountRepository.findByEmail(command.email())
-                .orElseThrow(() -> new UserAuthDomainException(UserAuthErrorCode.USER_NOT_FOUND, "사용자 정보를 찾을 수 없습니다"));
+                .orElseThrow(() -> new UserAuthDomainException(UserAuthErrorCode.USER_NOT_FOUND, "User not found"));
 
         account.assertPasswordMatches(command.password(), passwordHasher::matches);
         account.checkActiveStatus();
@@ -57,17 +54,17 @@ public class AuthApplicationService implements AuthUseCase {
     @Override
     public VerifyPhoneResult verifyPhone(String userId) {
         UserAccount account = userAccountRepository.findById(userId)
-                .orElseThrow(() -> new UserAuthDomainException(UserAuthErrorCode.USER_NOT_FOUND, "사용자 정보를 찾을 수 없습니다"));
+                .orElseThrow(() -> new UserAuthDomainException(UserAuthErrorCode.USER_NOT_FOUND, "User not found"));
         account.verifyPhone();
         userAccountRepository.save(account);
         return new VerifyPhoneResult(account.userId(), account.verificationLevel());
     }
 
-    // TODO("reissueToken가 필요한 이유 : 토큰에 대한 정보가 바뀜")
+    // TODO: Token reissue needed because token info changes
     @Override
     public AuthTokenResult reissueToken(String userId, String tenantId) {
         UserAccount account = userAccountRepository.findById(userId)
-                .orElseThrow(() -> new UserAuthDomainException(UserAuthErrorCode.USER_NOT_FOUND, "사용자 정보를 찾을 수 없습니다"));
+                .orElseThrow(() -> new UserAuthDomainException(UserAuthErrorCode.USER_NOT_FOUND, "User not found"));
 
         account.checkActiveStatus();
 
@@ -78,7 +75,7 @@ public class AuthApplicationService implements AuthUseCase {
     @Override
     public AuthTokenResult switchTenant(String userId, String membershipId) {
         UserAccount account = userAccountRepository.findById(userId)
-            .orElseThrow(() -> new UserAuthDomainException(UserAuthErrorCode.USER_NOT_FOUND, "사용자 정보를 찾을 수 없습니다"));
+            .orElseThrow(() -> new UserAuthDomainException(UserAuthErrorCode.USER_NOT_FOUND, "User not found"));
 
         account.checkActiveStatus();
 
@@ -96,7 +93,7 @@ public class AuthApplicationService implements AuthUseCase {
     @Override
     public void resetPassword(String userId, ResetPasswordCommand command) {
         UserAccount account = userAccountRepository.findById(userId)
-            .orElseThrow(() -> new UserAuthDomainException(UserAuthErrorCode.USER_NOT_FOUND, "사용자 정보를 찾을 수 없습니다"));
+            .orElseThrow(() -> new UserAuthDomainException(UserAuthErrorCode.USER_NOT_FOUND, "User not found"));
 
         account.checkActiveStatus();
         account.changePassword(

@@ -12,6 +12,9 @@ import java.util.Optional;
 import java.util.Set;
 import java.util.UUID;
 import org.springframework.boot.autoconfigure.condition.ConditionalOnProperty;
+import org.springframework.dao.DataAccessException;
+import org.springframework.data.redis.core.RedisOperations;
+import org.springframework.data.redis.core.SessionCallback;
 import org.springframework.data.redis.core.StringRedisTemplate;
 import org.springframework.stereotype.Component;
 
@@ -43,9 +46,23 @@ public class RedisAccessTokenService implements AccessTokenPort {
         if (ttl.isNegative() || ttl.isZero()) {
             ttl = Duration.ofSeconds(1);
         }
-        redisTemplate.opsForValue().set(key(token), write(principal), ttl);
-        redisTemplate.opsForSet().add(userTokensKey(principal.userId()), token);
-        redisTemplate.expire(userTokensKey(principal.userId()), ttl);
+
+        final Duration finalTtl = ttl;
+        final String tokenKey = key(token);
+        final String userKey = userTokensKey(principal.userId());
+        final String payload = write(principal);
+
+        redisTemplate.execute(new SessionCallback<>() {
+            @Override
+            @SuppressWarnings("unchecked")
+            public Object execute(RedisOperations operations) throws DataAccessException {
+                operations.multi();
+                operations.opsForValue().set(tokenKey, payload, finalTtl);
+                operations.opsForSet().add(userKey, token);
+                operations.expire(userKey, finalTtl);
+                return operations.exec();
+            }
+        });
         return token;
     }
 

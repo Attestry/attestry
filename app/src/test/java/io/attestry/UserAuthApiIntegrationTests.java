@@ -378,7 +378,7 @@ class UserAuthApiIntegrationTests {
                 ))))
             .andExpect(status().isBadRequest())
             .andExpect(jsonPath("$.error.code").value("INVALID_INPUT"))
-            .andExpect(jsonPath("$.error.message").value("비밀번호는 8자 이상이며 영문 대문자를 1자 이상 포함해야 합니다"));
+            .andExpect(jsonPath("$.error.message").value("Password must be at least 8 characters and contain at least one uppercase letter"));
     }
 
     @Test
@@ -391,7 +391,7 @@ class UserAuthApiIntegrationTests {
                 .content(json(Map.of("email", email))))
             .andExpect(status().isConflict())
             .andExpect(jsonPath("$.error.code").value("DUPLICATE_EMAIL"))
-            .andExpect(jsonPath("$.error.message").value("이미 등록된 이메일입니다"));
+            .andExpect(jsonPath("$.error.message").value("Email already registered"));
     }
 
     @Test
@@ -401,7 +401,7 @@ class UserAuthApiIntegrationTests {
                 .content(json(Map.of("email", "qwer@asdf.123"))))
             .andExpect(status().isBadRequest())
             .andExpect(jsonPath("$.error.code").value("INVALID_INPUT"))
-            .andExpect(jsonPath("$.error.message").value("올바른 이메일 형식을 입력해주세요."));
+            .andExpect(jsonPath("$.error.message").value("Please enter a valid email format."));
     }
 
     @Test
@@ -640,7 +640,7 @@ class UserAuthApiIntegrationTests {
                 .content(json(Map.of("status", "SUSPENDED"))))
             .andExpect(status().isBadRequest())
             .andExpect(jsonPath("$.error.code").value("LAST_ACTIVE_OWNER_REQUIRED"))
-            .andExpect(jsonPath("$.error.message").value("시스템에 최소 한 명의 관리자가 필요합니다."));
+            .andExpect(jsonPath("$.error.message").value("At least one active owner is required."));
     }
 
     @Test
@@ -677,7 +677,7 @@ class UserAuthApiIntegrationTests {
                 .header("Authorization", bearer(ownerToken)))
             .andExpect(status().isBadRequest())
             .andExpect(jsonPath("$.error.code").value("LAST_ACTIVE_OWNER_REQUIRED"))
-            .andExpect(jsonPath("$.error.message").value("시스템에 최소 한 명의 관리자가 필요합니다."));
+            .andExpect(jsonPath("$.error.message").value("At least one active owner is required."));
     }
 
     private void signUp(String email, String password, String phone) throws Exception {

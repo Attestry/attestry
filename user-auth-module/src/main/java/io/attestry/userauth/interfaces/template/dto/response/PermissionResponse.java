@@ -1,6 +1,6 @@
 package io.attestry.userauth.interfaces.template.dto.response;
 
-import io.attestry.userauth.application.template.result.PermissionResult;
+import io.attestry.userauth.application.template.command.PermissionResult;
 
 public record PermissionResponse(
     String permissionId,

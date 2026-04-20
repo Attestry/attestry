@@ -1,4 +1,9 @@
 package io.attestry.workflow.interfaces.shipment.dto.request;
 
-public record ReleaseShipmentRequest(String evidenceGroupId) {
+import jakarta.validation.constraints.NotBlank;
+
+public record ReleaseShipmentRequest(
+    @NotBlank(message = "Evidence group ID is required")
+    String evidenceGroupId
+) {
 }

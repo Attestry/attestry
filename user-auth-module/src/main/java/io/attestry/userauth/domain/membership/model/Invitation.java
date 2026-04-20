@@ -58,7 +58,7 @@ public class Invitation extends AggregateRoot {
         if (status != InvitationStatus.PENDING) {
             throw new UserAuthDomainException(UserAuthErrorCode.INVALID_APPLICATION_STATE, "Invitation is not pending");
         }
-        //TODO("acceptEmail 소셜로그인 허용할때 정책 적용 / 또는 회사 계정으로만 가입되게?")
+        // TODO: Apply policy for social login when accepting invitation
         this.status = InvitationStatus.ACCEPTED;
         this.acceptedBy = accepterUserId;
         this.acceptedAt = now;

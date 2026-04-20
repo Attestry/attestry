@@ -6,10 +6,14 @@ import io.attestry.userauth.domain.membership.model.NotificationOutbox;
 import java.time.Clock;
 import java.time.Instant;
 import java.util.List;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 import org.springframework.stereotype.Component;
 
 @Component
 class NotificationOutboxBatchProcessor {
+
+    private static final Logger log = LoggerFactory.getLogger(NotificationOutboxBatchProcessor.class);
 
     private static final int BATCH_SIZE = 20;
 
@@ -37,6 +41,7 @@ class NotificationOutboxBatchProcessor {
     }
 
     void publishPending(String processingOwner) {
+        log.debug("Processing notification outbox batch");
         metrics.recordBatch(() -> {
             Instant now = Instant.now(clock);
             List<NotificationOutbox> entries = metrics.recordClaim(
@@ -57,6 +62,7 @@ class NotificationOutboxBatchProcessor {
             entry.markSent(Instant.now(clock));
             metrics.incrementPublishSuccessCount();
         } catch (Exception ex) {
+            log.warn("Failed to process notification: id={}", entry.id(), ex);
             metrics.incrementPublishFailureCount();
             failureHandler.handle(entry, ex, Instant.now(clock));
         }

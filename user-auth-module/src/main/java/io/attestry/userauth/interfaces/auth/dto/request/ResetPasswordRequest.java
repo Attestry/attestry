@@ -4,13 +4,13 @@ import jakarta.validation.constraints.NotBlank;
 import jakarta.validation.constraints.Pattern;
 
 public record ResetPasswordRequest(
-    @NotBlank(message = "현재 비밀번호는 필수입니다")
+    @NotBlank(message = "Current password is required")
     String currentPassword,
 
-    @NotBlank(message = "새 비밀번호는 필수입니다")
+    @NotBlank(message = "New password is required")
     @Pattern(
         regexp = "^(?=.*[A-Z]).{8,}$",
-        message = "비밀번호는 8자 이상이며 영문 대문자를 1자 이상 포함해야 합니다"
+        message = "Password must be at least 8 characters and contain at least one uppercase letter"
     )
     String newPassword
 ) {

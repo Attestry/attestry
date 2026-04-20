@@ -2,8 +2,8 @@ package io.attestry.workflow.application.support;
 
 import io.attestry.commonlib.application.port.ObjectStoragePort;
 import io.attestry.workflow.application.port.common.WorkflowEvidencePort;
-import io.attestry.workflow.application.shipment.result.PresignedEvidenceUploadResult;
-import io.attestry.workflow.application.shipment.result.EvidenceCompleteResult;
+import io.attestry.workflow.application.shipment.command.PresignedEvidenceUploadResult;
+import io.attestry.workflow.application.shipment.command.EvidenceCompleteResult;
 import io.attestry.workflow.domain.WorkflowDomainException;
 import io.attestry.workflow.domain.WorkflowErrorCode;
 import java.time.Duration;

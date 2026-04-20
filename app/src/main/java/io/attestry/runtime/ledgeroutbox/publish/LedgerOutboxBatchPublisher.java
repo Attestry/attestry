@@ -13,11 +13,15 @@ import java.util.ArrayList;
 import java.util.List;
 import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.ExecutorService;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Qualifier;
 import org.springframework.stereotype.Component;
 
 @Component
 class LedgerOutboxBatchPublisher {
+
+    private static final Logger log = LoggerFactory.getLogger(LedgerOutboxBatchPublisher.class);
 
     private final AppKafkaProperties kafkaProperties;
     private final LedgerOutboxJobRepository jobRepository;
@@ -77,7 +81,8 @@ class LedgerOutboxBatchPublisher {
             try {
                 metrics.recordPublish(() -> topicPublisher.publish(event).join());
                 attempts.add(new PublishAttempt(event, null));
-            } catch (Throwable ex) {
+            } catch (Exception ex) {
+                log.warn("Failed to publish outbox event: eventId={}, aggregateId={}", event.eventId(), event.aggregateId(), ex);
                 attempts.add(new PublishAttempt(event, ex));
             }
         }

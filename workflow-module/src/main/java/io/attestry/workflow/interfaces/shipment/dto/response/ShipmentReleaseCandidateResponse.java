@@ -1,6 +1,6 @@
 package io.attestry.workflow.interfaces.shipment.dto.response;
 
-import io.attestry.workflow.application.shipment.view.ShipmentReleaseCandidateView;
+import io.attestry.workflow.application.shipment.query.ShipmentReleaseCandidateView;
 
 public record ShipmentReleaseCandidateResponse(
         String passportId,

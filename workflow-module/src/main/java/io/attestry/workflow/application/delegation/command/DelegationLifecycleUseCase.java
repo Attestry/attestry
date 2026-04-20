@@ -1,7 +1,5 @@
 package io.attestry.workflow.application.delegation.command;
 
-import io.attestry.workflow.application.delegation.result.DelegationEvaluateResult;
-
 public interface DelegationLifecycleUseCase {
     DelegationEvaluateResult evaluate(
         String sourceTenantId,

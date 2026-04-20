@@ -11,6 +11,7 @@ import io.attestry.workflow.application.distribution.query.DistributionQueryUseC
 import io.attestry.workflow.application.distribution.view.DistributionView;
 import io.attestry.workflow.application.distribution.view.PagedDistributionCandidateView;
 import io.attestry.workflow.application.distribution.view.PagedDistributionView;
+import jakarta.validation.Valid;
 import io.attestry.workflow.interfaces.distribution.dto.request.DistributeRequest;
 import io.attestry.workflow.interfaces.distribution.dto.request.RecallRequest;
 import io.attestry.workflow.interfaces.distribution.dto.response.BatchDistributionResponse;
@@ -49,7 +50,7 @@ public class DistributionHttp {
         @AuthenticationPrincipal AuthPrincipal principal,
         @PathVariable("sourceTenantId") String sourceTenantId,
         @PathVariable("partnerLinkId") String partnerLinkId,
-        @RequestBody DistributeRequest request
+        @Valid @RequestBody DistributeRequest request
     ) {
         BatchDistributeResult result = distributionCommandUseCase.distribute(
             actor(principal),
@@ -92,7 +93,7 @@ public class DistributionHttp {
     public ApiResponse<DistributionResponse> recall(
         @AuthenticationPrincipal AuthPrincipal principal,
         @PathVariable("distributionId") String distributionId,
-        @RequestBody RecallRequest request
+        @Valid @RequestBody RecallRequest request
     ) {
         DistributionView result = distributionCommandUseCase.recall(
             actor(principal), distributionId, new RecallDistributionCommand(request.reason())

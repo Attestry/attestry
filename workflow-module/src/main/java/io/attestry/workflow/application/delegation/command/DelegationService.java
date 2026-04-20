@@ -3,8 +3,7 @@ package io.attestry.workflow.application.delegation.command;
 import io.attestry.workflow.application.common.WorkflowActorContext;
 import io.attestry.userauth.domain.authorization.model.PermissionCodes;
 import io.attestry.workflow.application.port.delegation.PassportAuthorityQueryPort;
-import io.attestry.workflow.application.delegation.result.DelegationResult;
-import io.attestry.workflow.application.delegation.support.RelationshipValidator;
+import io.attestry.workflow.application.delegation.internal.RelationshipValidator;
 import io.attestry.workflow.application.port.delegation.DelegationPermissionProjectionPort;
 import io.attestry.workflow.application.port.common.TenantReadPort;
 import io.attestry.workflow.application.support.WorkflowAuthorizationSupport;
@@ -79,7 +78,7 @@ public class DelegationService implements DelegationUseCase {
         ) {
             throw new WorkflowDomainException(
                 WorkflowErrorCode.PARTNER_LINK_INVALID_TYPE,
-                "해당 파트너는 유통(판매) 권한이 없는 서비스 타입 업체입니다."
+                "This partner is a service-type tenant without distribution permission."
             );
         }
     }

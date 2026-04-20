@@ -85,7 +85,7 @@ class ServiceConsentServiceTest {
         );
 
         GrantServiceConsentResult result = service.submit(
-            OWNER, "p1", new GrantServiceConsentCommand("provG1", "eg1", "ONLINE", "화면 불량", null, "010-0000-0000 / 평일 오후")
+            OWNER, "p1", new GrantServiceConsentCommand("provG1", "eg1", "ONLINE", "Screen defect", null, "010-0000-0000 / weekday afternoon")
         );
 
         assertEquals("perm1", result.permissionId());
@@ -104,7 +104,7 @@ class ServiceConsentServiceTest {
             .thenReturn(Optional.of(new ServicePassportState("p1", "t1", "VOIDED", "NONE")));
         when(serviceProductReadPort.findCurrentOwnerId("p1")).thenReturn(Optional.of("owner1"));
         WorkflowDomainException ex = assertThrows(WorkflowDomainException.class, () ->
-            service.submit(OWNER, "p1", new GrantServiceConsentCommand("provG1", "eg1", "ONLINE", "화면 불량", null, "010-0000-0000 / 평일 오후"))
+            service.submit(OWNER, "p1", new GrantServiceConsentCommand("provG1", "eg1", "ONLINE", "Screen defect", null, "010-0000-0000 / weekday afternoon"))
         );
         assertEquals(WorkflowErrorCode.INVALID_STATE, ex.getErrorCode());
     }
@@ -116,7 +116,7 @@ class ServiceConsentServiceTest {
             .thenReturn(Optional.of(new ServicePassportState("p1", "t1", "ACTIVE", "FLAGGED")));
         when(serviceProductReadPort.findCurrentOwnerId("p1")).thenReturn(Optional.of("owner1"));
         WorkflowDomainException ex = assertThrows(WorkflowDomainException.class, () ->
-            service.submit(OWNER, "p1", new GrantServiceConsentCommand("provG1", "eg1", "ONLINE", "화면 불량", null, "010-0000-0000 / 평일 오후"))
+            service.submit(OWNER, "p1", new GrantServiceConsentCommand("provG1", "eg1", "ONLINE", "Screen defect", null, "010-0000-0000 / weekday afternoon"))
         );
         assertEquals(WorkflowErrorCode.INVALID_STATE, ex.getErrorCode());
     }
@@ -128,7 +128,7 @@ class ServiceConsentServiceTest {
             .thenReturn(Optional.of(new ServicePassportState("p1", "t1", "ACTIVE", "NONE")));
         when(serviceProductReadPort.findCurrentOwnerId("p1")).thenReturn(Optional.of("differentOwner"));
         WorkflowDomainException ex = assertThrows(WorkflowDomainException.class, () ->
-            service.submit(OWNER, "p1", new GrantServiceConsentCommand("provG1", "eg1", "ONLINE", "화면 불량", null, "010-0000-0000 / 평일 오후"))
+            service.submit(OWNER, "p1", new GrantServiceConsentCommand("provG1", "eg1", "ONLINE", "Screen defect", null, "010-0000-0000 / weekday afternoon"))
         );
         assertEquals(WorkflowErrorCode.FORBIDDEN_SCOPE, ex.getErrorCode());
     }

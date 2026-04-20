@@ -1,6 +1,6 @@
 package io.attestry.userauth.interfaces.template.dto.response;
 
-import io.attestry.userauth.application.template.result.PermissionTemplateResult;
+import io.attestry.userauth.application.template.command.PermissionTemplateResult;
 import java.util.List;
 
 public record PermissionTemplateResponse(

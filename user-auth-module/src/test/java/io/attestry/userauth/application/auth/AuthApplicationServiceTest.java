@@ -7,12 +7,12 @@ import static org.junit.jupiter.api.Assertions.assertTrue;
 
 import io.attestry.userauth.application.auth.command.LoginCommand;
 import io.attestry.userauth.application.auth.command.SignUpCommand;
-import io.attestry.userauth.application.auth.result.AuthTokenResult;
+import io.attestry.userauth.application.auth.command.AuthTokenResult;
 import io.attestry.userauth.application.auth.command.AuthApplicationService;
 import io.attestry.userauth.application.auth.command.SignUpApplicationService;
-import io.attestry.userauth.application.auth.support.AuthTokenIssuer;
-import io.attestry.userauth.application.auth.support.LoginContextResolver;
-import io.attestry.userauth.application.auth.support.UserEffectiveScopeResolver;
+import io.attestry.userauth.application.auth.internal.AuthTokenIssuer;
+import io.attestry.userauth.application.auth.internal.LoginContextResolver;
+import io.attestry.userauth.application.auth.internal.UserEffectiveScopeResolver;
 import io.attestry.userauth.application.port.auth.AccessTokenPort;
 import io.attestry.userauth.application.port.membership.MembershipPort;
 import io.attestry.userauth.application.port.membership.MembershipProjectionPort;

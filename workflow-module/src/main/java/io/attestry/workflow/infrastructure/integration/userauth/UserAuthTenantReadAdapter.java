@@ -1,7 +1,7 @@
 package io.attestry.workflow.infrastructure.integration.userauth;
 
-import io.attestry.userauth.application.tenant.usecase.TenantQueryUseCase;
-import io.attestry.userauth.application.tenant.view.TenantView;
+import io.attestry.userauth.application.tenant.query.TenantQueryUseCase;
+import io.attestry.userauth.application.tenant.query.TenantView;
 import io.attestry.userauth.domain.UserAuthDomainException;
 import io.attestry.userauth.domain.UserAuthErrorCode;
 import io.attestry.workflow.application.port.common.TenantReadPort;

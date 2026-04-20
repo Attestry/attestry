@@ -41,7 +41,7 @@ public class PassportManualService implements PassportManualUseCase {
         );
 
         if (context.ownerUserId() == null || context.ownerUserId().isBlank()) {
-            return new PassportManualRecipientResult(false, "현재 소유주가 없습니다.", null);
+            return new PassportManualRecipientResult(false, "No current owner found.", null);
         }
 
         return new PassportManualRecipientResult(
@@ -78,7 +78,7 @@ public class PassportManualService implements PassportManualUseCase {
         if (message == null && evidenceGroupId == null) {
             throw new WorkflowDomainException(
                 WorkflowErrorCode.PASSPORT_MANUAL_CONTENT_REQUIRED,
-                "메뉴얼 내용을 입력하거나 첨부 파일을 추가해주세요."
+                "Please provide manual content or attachments."
             );
         }
 
@@ -116,7 +116,7 @@ public class PassportManualService implements PassportManualUseCase {
             SEND_PERMISSION_PREFIX
         );
         if (context.ownerUserId() == null || context.ownerUserId().isBlank()) {
-            throw new WorkflowDomainException(WorkflowErrorCode.PASSPORT_MANUAL_OWNER_NOT_FOUND, "현재 소유주가 없습니다.");
+            throw new WorkflowDomainException(WorkflowErrorCode.PASSPORT_MANUAL_OWNER_NOT_FOUND, "No current owner found.");
         }
 
         String recipientEmail = recipientResolver.resolveRecipientEmail(context.ownerUserId());

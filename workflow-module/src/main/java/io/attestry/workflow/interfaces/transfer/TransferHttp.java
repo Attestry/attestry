@@ -21,6 +21,7 @@ import io.attestry.workflow.interfaces.transfer.dto.response.CancelTransferRespo
 import io.attestry.workflow.interfaces.transfer.dto.response.CompletedTransferResponse;
 import io.attestry.workflow.interfaces.transfer.dto.response.CreateTransferResponse;
 import io.attestry.workflow.interfaces.transfer.dto.response.PagedCompletedTransferResponse;
+import jakarta.validation.Valid;
 import java.util.List;
 import java.util.Optional;
 
@@ -53,7 +54,7 @@ public class TransferHttp {
     public ApiResponse<CreateTransferResponse> createC2C(
         @AuthenticationPrincipal AuthPrincipal principal,
         @PathVariable("passportId") String passportId,
-        @RequestBody CreateTransferRequest request
+        @Valid @RequestBody CreateTransferRequest request
     ) {
         CreateTransferResult result = transferCreateUseCase.createC2C(
             actor(principal),
@@ -70,7 +71,7 @@ public class TransferHttp {
         @AuthenticationPrincipal AuthPrincipal principal,
         @PathVariable("tenantId") String tenantId,
         @PathVariable("passportId") String passportId,
-        @RequestBody CreateTransferRequest request
+        @Valid @RequestBody CreateTransferRequest request
     ) {
         CreateTransferResult result = transferCreateUseCase.createB2C(
             actor(principal),
@@ -151,7 +152,7 @@ public class TransferHttp {
     public ApiResponse<AcceptTransferResponse> accept(
         @AuthenticationPrincipal AuthPrincipal principal,
         @PathVariable("transferId") String transferId,
-        @RequestBody AcceptTransferRequest request
+        @Valid @RequestBody AcceptTransferRequest request
     ) {
         AcceptTransferResult result = transferAcceptUseCase.accept(
             actor(principal),

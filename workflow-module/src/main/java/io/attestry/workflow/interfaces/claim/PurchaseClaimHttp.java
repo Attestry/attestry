@@ -8,8 +8,9 @@ import io.attestry.workflow.application.claim.command.PresignClaimEvidenceComman
 import io.attestry.workflow.application.claim.command.SubmitPurchaseClaimCommand;
 import io.attestry.workflow.application.claim.result.SubmitPurchaseClaimResult;
 import io.attestry.workflow.application.claim.command.PurchaseClaimSubmitUseCase;
-import io.attestry.workflow.application.shipment.result.EvidenceCompleteResult;
-import io.attestry.workflow.application.shipment.result.PresignedEvidenceUploadResult;
+import io.attestry.workflow.application.shipment.command.EvidenceCompleteResult;
+import io.attestry.workflow.application.shipment.command.PresignedEvidenceUploadResult;
+import jakarta.validation.Valid;
 import io.attestry.workflow.interfaces.claim.dto.request.CompleteEvidenceRequest;
 import io.attestry.workflow.interfaces.claim.dto.request.PresignEvidenceRequest;
 import io.attestry.workflow.interfaces.claim.dto.request.SubmitClaimRequest;
@@ -45,7 +46,7 @@ public class PurchaseClaimHttp {
     @PreAuthorize("isAuthenticated()")
     public ApiResponse<PresignEvidenceResponse> presignEvidence(
         @AuthenticationPrincipal AuthPrincipal principal,
-        @RequestBody PresignEvidenceRequest request
+        @Valid @RequestBody PresignEvidenceRequest request
     ) {
         PresignedEvidenceUploadResult result = purchaseClaimSubmitUseCase.presignEvidence(
             actor(principal),
@@ -60,7 +61,7 @@ public class PurchaseClaimHttp {
     @PreAuthorize("isAuthenticated()")
     public ApiResponse<CompleteEvidenceResponse> completeEvidence(
         @AuthenticationPrincipal AuthPrincipal principal,
-        @RequestBody CompleteEvidenceRequest request
+        @Valid @RequestBody CompleteEvidenceRequest request
     ) {
         EvidenceCompleteResult result = purchaseClaimSubmitUseCase.completeEvidence(
             actor(principal),
@@ -77,7 +78,7 @@ public class PurchaseClaimHttp {
     @PreAuthorize("isAuthenticated()")
     public ApiResponse<SubmitClaimResponse> submit(
         @AuthenticationPrincipal AuthPrincipal principal,
-        @RequestBody SubmitClaimRequest request
+        @Valid @RequestBody SubmitClaimRequest request
     ) {
         SubmitPurchaseClaimResult result = purchaseClaimSubmitUseCase.submit(
             actor(principal),

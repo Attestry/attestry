@@ -82,7 +82,7 @@ public class OnboardingHttp {
         return ApiResponse.success(ApplicationResponse.from(result));
     }
 
-    // TODO("엔드포인트 수정 -> 기존 - Path: `/onboarding/applications`)
+    // TODO("Endpoint changed - previously: `/onboarding/applications`")
     @GetMapping("/applications/me")
     public ApiResponse<List<ApplicationResponse>> listMyApplications(@CurrentActor ActorContext actor) {
         return ApiResponse.success(onboardingQueryUseCase.listMyApplications(actor).stream()
@@ -118,7 +118,7 @@ public class OnboardingHttp {
                 .toList());
     }
 
-    // TODO("기존 : `/admin/onboarding/applications/{applicationId}`")
+    // TODO("Previously: `/admin/onboarding/applications/{applicationId}`")
     @PostMapping("/applications/{applicationId}/approve")
     @PreAuthorize("hasAuthority('SCOPE_TENANT_CREATE_APPROVE')")
     public ApiResponse<ApproveResponse> approveApplication(
@@ -129,7 +129,7 @@ public class OnboardingHttp {
         return ApiResponse.success(new ApproveResponse(result.tenantId(), result.membershipId()));
     }
 
-    //TODO("기존 -> `/admin/onboarding/applications/{applicationId}/reject`")
+    //TODO("Previously: `/admin/onboarding/applications/{applicationId}/reject`")
     @PostMapping("/applications/{applicationId}/reject")
     @ResponseStatus(HttpStatus.NO_CONTENT)
     @PreAuthorize("hasAuthority('SCOPE_TENANT_CREATE_APPROVE')")
