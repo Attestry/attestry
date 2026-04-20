@@ -1,6 +1,6 @@
 package io.attestry.workflow.interfaces.shipment.dto.response;
 
-import io.attestry.workflow.application.shipment.result.PresignedEvidenceUploadResult;
+import io.attestry.workflow.application.shipment.command.PresignedEvidenceUploadResult;
 import java.time.Instant;
 
 public record PresignedShipmentEvidenceUploadResponse(

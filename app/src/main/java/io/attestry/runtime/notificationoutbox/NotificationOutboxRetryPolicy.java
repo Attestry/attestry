@@ -1,5 +1,6 @@
 package io.attestry.runtime.notificationoutbox;
 
+import io.attestry.runtime.support.ExponentialBackoffRetryPolicy;
 import java.time.Duration;
 import java.time.Instant;
 import org.springframework.stereotype.Component;
@@ -7,24 +8,19 @@ import org.springframework.stereotype.Component;
 @Component
 class NotificationOutboxRetryPolicy {
 
-    private static final int MAX_RETRIES = 5;
-    private static final Duration BASE_DELAY = Duration.ofSeconds(2);
-    private static final Duration MAX_BACKOFF = Duration.ofMinutes(5);
+    private final ExponentialBackoffRetryPolicy delegate = new ExponentialBackoffRetryPolicy(
+        Duration.ofSeconds(2), Duration.ofMinutes(5), 5
+    );
 
     boolean isPermanentlyFailed(int nextRetryCount) {
-        return nextRetryCount >= MAX_RETRIES;
+        return delegate.isPermanentlyFailed(nextRetryCount);
     }
 
     Instant computeNextRetryAt(Instant now, int retryCount) {
-        long delaySeconds = BASE_DELAY.toSeconds() * (1L << Math.min(retryCount, 10));
-        Duration delay = Duration.ofSeconds(Math.min(delaySeconds, MAX_BACKOFF.toSeconds()));
-        return now.plus(delay);
+        return delegate.computeNextRetryAt(now, retryCount);
     }
 
     String trimError(String message) {
-        if (message == null) {
-            return null;
-        }
-        return message.length() > 1000 ? message.substring(0, 1000) : message;
+        return delegate.trimError(message);
     }
 }

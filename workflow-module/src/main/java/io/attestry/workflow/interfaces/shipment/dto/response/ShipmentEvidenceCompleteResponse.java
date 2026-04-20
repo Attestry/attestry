@@ -1,6 +1,6 @@
 package io.attestry.workflow.interfaces.shipment.dto.response;
 
-import io.attestry.workflow.application.shipment.result.EvidenceCompleteResult;
+import io.attestry.workflow.application.shipment.command.EvidenceCompleteResult;
 
 public record ShipmentEvidenceCompleteResponse(
         String evidenceGroupId,

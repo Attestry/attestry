@@ -3,7 +3,7 @@ package io.attestry.workflow.application.distribution.command;
 import io.attestry.userauth.domain.authorization.model.PermissionCodes;
 import io.attestry.workflow.application.common.WorkflowActorContext;
 import io.attestry.workflow.application.delegation.command.GrantDelegationCommand;
-import io.attestry.workflow.application.delegation.result.DelegationResult;
+import io.attestry.workflow.application.delegation.command.DelegationResult;
 import io.attestry.workflow.application.distribution.result.BatchDistributeResult;
 import io.attestry.workflow.application.distribution.internal.DistributionLookupService;
 import io.attestry.workflow.application.distribution.internal.DistributionViewReader;

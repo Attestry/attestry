@@ -33,7 +33,7 @@ public class PassportManualContextAccessService {
         PassportManualReadPort.PassportManualContext context = passportManualReadPort.findContext(passportId)
             .orElseThrow(() -> new WorkflowDomainException(
                 WorkflowErrorCode.INVALID_REQUEST,
-                "제품 정보를 찾을 수 없습니다."
+                "Product information not found."
             ));
         if (!tenantId.equals(context.tenantId())) {
             throw new WorkflowDomainException(

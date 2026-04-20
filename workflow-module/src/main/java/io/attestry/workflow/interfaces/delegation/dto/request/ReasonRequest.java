@@ -1,4 +1,11 @@
 package io.attestry.workflow.interfaces.delegation.dto.request;
 
-public record ReasonRequest(String reason) {
+import jakarta.validation.constraints.NotBlank;
+import jakarta.validation.constraints.Size;
+
+public record ReasonRequest(
+    @NotBlank(message = "Reason is required")
+    @Size(max = 1000, message = "Reason must not exceed 1000 characters")
+    String reason
+) {
 }

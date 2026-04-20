@@ -89,7 +89,7 @@ class PassportManualServiceTest {
         PassportManualRecipientResult result = service.getRecipient(BRAND, "tenant-1", "passport-1");
 
         assertEquals(false, result.available());
-        assertEquals("현재 소유주가 없습니다.", result.message());
+        assertEquals("No current owner found.", result.message());
     }
 
     @Test

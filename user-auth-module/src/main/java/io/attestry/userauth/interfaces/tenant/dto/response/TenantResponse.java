@@ -1,6 +1,6 @@
 package io.attestry.userauth.interfaces.tenant.dto.response;
 
-import io.attestry.userauth.application.tenant.view.TenantView;
+import io.attestry.userauth.application.tenant.query.TenantView;
 
 public record TenantResponse(
         String tenantId,

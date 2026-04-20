@@ -85,7 +85,7 @@ class OnboardingProvisioningServiceTest {
             "user-3",
             "service-org",
             "KR",
-            "서울시 강남구 테헤란로 1",
+            "123 Teheran-ro, Gangnam-gu, Seoul",
             "admin-1"
         );
 

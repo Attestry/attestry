@@ -1,6 +1,6 @@
 package io.attestry.workflow.interfaces.shipment.dto.response;
 
-import io.attestry.workflow.application.shipment.result.ReturnShipmentResult;
+import io.attestry.workflow.application.shipment.command.ReturnShipmentResult;
 import java.time.Instant;
 
 public record ReturnShipmentResponse(

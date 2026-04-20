@@ -4,10 +4,11 @@ import io.attestry.commonlib.infrastructure.ApiResponse;
 import io.attestry.userauth.security.AuthPrincipal;
 import io.attestry.workflow.application.common.WorkflowActorContext;
 import io.attestry.workflow.application.delegation.command.GrantDelegationCommand;
-import io.attestry.workflow.application.delegation.result.DelegationEvaluateResult;
-import io.attestry.workflow.application.delegation.result.DelegationResult;
+import io.attestry.workflow.application.delegation.command.DelegationEvaluateResult;
+import io.attestry.workflow.application.delegation.command.DelegationResult;
 import io.attestry.workflow.application.delegation.command.DelegationLifecycleUseCase;
 import io.attestry.workflow.application.delegation.command.DelegationUseCase;
+import jakarta.validation.Valid;
 import io.attestry.workflow.interfaces.delegation.dto.request.DelegationEvaluateRequest;
 import io.attestry.workflow.interfaces.delegation.dto.request.GrantDelegationRequest;
 import io.attestry.workflow.interfaces.delegation.dto.request.ReasonRequest;
@@ -39,7 +40,7 @@ public class DelegationHttp {
     public ApiResponse<DelegationResponse> grant(
         @AuthenticationPrincipal AuthPrincipal principal,
         @PathVariable("sourceTenantId") String sourceTenantId,
-        @RequestBody GrantDelegationRequest request
+        @Valid @RequestBody GrantDelegationRequest request
     ) {
         DelegationResult result = delegationUseCase.grant(
             actor(principal),
@@ -61,13 +62,13 @@ public class DelegationHttp {
     public ApiResponse<DelegationResponse> revoke(
         @AuthenticationPrincipal AuthPrincipal principal,
         @PathVariable("id") String delegationId,
-        @RequestBody ReasonRequest request
+        @Valid @RequestBody ReasonRequest request
     ) {
         return ApiResponse.success(DelegationResponse.from(delegationUseCase.revoke(actor(principal), delegationId, request.reason())));
     }
 
     @PostMapping("/internal/delegations/evaluate")
-    public ApiResponse<DelegationEvaluateResponse> evaluate(@RequestBody DelegationEvaluateRequest request) {
+    public ApiResponse<DelegationEvaluateResponse> evaluate(@Valid @RequestBody DelegationEvaluateRequest request) {
         DelegationEvaluateResult result = delegationLifecycleUseCase.evaluate(
             request.resolvedSourceTenantId(),
             request.resolvedTargetTenantId(),

@@ -1,24 +1,25 @@
 package io.attestry.workflow.application.servicerequest.internal;
 
 import io.attestry.commonlib.application.port.ObjectStoragePort;
+import io.attestry.workflow.application.EvidenceProperties;
 import io.attestry.workflow.application.port.common.WorkflowEvidencePort;
 import io.attestry.workflow.application.servicerequest.view.ServiceRequestEvidenceFileView;
-import java.time.Duration;
 import java.util.List;
 import org.springframework.stereotype.Component;
 
 @Component
 public class ServiceRequestEvidenceAssembler {
 
-    private static final Duration DOWNLOAD_TTL = Duration.ofMinutes(30);
-
+    private final EvidenceProperties evidenceProperties;
     private final WorkflowEvidencePort evidencePort;
     private final ObjectStoragePort objectStoragePort;
 
     public ServiceRequestEvidenceAssembler(
+        EvidenceProperties evidenceProperties,
         WorkflowEvidencePort evidencePort,
         ObjectStoragePort objectStoragePort
     ) {
+        this.evidenceProperties = evidenceProperties;
         this.evidencePort = evidencePort;
         this.objectStoragePort = objectStoragePort;
     }
@@ -34,7 +35,7 @@ public class ServiceRequestEvidenceAssembler {
                 e.originalFileName(),
                 e.contentType(),
                 e.sizeBytes(),
-                e.objectKey() == null ? null : objectStoragePort.issuePresignedDownload(e.objectKey(), DOWNLOAD_TTL).downloadUrl()
+                e.objectKey() == null ? null : objectStoragePort.issuePresignedDownload(e.objectKey(), evidenceProperties.getDownloadTtl()).downloadUrl()
             ))
             .toList();
     }

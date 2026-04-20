@@ -3,11 +3,11 @@ package io.attestry.workflow.application.claim.command;
 import io.attestry.commonlib.application.port.ObjectStoragePort;
 import io.attestry.workflow.application.common.WorkflowActorContext;
 import io.attestry.workflow.application.port.common.WorkflowEvidencePort;
-import io.attestry.workflow.application.shipment.result.PresignedEvidenceUploadResult;
-import io.attestry.workflow.application.shipment.result.EvidenceCompleteResult;
+import io.attestry.workflow.application.shipment.command.PresignedEvidenceUploadResult;
+import io.attestry.workflow.application.shipment.command.EvidenceCompleteResult;
+import io.attestry.workflow.application.EvidenceProperties;
 import io.attestry.workflow.application.support.EvidenceUploadSupport;
 import java.time.Clock;
-import java.time.Duration;
 import java.time.Instant;
 
 import lombok.RequiredArgsConstructor;
@@ -19,8 +19,8 @@ import org.springframework.transaction.annotation.Transactional;
 public class PurchaseClaimEvidenceService {
 
     private static final String OBJECT_KEY_PREFIX = "workflow/purchase-claim/";
-    private static final Duration PRESIGN_TTL = Duration.ofMinutes(15);
 
+    private final EvidenceProperties evidenceProperties;
     private final WorkflowEvidencePort evidencePort;
     private final ObjectStoragePort objectStoragePort;
     private final EvidenceUploadSupport evidenceUploadSupport;
@@ -34,7 +34,7 @@ public class PurchaseClaimEvidenceService {
         String tenantId = resolveTenantId(principal);
         return evidenceUploadSupport.doPresign(
                 evidencePort, objectStoragePort,
-                OBJECT_KEY_PREFIX, PRESIGN_TTL,
+                OBJECT_KEY_PREFIX, evidenceProperties.getPresignTtl(),
                 tenantId, principal.userId(),
                 command.evidenceGroupId(), command.fileName(), command.contentType(),
                 Instant.now(clock));

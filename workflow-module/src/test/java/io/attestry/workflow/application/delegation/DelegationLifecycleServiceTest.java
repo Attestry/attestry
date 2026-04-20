@@ -6,8 +6,8 @@ import static org.mockito.Mockito.never;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 
-import io.attestry.workflow.application.delegation.result.DelegationEvaluateResult;
-import io.attestry.workflow.application.delegation.support.DelegationLifecycleService;
+import io.attestry.workflow.application.delegation.command.DelegationEvaluateResult;
+import io.attestry.workflow.application.delegation.internal.DelegationLifecycleService;
 import io.attestry.workflow.application.port.delegation.DelegationPermissionProjectionPort;
 import io.attestry.workflow.domain.delegation.model.Delegation;
 import io.attestry.workflow.domain.delegation.repository.DelegationRepository;

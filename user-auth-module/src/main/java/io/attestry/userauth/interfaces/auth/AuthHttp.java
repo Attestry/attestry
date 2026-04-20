@@ -5,11 +5,11 @@ import io.attestry.commonlib.infrastructure.ApiResponse;
 import io.attestry.userauth.application.auth.command.LoginCommand;
 import io.attestry.userauth.application.auth.command.ResetPasswordCommand;
 import io.attestry.userauth.application.auth.command.SignUpCommand;
-import io.attestry.userauth.application.auth.result.AuthTokenResult;
-import io.attestry.userauth.application.auth.result.SignUpEmailVerificationResult;
-import io.attestry.userauth.application.auth.result.SignUpResult;
-import io.attestry.userauth.application.auth.usecase.AuthUseCase;
-import io.attestry.userauth.application.auth.usecase.SignUpUseCase;
+import io.attestry.userauth.application.auth.command.AuthTokenResult;
+import io.attestry.userauth.application.auth.command.AuthUseCase;
+import io.attestry.userauth.application.auth.command.SignUpEmailVerificationResult;
+import io.attestry.userauth.application.auth.command.SignUpResult;
+import io.attestry.userauth.application.auth.command.SignUpUseCase;
 import io.attestry.userauth.application.common.ActorContext;
 import io.attestry.userauth.interfaces.auth.dto.request.ConfirmSignUpEmailVerificationRequest;
 import io.attestry.userauth.interfaces.auth.dto.request.LoginRequest;
@@ -112,8 +112,8 @@ public class AuthHttp {
                 result.tenantId()));
     }
 
-    //TODO("비밀번호 찾기 기능 추가")
-    //TODO("ApiResponse<Void>를 반환하는 대신 별도의 응답 객체를 만들어서 반환하도록 변경 고려")
+    //TODO("Add forgot password feature")
+    //TODO("Consider returning a dedicated response object instead of ApiResponse<Void>")
     @PostMapping("/password-reset")
     public ApiResponse<Void> resetPassword(
         @CurrentActor ActorContext actor,

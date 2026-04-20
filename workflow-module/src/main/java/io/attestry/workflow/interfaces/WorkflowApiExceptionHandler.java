@@ -42,7 +42,7 @@ public class WorkflowApiExceptionHandler {
             .map(error -> error.getDefaultMessage())
             .filter(msg -> msg != null && !msg.isBlank())
             .findFirst()
-            .orElse("입력값을 다시 확인해주세요.");
+            .orElse("Please check your input.");
         return ResponseEntity.badRequest()
             .body(ApiResponse.error("INVALID_REQUEST", message));
     }

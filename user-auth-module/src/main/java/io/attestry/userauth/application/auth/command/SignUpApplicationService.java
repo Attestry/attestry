@@ -1,13 +1,10 @@
 package io.attestry.userauth.application.auth.command;
 
-import io.attestry.userauth.application.auth.result.SignUpEmailVerificationResult;
-import io.attestry.userauth.application.auth.result.SignUpResult;
 import io.attestry.userauth.application.port.auth.PasswordHasherPort;
 import io.attestry.userauth.application.port.auth.SignUpEmailVerificationRepositoryPort;
 import io.attestry.userauth.application.port.auth.VerificationCodeHasherPort;
 import io.attestry.userauth.application.port.identity.UserAccountRepositoryPort;
 import io.attestry.userauth.application.port.notification.NotificationOutboxWritePort;
-import io.attestry.userauth.application.auth.usecase.SignUpUseCase;
 import io.attestry.userauth.domain.UserAuthDomainException;
 import io.attestry.userauth.domain.UserAuthErrorCode;
 import io.attestry.userauth.domain.auth.model.Email;
@@ -46,20 +43,20 @@ public class SignUpApplicationService implements SignUpUseCase {
 
         userAccountRepository.findByEmail(normalizedEmail)
                 .ifPresent(account -> {
-                    throw new UserAuthDomainException(UserAuthErrorCode.DUPLICATE_EMAIL, "이미 등록된 이메일입니다");
+                    throw new UserAuthDomainException(UserAuthErrorCode.DUPLICATE_EMAIL, "Email already registered");
                 });
 
         SignUpEmailVerification verification = signUpEmailVerificationRepository.findByEmail(normalizedEmail)
             .orElseThrow(() -> new UserAuthDomainException(
                 UserAuthErrorCode.EMAIL_VERIFICATION_REQUIRED,
-                "회원가입 전에 이메일 인증이 필요합니다"
+                "Email verification required before sign up"
             ));
 
         Instant now = Instant.now(clock);
         if (!verification.isVerifiedAvailable(now)) {
             throw new UserAuthDomainException(
                 UserAuthErrorCode.EMAIL_VERIFICATION_REQUIRED,
-                "회원가입 전에 이메일 인증이 필요합니다"
+                "Email verification required before sign up"
             );
         }
 
@@ -78,7 +75,7 @@ public class SignUpApplicationService implements SignUpUseCase {
         String normalizedEmail = Email.of(email).value();
         userAccountRepository.findByEmail(normalizedEmail)
             .ifPresent(account -> {
-                throw new UserAuthDomainException(UserAuthErrorCode.DUPLICATE_EMAIL, "이미 등록된 이메일입니다");
+                throw new UserAuthDomainException(UserAuthErrorCode.DUPLICATE_EMAIL, "Email already registered");
             });
 
         Instant now = Instant.now(clock);
@@ -123,7 +120,7 @@ public class SignUpApplicationService implements SignUpUseCase {
         SignUpEmailVerification verification = signUpEmailVerificationRepository.findByEmail(normalizedEmail)
             .orElseThrow(() -> new UserAuthDomainException(
                 UserAuthErrorCode.EMAIL_VERIFICATION_NOT_FOUND,
-                "이메일 인증 요청을 찾을 수 없습니다"
+                "Email verification request not found"
             ));
 
         verification.verify(code, verificationCodeHasher::matches, Instant.now(clock));

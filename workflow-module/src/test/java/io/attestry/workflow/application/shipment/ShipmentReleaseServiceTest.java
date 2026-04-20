@@ -18,7 +18,7 @@ import io.attestry.workflow.application.port.common.WorkflowLedgerOutboxPort;
 import io.attestry.workflow.application.port.shipment.ShipmentProductReadPort;
 import io.attestry.workflow.application.shipment.command.ReleaseShipmentCommand;
 import io.attestry.workflow.application.shipment.command.ReturnShipmentCommand;
-import io.attestry.workflow.application.shipment.result.ReleaseShipmentResult;
+import io.attestry.workflow.application.shipment.command.ReleaseShipmentResult;
 import io.attestry.workflow.application.support.EvidenceUploadSupport;
 import io.attestry.workflow.application.support.WorkflowAuthorizationSupport;
 import io.attestry.workflow.domain.WorkflowDomainException;

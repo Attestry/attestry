@@ -1,6 +1,6 @@
 package io.attestry.workflow.interfaces.shipment.dto.response;
 
-import io.attestry.workflow.application.shipment.view.ShipmentDetailView;
+import io.attestry.workflow.application.shipment.query.ShipmentDetailView;
 
 public record EvidenceFileResponse(
         String evidenceId,

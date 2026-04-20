@@ -16,11 +16,11 @@ public class OrganizationUniquenessPolicy {
         String normalizedOrgName = normalize(orgName);
         String normalizedCountry = normalize(country);
         if (repository.existsBrandByOrgNameAndCountry(normalizedOrgName, normalizedCountry)) {
-            throw new UserAuthDomainException(UserAuthErrorCode.DUPLICATE_ORGANIZATION_NAME, "해당 국가에 이미 등록된 브랜드명입니다.");
+            throw new UserAuthDomainException(UserAuthErrorCode.DUPLICATE_ORGANIZATION_NAME, "Brand name already registered in this country.");
         }
         String normalizedBizRegNo = normalizeOrNull(bizRegNo);
         if (normalizedBizRegNo != null && repository.existsBrandByBizRegNo(normalizedBizRegNo)) {
-            throw new UserAuthDomainException(UserAuthErrorCode.DUPLICATE_BIZ_REG_NO, "이미 등록된 사업자 등록번호입니다.");
+            throw new UserAuthDomainException(UserAuthErrorCode.DUPLICATE_BIZ_REG_NO, "Business registration number already registered.");
         }
     }
 
@@ -29,13 +29,13 @@ public class OrganizationUniquenessPolicy {
         String normalizedCountry = normalize(country);
         if (repository.existsBrandByOrgNameAndCountry(normalizedOrgName, normalizedCountry)
                 || repository.existsRetailByTenantAndOrgNameAndCountry(null, normalizedOrgName, normalizedCountry)) {
-            throw new UserAuthDomainException(UserAuthErrorCode.DUPLICATE_ORGANIZATION_NAME, "해당 국가에 이미 등록된 판매처명입니다.");
+            throw new UserAuthDomainException(UserAuthErrorCode.DUPLICATE_ORGANIZATION_NAME, "Retail name already registered in this country.");
         }
         String normalizedBizRegNo = normalizeOrNull(bizRegNo);
         if (normalizedBizRegNo != null
                 && (repository.existsBrandByBizRegNo(normalizedBizRegNo)
                         || repository.existsRetailByTenantAndBizRegNo(null, normalizedBizRegNo))) {
-            throw new UserAuthDomainException(UserAuthErrorCode.DUPLICATE_BIZ_REG_NO, "이미 등록된 사업자 등록번호입니다.");
+            throw new UserAuthDomainException(UserAuthErrorCode.DUPLICATE_BIZ_REG_NO, "Business registration number already registered.");
         }
     }
 
@@ -45,14 +45,14 @@ public class OrganizationUniquenessPolicy {
         if (repository.existsBrandByOrgNameAndCountry(normalizedOrgName, normalizedCountry)
                 || repository.existsRetailByTenantAndOrgNameAndCountry(null, normalizedOrgName, normalizedCountry)
                 || repository.existsServiceByTenantAndOrgNameAndCountry(null, normalizedOrgName, normalizedCountry)) {
-            throw new UserAuthDomainException(UserAuthErrorCode.DUPLICATE_ORGANIZATION_NAME, "해당 국가에 이미 등록된 서비스 업체명입니다.");
+            throw new UserAuthDomainException(UserAuthErrorCode.DUPLICATE_ORGANIZATION_NAME, "Service provider name already registered in this country.");
         }
         String normalizedBizRegNo = normalizeOrNull(bizRegNo);
         if (normalizedBizRegNo != null
                 && (repository.existsBrandByBizRegNo(normalizedBizRegNo)
                         || repository.existsRetailByTenantAndBizRegNo(null, normalizedBizRegNo)
                         || repository.existsServiceByTenantAndBizRegNo(null, normalizedBizRegNo))) {
-            throw new UserAuthDomainException(UserAuthErrorCode.DUPLICATE_BIZ_REG_NO, "이미 등록된 사업자 등록번호입니다.");
+            throw new UserAuthDomainException(UserAuthErrorCode.DUPLICATE_BIZ_REG_NO, "Business registration number already registered.");
         }
     }
 

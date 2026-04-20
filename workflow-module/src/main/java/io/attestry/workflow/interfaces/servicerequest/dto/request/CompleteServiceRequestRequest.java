@@ -5,9 +5,9 @@ import jakarta.validation.constraints.Size;
 public record CompleteServiceRequestRequest(
     String serviceType,
     String afterEvidenceGroupId,
-    @Size(max = 2000, message = "완료 내용은 2000자 이하로 입력해주세요.")
+    @Size(max = 2000, message = "Completion details must be 2000 characters or less.")
     String serviceResult,
-    @Size(max = 2000, message = "추가 메모는 2000자 이하로 입력해주세요.")
+    @Size(max = 2000, message = "Additional notes must be 2000 characters or less.")
     String completionMemo
 ) {
 }

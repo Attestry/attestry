@@ -65,7 +65,7 @@ class ServiceCancelServiceTest {
     void cancel_success() {
         ServiceRequest pending = ServiceRequest.submit(
             "sr1", "p1", "REPAIR", "owner1",
-            "provT1", "desc", "eg1", "ONLINE", "화면 불량", null, "연락처", "perm1", "owner1", SUBMITTED_AT, SUBMITTED_AT
+            "provT1", "desc", "eg1", "ONLINE", "Screen defect", null, "contact", "perm1", "owner1", SUBMITTED_AT, SUBMITTED_AT
         );
 
         doNothing().when(authorizationSupport).assertPermissionOnly(any(), anyString(), anyString());
@@ -84,7 +84,7 @@ class ServiceCancelServiceTest {
     void cancel_ownerMismatch_throws() {
         ServiceRequest pending = ServiceRequest.submit(
             "sr1", "p1", "REPAIR", "differentOwner",
-            "provT1", "desc", "eg1", "ONLINE", "화면 불량", null, "연락처", null, "differentOwner", SUBMITTED_AT, SUBMITTED_AT
+            "provT1", "desc", "eg1", "ONLINE", "Screen defect", null, "contact", null, "differentOwner", SUBMITTED_AT, SUBMITTED_AT
         );
 
         doNothing().when(authorizationSupport).assertPermissionOnly(any(), anyString(), anyString());
@@ -100,7 +100,7 @@ class ServiceCancelServiceTest {
     void cancel_notAllowedState_throws() {
         ServiceRequest rejected = ServiceRequest.submit(
             "sr1", "p1", "REPAIR", "owner1",
-            "provT1", "desc", "eg1", "ONLINE", "화면 불량", null, "연락처", null, "owner1", SUBMITTED_AT, SUBMITTED_AT
+            "provT1", "desc", "eg1", "ONLINE", "Screen defect", null, "contact", null, "owner1", SUBMITTED_AT, SUBMITTED_AT
         ).reject("reason", Instant.parse("2026-03-01T09:30:00Z"));
 
         doNothing().when(authorizationSupport).assertPermissionOnly(any(), anyString(), anyString());
@@ -117,10 +117,10 @@ class ServiceCancelServiceTest {
     void cancel_acceptedState_throws() {
         ServiceRequest accepted = ServiceRequest.submit(
             "sr1", "p1", "REPAIR", "owner1",
-            "provT1", "desc", "eg1", "ONLINE", "화면 불량", null, "연락처", null, "owner1", SUBMITTED_AT, SUBMITTED_AT
+            "provT1", "desc", "eg1", "ONLINE", "Screen defect", null, "contact", null, "owner1", SUBMITTED_AT, SUBMITTED_AT
         ).accept(
             "REPAIR",
-            "담당자 확인",
+            "Confirmed by staff",
             Instant.parse("2026-03-01T09:30:00Z")
         );
 

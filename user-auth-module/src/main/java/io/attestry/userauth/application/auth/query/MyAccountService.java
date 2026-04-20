@@ -1,10 +1,8 @@
 package io.attestry.userauth.application.auth.query;
 
 import io.attestry.userauth.application.auth.command.UpdateMyAccountCommand;
-import io.attestry.userauth.application.auth.view.MyAccountView;
 import io.attestry.userauth.application.port.auth.PasswordHasherPort;
 import io.attestry.userauth.application.port.identity.UserAccountRepositoryPort;
-import io.attestry.userauth.application.auth.usecase.MyAccountQueryUseCase;
 import io.attestry.userauth.domain.UserAuthErrorCode;
 import io.attestry.userauth.domain.UserAuthDomainException;
 import io.attestry.userauth.domain.auth.model.UserAccount;
@@ -24,7 +22,7 @@ public class MyAccountService implements MyAccountQueryUseCase {
     @Transactional(readOnly = true)
     public MyAccountView getMyAccount(String userId) {
         UserAccount account = userAccountRepository.findById(userId)
-            .orElseThrow(() -> new UserAuthDomainException(UserAuthErrorCode.USER_NOT_FOUND, "사용자 정보를 찾을 수 없습니다"));
+            .orElseThrow(() -> new UserAuthDomainException(UserAuthErrorCode.USER_NOT_FOUND, "User not found"));
         return MyAccountView.from(account);
     }
 
@@ -32,7 +30,7 @@ public class MyAccountService implements MyAccountQueryUseCase {
     @Transactional
     public MyAccountView updateMyAccount(String userId, UpdateMyAccountCommand command) {
         UserAccount account = userAccountRepository.findById(userId)
-            .orElseThrow(() -> new UserAuthDomainException(UserAuthErrorCode.USER_NOT_FOUND, "사용자 정보를 찾을 수 없습니다"));
+            .orElseThrow(() -> new UserAuthDomainException(UserAuthErrorCode.USER_NOT_FOUND, "User not found"));
 
         String newHash = command.hasPasswordChangeRequest()
             ? passwordHasherPort.hash(command.newPassword()) : null;

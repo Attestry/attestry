@@ -87,7 +87,7 @@ class ServiceCompleteServiceTest {
     void complete_success() {
         ServiceRequest accepted = ServiceRequest.submit(
             "sr1", "p1", "REPAIR", "owner1",
-            "provT1", "desc", "beforeEg", "ONLINE", "화면 불량", null, "연락처", "perm1", "owner1", SUBMITTED_AT, SUBMITTED_AT
+            "provT1", "desc", "beforeEg", "ONLINE", "Screen defect", null, "contact", "perm1", "owner1", SUBMITTED_AT, SUBMITTED_AT
         ).accept("REPAIR", "desc", Instant.parse("2026-03-01T09:30:00Z"));
 
         doNothing().when(authorizationSupport).assertTenantContext(any(), anyString());
@@ -103,7 +103,7 @@ class ServiceCompleteServiceTest {
 
         CompleteServiceRequestResult result = service.complete(
             PROVIDER, "provT1", "sr1",
-            new CompleteServiceRequestCommand("REPAIR", "afterEg", "Repaired successfully", "작업 메모")
+            new CompleteServiceRequestCommand("REPAIR", "afterEg", "Repaired successfully", "Work note")
         );
 
         assertEquals("COMPLETED", result.status());
@@ -129,7 +129,7 @@ class ServiceCompleteServiceTest {
     void complete_wrongTenant_throws() {
         ServiceRequest accepted = ServiceRequest.submit(
             "sr1", "p1", "REPAIR", "owner1",
-            "otherTenant", "desc", "beforeEg", "ONLINE", "화면 불량", null, "연락처", null, "owner1", SUBMITTED_AT, SUBMITTED_AT
+            "otherTenant", "desc", "beforeEg", "ONLINE", "Screen defect", null, "contact", null, "owner1", SUBMITTED_AT, SUBMITTED_AT
         ).accept("REPAIR", "desc", Instant.parse("2026-03-01T09:30:00Z"));
 
         doNothing().when(authorizationSupport).assertTenantContext(any(), anyString());
@@ -146,7 +146,7 @@ class ServiceCompleteServiceTest {
     void complete_noPermission_throws() {
         ServiceRequest accepted = ServiceRequest.submit(
             "sr1", "p1", "REPAIR", "owner1",
-            "provT1", "desc", "beforeEg", "ONLINE", "화면 불량", null, "연락처", null, "owner1", SUBMITTED_AT, SUBMITTED_AT
+            "provT1", "desc", "beforeEg", "ONLINE", "Screen defect", null, "contact", null, "owner1", SUBMITTED_AT, SUBMITTED_AT
         ).accept("REPAIR", "desc", Instant.parse("2026-03-01T09:30:00Z"));
 
         doNothing().when(authorizationSupport).assertTenantContext(any(), anyString());

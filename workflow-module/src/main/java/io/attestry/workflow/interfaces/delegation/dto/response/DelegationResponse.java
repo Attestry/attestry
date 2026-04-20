@@ -1,6 +1,6 @@
 package io.attestry.workflow.interfaces.delegation.dto.response;
 
-import io.attestry.workflow.application.delegation.result.DelegationResult;
+import io.attestry.workflow.application.delegation.command.DelegationResult;
 import java.time.Instant;
 
 public record DelegationResponse(

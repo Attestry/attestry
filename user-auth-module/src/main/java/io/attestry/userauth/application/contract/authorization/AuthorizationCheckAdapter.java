@@ -3,7 +3,7 @@ package io.attestry.userauth.application.contract.authorization;
 import io.attestry.userauth.application.common.ActorContext;
 import io.attestry.userauth.application.policy.command.AuthzEvaluateCommand;
 import io.attestry.userauth.application.policy.command.PolicyDecisionMode;
-import io.attestry.userauth.application.policy.usecase.EvaluateAuthorizationUseCase;
+import io.attestry.userauth.application.policy.command.EvaluateAuthorizationUseCase;
 import io.attestry.userauth.contract.authorization.AuthorizationCheckPort;
 import java.util.Set;
 import lombok.RequiredArgsConstructor;

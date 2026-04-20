@@ -20,7 +20,7 @@ public class PassportManualRecipientResolver {
         if (email == null || email.isBlank()) {
             throw new WorkflowDomainException(
                 WorkflowErrorCode.PASSPORT_MANUAL_RECIPIENT_NOT_FOUND,
-                "현재 소유자의 이메일 정보를 확인할 수 없습니다."
+                "Cannot find current owner's email information."
             );
         }
         return email;

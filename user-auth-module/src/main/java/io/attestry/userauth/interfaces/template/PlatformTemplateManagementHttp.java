@@ -3,15 +3,16 @@ package io.attestry.userauth.interfaces.template;
 import io.attestry.commonlib.web.CurrentActor;
 import io.attestry.commonlib.infrastructure.ApiResponse;
 import io.attestry.userauth.application.common.ActorContext;
-import io.attestry.userauth.application.template.result.PermissionResult;
-import io.attestry.userauth.application.template.result.PermissionTemplateResult;
-import io.attestry.userauth.application.template.usecase.TemplateManagementUseCase;
+import io.attestry.userauth.application.template.command.PermissionResult;
+import io.attestry.userauth.application.template.command.PermissionTemplateResult;
+import io.attestry.userauth.application.template.command.TemplateManagementUseCase;
 import io.attestry.userauth.interfaces.template.dto.request.CreatePermissionRequest;
 import io.attestry.userauth.interfaces.template.dto.request.CreatePermissionTemplateRequest;
 import io.attestry.userauth.interfaces.template.dto.request.SetTemplatePermissionsRequest;
 import io.attestry.userauth.interfaces.template.dto.request.UpdatePermissionTemplateRequest;
 import io.attestry.userauth.interfaces.template.dto.response.PermissionResponse;
 import io.attestry.userauth.interfaces.template.dto.response.PermissionTemplateResponse;
+import jakarta.validation.Valid;
 import java.util.List;
 import lombok.RequiredArgsConstructor;
 import org.springframework.security.access.prepost.PreAuthorize;
@@ -36,7 +37,7 @@ public class PlatformTemplateManagementHttp {
     @PostMapping("/permissions")
     public ApiResponse<PermissionResponse> createPermission(
         @CurrentActor ActorContext actor,
-        @RequestBody CreatePermissionRequest request
+        @Valid @RequestBody CreatePermissionRequest request
     ) {
         PermissionResult result = templateManagementUseCase.createPermission(
             actor,
@@ -61,7 +62,7 @@ public class PlatformTemplateManagementHttp {
     @PostMapping
     public ApiResponse<PermissionTemplateResponse> createTemplate(
         @CurrentActor ActorContext actor,
-        @RequestBody CreatePermissionTemplateRequest request
+        @Valid @RequestBody CreatePermissionTemplateRequest request
     ) {
         PermissionTemplateResult result = templateManagementUseCase.createTemplate(
             actor,
@@ -89,7 +90,7 @@ public class PlatformTemplateManagementHttp {
     public ApiResponse<PermissionTemplateResponse> updateTemplate(
         @CurrentActor ActorContext actor,
         @PathVariable("templateCode") String templateCode,
-        @RequestBody UpdatePermissionTemplateRequest request
+        @Valid @RequestBody UpdatePermissionTemplateRequest request
     ) {
         PermissionTemplateResult result = templateManagementUseCase.updateTemplate(
             actor,
@@ -103,7 +104,7 @@ public class PlatformTemplateManagementHttp {
     public ApiResponse<PermissionTemplateResponse> replaceTemplatePermissions(
         @CurrentActor ActorContext actor,
         @PathVariable("templateCode") String templateCode,
-        @RequestBody SetTemplatePermissionsRequest request
+        @Valid @RequestBody SetTemplatePermissionsRequest request
     ) {
         PermissionTemplateResult result = templateManagementUseCase.replaceTemplatePermissions(
             actor,
@@ -117,7 +118,7 @@ public class PlatformTemplateManagementHttp {
     public ApiResponse<PermissionTemplateResponse> addTemplatePermissions(
         @CurrentActor ActorContext actor,
         @PathVariable("templateCode") String templateCode,
-        @RequestBody SetTemplatePermissionsRequest request
+        @Valid @RequestBody SetTemplatePermissionsRequest request
     ) {
         PermissionTemplateResult result = templateManagementUseCase.addTemplatePermissions(
             actor,

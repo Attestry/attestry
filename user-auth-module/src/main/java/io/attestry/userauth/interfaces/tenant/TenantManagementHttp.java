@@ -1,9 +1,9 @@
 package io.attestry.userauth.interfaces.tenant;
 
 import io.attestry.commonlib.infrastructure.ApiResponse;
-import io.attestry.userauth.application.tenant.usecase.TenantQueryUseCase;
-import io.attestry.userauth.application.tenant.view.TenantPageView;
-import io.attestry.userauth.application.tenant.view.TenantView;
+import io.attestry.userauth.application.tenant.query.TenantPageView;
+import io.attestry.userauth.application.tenant.query.TenantQueryUseCase;
+import io.attestry.userauth.application.tenant.query.TenantView;
 import io.attestry.userauth.interfaces.tenant.dto.response.TenantPageResponse;
 import io.attestry.userauth.interfaces.tenant.dto.response.TenantResponse;
 import lombok.RequiredArgsConstructor;

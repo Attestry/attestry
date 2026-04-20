@@ -32,7 +32,7 @@ public class PassportManualAttachmentResolver {
         if (attachments.isEmpty()) {
             throw new WorkflowDomainException(
                 WorkflowErrorCode.PASSPORT_MANUAL_CONTENT_REQUIRED,
-                "첨부 파일을 다시 확인해주세요."
+                "Please check the attachments."
             );
         }
         return attachments;

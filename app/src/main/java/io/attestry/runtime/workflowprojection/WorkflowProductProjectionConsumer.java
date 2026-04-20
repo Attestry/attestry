@@ -55,7 +55,7 @@ public class WorkflowProductProjectionConsumer {
             metrics.recordFailure();
             dlqPublisher.publish(payload, ex);
             log.warn("workflow product projection DLQ: errorType={}, errorMessage={}",
-                ex.getClass().getName(), ex.getMessage());
+                ex.getClass().getName(), ex.getMessage(), ex);
         }
     }
 }

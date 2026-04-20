@@ -5,10 +5,11 @@ import static org.junit.jupiter.api.Assertions.assertFalse;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
 import io.attestry.userauth.application.common.ActorContext;
-import io.attestry.userauth.application.auth.support.UserEffectiveScopeResolver;
+import io.attestry.userauth.application.auth.internal.UserEffectiveScopeResolver;
 import io.attestry.userauth.application.policy.command.AuthzEvaluateCommand;
+import io.attestry.userauth.application.policy.command.AuthzEvaluateResult;
+import io.attestry.userauth.application.policy.command.EvaluateAuthorizationService;
 import io.attestry.userauth.application.policy.command.PolicyDecisionMode;
-import io.attestry.userauth.application.policy.result.AuthzEvaluateResult;
 import io.attestry.userauth.application.port.membership.MembershipPort;
 import io.attestry.userauth.application.port.membership.MembershipProjectionPort;
 import io.attestry.userauth.domain.authorization.model.PermissionCodes;

@@ -90,13 +90,13 @@ class ServiceSubmitServiceTest {
         when(serviceRequestRepository.existsOpenByPassportId("p1")).thenReturn(false);
         when(servicePermissionPort.findActivePermissionId("p1", "provT1")).thenReturn(Optional.of("perm1"));
         when(tenantReadPort.findTenantSummary("provT1"))
-            .thenReturn(new TenantReadPort.TenantSummary("provT1", "Provider", "SEOUL", "서울시 강남구", "SERVICE"));
+            .thenReturn(new TenantReadPort.TenantSummary("provT1", "Provider", "SEOUL", "123 Gangnam-gu, Seoul", "SERVICE"));
         when(shipmentEvidencePort.findReadyEvidenceHashes("eg1")).thenReturn(List.of("hash1"));
         when(serviceRequestRepository.save(any(ServiceRequest.class))).thenAnswer(inv -> inv.getArgument(0));
 
         SubmitServiceRequestResult result = service.submit(
             OWNER,
-            new SubmitServiceRequestCommand("p1", "provT1", "eg1", "ONLINE", "화면 불량", null, "010-0000-0000 / 평일 오후")
+            new SubmitServiceRequestCommand("p1", "provT1", "eg1", "ONLINE", "Screen defect", null, "010-0000-0000 / weekday afternoon")
         );
 
         assertEquals("PENDING", result.status());
@@ -117,10 +117,10 @@ class ServiceSubmitServiceTest {
         when(servicePermissionPort.hasActiveServiceRepairPermission("p1", "provT1")).thenReturn(false);
         when(serviceRequestRepository.existsOpenByPassportId("p1")).thenReturn(false);
         when(tenantReadPort.findTenantSummary("provT1"))
-            .thenReturn(new TenantReadPort.TenantSummary("provT1", "Provider", "SEOUL", "서울시 강남구", "SERVICE"));
+            .thenReturn(new TenantReadPort.TenantSummary("provT1", "Provider", "SEOUL", "123 Gangnam-gu, Seoul", "SERVICE"));
 
         WorkflowDomainException ex = assertThrows(WorkflowDomainException.class, () ->
-            service.submit(OWNER, new SubmitServiceRequestCommand("p1", "provT1", "eg1", "ONLINE", "화면 불량", null, "010-0000-0000 / 평일 오후"))
+            service.submit(OWNER, new SubmitServiceRequestCommand("p1", "provT1", "eg1", "ONLINE", "Screen defect", null, "010-0000-0000 / weekday afternoon"))
         );
         assertEquals(WorkflowErrorCode.FORBIDDEN_SCOPE, ex.getErrorCode());
     }
@@ -134,10 +134,10 @@ class ServiceSubmitServiceTest {
         when(servicePermissionPort.hasActiveServiceRepairPermission("p1", "provT1")).thenReturn(true);
         when(serviceRequestRepository.existsOpenByPassportId("p1")).thenReturn(true);
         when(tenantReadPort.findTenantSummary("provT1"))
-            .thenReturn(new TenantReadPort.TenantSummary("provT1", "Provider", "SEOUL", "서울시 강남구", "SERVICE"));
+            .thenReturn(new TenantReadPort.TenantSummary("provT1", "Provider", "SEOUL", "123 Gangnam-gu, Seoul", "SERVICE"));
 
         WorkflowDomainException ex = assertThrows(WorkflowDomainException.class, () ->
-            service.submit(OWNER, new SubmitServiceRequestCommand("p1", "provT1", "eg1", "ONLINE", "화면 불량", null, "010-0000-0000 / 평일 오후"))
+            service.submit(OWNER, new SubmitServiceRequestCommand("p1", "provT1", "eg1", "ONLINE", "Screen defect", null, "010-0000-0000 / weekday afternoon"))
         );
         assertEquals(WorkflowErrorCode.SERVICE_REQUEST_ALREADY_SUBMITTED, ex.getErrorCode());
     }
@@ -149,10 +149,10 @@ class ServiceSubmitServiceTest {
             .thenReturn(Optional.of(new ServicePassportState("p1", "t1", "ACTIVE", "NONE")));
         when(serviceProductReadPort.findCurrentOwnerId("p1")).thenReturn(Optional.of("otherOwner"));
         when(tenantReadPort.findTenantSummary("provT1"))
-            .thenReturn(new TenantReadPort.TenantSummary("provT1", "Provider", "SEOUL", "서울시 강남구", "SERVICE"));
+            .thenReturn(new TenantReadPort.TenantSummary("provT1", "Provider", "SEOUL", "123 Gangnam-gu, Seoul", "SERVICE"));
 
         WorkflowDomainException ex = assertThrows(WorkflowDomainException.class, () ->
-            service.submit(OWNER, new SubmitServiceRequestCommand("p1", "provT1", "eg1", "ONLINE", "화면 불량", null, "010-0000-0000 / 평일 오후"))
+            service.submit(OWNER, new SubmitServiceRequestCommand("p1", "provT1", "eg1", "ONLINE", "Screen defect", null, "010-0000-0000 / weekday afternoon"))
         );
         assertEquals(WorkflowErrorCode.FORBIDDEN_SCOPE, ex.getErrorCode());
     }

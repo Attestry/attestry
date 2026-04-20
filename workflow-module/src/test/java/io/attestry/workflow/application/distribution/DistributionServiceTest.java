@@ -12,7 +12,7 @@ import io.attestry.userauth.domain.authorization.model.PermissionCodes;
 import io.attestry.userauth.domain.auth.model.VerificationLevel;
 import io.attestry.workflow.application.common.WorkflowActorContext;
 import io.attestry.workflow.application.delegation.command.GrantDelegationCommand;
-import io.attestry.workflow.application.delegation.result.DelegationResult;
+import io.attestry.workflow.application.delegation.command.DelegationResult;
 import io.attestry.workflow.application.delegation.command.DelegationUseCase;
 import io.attestry.workflow.application.distribution.command.DistributeCommand;
 import io.attestry.workflow.application.distribution.command.DistributionCommandService;

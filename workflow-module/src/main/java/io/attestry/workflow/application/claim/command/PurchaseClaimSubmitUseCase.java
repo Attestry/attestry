@@ -7,8 +7,8 @@ import io.attestry.workflow.application.claim.command.SubmitPurchaseClaimCommand
 import io.attestry.workflow.application.claim.result.SubmitPurchaseClaimResult;
 import io.attestry.workflow.application.claim.view.ClaimEvidenceView;
 import io.attestry.workflow.application.claim.view.MyClaimView;
-import io.attestry.workflow.application.shipment.result.PresignedEvidenceUploadResult;
-import io.attestry.workflow.application.shipment.result.EvidenceCompleteResult;
+import io.attestry.workflow.application.shipment.command.PresignedEvidenceUploadResult;
+import io.attestry.workflow.application.shipment.command.EvidenceCompleteResult;
 import java.util.List;
 
 public interface PurchaseClaimSubmitUseCase {

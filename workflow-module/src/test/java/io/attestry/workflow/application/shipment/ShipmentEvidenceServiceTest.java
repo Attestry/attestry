@@ -13,8 +13,8 @@ import io.attestry.workflow.application.shipment.command.ShipmentEvidenceService
 import io.attestry.workflow.application.port.common.WorkflowEvidencePort;
 import io.attestry.workflow.application.shipment.command.CompleteShipmentEvidenceUploadCommand;
 import io.attestry.workflow.application.shipment.command.PresignShipmentEvidenceUploadCommand;
-import io.attestry.workflow.application.shipment.result.EvidenceCompleteResult;
-import io.attestry.workflow.application.shipment.result.PresignedEvidenceUploadResult;
+import io.attestry.workflow.application.shipment.command.EvidenceCompleteResult;
+import io.attestry.workflow.application.shipment.command.PresignedEvidenceUploadResult;
 import io.attestry.workflow.application.support.EvidenceUploadSupport;
 import io.attestry.workflow.application.support.WorkflowAuthorizationSupport;
 import java.time.Clock;
@@ -51,6 +51,7 @@ class ShipmentEvidenceServiceTest {
     @BeforeEach
     void setUp() {
         service = new ShipmentEvidenceService(
+            new io.attestry.workflow.application.EvidenceProperties(),
             evidencePort,
             objectStoragePort,
             authorizationSupport,

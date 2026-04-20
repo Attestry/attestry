@@ -36,7 +36,7 @@ public class ActiveOwnerGuard {
         if (activeOwnerCount <= 1) {
             throw new UserAuthDomainException(
                 UserAuthErrorCode.LAST_ACTIVE_OWNER_REQUIRED,
-                "시스템에 최소 한 명의 관리자가 필요합니다."
+                "At least one active owner is required."
             );
         }
     }

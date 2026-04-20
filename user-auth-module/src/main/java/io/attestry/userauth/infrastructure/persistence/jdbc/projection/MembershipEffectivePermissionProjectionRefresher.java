@@ -1,5 +1,6 @@
 package io.attestry.userauth.infrastructure.persistence.jdbc.projection;
 
+import io.attestry.userauth.application.port.membership.MembershipPermissionProjectionRefreshPort;
 import java.time.OffsetDateTime;
 import java.time.ZoneOffset;
 import java.util.List;
@@ -9,7 +10,7 @@ import org.springframework.stereotype.Component;
 
 @Component
 @RequiredArgsConstructor
-public class MembershipEffectivePermissionProjectionRefresher {
+public class MembershipEffectivePermissionProjectionRefresher implements MembershipPermissionProjectionRefreshPort {
 
     private final NamedParameterJdbcTemplate jdbcTemplate;
 

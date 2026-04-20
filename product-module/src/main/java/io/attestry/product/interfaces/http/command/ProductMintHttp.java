@@ -10,6 +10,7 @@ import io.attestry.product.domain.ProductErrorCode;
 import io.attestry.product.interfaces.http.command.dto.request.MintedProductRequest;
 import io.attestry.product.interfaces.http.command.dto.response.BatchMintResponse;
 import io.attestry.product.interfaces.http.command.dto.response.MintedProductResponse;
+import jakarta.validation.Valid;
 import java.io.IOException;
 import lombok.RequiredArgsConstructor;
 import org.springframework.http.HttpStatus;
@@ -35,7 +36,7 @@ public class ProductMintHttp {
     @PreAuthorize("hasAuthority('SCOPE_BRAND_MINT')")
     public ApiResponse<MintedProductResponse> mint(
             @CurrentActor ProductActor actor,
-            @RequestBody MintedProductRequest request) {
+            @Valid @RequestBody MintedProductRequest request) {
         return ApiResponse.success(MintedProductResponse.from(mintUseCase.mint(
                 actor,
                 new MintProductCommand(

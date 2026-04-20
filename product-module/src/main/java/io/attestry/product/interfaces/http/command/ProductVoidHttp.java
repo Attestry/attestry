@@ -6,6 +6,7 @@ import io.attestry.product.application.common.ProductActor;
 import io.attestry.product.application.command.model.VoidCommand;
 import io.attestry.product.application.command.ProductVoidUseCase;
 import io.attestry.product.interfaces.http.command.dto.request.VoidRequest;
+import jakarta.validation.Valid;
 import io.attestry.product.interfaces.http.command.dto.response.VoidResponse;
 import lombok.RequiredArgsConstructor;
 import org.springframework.security.access.prepost.PreAuthorize;
@@ -27,7 +28,7 @@ public class ProductVoidHttp {
     public ApiResponse<VoidResponse> voidAsset(
         @CurrentActor ProductActor actor,
         @PathVariable("passportId") String passportId,
-        @RequestBody VoidRequest request
+        @Valid @RequestBody VoidRequest request
     ) {
         return ApiResponse.success(VoidResponse.from(voidUseCase.voidAsset(
             actor,

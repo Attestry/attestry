@@ -1,10 +1,6 @@
 package io.attestry.workflow.application.shipment.query;
 
 import io.attestry.workflow.application.common.WorkflowActorContext;
-import io.attestry.workflow.application.shipment.view.PagedReleaseCandidateView;
-import io.attestry.workflow.application.shipment.view.PagedShipmentView;
-import io.attestry.workflow.application.shipment.view.ShipmentDetailView;
-import io.attestry.workflow.application.shipment.view.ShipmentView;
 import java.util.List;
 
 public interface ShipmentQueryUseCase {
